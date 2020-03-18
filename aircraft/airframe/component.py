@@ -3,18 +3,33 @@
 Created on Thu Jan 20 20:20:20 2020
 
 @author: DRUOT Thierry, Nicolas Monrolin
+
+.. note:: All physical parameters are given in SI units.
 """
 
 import numpy as np
-
 import unit
-
 import earth
 
 
 class Component(object):
-    """
-    Define common features of all airplane components
+    """Define common features for all airplane components.
+
+    Every component of the :class:'Airframe' inherits the basic features written in :class:'Component'
+
+    **Attributs**
+        * aircraft : the aircraft to which the component belongs.
+        Needed for some pre-design methods (call to requirements) or multi-components interaction.
+        * frame_origin : [x,y,z] origin of the *local* coordinate system inside the global aircraft coordinate system.
+        * frame_angles : [psi,theta,phi] Euler angles to describe rotation of the local coordinate system.
+        * mass : the net mass of the component
+        * cg : [xg,yg,zg] the position of center of mass in **local** coordinates.
+        * inertia_tensor : the inertia tensor of the component
+        * gross_wet_area : wetted area of the component alone
+        * net_wet_area : wetted area of the component in the assembly (without footprints)
+        * aero_length : characteristic length of the component in the direction of the flow. Used for Reynolds number.
+        * form_factor : factor on skin friction to account for lift independent pressure drag
+
     """
     def __init__(self, aircraft):
         self.aircraft = aircraft
@@ -28,7 +43,7 @@ class Component(object):
 
         self.gross_wet_area = 0.    # wetted area of the component alone
         self.net_wet_area = 0.      # wetted area of the component in the assembly (without footprints)
-        self.aero_length = 0.       # characteristic length of the component in the dirction of the flow
+        self.aero_length = 0.       # characteristic length of the component in the direction of the flow
         self.form_factor = 0.       # factor on skin friction to account for lift independent pressure drag
 
     def get_mass_mwe(self):
@@ -808,7 +823,7 @@ class HTP_H(Component):
         self.c_g = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
 
 
-class Tank_wing_box(Component):
+class Tank_wing_box(Component): # TODO
 
     def __init__(self, aircraft):
 
