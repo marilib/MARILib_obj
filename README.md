@@ -14,7 +14,7 @@ property issues.
 
 * The third objective is to describe a case study for educational and training purposes.
 
-MARILib is distributed under the *Cecill C license*
+MARILib is distributed under the **Cecill C license**
 If you use MARILib for your research, the Cecill C license engages you to cite us :
 
 *Druot et al.*, ["A Multidisciplinary Airplane Research Integrated Library
