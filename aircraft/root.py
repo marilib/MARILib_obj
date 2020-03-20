@@ -26,8 +26,8 @@ class Weight_cg(object):
         design_range = requirement.design_range
 
         self.mtow = 20500. + 67.e-6*n_pax_ref*design_range
-        self.mlw = None
         self.mzfw = 25000. + 41.e-6*n_pax_ref*design_range
+        self.mlw = 1.07*self.mzfw
         self.owe = None
         self.mwe = None
 

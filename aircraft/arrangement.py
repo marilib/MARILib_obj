@@ -22,7 +22,7 @@ class Arrangement(object):
                       number_of_engine = "twin",       # "twin" or "quadri"
                       nacelle_attachment = "wing",     # "wing", "pod" or "rear"
                       power_architecture = "tf",       # "tf", "tp", "pte1", "ef1", "ep1",
-                      energy_source = "kerosene"       # "kerosene", "methane", "hydrogen" or "battery"):
+                      energy_source = "kerosene"       # "kerosene", "methane", "liquid_h2", "700bar_h2" or "battery"
                  ):
         """
         Data structure, only one sub-level allowed

@@ -35,7 +35,6 @@ class Component(object):
         self.aircraft = aircraft
 
         self.frame_origin = np.full(3,None)
-        self.frame_angles = np.full(3,None)
 
         self.mass = None
         self.cg = np.full(3,None)
@@ -47,13 +46,13 @@ class Component(object):
         self.form_factor = 0.       # factor on skin friction to account for lift independent pressure drag
 
     def get_mass_mwe(self):
-        raise NotImplementedError
+        raise self.mass
 
     def get_mass_owe(self):
         return self.mass
 
     def get_cg_mwe(self):
-        raise NotImplementedError
+        raise self.cg
 
     def get_cg_owe(self):
         raise self.cg
@@ -133,7 +132,6 @@ class Fuselage(Component):
 
     def eval_geometry(self):
         self.frame_origin = [0., 0., 0.]
-        self.frame_angles = [0., 0., 0.]
 
         cabin_width = self.aircraft.airframe.cabin.width
         cabin_length = self.aircraft.airframe.cabin.length
@@ -278,7 +276,6 @@ class Wing(Component):
         self.loc_mac = np.array([x_mac, y_mac, None])
 
         self.frame_origin = [x_root, 0., z_root]
-        self.frame_angles = [0., 0., 0.]
 
         self.gross_wet_area = 2.00*(self.area - self.c_root*fuselage_width)
         self.net_wet_area = self.gross_wet_area
@@ -427,7 +424,6 @@ class VTP_classic(Component):
         self.loc_mac = np.array([x_mac, y_mac, z_mac])
 
         self.frame_origin = [x_root, 0., z_root]
-        self.frame_angles = [0., 0., 0.]
 
         self.gross_wet_area = 2.01*self.area
         self.net_wet_area = self.gross_wet_area
@@ -501,7 +497,6 @@ class VTP_T(Component):
         self.loc_mac = np.array([x_mac, y_mac, z_mac])
 
         self.frame_origin = [x_root, 0., z_root]
-        self.frame_angles = [0., 0., 0.]
 
         self.gross_wet_area = 2.01*self.area
         self.net_wet_area = self.gross_wet_area
@@ -571,7 +566,6 @@ class VTP_H(Component):
         self.loc_mac = np.array([x_mac, y_mac, z_mac])
 
         self.frame_origin = [x_root, y_root, z_root]
-        self.frame_angles = [0., 0., 0.]
 
         self.gross_wet_area = 2.01*self.area
         self.net_wet_area = self.gross_wet_area
@@ -650,7 +644,6 @@ class HTP_classic(Component):
         self.loc_mac = np.array([x_mac, y_mac, z_mac])
 
         self.frame_origin = self.loc_axe
-        self.frame_angles = [0., 0., 0.]
 
         self.gross_wet_area = 1.63*self.area
         self.net_wet_area = self.gross_wet_area
@@ -730,7 +723,6 @@ class HTP_T(Component):
         self.loc_mac = np.array([x_mac, y_mac, z_mac])
 
         self.frame_origin = self.loc_axe
-        self.frame_angles = [0., 0., 0.]
 
         self.gross_wet_area = 2.01*self.area
         self.net_wet_area = self.gross_wet_area
@@ -810,7 +802,6 @@ class HTP_H(Component):
         self.loc_mac = np.array([x_mac, y_mac, z_mac])
 
         self.frame_origin = self.loc_axe
-        self.frame_angles = [0., 0., 0.]
 
         self.gross_wet_area = 1.63*self.area
         self.net_wet_area = self.gross_wet_area
@@ -823,55 +814,240 @@ class HTP_H(Component):
         self.c_g = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
 
 
-# class Tank_wing_box(Component): # TODO
-#
-#     def __init__(self, aircraft):
-#
-#         super(Tank_wing_box, self).__init__(aircraft)
-#
-#         self.cantilever_volume = None
-#         self.central_volume = None
-#         self.max_volume = None
-#         self.mfw_volume_limited = None
-#
-#         self.m_furnishing = None
-#         self.m_op_item = None
-#
-#         self.cg_furnishing = None
-#         self.cg_op_item = None
-#
-#     def eval_geometry(self):
-#
-#         tanks.cantilever_volume =   0.275 \
-#                                   * (wing.area*wing.mac*(0.50*wing.t_o_c_r + 0.30*wing.t_o_c_k + 0.20*wing.t_o_c_t)) \
-#                                   * (1. - tanks.structure_ratio)
-#
-#         tanks.central_volume =   1.3 \
-#                                * fuselage.width * wing.t_o_c_r * wing.mac**2 \
-#                                * (1. - tanks.structure_ratio)
-#
-#         # IMPORTANT REMARK : if fuel is "Battery", fuel density will be battery density
-#         tanks.fuel_density = earth.fuel_density(propulsion.fuel_type)
-#
-#         tanks.max_volume = tanks.central_volume + tanks.cantilever_volume
-#
-#         tanks.mfw_volume_limited = tanks.max_volume*tanks.fuel_density
-#
-#         tanks.fuel_cantilever_cg =  0.25*(wing.x_root + 0.40*wing.c_root) \
-#                                   + 0.65*(wing.x_kink + 0.40*wing.c_kink) \
-#                                   + 0.10*(wing.x_tip + 0.40*wing.c_tip)
-#
-#         tanks.fuel_central_cg = wing.x_root + 0.30*wing.c_root
-#
-#         tanks.fuel_total_cg = (  tanks.fuel_central_cg*tanks.central_volume \
-#                                + tanks.fuel_cantilever_cg*tanks.cantilever_volume \
-#                                ) / (tanks.central_volume + tanks.cantilever_volume)
-#
-#
-#
-#     def eval_mass(self):
+class Tank_wing_box(Component):
+
+    def __init__(self, aircraft):
+
+        super(Tank_wing_box, self).__init__(aircraft)
+
+        self.structure_ratio = 0.
+        self.fuel_density = None
+
+        self.cantilever_volume = None
+        self.central_volume = None
+        self.max_volume = None
+        self.mfw_volume_limited = None
+
+        self.fuel_max_fwd_cg = None
+        self.fuel_max_fwd_mass = None
+        self.fuel_max_bwd_cg = None
+        self.fuel_max_bwd_mass = None
+
+    def eval_geometry(self):
+        fuselage_width = self.aircraft.airframe.fuselage.width
+        wing_area = self.aircraft.airframe.wing.area
+        wing_mac = self.aircraft.airframe.wing.mac
+        wing_toc_root = self.aircraft.airframe.wing.toc_root
+        wing_loc_root = self.aircraft.airframe.wing.loc_root
+        wing_toc_kink = self.aircraft.airframe.wing.toc_kink
+        wing_toc_tip = self.aircraft.airframe.wing.toc_tip
+
+        self.cantilever_volume =   0.275 \
+                                 * (wing_area*wing_mac*(0.50*wing_toc_root + 0.30*wing_toc_kink + 0.20*wing_toc_tip)) \
+                                 * (1. - self.structure_ratio)
+
+        self.central_volume =   1.3 \
+                              * fuselage_width * wing_toc_root * wing_mac**2 \
+                              * (1. - self.structure_ratio)
+
+        self.max_volume = self.central_volume + self.cantilever_volume
+
+        self.frame_origin = [wing_loc_root[0], 0., wing_loc_root[2]]
+
+    def eval_mass(self):
+        energy_source = self.aircraft.arrangement.energy_source
+        wing_c_root = self.aircraft.airframe.wing.c_root
+        wing_loc_root = self.aircraft.airframe.wing.loc_root
+        wing_c_kink = self.aircraft.airframe.wing.c_kink
+        wing_loc_kink = self.aircraft.airframe.wing.loc_kink
+        wing_c_tip = self.aircraft.airframe.wing.c_tip
+        wing_loc_tip = self.aircraft.airframe.wing.loc_tip
+
+        self.fuel_cantilever_cg =  0.25*(wing_loc_root + 0.40*np.array([wing_c_root, 0., 0.])) \
+                                  + 0.65*(wing_loc_kink + 0.40*np.array([wing_c_kink, 0., 0.])) \
+                                  + 0.10*(wing_loc_tip + 0.40*np.array([wing_c_tip, 0., 0.]))
+
+        self.fuel_central_cg = wing_loc_root + 0.40*np.array([wing_c_root, 0., 0.])
+
+        self.fuel_total_cg = (  self.fuel_central_cg*self.central_volume
+                              + self.fuel_cantilever_cg*self.cantilever_volume
+                              ) / (self.central_volume + self.cantilever_volume)
+
+        # REMARK : if energy_source is "Battery", fuel density will be battery density
+        self.fuel_density = earth.fuel_density(energy_source)
+        self.mfw_volume_limited = self.max_volume*self.fuel_density
+
+        cant_str_volume = self.cantilever_volume / (1. - self.structure_ratio)*self.structure_ratio
+        cent_str_volume = self.central_volume / (1. - self.structure_ratio)*self.structure_ratio
+
+        self.mass = 1750.*(cant_str_volume + cent_str_volume)
+        self.cg = self.fuel_total_cg
+
+        self.fuel_max_fwd_cg = self.fuel_central_cg    # Fuel max forward CG, central tank is forward only within backward swept wing
+        self.fuel_max_fwd_mass = self.central_volume*self.fuel_density
+
+        self.fuel_max_bwd_cg = self.fuel_cantilever_cg    # Fuel max Backward CG
+        self.fuel_max_bwd_mass = self.cantilever_volume*self.fuel_density
 
 
+class Tank_wing_pod(Component):
+
+    def __init__(self, aircraft):
+
+        super(Tank_wing_pod, self).__init__(aircraft)
+
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        n_pax_front = self.aircraft.requirement.n_pax_front
+        n_aisle = self.aircraft.requirement.n_aisle
+
+        self.structure_ratio = 0.05
+        self.surface_mass = 50.
+        self.fuel_density = None
+
+        self.pod_length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
+        self.pod_width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        self.pod_volume = None
+        self.max_volume = None
+        self.mfw_volume_limited = None
+
+        self.fuel_max_fwd_cg = None
+        self.fuel_max_fwd_mass = None
+        self.fuel_max_bwd_cg = None
+        self.fuel_max_bwd_mass = None
+
+    def eval_geometry(self):
+        fuselage_width = self.aircraft.airframe.fuselage.width
+        wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_dihedral = self.aircraft.airframe.wing.dihedral
+        wing_loc_root = self.aircraft.airframe.wing.loc_root
+        wing_c_kink = self.aircraft.airframe.wing.c_kink
+        wing_loc_kink = self.aircraft.airframe.wing.loc_kink
+        wing_c_tip = self.aircraft.airframe.wing.c_tip
+        wing_loc_tip = self.aircraft.airframe.wing.loc_tip
+
+        tan_phi0 = 0.25*(wing_c_kink-wing_c_tip)/(wing_loc_tip[1]-wing_loc_kink[1]) + np.tan(wing_sweep25)
+
+        if (self.aircraft.arrangement.nacelle_attachment == "pod"):
+            pod_y_axe = 0.8 * fuselage_width + 1.5 * self.pod_width
+        else:
+            pod_y_axe = 0.8 * fuselage_width + 3.0 * self.pod_width
+
+        pod_x_axe = wing_loc_root[0] + (pod_y_axe-wing_loc_root[1])*tan_phi0 - 0.40*self.pod_length
+        pod_z_axe = (pod_y_axe - 0.5 * fuselage_width) * np.tan(wing_dihedral)
+
+        self.frame_origin = [pod_x_axe, pod_y_axe, pod_z_axe]
+
+        wing_c_axe = wing_c_kink - (wing_c_kink-wing_c_tip)/(wing_loc_tip[1]-wing_loc_kink[1])*(pod_y_axe-wing_loc_kink[1])
+        wing_x_axe = wing_loc_kink[0] - (wing_loc_kink[0]-wing_loc_tip[0])/(wing_loc_tip[1]-wing_loc_kink[1])*(pod_y_axe-wing_loc_kink[1])
+
+        self.pod_net_wetted_area = 2.*(0.85*3.14*self.pod_width*self.pod_length)
+        self.aero_length = self.pod_length
+        self.form_factor = 1.05
+
+        self.pod_volume =   0.85 \
+                          * 2.0*self.pod_length*(0.25*np.pi*self.pod_width**2) \
+                          * (1. - self.structure_ratio)                             # for both pods
+
+        self.max_volume = self.pod_volume
+
+    def eval_mass(self):
+        energy_source = self.aircraft.arrangement.energy_source
+
+        # REMARK : if fuel is "Battery", fuel density will be battery density
+        self.fuel_density = earth.fuel_density(energy_source)
+        self.mfw_volume_limited = self.max_volume*self.fuel_density
+
+        self.mass = self.pod_net_wetted_area*self.surface_mass
+        self.cg = self.frame_origin + 0.45*np.array([self.pod_length, 0., 0.])
+
+        self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
+        self.fuel_max_fwd_mass = self.pod_volume*self.fuel_density
+
+        self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
+        self.fuel_max_bwd_mass = self.pod_volume*self.fuel_density
 
 
+class Tank_piggy_back(Component):
 
+    def __init__(self, aircraft):
+
+        super(Tank_piggy_back, self).__init__(aircraft)
+
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        n_pax_front = self.aircraft.requirement.n_pax_front
+        n_aisle = self.aircraft.requirement.n_aisle
+
+        self.structure_ratio = 0.05
+        self.surface_mass = 50.
+        self.fuel_density = None
+
+        self.pod_length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
+        self.pod_width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        self.pod_volume = None
+        self.max_volume = None
+        self.mfw_volume_limited = None
+
+        self.fuel_max_fwd_cg = None
+        self.fuel_max_fwd_mass = None
+        self.fuel_max_bwd_cg = None
+        self.fuel_max_bwd_mass = None
+
+    def eval_geometry(self):
+        fuselage_width = self.aircraft.airframe.fuselage.width
+        wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_dihedral = self.aircraft.airframe.wing.dihedral
+        wing_loc_mac = self.aircraft.airframe.wing.loc_mac
+        wing_c_kink = self.aircraft.airframe.wing.c_kink
+        wing_loc_kink = self.aircraft.airframe.wing.loc_kink
+        wing_c_tip = self.aircraft.airframe.wing.c_tip
+        wing_loc_tip = self.aircraft.airframe.wing.loc_tip
+
+        pod_x_axe = wing_loc_mac[0] - 0.35*self.pod_length
+        pod_y_axe = 0.
+        pod_z_axe = 1.07*fuselage_width + 0.85*self.pod_width
+
+        self.frame_origin = [pod_x_axe, pod_y_axe, pod_z_axe]
+
+        self.pod_net_wetted_area = 0.85*3.14*self.pod_width*self.pod_length
+        self.aero_length = self.pod_length
+        self.form_factor = 1.05
+
+        self.pod_volume =   0.85 \
+                          * self.pod_length*(0.25*np.pi*self.pod_width**2) \
+                          * (1. - self.structure_ratio)
+
+        self.max_volume = self.pod_volume
+
+    def eval_mass(self):
+        energy_source = self.aircraft.arrangement.energy_source
+
+        # REMARK : if fuel is "Battery", fuel density will be battery density
+        self.fuel_density = earth.fuel_density(energy_source)
+        self.mfw_volume_limited = self.max_volume*self.fuel_density
+
+        self.mass = self.pod_net_wetted_area*self.surface_mass
+        self.cg = self.frame_origin[0] + 0.45*np.array([self.pod_length, 0., 0.])
+
+        self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
+        self.fuel_max_fwd_mass = self.pod_volume*self.fuel_density
+
+        self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
+        self.fuel_max_bwd_mass = self.pod_volume*self.fuel_density
+
+
+class Landing_gear(Component):
+
+    def __init__(self, aircraft):
+        super(Landing_gear, self).__init__(aircraft)
+
+    def eval_geometry(self):
+        pass
+
+    def eval_mass(self):
+        mtow = self.aircraft.weight_cg.mtow
+        mlw = self.aircraft.weight_cg.mlw
+        wing_c_root = self.aircraft.airframe.wing.c_root
+        wing_loc_root = self.aircraft.airframe.wing.loc_root
+
+        self.mass = 0.02*mtow**1.03 + 0.012*mlw    # Landing gears
+        self.c_g = wing_loc_root[0] + 0.70*wing_c_root

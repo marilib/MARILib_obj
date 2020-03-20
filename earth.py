@@ -444,18 +444,18 @@ def fuel_density(fuel_type):
     """
     Reference fuel density
     """
-    if (fuel_type=="Kerosene"):
+    if (fuel_type=="kerosene"):
         fuel_density = 803. # Kerosene : between 775-840 kg/m3
-    elif (fuel_type=="LH2"):
+    elif (fuel_type=="liquid_h2"):
         fuel_density = 70.8 # Liquid hydrogene
-    elif (fuel_type=="700barH2"):
+    elif (fuel_type=="700bar_h2"):
         fuel_density = 42. # hydrogene at 700bar
-    elif (fuel_type=="Methane"):
+    elif (fuel_type=="methane"):
         fuel_density = 422.6 # Liquid methane
-    elif (fuel_type=="Battery"):
+    elif (fuel_type=="battery"):
         fuel_density = 2800. # Lithium-ion
     else:
-        raise Exception("fuel_type index is out of range")
+        raise Exception("fuel_type index is unknown")
     return fuel_density
 
 #===========================================================================================================
@@ -463,11 +463,11 @@ def fuel_heat(fuel_type):
     """
     Reference fuel lower heating value or battery energy density
     """
-    if (fuel_type=="Kerosene"):
+    if (fuel_type=="kerosene"):
         fuel_heat = 43.1e6 # J/kg, kerosene
-    elif (fuel_type=="LH2" or fuel_type=="700barH2"):
+    elif (fuel_type=="liquid_h2" or fuel_type=="700bar_h2"):
         fuel_heat = 121.0e6 # J/kg, hydrogene
-    elif (fuel_type=="Methane"):
+    elif (fuel_type=="methane"):
         fuel_heat = 50.3e6 # J/kg, Liquid methane
     else:
         raise Exception("fuel_type index is out of range")
