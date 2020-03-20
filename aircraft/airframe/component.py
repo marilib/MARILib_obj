@@ -823,53 +823,53 @@ class HTP_H(Component):
         self.c_g = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
 
 
-class Tank_wing_box(Component): # TODO
-
-    def __init__(self, aircraft):
-
-        super(Tank_wing_box, self).__init__(aircraft)
-
-        self.cantilever_volume = None
-        self.central_volume = None
-        self.max_volume = None
-        self.mfw_volume_limited = None
-
-        self.m_furnishing = None
-        self.m_op_item = None
-
-        self.cg_furnishing = None
-        self.cg_op_item = None
-
-    def eval_geometry(self):
-
-        tanks.cantilever_volume =   0.275 \
-                                  * (wing.area*wing.mac*(0.50*wing.t_o_c_r + 0.30*wing.t_o_c_k + 0.20*wing.t_o_c_t)) \
-                                  * (1. - tanks.structure_ratio)
-
-        tanks.central_volume =   1.3 \
-                               * fuselage.width * wing.t_o_c_r * wing.mac**2 \
-                               * (1. - tanks.structure_ratio)
-
-        # IMPORTANT REMARK : if fuel is "Battery", fuel density will be battery density
-        tanks.fuel_density = earth.fuel_density(propulsion.fuel_type)
-
-        tanks.max_volume = tanks.central_volume + tanks.cantilever_volume
-
-        tanks.mfw_volume_limited = tanks.max_volume*tanks.fuel_density
-
-        tanks.fuel_cantilever_cg =  0.25*(wing.x_root + 0.40*wing.c_root) \
-                                  + 0.65*(wing.x_kink + 0.40*wing.c_kink) \
-                                  + 0.10*(wing.x_tip + 0.40*wing.c_tip)
-
-        tanks.fuel_central_cg = wing.x_root + 0.30*wing.c_root
-
-        tanks.fuel_total_cg = (  tanks.fuel_central_cg*tanks.central_volume \
-                               + tanks.fuel_cantilever_cg*tanks.cantilever_volume \
-                               ) / (tanks.central_volume + tanks.cantilever_volume)
-
-
-
-    def eval_mass(self):
+# class Tank_wing_box(Component): # TODO
+#
+#     def __init__(self, aircraft):
+#
+#         super(Tank_wing_box, self).__init__(aircraft)
+#
+#         self.cantilever_volume = None
+#         self.central_volume = None
+#         self.max_volume = None
+#         self.mfw_volume_limited = None
+#
+#         self.m_furnishing = None
+#         self.m_op_item = None
+#
+#         self.cg_furnishing = None
+#         self.cg_op_item = None
+#
+#     def eval_geometry(self):
+#
+#         tanks.cantilever_volume =   0.275 \
+#                                   * (wing.area*wing.mac*(0.50*wing.t_o_c_r + 0.30*wing.t_o_c_k + 0.20*wing.t_o_c_t)) \
+#                                   * (1. - tanks.structure_ratio)
+#
+#         tanks.central_volume =   1.3 \
+#                                * fuselage.width * wing.t_o_c_r * wing.mac**2 \
+#                                * (1. - tanks.structure_ratio)
+#
+#         # IMPORTANT REMARK : if fuel is "Battery", fuel density will be battery density
+#         tanks.fuel_density = earth.fuel_density(propulsion.fuel_type)
+#
+#         tanks.max_volume = tanks.central_volume + tanks.cantilever_volume
+#
+#         tanks.mfw_volume_limited = tanks.max_volume*tanks.fuel_density
+#
+#         tanks.fuel_cantilever_cg =  0.25*(wing.x_root + 0.40*wing.c_root) \
+#                                   + 0.65*(wing.x_kink + 0.40*wing.c_kink) \
+#                                   + 0.10*(wing.x_tip + 0.40*wing.c_tip)
+#
+#         tanks.fuel_central_cg = wing.x_root + 0.30*wing.c_root
+#
+#         tanks.fuel_total_cg = (  tanks.fuel_central_cg*tanks.central_volume \
+#                                + tanks.fuel_cantilever_cg*tanks.cantilever_volume \
+#                                ) / (tanks.central_volume + tanks.cantilever_volume)
+#
+#
+#
+#     def eval_mass(self):
 
 
 
