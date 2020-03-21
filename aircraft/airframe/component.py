@@ -141,7 +141,7 @@ class Fuselage(Component):
         self.aircraft.airframe.cabin.frame_origin = [fwd_limit, 0., 0.]     # cabin position inside the fuselage
         self.aircraft.airframe.cabin.frame_angles = [0., 0., 0.]            # cabin orientation inside the fuselage
 
-        self.width = cabin_width + 0.4      # Fuselage walls are supposed 0.2m thick
+        self.width = cabin_width + 0.4      # fuselage walls are supposed 0.2m thick
         self.height = 1.25*(cabin_width - 0.15)
         self.length = fwd_limit + cabin_length + 1.50*self.width
         self.tail_cone_length = 3.45*self.width
@@ -201,9 +201,9 @@ class Wing(Component):
     def eval_geometry(self):
         wing_attachment = self.aircraft.arrangement.wing_attachment
         cruise_mach = self.aircraft.requirement.cruise_mach
-        fuselage_width = self.aircraft.airframe.fuselage.width
-        fuselage_length = self.aircraft.airframe.fuselage.length
-        fuselage_height = self.aircraft.airframe.fuselage.height
+        body_width = self.aircraft.airframe.body.width
+        body_length = self.aircraft.airframe.body.length
+        body_height = self.aircraft.airframe.body.height
 
         self.toc_tip = 0.10
         self.toc_kink = self.toc_tip + 0.01
@@ -220,7 +220,7 @@ class Wing(Component):
         else:
             print("geometry_predesign_, wing_morphing index is unkown")
 
-        y_root = 0.5*fuselage_width
+        y_root = 0.5*body_width
         y_kink = self.loc_kink[0]
         y_tip = 0.5*self.span
 
@@ -255,7 +255,7 @@ class Wing(Component):
                        +(y_tip-y_kink)*(self.c_kink*2.+self.c_tip))+(y_tip-y_root)*tan_phi0*(y_tip-y_kink)*(self.c_tip*2.+self.c_kink) \
                       )/(3*self.area)
 
-        x_root = 0.33*fuselage_length**1.1 - (x_mac_local + 0.25*self.mac)
+        x_root = 0.33*body_length**1.1 - (x_mac_local + 0.25*self.mac)
         x_kink = x_root + (y_kink-y_root)*tan_phi0
         x_tip = x_root + (y_tip-y_root)*tan_phi0
 
@@ -265,7 +265,7 @@ class Wing(Component):
         if (wing_attachment=="low"):
             z_root = 0.
         else:
-            z_root = fuselage_height - 0.5*self.toc_root*self.c_root
+            z_root = body_height - 0.5*self.toc_root*self.c_root
 
         z_kink = z_root+(y_kink-y_root)*np.tan(self.dihedral)
         z_tip = z_root+(y_tip-y_root)*np.tan(self.dihedral)
@@ -277,7 +277,7 @@ class Wing(Component):
 
         self.frame_origin = [x_root, 0., z_root]
 
-        self.gross_wet_area = 2.00*(self.area - self.c_root*fuselage_width)
+        self.gross_wet_area = 2.00*(self.area - self.c_root*body_width)
         self.net_wet_area = self.gross_wet_area
 
         self.aero_length = self.mac
@@ -295,7 +295,7 @@ class Wing(Component):
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(rca,disa)
 
-        cza_wing = self.cza(mach, fuselage_width, self.aspect_ratio, self.span, self.sweep25)
+        cza_wing = self.cza(mach, body_width, self.aspect_ratio, self.span, self.sweep25)
 
         # AoA = 2.5° at cruise start
         self.setting = (0.97*mass*g)/(0.5*gam*pamb*mach**2*self.area*cza_wing) - unit.rad_deg(2.5)
@@ -320,11 +320,11 @@ class Wing(Component):
                  + 0.55*(self.loc_kink + 0.40*np.array([self.c_kink, 0., 0.])) \
                  + 0.20*(self.loc_tip + 0.40*np.array([self.c_tip, 0., 0.]))
 
-    def  cza(self, mach, fuselage_width, aspect_ratio, span, sweep):
+    def  cza(self, mach, body_width, aspect_ratio, span, sweep):
         """
         Polhamus formula
         """
-        cza =  (np.pi*aspect_ratio*(1.07*(1+fuselage_width/span)**2)*(1.-fuselage_width/span)) \
+        cza =  (np.pi*aspect_ratio*(1.07*(1+body_width/span)**2)*(1.-body_width/span)) \
              / (1+np.sqrt(1.+0.25*aspect_ratio**2*(1+np.tan(sweep)**2-mach**2)))
         return cza
 
@@ -391,9 +391,9 @@ class VTP_classic(Component):
         self.mac = None
 
     def eval_geometry(self):
-        fuselage_length = self.aircraft.airframe.fuselage.length
-        fuselage_height = self.aircraft.airframe.fuselage.height
-        tail_cone_length = self.aircraft.airframe.fuselage.tail_cone_length
+        body_length = self.aircraft.airframe.body.length
+        body_height = self.aircraft.airframe.body.height
+        tail_cone_length = self.aircraft.airframe.body.tail_cone_length
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
 
         self.height = np.sqrt(self.aspect_ratio*self.area)
@@ -402,14 +402,14 @@ class VTP_classic(Component):
 
         self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
 
-        self.x_anchor = 0.85       # Locate self versus end fuselage length
-        x_root = fuselage_length*(1-tail_cone_length/fuselage_length*(1-self.x_anchor)) - self.c_root
+        self.x_anchor = 0.85       # Locate self versus end body length
+        x_root = body_length*(1-tail_cone_length/body_length*(1-self.x_anchor)) - self.c_root
         x_tip = x_root + 0.25*(self.c_root-self.c_tip) + self.height*np.tan(self.sweep25)
 
         y_root = 0.
         y_tip = 0.
 
-        z_root = fuselage_height
+        z_root = body_height
         z_tip = z_root + self.height
 
         self.mac = self.height*(self.c_root**2+self.c_tip**2+self.c_root*self.c_tip)/(3*self.area)
@@ -433,7 +433,7 @@ class VTP_classic(Component):
 
     def eval_mass(self):
         self.mass = 25. * self.area
-        self.c_g = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
+        self.cg = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
 
 
 class VTP_T(Component):
@@ -464,9 +464,9 @@ class VTP_T(Component):
         self.mac = None
 
     def eval_geometry(self):
-        fuselage_length = self.aircraft.airframe.fuselage.length
-        fuselage_height = self.aircraft.airframe.fuselage.height
-        tail_cone_length = self.aircraft.airframe.fuselage.tail_cone_length
+        body_length = self.aircraft.airframe.body.length
+        body_height = self.aircraft.airframe.body.height
+        tail_cone_length = self.aircraft.airframe.body.tail_cone_length
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
 
         self.height = np.sqrt(self.aspect_ratio*self.area)
@@ -475,14 +475,14 @@ class VTP_T(Component):
 
         self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
 
-        self.x_anchor = 0.85       # Locate self versus end fuselage length
-        x_root = fuselage_length*(1-tail_cone_length/fuselage_length*(1-self.x_anchor)) - self.c_root
+        self.x_anchor = 0.85       # Locate self versus end body length
+        x_root = body_length*(1-tail_cone_length/body_length*(1-self.x_anchor)) - self.c_root
         x_tip = x_root + 0.25*(self.c_root-self.c_tip) + self.height*np.tan(self.sweep25)
 
         y_root = 0.
         y_tip = 0.
 
-        z_root = fuselage_height
+        z_root = body_height
         z_tip = z_root + self.height
 
         self.mac = self.height*(self.c_root**2+self.c_tip**2+self.c_root*self.c_tip)/(3*self.area)
@@ -506,7 +506,7 @@ class VTP_T(Component):
 
     def eval_mass(self):
         self.mass = 28. * self.area
-        self.c_g = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
+        self.cg = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
 
 
 class VTP_H(Component):
@@ -575,7 +575,7 @@ class VTP_H(Component):
 
     def eval_mass(self):
         self.mass = 25. * self.area
-        self.c_g = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
+        self.cg = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
 
 
 class HTP_classic(Component):
@@ -606,7 +606,7 @@ class HTP_classic(Component):
         self.mac = None
 
     def eval_geometry(self):
-        fuselage_height = self.aircraft.airframe.fuselage.height
+        body_height = self.aircraft.airframe.body.height
         vtp_loc_root = self.aircraft.airframe.vertical_stab.loc_root
         vtp_c_root = self.aircraft.airframe.vertical_stab.c_root
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
@@ -617,8 +617,8 @@ class HTP_classic(Component):
         y_axe = 0.
         y_tip = 0.5*self.span
 
-        htp_z_wise_anchor = 0.80       # Locate HTP versus end fuselage height
-        z_axe = htp_z_wise_anchor*fuselage_height
+        htp_z_wise_anchor = 0.80       # Locate HTP versus end body height
+        z_axe = htp_z_wise_anchor*body_height
         z_tip = z_axe + y_tip*np.tan(self.dihedral)
 
         self.c_axe = 2.*self.area/(self.span*(1+self.taper_ratio))
@@ -653,7 +653,7 @@ class HTP_classic(Component):
 
     def eval_mass(self):
         self.mass = 22. * self.area
-        self.c_g = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
+        self.cg = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
 
 
 class HTP_T(Component):
@@ -684,7 +684,7 @@ class HTP_T(Component):
         self.mac = None
 
     def eval_geometry(self):
-        fuselage_height = self.aircraft.airframe.fuselage.height
+        body_height = self.aircraft.airframe.body.height
         vtp_loc_tip = self.aircraft.airframe.vertical_stab.loc_tip
         vtp_c_tip = self.aircraft.airframe.vertical_stab.c_tip
         vtp_height = self.aircraft.airframe.vertical_stab.height
@@ -696,8 +696,8 @@ class HTP_T(Component):
         y_axe = 0.
         y_tip = 0.5*self.span
 
-        htp_z_wise_anchor = 0.80       # Locate HTP versus end fuselage height
-        z_axe = fuselage_height + vtp_height
+        htp_z_wise_anchor = 0.80       # Locate HTP versus end body height
+        z_axe = body_height + vtp_height
         z_tip = z_axe + y_tip*np.tan(self.dihedral)
 
         self.c_axe = 2.*self.area/(self.span*(1+self.taper_ratio))
@@ -732,7 +732,7 @@ class HTP_T(Component):
 
     def eval_mass(self):
         self.mass = 22. * self.area
-        self.c_g = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
+        self.cg = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
 
 
 class HTP_H(Component):
@@ -763,9 +763,9 @@ class HTP_H(Component):
         self.mac = None
 
     def eval_geometry(self):
-        fuselage_length = self.aircraft.airframe.fuselage.length
-        fuselage_height = self.aircraft.airframe.fuselage.height
-        fuselage_cone_length = self.aircraft.airframe.fuselage.tail_cone_length
+        body_length = self.aircraft.airframe.body.length
+        body_height = self.aircraft.airframe.body.height
+        body_cone_length = self.aircraft.airframe.body.tail_cone_length
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_loc_mac = self.aircraft.airframe.wing.loc_mac
         wing_mac = self.aircraft.airframe.wing.mac
@@ -774,8 +774,8 @@ class HTP_H(Component):
         y_axe = 0.
         y_tip = 0.5*self.span
 
-        htp_z_wise_anchor = 0.80       # Locate HTP versus end fuselage height
-        z_axe = htp_z_wise_anchor*fuselage_height
+        htp_z_wise_anchor = 0.80       # Locate HTP versus end body height
+        z_axe = htp_z_wise_anchor*body_height
         z_tip = z_axe + y_tip*np.tan(self.dihedral)
 
         self.c_axe = 2.*self.area/(self.span*(1+self.taper_ratio))
@@ -790,7 +790,7 @@ class HTP_H(Component):
         x_mac_local = y_tip*x_tip_local*(self.c_tip*2.+self.c_axe)/(3.*self.area)
 
         htp_x_wise_anchor = 0.85
-        x_axe = fuselage_length*(1-fuselage_cone_length/fuselage_length*(1-htp_x_wise_anchor)) - self.c_axe
+        x_axe = body_length*(1-body_cone_length/body_length*(1-htp_x_wise_anchor)) - self.c_axe
 
         x_tip = x_axe + x_tip_local
         x_mac = x_axe + x_mac_local
@@ -811,7 +811,7 @@ class HTP_H(Component):
 
     def eval_mass(self):
         self.mass = 22. * self.area
-        self.c_g = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
+        self.cg = self.loc_mac + 0.20*np.array([self.mac, 0., 0.])
 
 
 class Tank_wing_box(Component):
@@ -834,7 +834,7 @@ class Tank_wing_box(Component):
         self.fuel_max_bwd_mass = None
 
     def eval_geometry(self):
-        fuselage_width = self.aircraft.airframe.fuselage.width
+        body_width = self.aircraft.airframe.body.width
         wing_area = self.aircraft.airframe.wing.area
         wing_mac = self.aircraft.airframe.wing.mac
         wing_toc_root = self.aircraft.airframe.wing.toc_root
@@ -847,7 +847,7 @@ class Tank_wing_box(Component):
                                  * (1. - self.structure_ratio)
 
         self.central_volume =   1.3 \
-                              * fuselage_width * wing_toc_root * wing_mac**2 \
+                              * body_width * wing_toc_root * wing_mac**2 \
                               * (1. - self.structure_ratio)
 
         self.max_volume = self.central_volume + self.cantilever_volume
@@ -916,7 +916,7 @@ class Tank_wing_pod(Component):
         self.fuel_max_bwd_mass = None
 
     def eval_geometry(self):
-        fuselage_width = self.aircraft.airframe.fuselage.width
+        body_width = self.aircraft.airframe.body.width
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_dihedral = self.aircraft.airframe.wing.dihedral
         wing_loc_root = self.aircraft.airframe.wing.loc_root
@@ -928,12 +928,12 @@ class Tank_wing_pod(Component):
         tan_phi0 = 0.25*(wing_c_kink-wing_c_tip)/(wing_loc_tip[1]-wing_loc_kink[1]) + np.tan(wing_sweep25)
 
         if (self.aircraft.arrangement.nacelle_attachment == "pod"):
-            pod_y_axe = 0.8 * fuselage_width + 1.5 * self.pod_width
+            pod_y_axe = 0.8 * body_width + 1.5 * self.pod_width
         else:
-            pod_y_axe = 0.8 * fuselage_width + 3.0 * self.pod_width
+            pod_y_axe = 0.8 * body_width + 3.0 * self.pod_width
 
         pod_x_axe = wing_loc_root[0] + (pod_y_axe-wing_loc_root[1])*tan_phi0 - 0.40*self.pod_length
-        pod_z_axe = (pod_y_axe - 0.5 * fuselage_width) * np.tan(wing_dihedral)
+        pod_z_axe = (pod_y_axe - 0.5 * body_width) * np.tan(wing_dihedral)
 
         self.frame_origin = [pod_x_axe, pod_y_axe, pod_z_axe]
 
@@ -993,7 +993,7 @@ class Tank_piggy_back(Component):
         self.fuel_max_bwd_mass = None
 
     def eval_geometry(self):
-        fuselage_width = self.aircraft.airframe.fuselage.width
+        body_width = self.aircraft.airframe.body.width
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_dihedral = self.aircraft.airframe.wing.dihedral
         wing_loc_mac = self.aircraft.airframe.wing.loc_mac
@@ -1004,7 +1004,7 @@ class Tank_piggy_back(Component):
 
         pod_x_axe = wing_loc_mac[0] - 0.35*self.pod_length
         pod_y_axe = 0.
-        pod_z_axe = 1.07*fuselage_width + 0.85*self.pod_width
+        pod_z_axe = 1.07*body_width + 0.85*self.pod_width
 
         self.frame_origin = [pod_x_axe, pod_y_axe, pod_z_axe]
 
@@ -1050,4 +1050,30 @@ class Landing_gear(Component):
         wing_loc_root = self.aircraft.airframe.wing.loc_root
 
         self.mass = 0.02*mtow**1.03 + 0.012*mlw    # Landing gears
-        self.c_g = wing_loc_root[0] + 0.70*wing_c_root
+        self.cg = wing_loc_root[0] + 0.70*wing_c_root
+
+
+class System(Component):
+
+    def __init__(self, aircraft):
+        super(System, self).__init__(aircraft)
+
+    def eval_geometry(self):
+        pass
+
+    def eval_mass(self):
+        mtow = self.aircraft.weight_cg.mtow
+        body_cg = self.aircraft.airframe.body.cg
+        wing_cg = self.aircraft.airframe.wing.cg
+        horizontal_stab_cg = self.aircraft.airframe.horizontal_stab.cg
+        vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
+        landing_gear_cg = self.aircraft.airframe.landing_gear.cg
+
+        self.mass = 0.545*mtow**0.8    # global mass of all systems
+
+        self.cg =   0.50*body_cg \
+                  + 0.20*wing_cg \
+                  + 0.10*landing_gear_cg \
+                  + 0.05*horizontal_stab_cg \
+                  + 0.05*vertical_stab_cg
+    #              + 0.10*power_system_cg \         # TODO

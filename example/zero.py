@@ -46,7 +46,7 @@ def factory(name = "my_plane",
     ac.airframe.cabin = component.Cabin(ac)
 
     if (ac.arrangement.body_type=="fuselage"):
-        ac.airframe.fuselage = component.Fuselage(ac)
+        ac.airframe.body = component.Fuselage(ac)
     else:
         raise Exception("Type of body is unknown")
 
@@ -78,6 +78,8 @@ def factory(name = "my_plane",
 
     ac.airframe.landing_gear = component.Landing_gear(ac)
 
+    ac.airframe.system = component.System(ac)
+
 
     return ac
 
@@ -88,7 +90,7 @@ ac = factory(name = "my_plane", reqs = reqs, agmt = agmt)
 
 ac.airframe.cabin.eval_geometry()
 
-ac.airframe.fuselage.eval_geometry()
+ac.airframe.body.eval_geometry()
 
 ac.airframe.wing.eval_geometry()
 
@@ -108,11 +110,13 @@ ac.airframe.tank.eval_geometry()
 
 ac.airframe.landing_gear.eval_geometry()
 
+ac.airframe.system.eval_geometry()
+
 
 
 ac.airframe.cabin.eval_mass()
 
-ac.airframe.fuselage.eval_mass()
+ac.airframe.body.eval_mass()
 
 ac.airframe.wing.eval_mass()
 
@@ -123,5 +127,7 @@ ac.airframe.horizontal_stab.eval_mass()
 ac.airframe.tank.eval_mass()
 
 ac.airframe.landing_gear.eval_mass()
+
+ac.airframe.system.eval_mass()
 
 
