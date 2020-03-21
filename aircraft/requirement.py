@@ -22,6 +22,9 @@ class Requirement(object):
         self.n_pax_ref = n_pax_ref
         self.n_pax_front = self.__n_pax_front__()
         self.n_aisle = self.__n_aisle__()
+        self.m_pax_nominal = self.__m_pax_nominal__()
+        self.m_pax_max = self.__m_pax_max__()
+
         self.design_range = design_range
         self.cruise_mach = cruise_mach
         self.cruise_altp = cruise_altp
@@ -79,6 +82,34 @@ class Requirement(object):
         if(self.n_pax_front <= 6): n_aisle = 1
         else:                      n_aisle = 2
         return n_aisle
+
+    #-----------------------------------------------------------------------------------------------------------
+    def __m_pax_nominal__(self):
+        if(self.design_range <= unit.m_NM(500.)):
+            m_pax_nominal = 85.
+        elif(self.design_range <= unit.m_NM(1500.)):
+            m_pax_nominal = 95.
+        elif(self.design_range <= unit.m_NM(3500.)):
+            m_pax_nominal = 100.
+        elif(self.design_range <= unit.m_NM(5500.)):
+            m_pax_nominal = 105.
+        else:
+            m_pax_nominal = 110.
+        return m_pax_nominal
+
+    #-----------------------------------------------------------------------------------------------------------
+    def __m_pax_max__(self):
+        if(self.design_range <= unit.m_NM(500.)):
+            m_pax_max = 95.
+        elif(self.design_range <= unit.m_NM(1500.)):
+            m_pax_max = 105.
+        elif(self.design_range <= unit.m_NM(3500.)):
+            m_pax_max = 120.
+        elif(self.design_range <= unit.m_NM(5500.)):
+            m_pax_max = 135.
+        else:
+            m_pax_max = 150.
+        return m_pax_max
 
     #-----------------------------------------------------------------------------------------------------------
     def __tofl__(self):

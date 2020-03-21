@@ -55,6 +55,7 @@ class Aircraft(object):
 
         self.airframe = Airframe()
 
+        self.payload = None
         self.power_system = None
         self.aerodynamics = Aerodynamics(requirement)
         self.weight_cg = Weight_cg(requirement)

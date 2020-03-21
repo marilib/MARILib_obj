@@ -295,7 +295,7 @@ class Wing(Component):
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(rca,disa)
 
-        cza_wing = self.cza(mach, body_width, self.aspect_ratio, self.span, self.sweep25)
+        cza_wing = self.cza(mach)
 
         # AoA = 2.5° at cruise start
         self.setting = (0.97*mass*g)/(0.5*gam*pamb*mach**2*self.area*cza_wing) - unit.rad_deg(2.5)
@@ -320,13 +320,39 @@ class Wing(Component):
                  + 0.55*(self.loc_kink + 0.40*np.array([self.c_kink, 0., 0.])) \
                  + 0.20*(self.loc_tip + 0.40*np.array([self.c_tip, 0., 0.]))
 
-    def  cza(self, mach, body_width, aspect_ratio, span, sweep):
+    def  cza(self, mach):
         """
         Polhamus formula
         """
-        cza =  (np.pi*aspect_ratio*(1.07*(1+body_width/span)**2)*(1.-body_width/span)) \
-             / (1+np.sqrt(1.+0.25*aspect_ratio**2*(1+np.tan(sweep)**2-mach**2)))
+        body_width = self.aircraft.airframe.body.width
+        wing_span = self.aircraft.airframe.wing.span
+        wing_ar = self.aircraft.airframe.wing.aspect_ratio
+        sweep25 = self.aircraft.airframe.wing.sweep25
+
+        cza =  (np.pi*wing_ar*(1.07*(1+body_width/wing_span)**2)*(1.-body_width/wing_span)) \
+             / (1+np.sqrt(1.+0.25*wing_ar**2*(1+np.tan(sweep25)**2-mach**2)))
         return cza
+
+    def  wing_np(self, hld_conf):
+        """
+        Wing neutral point
+        """
+        wing_c_mac = self.aircraft.airframe.wing.mac
+        wing_loc_mac = self.aircraft.airframe.wing.loc_mac
+
+        loc_np = wing_loc_mac + (0.25+0.10*hld_conf)*np.array([wing_c_mac, 0., 0.])
+        return loc_np
+
+    def  wing_ki(self):
+        """
+        Wing induced drag factor
+        """
+        body_width = self.aircraft.airframe.body.width
+        wing_span = self.aircraft.airframe.wing.span
+        wing_ar = self.aircraft.airframe.wing.aspect_ratio
+
+        ki = ((body_width / wing_span)**2 + 1.05 )  / (np.pi * wing_ar)
+        return ki
 
     def high_lift(self, hld_conf):
         """
