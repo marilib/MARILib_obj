@@ -18,7 +18,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
-                   nacelle_attachment = "wing",     # "wing" or "rear"
+                   nacelle_attachment = "wing",     # "wing", "rear" or "pods"
                    power_architecture = "tf",       # "tf", "pf", "pte1", "ef1", "ep1",
                    energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2" or "battery"
 
@@ -80,6 +80,18 @@ def factory(name = "my_plane",
 
     ac.airframe.system = component.System(ac)
 
+    if (ac.arrangement.power_architecture=="tf"):
+        ac.airframe.nacelle = component.Turbofan_free_air(ac)
+    elif (ac.arrangement.power_architecture=="tp"):
+        pass
+    elif (ac.arrangement.power_architecture=="pte1"):
+        pass
+    elif (ac.arrangement.power_architecture=="ef1"):
+        pass
+    elif (ac.arrangement.power_architecture=="ep1"):
+        pass
+    else:
+        raise Exception("Type of power architecture is unknown")
 
     return ac
 
@@ -112,6 +124,8 @@ ac.airframe.landing_gear.eval_geometry()
 
 ac.airframe.system.eval_geometry()
 
+ac.airframe.nacelle.eval_geometry()
+
 
 
 ac.airframe.cabin.eval_mass()
@@ -129,5 +143,7 @@ ac.airframe.tank.eval_mass()
 ac.airframe.landing_gear.eval_mass()
 
 ac.airframe.system.eval_mass()
+
+ac.airframe.nacelle.eval_mass()
 
 

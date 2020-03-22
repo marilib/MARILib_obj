@@ -19,15 +19,15 @@ class Requirement(object):
                       cruise_altp = unit.m_ft(35000.),
                       arrangement = None):
 
+        self.design_range = design_range
+        self.cruise_mach = cruise_mach
+        self.cruise_altp = cruise_altp
+
         self.n_pax_ref = n_pax_ref
         self.n_pax_front = self.__n_pax_front__()
         self.n_aisle = self.__n_aisle__()
         self.m_pax_nominal = self.__m_pax_nominal__()
         self.m_pax_max = self.__m_pax_max__()
-
-        self.design_range = design_range
-        self.cruise_mach = cruise_mach
-        self.cruise_altp = cruise_altp
 
         self.tofl = [
                      {"disa": 15.,
