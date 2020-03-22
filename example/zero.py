@@ -29,9 +29,8 @@ reqs = Requirement(n_pax_ref = 150.,
                    arrangement = agmt)
 
 
-def factory(name = "my_plane",
-            reqs = None,
-            agmt = None):
+
+def factory(name = "my_plane", reqs=None, agmt=None):
     """
     Build an aircraft
     :param name: the name of your aircraft
@@ -40,7 +39,7 @@ def factory(name = "my_plane",
     :return: an aircraft
     """
 
-    ac = Aircraft(reqs,agmt)
+    ac = Aircraft(name, reqs, agmt)
 
     # plug a cabin component
     ac.airframe.cabin = component.Cabin(ac)
@@ -96,54 +95,45 @@ def factory(name = "my_plane",
     return ac
 
 
+def pre_design(ac):
+
+    ac.airframe.cabin.eval_geometry()
+    ac.airframe.body.eval_geometry()
+    ac.airframe.wing.eval_geometry()
+
+    if (ac.arrangement.stab_architecture=="classic"):
+        ac.airframe.vertical_stab.eval_geometry()
+        ac.airframe.horizontal_stab.eval_geometry()
+    elif (ac.arrangement.stab_architecture=="t_tail"):
+        ac.airframe.vertical_stab.eval_geometry()
+        ac.airframe.horizontal_stab.eval_geometry()
+    elif (ac.arrangement.stab_architecture=="h_tail"):
+        ac.airframe.horizontal_stab.eval_geometry()
+        ac.airframe.vertical_stab.eval_geometry()
+    else:
+        raise Exception("stab_architecture is unknown")
+
+    ac.airframe.tank.eval_geometry()
+    ac.airframe.landing_gear.eval_geometry()
+    ac.airframe.system.eval_geometry()
+    ac.airframe.nacelle.eval_geometry()
+
+
+def mass_analysis(ac):
+
+    ac.airframe.cabin.eval_mass()
+    ac.airframe.body.eval_mass()
+    ac.airframe.wing.eval_mass()
+    ac.airframe.vertical_stab.eval_mass()
+    ac.airframe.horizontal_stab.eval_mass()
+    ac.airframe.tank.eval_mass()
+    ac.airframe.landing_gear.eval_mass()
+    ac.airframe.system.eval_mass()
+    ac.airframe.nacelle.eval_mass()
+
 
 ac = factory(name = "my_plane", reqs = reqs, agmt = agmt)
 
+pre_design(ac)
 
-ac.airframe.cabin.eval_geometry()
-
-ac.airframe.body.eval_geometry()
-
-ac.airframe.wing.eval_geometry()
-
-if (ac.arrangement.stab_architecture=="classic"):
-    ac.airframe.vertical_stab.eval_geometry()
-    ac.airframe.horizontal_stab.eval_geometry()
-elif (ac.arrangement.stab_architecture=="t_tail"):
-    ac.airframe.vertical_stab.eval_geometry()
-    ac.airframe.horizontal_stab.eval_geometry()
-elif (ac.arrangement.stab_architecture=="h_tail"):
-    ac.airframe.horizontal_stab.eval_geometry()
-    ac.airframe.vertical_stab.eval_geometry()
-else:
-    raise Exception("stab_architecture is unknown")
-
-ac.airframe.tank.eval_geometry()
-
-ac.airframe.landing_gear.eval_geometry()
-
-ac.airframe.system.eval_geometry()
-
-ac.airframe.nacelle.eval_geometry()
-
-
-
-ac.airframe.cabin.eval_mass()
-
-ac.airframe.body.eval_mass()
-
-ac.airframe.wing.eval_mass()
-
-ac.airframe.vertical_stab.eval_mass()
-
-ac.airframe.horizontal_stab.eval_mass()
-
-ac.airframe.tank.eval_mass()
-
-ac.airframe.landing_gear.eval_mass()
-
-ac.airframe.system.eval_mass()
-
-ac.airframe.nacelle.eval_mass()
-
-
+mass_analysis(ac)

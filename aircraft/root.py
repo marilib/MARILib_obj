@@ -40,39 +40,29 @@ class Aerodynamics(object):
         self.hld_conf_ld = 1.00
 
 
+
 #--------------------------------------------------------------------------------------------------------------------------------
 class Aircraft(object):
     """
     Logical aircraft description
     """
-    def __init__(self, requirement, arrangement):
+    def __init__(self, name, requirement, arrangement):
         """
         Data structure, only one sub-level allowed
         """
-        self.name = None
+        self.name = name
         self.requirement = requirement
         self.arrangement = arrangement
 
         self.airframe = Airframe()
 
         self.payload = None
-        self.power_system = None
+        self.power_system = Power_system(requirement)
         self.aerodynamics = Aerodynamics(requirement)
         self.weight_cg = Weight_cg(requirement)
         self.economics = None
         self.environment = None
 
-        # attributs variables
-        # self.cabin = None
-        # self.main_body = None
-        # self.wing = None
-        # self.stabilizer = None
-        # self.tank = None
-        # self.landing_gear = None
-        #
-        # self.system = None
 
 
 
-#       geom, mass, aero,
-#       reglementation dans  requirements
