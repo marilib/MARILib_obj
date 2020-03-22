@@ -100,6 +100,7 @@ def pre_design(ac):
     ac.airframe.cabin.eval_geometry()
     ac.airframe.body.eval_geometry()
     ac.airframe.wing.eval_geometry()
+    ac.airframe.nacelle.eval_geometry()
 
     if (ac.arrangement.stab_architecture=="classic"):
         ac.airframe.vertical_stab.eval_geometry()
@@ -113,10 +114,12 @@ def pre_design(ac):
     else:
         raise Exception("stab_architecture is unknown")
 
+    ac.airframe.vertical_stab.eval_area()
+    ac.airframe.horizontal_stab.eval_area()
+
     ac.airframe.tank.eval_geometry()
     ac.airframe.landing_gear.eval_geometry()
     ac.airframe.system.eval_geometry()
-    ac.airframe.nacelle.eval_geometry()
 
 
 def mass_analysis(ac):
@@ -124,12 +127,12 @@ def mass_analysis(ac):
     ac.airframe.cabin.eval_mass()
     ac.airframe.body.eval_mass()
     ac.airframe.wing.eval_mass()
+    ac.airframe.nacelle.eval_mass()
     ac.airframe.vertical_stab.eval_mass()
     ac.airframe.horizontal_stab.eval_mass()
     ac.airframe.tank.eval_mass()
     ac.airframe.landing_gear.eval_mass()
     ac.airframe.system.eval_mass()
-    ac.airframe.nacelle.eval_mass()
 
 
 ac = factory(name = "my_plane", reqs = reqs, agmt = agmt)

@@ -417,6 +417,8 @@ class VTP_classic(Component):
         body_height = self.aircraft.airframe.body.height
         tail_cone_length = self.aircraft.airframe.body.tail_cone_length
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_mac_loc = self.aircraft.airframe.wing.mac_loc
+        wing_mac = self.aircraft.airframe.wing.mac
 
         self.height = np.sqrt(self.aspect_ratio*self.area)
         self.root_c = 2*self.area/(self.height*(1+self.taper_ratio))
@@ -439,7 +441,7 @@ class VTP_classic(Component):
         y_mac = 0.
         z_mac = z_tip**2*(2*self.tip_c+self.root_c)/(6*self.area)
 
-        self.lever_arm = (x_mac + 0.25*self.mac) - (x_mac + 0.25*self.mac)
+        self.lever_arm = (x_mac + 0.25*self.mac) - (wing_mac_loc[0] + 0.25*wing_mac)
 
         self.root_loc = np.array([x_root, y_root, z_root])
         self.tip_loc = np.array([x_tip, y_tip, z_tip])
@@ -458,8 +460,8 @@ class VTP_classic(Component):
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
-        reference_thrust = self.aircraft.airframe.power_system.reference_thrust
-        nacelle_loc_ext = self.aircraft.airframe.power_system.nacelle_loc_ext
+        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        nacelle_loc_ext = self.aircraft.airframe.nacelle.nacelle_loc_ext
 
         self.area = self.volume*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
 
@@ -495,6 +497,8 @@ class VTP_T(Component):
         body_height = self.aircraft.airframe.body.height
         tail_cone_length = self.aircraft.airframe.body.tail_cone_length
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_mac_loc = self.aircraft.airframe.wing.mac_loc
+        wing_mac = self.aircraft.airframe.wing.mac
 
         self.height = np.sqrt(self.aspect_ratio*self.area)
         self.root_c = 2*self.area/(self.height*(1+self.taper_ratio))
@@ -517,7 +521,7 @@ class VTP_T(Component):
         y_mac = 0.
         z_mac = z_tip**2*(2*self.tip_c+self.root_c)/(6*self.area)
 
-        self.lever_arm = (x_mac + 0.25*self.mac) - (x_mac + 0.25*self.mac)
+        self.lever_arm = (x_mac + 0.25*self.mac) - (wing_mac_loc[0] + 0.25*wing_mac)
 
         self.root_loc = np.array([x_root, y_root, z_root])
         self.tip_loc = np.array([x_tip, y_tip, z_tip])
@@ -536,8 +540,8 @@ class VTP_T(Component):
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
-        reference_thrust = self.aircraft.airframe.power_system.reference_thrust
-        nacelle_loc_ext = self.aircraft.airframe.power_system.nacelle_loc_ext
+        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        nacelle_loc_ext = self.aircraft.airframe.nacelle.nacelle_loc_ext
 
         self.area = self.volume*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
 
@@ -570,6 +574,8 @@ class VTP_H(Component):
     def eval_geometry(self):
         htp_tip_loc = self.aircraft.airframe.horizontal_stab.tip_loc
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_mac_loc = self.aircraft.airframe.wing.mac_loc
+        wing_mac = self.aircraft.airframe.wing.mac
 
         self.height = np.sqrt(self.aspect_ratio*(0.5*self.area))
         self.root_c = 2*(0.5*self.area)/(self.height*(1+self.taper_ratio))
@@ -591,7 +597,7 @@ class VTP_H(Component):
         y_mac = y_tip
         z_mac = z_tip**2*(2*self.tip_c+self.root_c)/(6*self.area)
 
-        self.lever_arm = (x_mac + 0.25*self.mac) - (x_mac + 0.25*self.mac)
+        self.lever_arm = (x_mac + 0.25*self.mac) - (wing_mac_loc[0] + 0.25*wing_mac)
 
         self.root_loc = np.array([x_root, y_root, z_root])
         self.tip_loc = np.array([x_tip, y_tip, z_tip])
@@ -610,8 +616,8 @@ class VTP_H(Component):
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
-        reference_thrust = self.aircraft.airframe.power_system.reference_thrust
-        nacelle_loc_ext = self.aircraft.airframe.power_system.nacelle_loc_ext
+        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        nacelle_loc_ext = self.aircraft.airframe.nacelle.nacelle_loc_ext
 
         self.area = self.volume*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
 
@@ -1139,12 +1145,12 @@ class Turbofan_free_air(Component):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.engine_bpr = self.__turbofan_bpr__()
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
         self.rating_factor = {"MTO":1.00, "MCN":0.86, "MCL":0.78, "MCR":0.70, "FID":0.10}
         self.tune_factor = 1.
+        self.engine_bpr = self.__turbofan_bpr__()
         self.core_thrust_ratio = 0.13
         self.efficiency_prop = 0.82
 
