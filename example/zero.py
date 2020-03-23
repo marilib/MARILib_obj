@@ -54,6 +54,8 @@ def factory(name = "my_plane", reqs=None, agmt=None):
     else:
         raise Exception("Type of wing is unknown")
 
+    ac.airframe.cargo = component.Cargo_hold(ac)
+
     if (ac.arrangement.stab_architecture=="classic"):
         ac.airframe.vertical_stab = component.VTP_classic(ac)
         ac.airframe.horizontal_stab = component.HTP_classic(ac)
@@ -61,8 +63,8 @@ def factory(name = "my_plane", reqs=None, agmt=None):
         ac.airframe.vertical_stab = component.VTP_T(ac)
         ac.airframe.horizontal_stab = component.HTP_T(ac)
     elif (ac.arrangement.stab_architecture=="h_tail"):
-        ac.airframe.vertical_stab = component.VTP_H(ac)
         ac.airframe.horizontal_stab = component.HTP_H(ac)
+        ac.airframe.vertical_stab = component.VTP_H(ac)
     else:
         raise Exception("stab_architecture is unknown")
 
@@ -80,7 +82,7 @@ def factory(name = "my_plane", reqs=None, agmt=None):
     ac.airframe.system = component.System(ac)
 
     if (ac.arrangement.power_architecture=="tf"):
-        ac.airframe.nacelle = component.Turbofan_free_air(ac)
+        ac.airframe.nacelle = component.Turbofan(ac)
     elif (ac.arrangement.power_architecture=="tp"):
         pass
     elif (ac.arrangement.power_architecture=="pte1"):
@@ -100,12 +102,10 @@ def pre_design(ac):
     ac.airframe.cabin.eval_geometry()
     ac.airframe.body.eval_geometry()
     ac.airframe.wing.eval_geometry()
+    ac.airframe.cargo.eval_geometry()
     ac.airframe.nacelle.eval_geometry()
 
-    if (ac.arrangement.stab_architecture=="classic"):
-        ac.airframe.vertical_stab.eval_geometry()
-        ac.airframe.horizontal_stab.eval_geometry()
-    elif (ac.arrangement.stab_architecture=="t_tail"):
+    if (ac.arrangement.stab_architecture in ["classic","t_tail"]):
         ac.airframe.vertical_stab.eval_geometry()
         ac.airframe.horizontal_stab.eval_geometry()
     elif (ac.arrangement.stab_architecture=="h_tail"):
@@ -127,6 +127,7 @@ def mass_analysis(ac):
     ac.airframe.cabin.eval_mass()
     ac.airframe.body.eval_mass()
     ac.airframe.wing.eval_mass()
+    ac.airframe.cargo.eval_mass()
     ac.airframe.nacelle.eval_mass()
     ac.airframe.vertical_stab.eval_mass()
     ac.airframe.horizontal_stab.eval_mass()

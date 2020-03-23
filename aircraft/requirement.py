@@ -50,18 +50,23 @@ class Requirement(object):
                      "min_path": self.__oei_min_path__(arrangement)}
                     ]
 
-        self.vz = [
-                   {"disa": 15.,
-                    "altp": self.__top_of_climb__(arrangement),
-                    "mcl": unit.mps_ftpmin(300.),
-                    "mcr": unit.mps_ftpmin(0.)}
-                   ]
+        self.vz_mcl = [
+                       {"disa": 15.,
+                        "altp": self.__top_of_climb__(arrangement),
+                        "vz": unit.mps_ftpmin(300.)}
+                       ]
+
+        self.vz_mcr = [
+                       {"disa": 15.,
+                        "altp": self.__top_of_climb__(arrangement),
+                        "vz": unit.mps_ftpmin(0.)}
+                       ]
 
         self.ttc = [
                     {"disa": 15.,
                      "altp": self.__top_of_climb__(arrangement),
                      "cas1": self.__ttc_cas1__(),
-                     "cas2": self.__ttc_cas1__()}
+                     "cas2": self.__ttc_cas2__()}
                     ]
 
 

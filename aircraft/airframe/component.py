@@ -45,17 +45,23 @@ class Component(object):
         self.aero_length = 0.       # characteristic length of the component in the direction of the flow
         self.form_factor = 0.       # factor on skin friction to account for lift independent pressure drag
 
+    def eval_geometry(self):
+        raise NotImplementedError
+
+    def eval_mass(self):
+        raise NotImplementedError
+
     def get_mass_mwe(self):
-        raise self.mass
+        return self.mass
 
     def get_mass_owe(self):
         return self.mass
 
     def get_cg_mwe(self):
-        raise self.cg
+        return self.cg
 
     def get_cg_owe(self):
-        raise self.cg
+        return self.cg
 
     def get_inertia_tensor(self):
         return self.inertia_tensor
@@ -118,6 +124,43 @@ class Cabin(Component):
         return self.cg_furnishing
 
 
+class Cargo_hold(Component):
+
+    def __init__(self, aircraft):
+        super(Cargo_hold, self).__init__(aircraft)
+
+    def eval_geometry(self):
+        cabin_frame_origin = self.aircraft.airframe.cabin.frame_origin
+        self.frame_origin = cabin_frame_origin
+
+    def eval_mass(self):
+        n_pax_front = self.aircraft.requirements.n_pax_front
+        body_width = self.aircraft.airframe.body.width
+        body_length = self.aircraft.airframe.body.length
+        wing_root_loc = self.aircraft.airframe.wing.root_loc
+        wing_root_c = self.aircraft.airframe.wing.root_c
+        cabin_length = self.aircraft.airframe.cabin.length
+
+        if (n_pax_front>=6):
+            forward_hold_length = wing_root_loc[0] - self.frame_origin[0]
+            backward_hold_length = self.frame_origin[0]+cabin_length - (wing_root_loc[0]+wing_root_c)
+            hold_length = forward_hold_length + backward_hold_length
+
+            self.mass = (4.36*body_width*body_length)        # Container and pallet mass
+            self.cg =   (self.frame_origin + 0.5*np.array([forward_hold_length, 0., 0.]))*(forward_hold_length/hold_length) \
+                      + (wing_root_loc + np.array([wing_root_c+0.5*backward_hold_length, 0., 0.]))*(backward_hold_length/hold_length)
+        else:
+            self.mass = 0.
+            self.cg = np.array([0., 0., 0.])
+
+    def get_mass_mwe(self):
+        return 0.
+
+    def get_cg_mwe(self):
+        return np.array([0., 0., 0.])
+
+
+
 class Fuselage(Component):
 
     def __init__(self, aircraft):
@@ -137,7 +180,7 @@ class Fuselage(Component):
         fwd_limit = 4.      # Cabin starts 4 meters behind fuselage nose
 
         self.aircraft.airframe.cabin.frame_origin = [fwd_limit, 0., 0.]     # cabin position inside the fuselage
-        self.aircraft.airframe.cabin.frame_angles = [0., 0., 0.]            # cabin orientation inside the fuselage
+        self.aircraft.airframe.cargo.frame_origin = [fwd_limit, 0., 0.]     # cabin position inside the fuselage
 
         self.width = cabin_width + 0.4      # fuselage walls are supposed 0.2m thick
         self.height = 1.25*(cabin_width - 0.15)
@@ -317,7 +360,7 @@ class Wing(Component):
                  + 0.55*(self.kink_loc + 0.40*np.array([self.kink_c, 0., 0.])) \
                  + 0.20*(self.tip_loc + 0.40*np.array([self.tip_c, 0., 0.]))
 
-    def  cza(self, mach):
+    def cza(self, mach):
         """
         Polhamus formula
         """
@@ -330,7 +373,7 @@ class Wing(Component):
              / (1+np.sqrt(1.+0.25*wing_ar**2*(1+np.tan(sweep25)**2-mach**2)))
         return cza
 
-    def  wing_np(self, hld_conf):
+    def wing_np(self, hld_conf):
         """
         Wing neutral point
         """
@@ -340,7 +383,7 @@ class Wing(Component):
         loc_np = wing_mac_loc + (0.25+0.10*hld_conf)*np.array([wing_c_mac, 0., 0.])
         return loc_np
 
-    def  wing_ki(self):
+    def wing_ki(self):
         """
         Wing induced drag factor
         """
@@ -462,7 +505,6 @@ class VTP_classic(Component):
     def eval_area(self):
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
         nacelle_loc_ext = self.aircraft.airframe.nacelle.nacelle_loc_ext
-
         self.area = self.volume*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
 
 
@@ -1136,10 +1178,10 @@ class System(Component):
     #              + 0.10*power_system_cg \         # TODO
 
 
-class Turbofan_free_air(Component):
+class Turbofan(Component):
 
     def __init__(self, aircraft):
-        super(Turbofan_free_air, self).__init__(aircraft)
+        super(Turbofan, self).__init__(aircraft)
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
