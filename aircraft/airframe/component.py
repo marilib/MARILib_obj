@@ -134,7 +134,7 @@ class Cargo_hold(Component):
         self.frame_origin = cabin_frame_origin
 
     def eval_mass(self):
-        n_pax_front = self.aircraft.requirements.n_pax_front
+        n_pax_front = self.aircraft.requirement.n_pax_front
         body_width = self.aircraft.airframe.body.width
         body_length = self.aircraft.airframe.body.length
         wing_root_loc = self.aircraft.airframe.wing.root_loc

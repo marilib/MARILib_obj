@@ -15,7 +15,53 @@ class Airframe(object):
     """
     Logical aircraft description
     """
-    pass
+
+    def __init__(self, aircraft):
+        self.aircraft = aircraft
+
+    def geometry_analysis(self):
+        stab_architecture = self.aircraft.arrangement.stab_architecture
+
+        self.cabin.eval_geometry()
+        self.body.eval_geometry()
+        self.wing.eval_geometry()
+        self.cargo.eval_geometry()
+        self.nacelle.eval_geometry()
+
+        if (stab_architecture in ["classic","t_tail"]):
+            self.vertical_stab.eval_geometry()
+            self.horizontal_stab.eval_geometry()
+        elif (stab_architecture=="h_tail"):
+            self.horizontal_stab.eval_geometry()
+            self.vertical_stab.eval_geometry()
+
+        self.vertical_stab.eval_area()
+        self.horizontal_stab.eval_area()
+
+        self.tank.eval_geometry()
+        self.landing_gear.eval_geometry()
+        self.system.eval_geometry()
+
+    def geometry_pre_design(self):
+
+
+
+
+
+
+
+
+    def mass_analysis(self):
+        self.cabin.eval_mass()
+        self.body.eval_mass()
+        self.wing.eval_mass()
+        self.cargo.eval_mass()
+        self.nacelle.eval_mass()
+        self.vertical_stab.eval_mass()
+        self.horizontal_stab.eval_mass()
+        self.tank.eval_mass()
+        self.landing_gear.eval_mass()
+        self.system.eval_mass()
 
 
 class Weight_cg(object):
@@ -54,7 +100,7 @@ class Aircraft(object):
         self.requirement = requirement
         self.arrangement = arrangement
 
-        self.airframe = Airframe()
+        self.airframe = Airframe(self)
 
         self.payload = None
         self.power_system = None
