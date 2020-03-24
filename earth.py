@@ -325,9 +325,9 @@ def air_density(pamb,tamb):
     """
     Ideal gas density
     """
-    R,gam,Cp,Cv = gas_data()
+    r,gam,Cp,Cv = gas_data()
     rho0 = sea_level_density()
-    rho = pamb / ( R * tamb )
+    rho = pamb / ( r * tamb )
     sig = rho / rho0
     return rho, sig
 

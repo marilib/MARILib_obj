@@ -8,6 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
+
 import unit
 import earth
 
@@ -87,9 +88,16 @@ class Cabin(Component):
 
         self.m_furnishing = None
         self.m_op_item = None
+        self.nominal_payload = None
+        self.maximum_payload = None
 
         self.cg_furnishing = None
         self.cg_op_item = None
+
+        self.max_fwd_req_cg = None
+        self.max_fwd_mass = None
+        self.max_bwd_req_cg = None
+        self.max_bwd_mass = None
 
     def eval_geometry(self):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -102,11 +110,23 @@ class Cabin(Component):
         self.projected_area = 0.95*self.length*self.width       # Factor 0.95 accounts for tapered parts
 
     def eval_mass(self):
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        m_pax_nominal = self.aircraft.requirement.m_pax_nominal
+        m_pax_max = self.aircraft.requirement.m_pax_max
+        cabin_frame_origin = self.aircraft.airframe.cabin.frame_origin
 
         self.m_furnishing = (0.063*n_pax_ref**2 + 9.76*n_pax_ref)       # Furnishings mass
         self.m_op_item = 5.2*(n_pax_ref*design_range*1e-6)          # Operator items mass
+
+        self.nominal_payload = n_pax_ref * m_pax_nominal
+        self.maximum_payload = n_pax_ref * m_pax_max
+
+        self.max_fwd_req_cg = cabin_frame_origin + 0.35*np.array([self.length, 0., 0.])        # Payload max forward CG
+        self.max_fwd_mass = 0.60*n_pax_ref*m_pax_max       # Payload mass for max forward CG
+
+        self.max_bwd_req_cg = cabin_frame_origin + 0.70*np.array([self.length, 0., 0.])        # Payload max backward CG
+        self.max_bwd_mass = 0.70*n_pax_ref*m_pax_max       # Payload mass for max backward CG
 
         x_cg_furnishing = self.frame_origin[0] + 0.55*self.length      # Rear cabin is heavier because of higher density
         x_cg_op_item = x_cg_furnishing    # Operator items cg
@@ -1223,7 +1243,7 @@ class Turbofan_nacelle(Component):
         vair = mach*earth.sound_speed(tamb)
 
         # tune_factor allows that output of unitary_thrust matches the definition of the reference thrust
-        fn, ff = self.turbofan_unitary_thrust(pamb,tamb,mach,rating="MTO",throttle=1.,pw_offtake=0.,nei=0.)
+        fn, ff = self.unitary_thrust(pamb,tamb,mach,rating="MTO",throttle=1.,pw_offtake=0.,nei=0.)
         self.tune_factor = self.reference_thrust / (fn/0.80)
 
         # Following computation as aim to model the decrease in nacelle dimension due to
