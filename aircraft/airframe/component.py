@@ -1178,10 +1178,10 @@ class System(Component):
     #              + 0.10*power_system_cg \         # TODO
 
 
-class Turbofan(Component):
+class Turbofan_nacelle(Component):
 
     def __init__(self, aircraft):
-        super(Turbofan, self).__init__(aircraft)
+        super(Turbofan_nacelle, self).__init__(aircraft)
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -1295,7 +1295,7 @@ class Turbofan(Component):
             bpr = 5.
         return bpr
 
-    def turbofan_unitary_thrust(self,pamb,tamb,mach,rating,throttle,pw_offtake,nei):
+    def unitary_thrust(self,pamb,tamb,mach,rating,throttle,pw_offtake,nei):
         """
         Unitary thrust of a pure turbofan engine (semi-empirical model)
         """

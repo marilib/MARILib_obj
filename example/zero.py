@@ -82,7 +82,7 @@ def factory(name = "my_plane", reqs=None, agmt=None):
     ac.airframe.system = component.System(ac)
 
     if (ac.arrangement.power_architecture=="tf"):
-        ac.airframe.nacelle = component.Turbofan(ac)
+        ac.airframe.nacelle = component.Turbofan_nacelle(ac)
     elif (ac.arrangement.power_architecture=="tp"):
         pass
     elif (ac.arrangement.power_architecture=="pte1"):
@@ -99,6 +99,7 @@ def factory(name = "my_plane", reqs=None, agmt=None):
 
 ac = factory(name = "my_plane", reqs = reqs, agmt = agmt)
 
-ac.airframe.geometry_analysis()
+#ac.airframe.geometry_analysis()
+ac.airframe.statistical_pre_design()
 
 ac.airframe.mass_analysis()
