@@ -29,40 +29,51 @@ class Weight_cg(object):
 
     def mass_analysis(self):
         # update all component mass
-        self.aircraft.airframe.cabin.eval_mass()
-        self.aircraft.airframe.body.eval_mass()
-        self.aircraft.airframe.wing.eval_mass()
-        self.aircraft.airframe.landing_gear.eval_mass()
-        self.aircraft.airframe.cargo.eval_mass()
-        self.aircraft.airframe.nacelle.eval_mass()
-        self.aircraft.airframe.vertical_stab.eval_mass()
-        self.aircraft.airframe.horizontal_stab.eval_mass()
-        self.aircraft.airframe.tank.eval_mass()
-        self.aircraft.airframe.system.eval_mass()
+        for comp in self.aircraft.airframe:
+            print(comp)
+            #comp.eval_mass()
+        #
+        #
+        # self.aircraft.airframe.cabin.eval_mass()
+        # self.aircraft.airframe.body.eval_mass()
+        # self.aircraft.airframe.wing.eval_mass()
+        # self.aircraft.airframe.landing_gear.eval_mass()
+        # self.aircraft.airframe.cargo.eval_mass()
+        # self.aircraft.airframe.nacelle.eval_mass()
+        # self.aircraft.airframe.vertical_stab.eval_mass()
+        # self.aircraft.airframe.horizontal_stab.eval_mass()
+        # self.aircraft.airframe.tank.eval_mass()
+        # self.aircraft.airframe.system.eval_mass()
 
         # sum all MWE contributions
-        self.mwe =   self.aircraft.airframe.cabin.get_mass_mwe() \
-                   + self.aircraft.airframe.body.get_mass_mwe() \
-                   + self.aircraft.airframe.wing.get_mass_mwe() \
-                   + self.aircraft.airframe.landing_gear.get_mass_mwe() \
-                   + self.aircraft.airframe.cargo.get_mass_mwe() \
-                   + self.aircraft.airframe.nacelle.get_mass_mwe() \
-                   + self.aircraft.airframe.vertical_stab.get_mass_mwe() \
-                   + self.aircraft.airframe.horizontal_stab.get_mass_mwe() \
-                   + self.aircraft.airframe.tank.get_mass_mwe() \
-                   + self.aircraft.airframe.system.get_mass_mwe()
+        mwe = 0.
+        owe = 0.
+        for comp in self.aircraft.airframe.__iter__():
+            mwe  += comp.get_mass_mwe()
+            owe  += comp.get_mass_owe()
+        #
+        # self.mwe =   self.aircraft.airframe.cabin.get_mass_mwe() \
+        #            + self.aircraft.airframe.body.get_mass_mwe() \
+        #            + self.aircraft.airframe.wing.get_mass_mwe() \
+        #            + self.aircraft.airframe.landing_gear.get_mass_mwe() \
+        #            + self.aircraft.airframe.cargo.get_mass_mwe() \
+        #            + self.aircraft.airframe.nacelle.get_mass_mwe() \
+        #            + self.aircraft.airframe.vertical_stab.get_mass_mwe() \
+        #            + self.aircraft.airframe.horizontal_stab.get_mass_mwe() \
+        #            + self.aircraft.airframe.tank.get_mass_mwe() \
+        #            + self.aircraft.airframe.system.get_mass_mwe()
 
-        # sum all OWE contributions
-        self.owe =   self.aircraft.airframe.cabin.get_mass_owe() \
-                   + self.aircraft.airframe.body.get_mass_owe() \
-                   + self.aircraft.airframe.wing.get_mass_owe() \
-                   + self.aircraft.airframe.landing_gear.get_mass_owe() \
-                   + self.aircraft.airframe.cargo.get_mass_owe() \
-                   + self.aircraft.airframe.nacelle.get_mass_owe() \
-                   + self.aircraft.airframe.vertical_stab.get_mass_owe() \
-                   + self.aircraft.airframe.horizontal_stab.get_mass_owe() \
-                   + self.aircraft.airframe.tank.get_mass_owe() \
-                   + self.aircraft.airframe.system.get_mass_owe()
+        # # sum all OWE contributions
+        # self.owe =   self.aircraft.airframe.cabin.get_mass_owe() \
+        #            + self.aircraft.airframe.body.get_mass_owe() \
+        #            + self.aircraft.airframe.wing.get_mass_owe() \
+        #            + self.aircraft.airframe.landing_gear.get_mass_owe() \
+        #            + self.aircraft.airframe.cargo.get_mass_owe() \
+        #            + self.aircraft.airframe.nacelle.get_mass_owe() \
+        #            + self.aircraft.airframe.vertical_stab.get_mass_owe() \
+        #            + self.aircraft.airframe.horizontal_stab.get_mass_owe() \
+        #            + self.aircraft.airframe.tank.get_mass_owe() \
+        #            + self.aircraft.airframe.system.get_mass_owe()
 
         if (self.aircraft.arrangement.energy_source=="battery"):
             self.mzfw = self.mtow
