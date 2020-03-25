@@ -29,28 +29,16 @@ class Weight_cg(object):
 
     def mass_analysis(self):
         # update all component mass
-        for comp in self.aircraft.airframe:
+        for comp in self.aircraft.airframe.mass_iter():
             print(comp)
-            #comp.eval_mass()
-        #
-        #
-        # self.aircraft.airframe.cabin.eval_mass()
-        # self.aircraft.airframe.body.eval_mass()
-        # self.aircraft.airframe.wing.eval_mass()
-        # self.aircraft.airframe.landing_gear.eval_mass()
-        # self.aircraft.airframe.cargo.eval_mass()
-        # self.aircraft.airframe.nacelle.eval_mass()
-        # self.aircraft.airframe.vertical_stab.eval_mass()
-        # self.aircraft.airframe.horizontal_stab.eval_mass()
-        # self.aircraft.airframe.tank.eval_mass()
-        # self.aircraft.airframe.system.eval_mass()
+            comp.eval_mass()
 
         # sum all MWE contributions
         mwe = 0.
         owe = 0.
-        for comp in self.aircraft.airframe.__iter__():
-            mwe  += comp.get_mass_mwe()
-            owe  += comp.get_mass_owe()
+        for comp in self.aircraft.airframe.mass_iter():
+            #mwe += comp.get_mass_mwe()
+            owe += comp.get_mass_owe()
         #
         # self.mwe =   self.aircraft.airframe.cabin.get_mass_mwe() \
         #            + self.aircraft.airframe.body.get_mass_mwe() \
