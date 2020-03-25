@@ -11,6 +11,8 @@ from scipy.optimize import fsolve
 import unit
 import earth
 
+import aircraft.flight as flight
+
 
 class Weight_cg(object):
 
@@ -29,51 +31,40 @@ class Weight_cg(object):
 
     def mass_analysis(self):
         # update all component mass
-        for comp in self.aircraft.airframe:
-            print(comp)
-            #comp.eval_mass()
-        #
-        #
-        # self.aircraft.airframe.cabin.eval_mass()
-        # self.aircraft.airframe.body.eval_mass()
-        # self.aircraft.airframe.wing.eval_mass()
-        # self.aircraft.airframe.landing_gear.eval_mass()
-        # self.aircraft.airframe.cargo.eval_mass()
-        # self.aircraft.airframe.nacelle.eval_mass()
-        # self.aircraft.airframe.vertical_stab.eval_mass()
-        # self.aircraft.airframe.horizontal_stab.eval_mass()
-        # self.aircraft.airframe.tank.eval_mass()
-        # self.aircraft.airframe.system.eval_mass()
+        self.aircraft.airframe.cabin.eval_mass()
+        self.aircraft.airframe.body.eval_mass()
+        self.aircraft.airframe.wing.eval_mass()
+        self.aircraft.airframe.landing_gear.eval_mass()
+        self.aircraft.airframe.cargo.eval_mass()
+        self.aircraft.airframe.nacelle.eval_mass()
+        self.aircraft.airframe.vertical_stab.eval_mass()
+        self.aircraft.airframe.horizontal_stab.eval_mass()
+        self.aircraft.airframe.tank.eval_mass()
+        self.aircraft.airframe.system.eval_mass()
 
         # sum all MWE contributions
-        mwe = 0.
-        owe = 0.
-        for comp in self.aircraft.airframe.__iter__():
-            mwe  += comp.get_mass_mwe()
-            owe  += comp.get_mass_owe()
-        #
-        # self.mwe =   self.aircraft.airframe.cabin.get_mass_mwe() \
-        #            + self.aircraft.airframe.body.get_mass_mwe() \
-        #            + self.aircraft.airframe.wing.get_mass_mwe() \
-        #            + self.aircraft.airframe.landing_gear.get_mass_mwe() \
-        #            + self.aircraft.airframe.cargo.get_mass_mwe() \
-        #            + self.aircraft.airframe.nacelle.get_mass_mwe() \
-        #            + self.aircraft.airframe.vertical_stab.get_mass_mwe() \
-        #            + self.aircraft.airframe.horizontal_stab.get_mass_mwe() \
-        #            + self.aircraft.airframe.tank.get_mass_mwe() \
-        #            + self.aircraft.airframe.system.get_mass_mwe()
+        self.mwe =   self.aircraft.airframe.cabin.get_mass_mwe() \
+                   + self.aircraft.airframe.body.get_mass_mwe() \
+                   + self.aircraft.airframe.wing.get_mass_mwe() \
+                   + self.aircraft.airframe.landing_gear.get_mass_mwe() \
+                   + self.aircraft.airframe.cargo.get_mass_mwe() \
+                   + self.aircraft.airframe.nacelle.get_mass_mwe() \
+                   + self.aircraft.airframe.vertical_stab.get_mass_mwe() \
+                   + self.aircraft.airframe.horizontal_stab.get_mass_mwe() \
+                   + self.aircraft.airframe.tank.get_mass_mwe() \
+                   + self.aircraft.airframe.system.get_mass_mwe()
 
         # # sum all OWE contributions
-        # self.owe =   self.aircraft.airframe.cabin.get_mass_owe() \
-        #            + self.aircraft.airframe.body.get_mass_owe() \
-        #            + self.aircraft.airframe.wing.get_mass_owe() \
-        #            + self.aircraft.airframe.landing_gear.get_mass_owe() \
-        #            + self.aircraft.airframe.cargo.get_mass_owe() \
-        #            + self.aircraft.airframe.nacelle.get_mass_owe() \
-        #            + self.aircraft.airframe.vertical_stab.get_mass_owe() \
-        #            + self.aircraft.airframe.horizontal_stab.get_mass_owe() \
-        #            + self.aircraft.airframe.tank.get_mass_owe() \
-        #            + self.aircraft.airframe.system.get_mass_owe()
+        self.owe =   self.aircraft.airframe.cabin.get_mass_owe() \
+                   + self.aircraft.airframe.body.get_mass_owe() \
+                   + self.aircraft.airframe.wing.get_mass_owe() \
+                   + self.aircraft.airframe.landing_gear.get_mass_owe() \
+                   + self.aircraft.airframe.cargo.get_mass_owe() \
+                   + self.aircraft.airframe.nacelle.get_mass_owe() \
+                   + self.aircraft.airframe.vertical_stab.get_mass_owe() \
+                   + self.aircraft.airframe.horizontal_stab.get_mass_owe() \
+                   + self.aircraft.airframe.tank.get_mass_owe() \
+                   + self.aircraft.airframe.system.get_mass_owe()
 
         if (self.aircraft.arrangement.energy_source=="battery"):
             self.mzfw = self.mtow
@@ -132,6 +123,8 @@ class Aerodynamics(object):
 
 
 
+
+        return cx,lod
 
 
 
@@ -217,6 +210,9 @@ class Power_system(object):
     def oei_drag(self,pamb,tamb):
         raise NotImplementedError
 
+    def breguet_range(self,range,tow,altp,mach,disa):
+        raise NotImplementedError
+
 
 class Turbofan(Power_system):
 
@@ -244,8 +240,7 @@ class Turbofan(Power_system):
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
         def fct(throttle):
-            fn1,ff1 = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle,pw_offtake,nei)
-            fn = fn1*(n_engine-nei)
+            fn,ff,sfc = self.thrust(pamb,tamb,mach,rating,throttle,pw_offtake,nei)
             return thrust-fn
 
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
@@ -253,8 +248,7 @@ class Turbofan(Power_system):
 
         throttle = output_dict[0][0]
 
-        fn1,ff1 = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle,pw_offtake,nei)
-        sfc = ff1/fn1
+        fn,ff,sfc = self.thrust(pamb,tamb,mach,rating,throttle,pw_offtake,nei)
 
         return sfc,throttle
 
@@ -268,5 +262,19 @@ class Turbofan(Power_system):
         dCx = 0.12*nacelle_width**2 / wing_area
 
         return dCx
+
+    def breguet_range(aircraft,range,tow,altp,mach,disa):
+        g = earth.gravity()
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        tas = mach*earth.sound_speed(tamb)
+
+        mass = 0.90*tow
+
+        cz,cx,lod,fn,sfc,thr = flight.level_flight(aircraft,pamb,tamb,mach,mass)
+        fuel = tow*(1-np.exp(-(sfc*g*range)/(tas*lod)))
+        time = 1.09*(range/tas)
+
+        return fuel,time
 
 

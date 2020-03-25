@@ -20,9 +20,6 @@ class Airframe(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-    def __iter__(self):
-        return iter(self.__dir__())
-
     def geometry_analysis(self):
         stab_architecture = self.aircraft.arrangement.stab_architecture
 

@@ -11,9 +11,8 @@ from scipy.optimize import fsolve
 import unit
 import earth
 
-import aircraft.flight as flight
 
-class Breguet_range(object):
+class Mission(object):
     """Define common features for all mission types.
 
     """
@@ -69,72 +68,41 @@ class Breguet_range(object):
 
         # Mission leg
         #-----------------------------------------------------------------------------------------------------------
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-        tas = mach*earth.sound_speed(tamb)
-
-
-        fn,ff,sfc = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCR")
-
-        mass = 0.95 * tow
-        cz_cruise = flight.lift_from_speed(self.aircraft,pamb,tamb,mach,mass)
-        cx_cruise,lod_cruise = self.aircraft.aerodynamics.drag()
-
-
-
-
-
-
-        if (propulsion.architecture=="TF"):
-            fuel_mission = tow*(1-numpy.exp(-(sfc*g*range)/(tas*lod_cruise)))
-        elif (propulsion.architecture=="TP"):
-            fuel_mission = tow*(1-numpy.exp(-(sfc*g*range)/(tas*lod_cruise)))
-        elif (propulsion.architecture=="PTE1"):
-            if (aircraft.pte1_battery.strategy>0):
-                fuel_mission = tow*(1-numpy.exp(-(sfc*g*range)/(tas*lod_cruise))) \
-                                - (sfc/sec)*aircraft.pte1_battery.energy_cruise
-            else:
-                fuel_mission = tow*(1-numpy.exp(-(sfc*g*range)/(tas*lod_cruise)))
-        else:
-            raise Exception("propulsion.architecture index is out of range")
-
-        time_mission = 1.09*(range/tas)
+        fuel_mission,time_mission = self.aircraft.power_system.breguet_range(self.aircraft,range,tow,altp,mach,disa)
 
         mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)
 
         # Arrival ground phases
         #-----------------------------------------------------------------------------------------------------------
-        fuel_landing = 1e-4*(0.5+2.3/engine.bpr)*mass
+        fuel_landing = 1e-4*(0.5+2.3/engine_bpr)*mass
         time_landing = 180.
 
-        fuel_taxi_in = (26. + 1.8e-4*propulsion.reference_thrust)*propulsion.n_engine
+        fuel_taxi_in = (26. + 1.8e-4*reference_thrust)*n_engine
         time_taxi_in = 420.
 
         # Block fuel and time
         #-----------------------------------------------------------------------------------------------------------
-        block_fuel = fuel_taxi_out + fuel_take_off + fuel_mission + fuel_landing + fuel_taxi_in
-        time_block = time_taxi_out + time_take_off + time_mission + time_landing + time_taxi_in
+        self.block_fuel = fuel_taxi_out + fuel_take_off + fuel_mission + fuel_landing + fuel_taxi_in
+        self.time_block = time_taxi_out + time_take_off + time_mission + time_landing + time_taxi_in
 
         # Diversion fuel
         #-----------------------------------------------------------------------------------------------------------
-        fuel_diversion = mass*(1.-numpy.exp(-(sfc*g*regul.diversion_range(design_range))/(tas*lod_cruise)))
+        fuel_diversion,t = self.aircraft.power_system.breguet_range(self.aircraft,self.diversion_range,tow,altp,mach,disa)
 
         # Holding fuel
         #-----------------------------------------------------------------------------------------------------------
         altp_holding = unit.m_ft(1500.)
         mach_holding = 0.50 * mach
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding,disa)
-        lod_max, cz_lod_max = airplane_aero.lod_max(aircraft, pamb, tamb, mach_holding)
-        fuel_holding = sfc*(mass*g/lod_max)*regul.holding_time()
+        cz,cx,lod,fn,sfc,throttle = flight.level_flight(self.aircraft,pamb,tamb,mach_holding,mass)
+        fuel_holding = sfc*(mass*g/lod)*self.holding_time()
 
         # Total
         #-----------------------------------------------------------------------------------------------------------
-        fuel_total = fuel_mission*(1.+self.reserve_fuel_ratio) + fuel_diversion + fuel_holding
+        self.fuel_reserve = fuel_mission*self.reserve_fuel_ratio + fuel_diversion + fuel_holding
+        self.fuel_total = self.block_fuel + self.fuel_reserve
 
         #-----------------------------------------------------------------------------------------------------------
         return
-
-
-
-
 
 
