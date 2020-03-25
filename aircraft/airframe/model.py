@@ -116,6 +116,15 @@ class Aerodynamics(object):
         self.hld_conf_to = 0.30
         self.hld_conf_ld = 1.00
 
+    def drag(self,pamb,tamb,mach,cz):
+        pass
+
+
+
+
+
+
+
 
 #--------------------------------------------------------------------------------------------------------------------------------
 class Power_system(object):
@@ -132,32 +141,48 @@ class Power_system(object):
                       "altp": 0.,
                       "mach": 0.25,
                       "nei":  0,
-                      "thrust": None},
+                      "thrust": None,
+                      "fuel_flow": None,
+                      "sfc": None},
                      {"rating": "MCN",
                       "disa": 15.,
                       "altp": self.aircraft.requirement.oei[0]["altp"],
                       "mach": self.aircraft.requirement.cruise_mach*0.6,
                       "nei":  1,
-                      "thrust": None},
+                      "thrust": None,
+                      "fuel_flow": None,
+                      "sfc": None},
                      {"rating": "MCL",
                       "disa": 0.,
                       "altp": self.aircraft.requirement.vz_mcl[0]["altp"],
                       "mach": self.aircraft.requirement.cruise_mach,
                       "nei":  0,
-                      "thrust": None},
+                      "thrust": None,
+                      "fuel_flow": None,
+                      "sfc": None},
                      {"rating": "MCR",
                       "disa": 0.,
                       "altp": self.aircraft.requirement.cruise_altp,
                       "mach": self.aircraft.requirement.cruise_mach,
                       "nei":  0,
-                      "thrust": None},
+                      "thrust": None,
+                      "fuel_flow": None,
+                      "sfc": None},
                      {"rating": "FID",
                       "disa": 15.,
                       "altp": self.aircraft.requirement.cruise_altp,
                       "mach": self.aircraft.requirement.cruise_mach,
                       "nei":  0,
-                      "thrust": None}
+                      "thrust": None,
+                      "fuel_flow": None,
+                      "sfc": None}
                      ]
+
+        self.fuel_heat = self.__fuel_heat__()
+
+    def __fuel_heat__(self):
+        energy_source = self.aircraft.arrangement.energy_source
+        return earth.fuel_heat(energy_source)
 
     def thrust_analysis(self):
         for j in range(len(self.data)):
@@ -169,6 +194,8 @@ class Power_system(object):
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
             fn,ff,sfc = self.thrust(pamb,tamb,mach,rating, nei=nei)
             self.data[j]["thrust"] = fn
+            self.data[j]["fuel_flow"] = ff
+            self.data[j]["sfc"] = sfc
 
     def thrust(self,pamb,tamb,mach,rating,throttle,pw_offtake,nei):
         raise NotImplementedError
