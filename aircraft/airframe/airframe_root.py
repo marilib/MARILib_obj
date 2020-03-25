@@ -19,6 +19,13 @@ class Airframe(object):
 
     def __init__(self, aircraft):
         self.aircraft = aircraft
+        self.mass_analysis_order = []
+
+    def mass_iter(self):
+        component_list = []
+        for name in self.mass_analysis_order:
+            component_list.append(self.__dict__[name])
+        return iter(component_list)
 
     def geometry_analysis(self):
         stab_architecture = self.aircraft.arrangement.stab_architecture

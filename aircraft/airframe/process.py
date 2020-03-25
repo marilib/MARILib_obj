@@ -90,6 +90,18 @@ def factory(name="my_plane", reqs=None, agmt=None):
 
     ac.weight_cg = model.Weight_cg(ac)
 
+    ac.airframe.mass_analysis_order = ["cabin",
+                                       "body",
+                                       "wing",
+                                       "landing_gear",
+                                       "cargo",
+                                       "nacelle",
+                                       "vertical_stab",
+                                       "horizontal_stab",
+                                       "tank",
+                                       "system"]
+
+
     return ac
 
 
