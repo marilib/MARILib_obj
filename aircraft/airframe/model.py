@@ -127,7 +127,7 @@ class Aerodynamics(object):
 
         ac_nwa = 0.
         cxf = 0.
-        for comp in self.aircraft.airframe.mass_iter():
+        for comp in self.aircraft.airframe:
             nwa = comp.get_net_wet_area()
             ael = comp.get_aero_length()
             frm = comp.get_form_factor()

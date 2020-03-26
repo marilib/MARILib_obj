@@ -7,6 +7,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 from scipy.optimize import fsolve
+from aircraft.airframe.component import Component
 
 
 #--------------------------------------------------------------------------------------------------------------------------------
@@ -18,6 +19,10 @@ class Airframe(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
         self.mass_analysis_order = []
+
+    def __iter__(self):
+        public = [value for value in self.__dict__.values() if issubclass(type(value),Component)]
+        return iter(public)
 
     def mass_iter(self):
         component_list = []
