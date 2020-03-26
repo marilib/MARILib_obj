@@ -30,7 +30,7 @@ reqs = Requirement(n_pax_ref = 150.,
 
 ac = process.factory(name = "my_plane", reqs = reqs, agmt = agmt)
 
-# ac.airframe.geometry_analysis(ac)
+# ac.airframe.geometry_analysis()
 ac.airframe.statistical_pre_design()
 
 # ac.weight_cg.mass_analysis()
@@ -39,3 +39,5 @@ ac.weight_cg.mass_pre_design()
 ac.power_system.thrust_analysis()
 
 ac.aerodynamics.aerodynamic_analysis()
+
+

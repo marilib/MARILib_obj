@@ -65,7 +65,21 @@ def factory(name="my_plane", reqs=None, agmt=None):
     ac.airframe.system = component.System(ac)
 
     if (ac.arrangement.power_architecture=="tf"):
-        ac.airframe.nacelle = component.Turbofan_nacelle(ac)
+        if (ac.arrangement.nacelle_attachment=="wing"):
+            if (ac.arrangement.number_of_engine=="twin"):
+                ac.airframe.nacelle = component.Inboard_wing_mounted_turbofan_nacelle(ac)
+            elif (ac.arrangement.number_of_engine=="quadri"):
+                ac.airframe.nacelle = component.Outboard_wing_mounted_turbofan_nacelle(ac)
+                ac.airframe.internal_nacelle = component.Inboard_wing_mounted_turbofan_nacelle(ac)
+            else:
+                raise Exception("Number of engines not allowed")
+        elif (ac.arrangement.nacelle_attachment=="rear"):
+            if (ac.arrangement.number_of_engine=="twin"):
+                ac.airframe.nacelle = component.Rear_mounted_turbofan_nacelle(ac)
+            else:
+                raise Exception("Number of engines not allowed")
+        else:
+            raise Exception("Type of nacelle attachment is unknown")
         ac.power_system = model.Turbofan(ac)
     elif (ac.arrangement.power_architecture=="tp"):
         pass
@@ -92,7 +106,6 @@ def factory(name="my_plane", reqs=None, agmt=None):
                                        "horizontal_stab",
                                        "tank",
                                        "system"]
-
 
     return ac
 

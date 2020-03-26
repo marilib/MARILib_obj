@@ -1211,8 +1211,7 @@ class Turbofan_nacelle(Component):
         self.nacelle_width = None
         self.nacelle_length = None
 
-        self.nacelle_loc_ext = np.full(3,None)
-        self.nacelle_loc_int = np.full(3,None)
+        self.nacelle_loc = np.full(3,None)
 
     def eval_geometry(self):
         body_width = self.aircraft.airframe.body.width
@@ -1256,48 +1255,18 @@ class Turbofan_nacelle(Component):
         self.nacelle_length = 0.86*self.nacelle_width + self.engine_bpr**0.37      # statistical regression
 
         knac = np.pi * self.nacelle_width * self.nacelle_length
-        self.net_wetted_area = knac*(1.48 - 0.0076*knac)*self.n_engine       # statistical regression
+        self.net_wetted_area = knac*(1.48 - 0.0076*knac)*2.       # statistical regression, two engines
         self.aero_length = self.nacelle_length
         self.form_factor = 1.15
 
-        if (self.aircraft.arrangement.nacelle_attachment == "wing"):
+        self.nacelle_loc = self.__locate_nacelle__()
 
-            tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
-
-            if (self.n_engine==2):
-                y_ext = 0.8 * body_width + 1.5 * self.nacelle_width      # statistical regression
-                x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.nacelle_length
-                z_ext = (y_ext - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.nacelle_width
-
-                self.nacelle_loc_ext = np.array([x_ext, y_ext, z_ext])
-
-            elif (self.n_engine==4):
-                y_int = 0.8 * body_width + 1.5 * self.nacelle_width      # statistical regression
-                x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.nacelle_length
-                z_int = (y_int - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.nacelle_width
-
-                y_ext = 2.0 * body_width + 1.5 * self.nacelle_width      # statistical regression
-                x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.nacelle_length
-                z_ext = (y_ext - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.nacelle_width
-
-                self.nacelle_loc_ext = np.array([x_ext, y_ext, z_ext])
-                self.nacelle_loc_int = np.array([x_int, y_int, z_int])
-
-        elif (self.aircraft.arrangement.nacelle_attachment == "rear"):
-
-            if (self.n_engine==2):
-                y_ext = 0.5 * body_width + 0.6 * self.nacelle_width      # statistical regression
-                x_ext = vtp_root_loc[0] - 0.5*self.nacelle_length
-                z_ext = body_height
-
-                self.nacelle_loc_ext = np.array([x_ext, y_ext, z_ext])
-
-            else:
-                raise Exception("number of engine not supported")
+    def __locate_nacelle__(self):
+        return np.full(3,None)
 
     def eval_mass(self):
-        self.mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression
-        self.cg = self.nacelle_loc_ext + 0.7 * np.array([self.nacelle_length, 0., 0.])      # statistical regression
+        self.mass = (1250. + 0.021*self.reference_thrust)*2.       # statistical regression, two engines
+        self.cg = self.nacelle_loc + 0.7 * np.array([self.nacelle_length, 0., 0.])      # statistical regression
 
     def __turbofan_bpr__(self):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -1338,4 +1307,68 @@ class Turbofan_nacelle(Component):
 
         return total_thrust, fuel_flow
 
+
+class Inboard_wing_mounted_turbofan_nacelle(Turbofan_nacelle):
+
+    def __init__(self, aircraft):
+        super(Inboard_wing_mounted_turbofan_nacelle, self).__init__(aircraft)
+
+    def __locate_nacelle__(self):
+        body_width = self.aircraft.airframe.body.width
+        wing_root_loc = self.aircraft.airframe.wing.root_loc
+        wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_dihedral = self.aircraft.airframe.wing.dihedral
+        wing_kink_c = self.aircraft.airframe.wing.kink_c
+        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
+        wing_tip_c = self.aircraft.airframe.wing.tip_c
+        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
+
+        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
+
+        y_int = 0.8 * body_width + 1.5 * self.nacelle_width      # statistical regression
+        x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.nacelle_length
+        z_int = (y_int - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.nacelle_width
+
+        return np.array([x_int, y_int, z_int])
+
+
+class Outboard_wing_mounted_turbofan_nacelle(Turbofan_nacelle):
+
+    def __init__(self, aircraft):
+        super(Outboard_wing_mounted_turbofan_nacelle, self).__init__(aircraft)
+
+    def __locate_nacelle__(self):
+        body_width = self.aircraft.airframe.body.width
+        wing_root_loc = self.aircraft.airframe.wing.root_loc
+        wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_dihedral = self.aircraft.airframe.wing.dihedral
+        wing_kink_c = self.aircraft.airframe.wing.kink_c
+        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
+        wing_tip_c = self.aircraft.airframe.wing.tip_c
+        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
+
+        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
+
+        y_ext = 2.0 * body_width + 1.5 * self.nacelle_width      # statistical regression
+        x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.nacelle_length
+        z_ext = (y_ext - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.nacelle_width
+
+        return np.array([x_ext, y_ext, z_ext])
+
+
+class Rear_mounted_turbofan_nacelle(Turbofan_nacelle):
+
+    def __init__(self, aircraft):
+        super(Rear_mounted_turbofan_nacelle, self).__init__(aircraft)
+
+    def __locate_nacelle__(self):
+        body_width = self.aircraft.airframe.body.width
+        body_height = self.aircraft.airframe.body.height
+        vtp_root_loc = self.aircraft.airframe.vertical_stab.root_loc
+
+        y_int = 0.5 * body_width + 0.6 * self.nacelle_width      # statistical regression
+        x_int = vtp_root_loc[0] - 0.5*self.nacelle_length
+        z_int = body_height
+
+        return np.array([x_int, y_int, z_int])
 

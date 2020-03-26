@@ -45,7 +45,7 @@ class Mission(object):
             diversion_range = design_range
         return diversion_range
 
-    def mission(self,range,tow,altp,mach,disa):
+    def breguet(self,range,tow,altp,mach,disa):
         """
         Mission computation using bregueçt equation, fixed L/D and fixed sfc
         """
