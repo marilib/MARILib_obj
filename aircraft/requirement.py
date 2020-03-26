@@ -6,19 +6,19 @@ Created on Thu Jan 20 20:20:20 2020
 
 """
 
-import unit
-import earth
+from aircraft.tool import unit
+
 
 #===========================================================================================================
 class Requirement(object):
     """
     Initialize top level aircraft requirements
     """
-    def __init__(self,n_pax_ref = 150.,
-                      design_range = unit.m_NM(3000.),
-                      cruise_mach = 0.78,
-                      cruise_altp = unit.m_ft(35000.),
-                      arrangement = None):
+    def __init__(self, n_pax_ref = 150.,
+                 design_range = unit.m_NM(3000.),
+                 cruise_mach = 0.78,
+                 cruise_altp = unit.m_ft(35000.),
+                 arrangement = None):
 
         self.design_range = design_range
         self.cruise_mach = cruise_mach
@@ -180,7 +180,7 @@ class Requirement(object):
             altp = unit.m_ft(16000.)
         else:
             raise Exception("propulsion.architecture index is out of range")
-        top_of_climb = min(altp, self.cruise_altp-unit.m_ft(4000.))
+        top_of_climb = min(altp, self.cruise_altp - unit.m_ft(4000.))
         return top_of_climb
 
 

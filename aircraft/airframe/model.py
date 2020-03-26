@@ -8,10 +8,11 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy.optimize import fsolve
 
-import unit
+import aircraft.tool.unit as unit
 import earth
 
 import aircraft.flight as flight
+from aircraft.tool.math import lin_interp_1d, maximize_1d
 
 
 class Weight_cg(object):
@@ -32,7 +33,6 @@ class Weight_cg(object):
     def mass_analysis(self):
         # update all component mass
         for comp in self.aircraft.airframe.mass_iter():
-            print(comp)
             comp.eval_mass()
 
         # sum all MWE & OWE contributions
@@ -41,6 +41,8 @@ class Weight_cg(object):
         for comp in self.aircraft.airframe.mass_iter():
             mwe += comp.get_mass_mwe()
             owe += comp.get_mass_owe()
+        self.mwe = mwe
+        self.owe = owe
 
         if (self.aircraft.arrangement.energy_source=="battery"):
             self.mzfw = self.mtow
@@ -90,20 +92,103 @@ class Weight_cg(object):
 class Aerodynamics(object):
 
     def __init__(self, aircraft):
+        self.aircraft = aircraft
+
+        self.cx_correction = 0.     # drag correction on cx coefficient
+        self.cruise_lodmax = None
+        self.cz_cruise_lodmax = None
+
+        self.hld_conf_clean = 0.
+        self.czmax_conf_clean = None
 
         self.hld_conf_to = 0.30
+        self.czmax_conf_to = None
+
         self.hld_conf_ld = 1.00
+        self.czmax_conf_ld = None
+
+    def aerodynamic_analysis(self):
+        mach = self.aircraft.requirement.cruise_mach
+        altp = self.aircraft.requirement.cruise_altp
+        disa = 0.
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+
+        self.cruise_lodmax, self.cz_cruise_lodmax = self.lod_max(pamb,tamb,mach)
+        self.cz_max_clean,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_clean)
+        self.cz_max_to,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_to)
+        self.cz_max_ld,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_ld)
 
     def drag(self,pamb,tamb,mach,cz):
-        pass
+        # Form & friction drag
+        #-----------------------------------------------------------------------------------------------------------
+        re = earth.reynolds_number(pamb,tamb,mach)
 
+        fac = ( 1. + 0.126*mach**2 )
 
+        ac_nwa = 0.
+        cxf = 0.
+        for comp in self.aircraft.airframe.mass_iter():
+            nwa = comp.get_net_wet_area()
+            ael = comp.get_aero_length()
+            frm = comp.get_form_factor()
+            cxf += frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * (nwa/self.aircraft.airframe.wing.area)
+            ac_nwa += nwa
 
+        # Parasitic drag (seals, antennas, sensors, ...)
+        #-----------------------------------------------------------------------------------------------------------
+        knwa = ac_nwa/1000.
+
+        kp = (0.0247*knwa - 0.11)*knwa + 0.166       # Parasitic drag factor
+
+        cx_par = cxf*kp
+
+        # Additional drag
+        #-----------------------------------------------------------------------------------------------------------
+        X = np.array([1.0, 1.5, 2.4, 3.3, 4.0, 5.0])
+        Y = np.array([0.036, 0.020, 0.0075, 0.0025, 0., 0.])
+
+        param = self.aircraft.airframe.body.tail_cone_length/self.aircraft.airframe.body.width
+
+        cx_tap_base = lin_interp_1d(param,X,Y)     # Tapered fuselage drag (tail cone)
+
+        cx_tap = cx_tap_base*self.aircraft.power_system.tail_cone_drag_factor()     # Effect of tail cone fan
+
+        # Total zero lift drag
+        #-----------------------------------------------------------------------------------------------------------
+        cx0 = cxf + cx_par + cx_tap + self.cx_correction
+
+        # Induced drag
+        #-----------------------------------------------------------------------------------------------------------
+        cxi = self.aircraft.airframe.wing.induced_drag_factor*cz**2  # Induced drag
+
+        # Compressibility drag
+        #-----------------------------------------------------------------------------------------------------------
+        # Freely inspired from Korn equation
+        cz_design = 0.5
+        mach_div = self.aircraft.requirement.cruise_mach + (0.03 + 0.1*(cz_design-cz))
+
+        cxc = 0.0025 * np.exp(40.*(mach - mach_div) )
+
+        # Sum up
+        #-----------------------------------------------------------------------------------------------------------
+        cx = cx0 + cxi + cxc
+        lod = cz/cx
 
         return cx,lod
 
+    def lod_max(self,pamb,tamb,mach):
+        """
+        Maximum lift to drag ratio
+        """
+        def fct(cz):
+            cx,lod = self.drag(pamb,tamb,mach,cz)
+            return lod
 
+        cz_ini = 0.5
+        dcz = 0.05
+        cz_lodmax,lodmax,rc = maximize_1d(cz_ini,dcz,[fct])
 
+        return lodmax,cz_lodmax
 
 
 #--------------------------------------------------------------------------------------------------------------------------------
@@ -186,6 +271,9 @@ class Power_system(object):
     def oei_drag(self,pamb,tamb):
         raise NotImplementedError
 
+    def tail_cone_drag_factor(self):
+        raise NotImplementedError
+
     def breguet_range(self,range,tow,altp,mach,disa):
         raise NotImplementedError
 
@@ -238,6 +326,9 @@ class Turbofan(Power_system):
         dCx = 0.12*nacelle_width**2 / wing_area
 
         return dCx
+
+    def tail_cone_drag_factor(self):
+        return 1.
 
     def breguet_range(aircraft,range,tow,altp,mach,disa):
         g = earth.gravity()

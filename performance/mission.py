@@ -5,10 +5,7 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-import numpy as np
-from scipy.optimize import fsolve
-
-import unit
+from aircraft.tool import unit
 import earth
 
 
@@ -34,7 +31,7 @@ class Mission(object):
 
     def __reserve_fuel_ratio__(self):
         design_range = self.aircraft.requirement.design_range
-        if (design_range>unit.m_NM(6500.)):
+        if (design_range> unit.m_NM(6500.)):
             reserve_fuel_ratio = 0.03
         else:
             reserve_fuel_ratio = 0.05
@@ -42,7 +39,7 @@ class Mission(object):
 
     def __diversion_range__(self):
         design_range = self.aircraft.requirement.design_range
-        if (design_range>unit.m_NM(200.)):
+        if (design_range> unit.m_NM(200.)):
             diversion_range = unit.m_NM(200.)
         else:
             diversion_range = design_range

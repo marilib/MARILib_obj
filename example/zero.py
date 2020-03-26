@@ -5,8 +5,7 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-import unit
-import earth
+from aircraft.tool import unit
 
 from aircraft.requirement import Requirement
 from aircraft.arrangement import Arrangement
@@ -38,3 +37,5 @@ ac.airframe.statistical_pre_design()
 ac.weight_cg.mass_pre_design()
 
 ac.power_system.thrust_analysis()
+
+ac.aerodynamics.aerodynamic_analysis()

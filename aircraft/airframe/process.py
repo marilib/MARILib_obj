@@ -7,14 +7,6 @@ Created on Thu Jan 20 20:20:20 2020
 .. note:: All physical parameters are given in SI units.
 """
 
-import numpy as np
-from scipy.optimize import fsolve
-
-import unit
-import earth
-
-from aircraft.requirement import Requirement
-from aircraft.arrangement import Arrangement
 from aircraft.aircraft_root import Aircraft
 
 from aircraft.airframe import component

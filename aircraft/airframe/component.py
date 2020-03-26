@@ -9,7 +9,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
-import unit
+from aircraft.tool import unit
 import earth
 
 
@@ -43,7 +43,7 @@ class Component(object):
 
         self.gross_wet_area = 0.    # wetted area of the component alone
         self.net_wet_area = 0.      # wetted area of the component in the assembly (without footprints)
-        self.aero_length = 0.       # characteristic length of the component in the direction of the flow
+        self.aero_length = 1.       # characteristic length of the component in the direction of the flow
         self.form_factor = 0.       # factor on skin friction to account for lift independent pressure drag
 
     def eval_geometry(self):
@@ -240,6 +240,7 @@ class Wing(Component):
         self.dihedral = None
         self.setting = None
         self.hld_type = 9
+        self.induced_drag_factor = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
         self.root_toc = None                # thickness over chord ratio of root chord
@@ -284,8 +285,8 @@ class Wing(Component):
         y_kink = self.kink_loc[0]
         y_tip = 0.5*self.span
 
-        if(15<unit.deg_rad(self.sweep25)):  # With kink
-          Phi100intTE = max( 0. , 2.*(self.sweep25-unit.rad_deg(32.)) )
+        if(15< unit.deg_rad(self.sweep25)):  # With kink
+          Phi100intTE = max(0., 2. * (self.sweep25 - unit.rad_deg(32.)))
           tan_phi100 = np.tan(Phi100intTE)
           A = ((1-0.25*self.taper_ratio)*y_kink+0.25*self.taper_ratio*y_root-y_tip) / (0.75*y_kink+0.25*y_root-y_tip)
           B = (np.tan(self.sweep25)-tan_phi100) * ((y_tip-y_kink)*(y_kink-y_root)) / (0.25*y_root+0.75*y_kink-y_tip)
@@ -343,6 +344,8 @@ class Wing(Component):
         self.aero_length = self.mac
         self.form_factor = 1.40
 
+        self.induced_drag_factor = (1.05 + (body_width / self.span)**2)  / (np.pi * self.aspect_ratio)
+
         # Wing setting
         #-----------------------------------------------------------------------------------------------------------
         g = earth.gravity()
@@ -358,7 +361,7 @@ class Wing(Component):
         cza_wing = self.cza(mach)
 
         # AoA = 2.5° at cruise start
-        self.setting = (0.97*mass*g)/(0.5*gam*pamb*mach**2*self.area*cza_wing) - unit.rad_deg(2.5)
+        self.setting = (0.97*mass*g) / (0.5*gam*pamb*mach**2*self.area*cza_wing) - unit.rad_deg(2.5)
 
     def eval_mass(self):
         mtow = self.aircraft.weight_cg.mtow
@@ -403,17 +406,6 @@ class Wing(Component):
         loc_np = wing_mac_loc + (0.25+0.10*hld_conf)*np.array([wing_c_mac, 0., 0.])
         return loc_np
 
-    def wing_ki(self):
-        """
-        Wing induced drag factor
-        """
-        body_width = self.aircraft.airframe.body.width
-        wing_span = self.aircraft.airframe.wing.span
-        wing_ar = self.aircraft.airframe.wing.aspect_ratio
-
-        ki = ((body_width / wing_span)**2 + 1.05 )  / (np.pi * wing_ar)
-        return ki
-
     def high_lift(self, hld_conf):
         """
         0 =< hld_type =< 10
@@ -423,30 +415,30 @@ class Wing(Component):
         """
 
         # Maximum lift coefficients of different airfoils, DUBS 1987
-        cz_max_ld = {0 : 1.45 ,  # Clean
-                     1 : 2.25 ,  # Flap only, Rotation without slot
-                     2 : 2.60 ,  # Flap only, Rotation single slot      (ATR)
-                     3 : 2.80 ,  # Flap only, Rotation double slot
-                     4 : 2.80 ,  # Fowler Flap
-                     5 : 2.00 ,  # Slat only
-                     6 : 2.45 ,  # Slat + Flap rotation without slot
-                     7 : 2.70 ,  # Slat + Flap rotation single slot
-                     8 : 2.90 ,  # Slat + Flap rotation double slot
-                     9 : 3.00 ,  # Slat + Fowler                      (A320)
-                     10 : 3.20,  # Slat + Fowler + Fowler double slot (A321)
-                     }.get(self.hld_type, "Erreur - high_lift_, HLDtype out of range")    # 9 is default if x not found
+        czmax_ld = {0 : 1.45 ,  # Clean
+                    1 : 2.25 ,  # Flap only, Rotation without slot
+                    2 : 2.60 ,  # Flap only, Rotation single slot      (ATR)
+                    3 : 2.80 ,  # Flap only, Rotation double slot
+                    4 : 2.80 ,  # Fowler Flap
+                    5 : 2.00 ,  # Slat only
+                    6 : 2.45 ,  # Slat + Flap rotation without slot
+                    7 : 2.70 ,  # Slat + Flap rotation single slot
+                    8 : 2.90 ,  # Slat + Flap rotation double slot
+                    9 : 3.00 ,  # Slat + Fowler                      (A320)
+                    10 : 3.20,  # Slat + Fowler + Fowler double slot (A321)
+                    }.get(self.hld_type, "Erreur - high_lift_, HLDtype out of range")    # 9 is default if x not found
 
         if (self.hld_type<5):
-            cz_max_base = 1.45      # Flap only
+            czmax_base = 1.45      # Flap only
         else:
             if (hld_conf==0):
-                cz_max_base = 1.45  # Clean
+                czmax_base = 1.45  # Clean
             else:
-                cz_max_base = 2.00  # Slat + Flap
+                czmax_base = 2.00  # Slat + Flap
 
-        cz_max = (1-hld_conf)*cz_max_base + hld_conf*cz_max_ld
-        cz_0 = cz_max - cz_max_base  # Assumed the Lift vs AoA is just translated upward and Cz0 clean equal to zero
-        return cz_max, cz_0
+        czmax = (1-hld_conf)*czmax_base + hld_conf*czmax_ld
+        cz0 = czmax - czmax_base  # Assumed the Lift vs AoA is just translated upward and Cz0 clean equal to zero
+        return czmax, cz0
 
 
 class VTP_classic(Component):
