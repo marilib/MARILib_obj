@@ -23,6 +23,7 @@ class Requirement(object):
         self.design_range = design_range
         self.cruise_mach = cruise_mach
         self.cruise_altp = cruise_altp
+        self.cruise_disa = 0.
 
         self.n_pax_ref = n_pax_ref
         self.n_pax_front = self.__n_pax_front__()

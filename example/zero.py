@@ -43,5 +43,7 @@ ac.power_system.thrust_analysis()
 
 ac.aerodynamics.aerodynamic_analysis()
 
-my_mission = Mission(ac)
-my_mission.payload_range()
+ac.performance.mission.payload_range()
+
+
+process.mass_mission_adaptation(ac)

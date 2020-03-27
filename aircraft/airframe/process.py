@@ -7,10 +7,19 @@ Created on Thu Jan 20 20:20:20 2020
 .. note:: All physical parameters are given in SI units.
 """
 
+import numpy as np
+from scipy.optimize import fsolve
+
+import aircraft.tool.unit as unit
+import earth
+
 from aircraft.aircraft_root import Aircraft
+from aircraft.performance import Performance
 
 from aircraft.airframe import component
 from aircraft.airframe import model
+
+
 
 
 def factory(name="my_plane", reqs=None, agmt=None):
@@ -92,10 +101,6 @@ def factory(name="my_plane", reqs=None, agmt=None):
     else:
         raise Exception("Type of power architecture is unknown")
 
-    ac.aerodynamics = model.Aerodynamics(ac)
-
-    ac.weight_cg = model.Weight_cg(ac)
-
     ac.airframe.mass_analysis_order = ["cabin",
                                        "body",
                                        "wing",
@@ -107,6 +112,40 @@ def factory(name="my_plane", reqs=None, agmt=None):
                                        "tank",
                                        "system"]
 
+    ac.aerodynamics = model.Aerodynamics(ac)
+
+    ac.weight_cg = model.Weight_cg(ac)
+
+    ac.performance = Performance(ac)
+
     return ac
+
+
+def mass_mission_adaptation(ac):
+    """
+    Build an aircraft
+    """
+    range = ac.requirement.design_range
+    altp = ac.requirement.cruise_altp
+    mach = ac.requirement.cruise_mach
+    disa = ac.requirement.cruise_disa
+
+    payload = ac.airframe.cabin.nominal_payload
+
+    def fct(mtow):
+        ac.weight_cg.mtow = mtow
+        ac.weight_cg.mass_pre_design()
+        owe = ac.weight_cg.owe
+        ac.performance.mission.nominal.simulate(range,mtow,owe,altp,mach,disa)
+        fuel_total = ac.performance.mission.nominal.fuel_total
+        return mtow - (owe + payload + fuel_total)
+
+    mtow_ini = ac.weight_cg.mtow
+    output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
+    if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+    ac.weight_cg.mtow = output_dict[0][0]
+    ac.performance.mission.payload_range()
+
 
 

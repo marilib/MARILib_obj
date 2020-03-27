@@ -14,9 +14,63 @@ from scipy.optimize import fsolve
 import aircraft.flight as flight
 
 
-class Mission_fuel_from_range_and_tow(object):
-    """Define common features for all mission types.
+class Performance(object):
+    """
+    Master class for all aircraft performances
+    """
+    def __init__(self, aircraft):
+        self.aircraft = aircraft
 
+        self.mission = Mission(aircraft)
+        self.take_off = None
+        self.landing = None
+        self.mcr_ceiling = None
+        self.mcl_ceiling = None
+        self.oei_ceiling = None
+        self.time_to_climb = None
+
+
+class Mission(object):
+    """
+    Definition of all mission types
+    """
+    def __init__(self, aircraft):
+        self.aircraft = aircraft
+
+        self.max_payload = Mission_range_from_payload_and_tow(aircraft)
+        self.nominal = Mission_fuel_from_range_and_tow(aircraft)
+        self.max_fuel = Mission_range_from_fuel_and_tow(aircraft)
+        self.zero_payload = Mission_range_from_fuel_and_payload(aircraft)
+        self.cost = Mission_fuel_from_range_and_payload(aircraft)
+
+    def payload_range(self):
+        payload_max = self.aircraft.airframe.cabin.maximum_payload
+        mtow = self.aircraft.weight_cg.mtow
+        owe = self.aircraft.weight_cg.owe
+
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
+        disa = self.aircraft.requirement.cruise_disa
+
+        self.max_payload.simulate(payload_max,mtow,owe,altp,mach,disa)
+
+        range = self.aircraft.requirement.design_range
+        self.nominal.simulate(range,mtow,owe,altp,mach,disa)
+
+        fuel_max = self.aircraft.weight_cg.mfw
+        self.max_fuel.simulate(fuel_max,mtow,owe,altp,mach,disa)
+
+        payload = 0.
+        self.zero_payload.simulate(fuel_max,payload,owe,altp,mach,disa)
+
+        range = self.aircraft.requirement.cost_range
+        payload = self.aircraft.airframe.cabin.nominal_payload
+        self.cost.simulate(range,payload,owe,altp,mach,disa)
+
+
+class Mission_fuel_from_range_and_tow(object):
+    """
+    Define common features for all mission types.
     """
     def __init__(self, aircraft):
         self.aircraft = aircraft
@@ -126,8 +180,10 @@ class Mission_fuel_from_range_and_tow(object):
 
 
 class Mission_range_from_payload_and_tow(Mission_fuel_from_range_and_tow):
-    """Define common features for all mission types.
-
+    """
+    Four variables are driving mission computation : total_fuel, tow, payload & range
+    Two of them are necessary to compute the two others
+    This version computes range and total_fuel from payload and tow
     """
     def __init__(self, aircraft):
         super(Mission_range_from_payload_and_tow, self).__init__(aircraft)
@@ -152,8 +208,10 @@ class Mission_range_from_payload_and_tow(Mission_fuel_from_range_and_tow):
 
 
 class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
-    """Define common features for all mission types.
-
+    """
+    Four variables are driving mission computation : total_fuel, tow, payload & range
+    Two of them are necessary to compute the two others
+    This version computes range and payload from total_fuel and tow
     """
     def __init__(self, aircraft):
         super(Mission_range_from_fuel_and_tow, self).__init__(aircraft)
@@ -178,8 +236,10 @@ class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
 
 
 class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
-    """Define common features for all mission types.
-
+    """
+    Four variables are driving mission computation : total_fuel, tow, payload & range
+    Two of them are necessary to compute the two others
+    This version computes range and tow from total_fuel and payload
     """
     def __init__(self, aircraft):
         super(Mission_range_from_fuel_and_payload, self).__init__(aircraft)
@@ -204,8 +264,10 @@ class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
 
 
 class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
-    """Define common features for all mission types.
-
+    """
+    Four variables are driving mission computation : total_fuel, tow, payload & range
+    Two of them are necessary to compute the two others
+    This version computes total_fuel and tow from range and payload
     """
     def __init__(self, aircraft):
         super(Mission_fuel_from_range_and_payload, self).__init__(aircraft)
@@ -228,40 +290,3 @@ class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
         self.tow = output_dict[0][0]
         self.eval_breguet(self.range,self.tow,altp,mach,disa)
 
-
-class Mission(object):
-    """Define common features for all mission types.
-
-    """
-    def __init__(self, aircraft):
-        self.aircraft = aircraft
-
-        self.max_payload = Mission_range_from_payload_and_tow(aircraft)
-        self.nominal = Mission_fuel_from_range_and_tow(aircraft)
-        self.max_fuel = Mission_range_from_fuel_and_tow(aircraft)
-        self.zero_payload = Mission_range_from_fuel_and_payload(aircraft)
-        self.cost = Mission_fuel_from_range_and_payload(aircraft)
-
-    def payload_range(self):
-        payload_max = self.aircraft.airframe.cabin.maximum_payload
-        mtow = self.aircraft.weight_cg.mtow
-        owe = self.aircraft.weight_cg.owe
-
-        altp = self.aircraft.requirement.cruise_altp
-        mach = self.aircraft.requirement.cruise_mach
-        disa = 0.
-
-        self.max_payload.simulate(payload_max,mtow,owe,altp,mach,disa)
-
-        range = self.aircraft.requirement.design_range
-        self.nominal.simulate(range,mtow,owe,altp,mach,disa)
-
-        fuel_max = self.aircraft.weight_cg.mfw
-        self.max_fuel.simulate(fuel_max,mtow,owe,altp,mach,disa)
-
-        payload = 0.
-        self.zero_payload.simulate(fuel_max,payload,owe,altp,mach,disa)
-
-        range = self.aircraft.requirement.cost_range
-        payload = self.aircraft.airframe.cabin.nominal_payload
-        self.cost.simulate(range,payload,owe,altp,mach,disa)
