@@ -15,80 +15,6 @@ import aircraft.flight as flight
 from aircraft.tool.math import lin_interp_1d, maximize_1d
 
 
-class Weight_cg(object):
-
-    def __init__(self, aircraft):
-        self.aircraft = aircraft
-
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
-        design_range = self.aircraft.requirement.design_range
-
-        self.mtow = 20500. + 67.e-6*n_pax_ref*design_range
-        self.mzfw = 25000. + 41.e-6*n_pax_ref*design_range
-        self.mlw = 1.07*self.mzfw
-        self.owe = None
-        self.mwe = None
-        self.mfw = None
-
-    def mass_analysis(self):
-        # update all component mass
-        for comp in self.aircraft.airframe.mass_iter():
-            comp.eval_mass()
-
-        # sum all MWE & OWE contributions
-        mwe = 0.
-        owe = 0.
-        for comp in self.aircraft.airframe.mass_iter():
-            mwe += comp.get_mass_mwe()
-            owe += comp.get_mass_owe()
-        self.mwe = mwe
-        self.owe = owe
-
-        if (self.aircraft.arrangement.energy_source=="battery"):
-            self.mzfw = self.mtow
-        else:
-            self.mzfw = self.owe + self.aircraft.airframe.cabin.maximum_payload
-
-        if (self.aircraft.arrangement.energy_source=="battery"):
-            self.mlw = self.mtow
-        else:
-            if (self.aircraft.requirement.n_pax_ref>100):
-                self.mlw = min(self.mtow , (1.07*self.mzfw))
-            else:
-                self.mlw = self.mtow
-
-        # WARNING : for battery powered architecture, MFW corresponds to max battery weight
-        self.mfw = min(self.aircraft.airframe.tank.mfw_volume_limited, self.mtow - self.owe)
-
-        # TODO
-        # calculer les cg
-
-    def mass_pre_design(self):
-        """
-        Solve the coupling through MZFW & MLW internally to mass functions
-        """
-        def fct(x_in):
-            self.aircraft.weight_cg.mzfw = x_in[0]
-            self.aircraft.weight_cg.mlw = x_in[1]
-
-            self.mass_analysis()
-
-            y_out = np.array([x_in[0] - self.aircraft.weight_cg.mzfw,
-                              x_in[1] - self.aircraft.weight_cg.mlw])
-            return y_out
-
-        x_ini = np.array([self.aircraft.weight_cg.mzfw,
-                          self.aircraft.weight_cg.mlw])
-
-        output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
-
-        self.aircraft.weight_cg.mzfw = output_dict[0][0]        # Coupling variable
-        self.aircraft.weight_cg.mlw = output_dict[0][1]         # Coupling variable
-
-        self.mass_analysis()
-
-
 class Aerodynamics(object):
 
     def __init__(self, aircraft):
@@ -189,6 +115,80 @@ class Aerodynamics(object):
         cz_lodmax,lodmax,rc = maximize_1d(cz_ini,dcz,[fct])
 
         return lodmax,cz_lodmax
+
+
+class Weight_cg(object):
+
+    def __init__(self, aircraft):
+        self.aircraft = aircraft
+
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        design_range = self.aircraft.requirement.design_range
+
+        self.mtow = 20500. + 67.e-6*n_pax_ref*design_range
+        self.mzfw = 25000. + 41.e-6*n_pax_ref*design_range
+        self.mlw = 1.07*self.mzfw
+        self.owe = None
+        self.mwe = None
+        self.mfw = None
+
+    def mass_analysis(self):
+        # update all component mass
+        for comp in self.aircraft.airframe.mass_iter():
+            comp.eval_mass()
+
+        # sum all MWE & OWE contributions
+        mwe = 0.
+        owe = 0.
+        for comp in self.aircraft.airframe.mass_iter():
+            mwe += comp.get_mass_mwe()
+            owe += comp.get_mass_owe()
+        self.mwe = mwe
+        self.owe = owe
+
+        if (self.aircraft.arrangement.energy_source=="battery"):
+            self.mzfw = self.mtow
+        else:
+            self.mzfw = self.owe + self.aircraft.airframe.cabin.maximum_payload
+
+        if (self.aircraft.arrangement.energy_source=="battery"):
+            self.mlw = self.mtow
+        else:
+            if (self.aircraft.requirement.n_pax_ref>100):
+                self.mlw = min(self.mtow , (1.07*self.mzfw))
+            else:
+                self.mlw = self.mtow
+
+        # WARNING : for battery powered architecture, MFW corresponds to max battery weight
+        self.mfw = min(self.aircraft.airframe.tank.mfw_volume_limited, self.mtow - self.owe)
+
+        # TODO
+        # calculer les cg
+
+    def mass_pre_design(self):
+        """
+        Solve the coupling through MZFW & MLW internally to mass functions
+        """
+        def fct(x_in):
+            self.aircraft.weight_cg.mzfw = x_in[0]
+            self.aircraft.weight_cg.mlw = x_in[1]
+
+            self.mass_analysis()
+
+            y_out = np.array([x_in[0] - self.aircraft.weight_cg.mzfw,
+                              x_in[1] - self.aircraft.weight_cg.mlw])
+            return y_out
+
+        x_ini = np.array([self.aircraft.weight_cg.mzfw,
+                          self.aircraft.weight_cg.mlw])
+
+        output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        self.aircraft.weight_cg.mzfw = output_dict[0][0]        # Coupling variable
+        self.aircraft.weight_cg.mlw = output_dict[0][1]         # Coupling variable
+
+        self.mass_analysis()
 
 
 #--------------------------------------------------------------------------------------------------------------------------------

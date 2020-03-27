@@ -25,6 +25,7 @@ class Aircraft(object):
         self.power_system = None
         self.aerodynamics = None
         self.weight_cg = None
+        self.performance = None
         self.economics = None
         self.environment = None
 

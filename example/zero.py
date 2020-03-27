@@ -9,7 +9,10 @@ from aircraft.tool import unit
 
 from aircraft.requirement import Requirement
 from aircraft.arrangement import Arrangement
+from aircraft.performance import Mission
+
 import aircraft.airframe.process as process
+
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
@@ -40,4 +43,4 @@ ac.power_system.thrust_analysis()
 
 ac.aerodynamics.aerodynamic_analysis()
 
-
+ac = Mission.payload_range(ac)
