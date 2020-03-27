@@ -42,7 +42,7 @@ class Mission_fuel_from_range_and_tow(object):
         self.altp = altp    # Mean cruise altitude
         self.mach = mach    # Cruise mach number
         self.tow = tow      # Take Off Weight
-        self.eval_breguet(self,range,tow,altp,mach,disa)
+        self.eval_breguet(range,tow,altp,mach,disa)
         self.eval_payload(owe)
 
     def __reserve_fuel_ratio__(self):
@@ -75,7 +75,7 @@ class Mission_fuel_from_range_and_tow(object):
         fhv = self.aircraft.power_system.fuel_heat
         n_engine = self.aircraft.airframe.nacelle.n_engine
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
-        engine_bpr = self.aircraft.airframe.nacelle.bpr
+        engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
 
         # Departure ground phases
         #-----------------------------------------------------------------------------------------------------------
@@ -87,7 +87,7 @@ class Mission_fuel_from_range_and_tow(object):
 
         # Mission leg
         #-----------------------------------------------------------------------------------------------------------
-        fuel_mission,time_mission = self.aircraft.power_system.breguet_range(self.aircraft,range,tow,altp,mach,disa)
+        fuel_mission,time_mission = self.aircraft.power_system.breguet_range(range,tow,altp,mach,disa)
 
         mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)
 
@@ -106,7 +106,7 @@ class Mission_fuel_from_range_and_tow(object):
 
         # Diversion fuel
         #-----------------------------------------------------------------------------------------------------------
-        fuel_diversion,t = self.aircraft.power_system.breguet_range(self.aircraft,self.diversion_range,tow,altp,mach,disa)
+        fuel_diversion,t = self.aircraft.power_system.breguet_range(self.diversion_range,tow,altp,mach,disa)
 
         # Holding fuel
         #-----------------------------------------------------------------------------------------------------------
@@ -114,7 +114,7 @@ class Mission_fuel_from_range_and_tow(object):
         mach_holding = 0.50 * mach
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding,disa)
         cz,cx,lod,fn,sfc,throttle = flight.level_flight(self.aircraft,pamb,tamb,mach_holding,mass)
-        fuel_holding = sfc*(mass*g/lod)*self.holding_time()
+        fuel_holding = sfc*(mass*g/lod)*self.holding_time
 
         # Total
         #-----------------------------------------------------------------------------------------------------------
@@ -148,7 +148,7 @@ class Mission_range_from_payload_and_tow(Mission_fuel_from_range_and_tow):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         self.range = output_dict[0][0]                           # Coupling variable
-        self.eval_breguet(self,self.range,tow,altp,mach,disa)
+        self.eval_breguet(self.range,tow,altp,mach,disa)
 
 
 class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
@@ -174,7 +174,7 @@ class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         self.range = output_dict[0][0]                           # Coupling variable
-        self.eval_breguet(self,self.range,tow,altp,mach,disa)
+        self.eval_breguet(self.range,tow,altp,mach,disa)
 
 
 class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
@@ -200,7 +200,7 @@ class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         self.range = output_dict[0][0]                           # Coupling variable
-        self.eval_breguet(self,self.range,self.tow,altp,mach,disa)
+        self.eval_breguet(self.range,self.tow,altp,mach,disa)
 
 
 class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
@@ -218,15 +218,15 @@ class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
         self.payload = payload  # Mission payload
 
         def fct(tow):
-            self.eval_breguet(range,self.tow,altp,mach,disa)
-            return tow-owe-self.payload-self.fuel_total
+            self.eval_breguet(range,tow,altp,mach,disa)
+            return tow-owe-payload-self.fuel_total
 
-        range_ini = self.aircraft.requirement.design_range
-        output_dict = fsolve(fct, x0=range_ini, args=(), full_output=True)
+        tow_ini = self.aircraft.weight_cg.mtow
+        output_dict = fsolve(fct, x0=tow_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         self.tow = output_dict[0][0]
-        self.eval_breguet(self,self.range,self.tow,altp,mach,disa)
+        self.eval_breguet(self.range,self.tow,altp,mach,disa)
 
 
 class Mission(object):
@@ -265,5 +265,3 @@ class Mission(object):
         range = self.aircraft.requirement.cost_range
         payload = self.aircraft.airframe.cabin.nominal_payload
         self.cost.simulate(range,payload,owe,altp,mach,disa)
-
-        return self.aircraft

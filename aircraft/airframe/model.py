@@ -330,7 +330,7 @@ class Turbofan(Power_system):
     def tail_cone_drag_factor(self):
         return 1.
 
-    def breguet_range(aircraft,range,tow,altp,mach,disa):
+    def breguet_range(self,range,tow,altp,mach,disa):
         g = earth.gravity()
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
@@ -338,7 +338,7 @@ class Turbofan(Power_system):
 
         mass = 0.90*tow
 
-        cz,cx,lod,fn,sfc,thr = flight.level_flight(aircraft,pamb,tamb,mach,mass)
+        cz,cx,lod,fn,sfc,thr = flight.level_flight(self.aircraft,pamb,tamb,mach,mass)
         fuel = tow*(1-np.exp(-(sfc*g*range)/(tas*lod)))
         time = 1.09*(range/tas)
 
