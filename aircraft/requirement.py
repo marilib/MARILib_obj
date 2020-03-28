@@ -124,11 +124,14 @@ class TTC_req(Climb_req):
     """
     def __init__(self, arrangement, requirement):
         super(TTC_req, self).__init__(arrangement, requirement)
-        self.cas1 = self.__ttc_cas1__(requirement),
-        self.altp1 = unit.m_ft(1500.),
-        self.cas2 = self.__ttc_cas2__(requirement),
-        self.altp2 = unit.m_ft(10000.),
-        self.ttc = unit.s_min(25.)
+        self.disa = 15.
+        self.cas1 = self.__ttc_cas1__(requirement)
+        self.altp1 = unit.m_ft(1500.)
+        self.cas2 = self.__ttc_cas2__(requirement)
+        self.altp2 = unit.m_ft(10000.)
+        self.mach = requirement.cruise_mach
+        self.toc = self.__top_of_climb__(arrangement,requirement)
+        self.ttc_req = unit.s_min(25.)
 
     def __ttc_cas1__(self, requirement):
         if (requirement.cruise_mach>=0.6): cas1 = unit.mps_kt(250.)

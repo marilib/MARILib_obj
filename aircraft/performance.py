@@ -11,7 +11,7 @@ import earth
 import numpy as np
 from scipy.optimize import fsolve
 
-import aircraft.flight as flight
+from aircraft.tool.math import vander3, trinome
 import aircraft.requirement as requirement
 
 
@@ -24,17 +24,21 @@ class Performance(object):
 
         self.mission = Mission(aircraft)
         self.take_off = Take_off(aircraft)
-        self.landing = None
+        self.landing = Approach(aircraft)
         self.mcr_ceiling = None
         self.mcl_ceiling = None
         self.oei_ceiling = None
-        self.time_to_climb = None
+        self.time_to_climb = Tine_to_Climb(aircraft)
 
     def analysis(self):
-        hld_conf = self.aircraft.aerodynamics.hld_conf_to
-        self.take_off.simulate(hld_conf)
+        hld_conf_to = self.aircraft.aerodynamics.hld_conf_to
+        self.take_off.simulate(hld_conf_to)
 
+        hld_conf_ld = self.aircraft.aerodynamics.hld_conf_ld
+        self.landing.simulate(hld_conf_ld)
 
+        mtow = self.aircraft.weight_cg.mtow
+        self.time_to_climb.simulate(mtow)
 
 
     def get_speed(self,pamb,speed_mode,mach):
@@ -112,6 +116,29 @@ class Performance(object):
 
         return slope,vz
 
+    def acceleration(self,nei,altp,disa,speed_mode,speed,mass,rating):
+        """
+        Aircraft acceleration on level flight
+        """
+
+        r,gam,Cp,Cv = earth.gas_data()
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        mach = self.get_mach(pamb,speed_mode,speed)
+
+        fn,ff,sfc = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,nei=nei)
+
+        cz = self.lift_from_speed(pamb,tamb,mach,mass)
+        cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
+
+        if(nei>0):
+            dcx = self.aircraft.power_system.oei_drag(pamb,mach)
+            cx = cx + dcx*nei
+
+        acc = (fn - 0.5*gam*pamb*mach**2*self.aircraft.airframe.wing.area*cx) / mass
+
+        return acc
+
 
 class Take_off(requirement.Take_off_req):
     """
@@ -167,6 +194,7 @@ class Take_off(requirement.Take_off_req):
                 s2_path = 0.
                 limitation = None
 
+            self.hld_conf = hld_conf
             self.tofl_eff = tofl
             self.kvs1g_eff = kvs1g
             self.s2_path = s2_path
@@ -179,7 +207,7 @@ class Take_off(requirement.Take_off_req):
         """
         Take off field length and climb path at 35 ft depending on stall margin (kVs1g)
         """
-        czmax,cz_0 = self.aircraft.airframe.wing.high_lift(hld_conf)
+        czmax,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
         rho,sig = earth.air_density(pamb,tamb)
@@ -203,9 +231,184 @@ class Take_off(requirement.Take_off_req):
         return tofl,s2_path,speed,mach
 
 
+class Approach(requirement.Approach_req):
+    """
+    Definition of all mission types
+    """
+    def __init__(self, aircraft):
+        super(Approach, self).__init__(aircraft.arrangement, aircraft.requirement)
+        self.aircraft = aircraft
+
+        self.hld_conf = None
+        self.app_speed_eff = None
+
+    def simulate(self,hld_conf):
+        """
+        Minimum approach speed (VLS)
+        """
+        kvs1g = self.kvs1g
+        altp = self.altp
+        disa = self.disa
+        mass = self.kmlw*self.aircraft.weight_cg.mlw
+
+        g = earth.gravity()
+
+        czmax,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        rho,sig = earth.air_density(pamb,tamb)
+
+        vapp = np.sqrt((mass*g) / (0.5*rho*self.aircraft.airframe.wing.area*(czmax / kvs1g**2)))
+
+        self.hld_conf = hld_conf
+        self.app_speed_eff = vapp
+
+        return
 
 
+class Tine_to_Climb(requirement.TTC_req):
+    """
+    Definition of all mission types
+    """
+    def __init__(self, aircraft):
+        super(Tine_to_Climb, self).__init__(aircraft.arrangement, aircraft.requirement)
+        self.aircraft = aircraft
 
+        self.mass = None
+        self.ttc_eff = None
+
+    def simulate(self,mass):
+        """
+        Time to climb to initial cruise altitude
+        For simplicity reasons, airplane mass is supposed constant
+        """
+        disa = self.disa
+        vcas1 = self.cas1
+        altp1 = self.altp1
+        vcas2 = self.cas1
+        altp2 = self.altp2
+        mach = self.mach
+        toc = self.toc
+
+        if(vcas1>unit.mps_kt(250.)):
+            print("vcas1 = ",unit.kt_mps(vcas1))
+            print("vcas1 must be lower than or equal to 250kt")
+        if(vcas1>vcas2):
+            print("vcas1 = ",unit.kt_mps(vcas1))
+            print("vcas2 = ",unit.kt_mps(vcas2))
+            print("vcas1 must be lower than or equal to vcas2")
+
+        cross_over_altp = earth.cross_over_altp(vcas2,mach)
+
+        if(cross_over_altp<altp1):
+            print("Cross over altitude is too low")
+
+        if(toc<cross_over_altp):
+            cross_over_altp = toc
+
+        # Duration of initial climb
+        #-----------------------------------------------------------------------------------------------------------
+        altp_0 = altp1
+        altp_2 = altp2
+        altp_1 = (altp_0+altp_2)/2.
+        altp = np.array([altp_0, altp_1, altp_2])
+
+        nei = 0
+        speed_mode = 1    # Constant CAS
+        rating = "MCL"
+
+        [slope,v_z0] = self.aircraft.performance.air_path(nei,altp[0],disa,speed_mode,vcas1,mass,rating)
+        [slope,v_z1] = self.aircraft.performance.air_path(nei,altp[1],disa,speed_mode,vcas1,mass,rating)
+        [slope,v_z2] = self.aircraft.performance.air_path(nei,altp[2],disa,speed_mode,vcas1,mass,rating)
+        v_z = np.array([v_z0, v_z1, v_z2])
+
+        if (v_z[0]<0. or v_z[1]<0. or v_z[2]<0.):
+            print("Climb to acceleration altitude is not possible")
+
+        A = vander3(altp)
+        B = 1./v_z
+        C = trinome(A,B)
+
+        time1 = ((C[0]*altp[2]/3. + C[1]/2.)*altp[2] + C[2])*altp[2]
+        time1 = time1 - ((C[0]*altp[0]/3. + C[1]/2.)*altp[0] + C[2])*altp[0]
+
+        # Acceleration
+        #-----------------------------------------------------------------------------------------------------------
+        vc0 = vcas1
+        vc2 = vcas2
+        vc1 = (vc0+vc2)/2.
+        vcas = np.array([vc0, vc1, vc2])
+
+        acc0 = self.aircraft.performance.acceleration(nei,altp[2],disa,speed_mode,vcas[0],mass,rating)
+        acc1 = self.aircraft.performance.acceleration(nei,altp[2],disa,speed_mode,vcas[1],mass,rating)
+        acc2 = self.aircraft.performance.acceleration(nei,altp[2],disa,speed_mode,vcas[2],mass,rating)
+        acc = np.array([acc0, acc1, acc2])
+
+        if(acc[0]<0. or acc[1]<0. or acc[2]<0.):
+            print("Acceleration is not possible")
+
+        A = vander3(vcas)
+        B = 1./acc
+        C = trinome(A,B)
+
+        time2 = ((C[0]*vcas[2]/3. + C[1]/2.)*vcas[2] + C[2])*vcas[2]
+        time2 = time2 - ((C[0]*vcas[0]/3. + C[1]/2.)*vcas[0] + C[2])*vcas[0]
+
+        # Duration of climb to cross over
+        #-----------------------------------------------------------------------------------------------------------
+        altp_0 = altp2
+        altp_2 = cross_over_altp
+        altp_1 = (altp_0+altp_2)/2.
+        altp = np.array([altp_0, altp_1, altp_2])
+
+        [slope,v_z0] = self.aircraft.performance.air_path(nei,altp[0],disa,speed_mode,vcas2,mass,rating)
+        [slope,v_z1] = self.aircraft.performance.air_path(nei,altp[1],disa,speed_mode,vcas2,mass,rating)
+        [slope,v_z2] = self.aircraft.performance.air_path(nei,altp[2],disa,speed_mode,vcas2,mass,rating)
+        v_z = np.array([v_z0, v_z1, v_z2])
+
+        if(v_z[0]<0. or v_z[1]<0. or v_z[2]<0.):
+            print("Climb to cross over altitude is not possible")
+
+        A = vander3(altp)
+        B = 1./v_z
+        C = trinome(A,B)
+
+        time3 = ((C[0]*altp[2]/3. + C[1]/2.)*altp[2] + C[2])*altp[2]
+        time3 = time3 - ((C[0]*altp[0]/3. + C[1]/2.)*altp[0] + C[2])*altp[0]
+
+        # Duration of climb to altp
+        #-----------------------------------------------------------------------------------------------------------
+        if(cross_over_altp<toc):
+            altp_0 = cross_over_altp
+            altp_2 = toc
+            altp_1 = (altp_0+altp_2)/2.
+            altp = np.array([altp_0, altp_1, altp_2])
+
+            speed_mode = 2    # mach
+
+            [slope,v_z0] = self.aircraft.performance.air_path(nei,altp[0],disa,speed_mode,mach,mass,rating)
+            [slope,v_z1] = self.aircraft.performance.air_path(nei,altp[1],disa,speed_mode,mach,mass,rating)
+            [slope,v_z2] = self.aircraft.performance.air_path(nei,altp[2],disa,speed_mode,mach,mass,rating)
+            v_z = np.array([v_z0, v_z1, v_z2])
+
+            if(v_z[0]<0. or v_z[1]<0. or v_z[2]<0.):
+                print("Climb to top of climb is not possible")
+
+            A = vander3(altp)
+            B = 1./v_z
+            C = trinome(A,B)
+
+            time4 =  ((C[0]*altp[2]/3. + C[1]/2.)*altp[2] + C[2])*altp[2] \
+                   - ((C[0]*altp[0]/3. + C[1]/2.)*altp[0] + C[2])*altp[0]
+        else:
+            time4 = 0.
+
+        #    Total time
+        #-----------------------------------------------------------------------------------------------------------
+        self.mass = mass
+        self.ttc_eff = time1 + time2 + time3 + time4
+
+        return
 
 
 
