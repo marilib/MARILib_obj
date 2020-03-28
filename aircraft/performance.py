@@ -23,12 +23,94 @@ class Performance(object):
         self.aircraft = aircraft
 
         self.mission = Mission(aircraft)
-        self.take_off = None
+        self.take_off = Take_off(aircraft)
         self.landing = None
         self.mcr_ceiling = None
         self.mcl_ceiling = None
         self.oei_ceiling = None
         self.time_to_climb = None
+
+    def analysis(self):
+        hld_conf = self.aircraft.aerodynamics.hld_conf_to
+        self.take_off.simulate(hld_conf)
+
+
+
+
+    def get_speed(self,pamb,speed_mode,mach):
+        """
+        retrieves CAS or Mach from mach depending on speed_mode
+        """
+        speed = {1 : earth.vcas_from_mach(pamb,mach),   # CAS required
+                 2 : mach                               # mach required
+                 }.get(speed_mode, "Erreur: select speed_mode equal to 1 or 2")
+        return speed
+
+    def get_mach(self,pamb,speed_mode,speed):
+        """
+        Retrieves Mach from CAS or mach depending on speed_mode
+        """
+        mach = {1 : earth.mach_from_vcas(pamb,speed),   # Input is CAS
+                2 : speed                               # Input is mach
+                }.get(speed_mode, "Erreur: select speed_mode equal to 1 or 2")
+        return mach
+
+    def speed_from_lift(self,pamb,tamb,cz,mass):
+        """
+        Retrieves mach from cz using simplified lift equation
+        """
+        g = earth.gravity()
+        r,gam,Cp,Cv = earth.gas_data()
+        mach = np.sqrt((mass*g)/(0.5*gam*pamb*self.aircraft.airframe.wing.area*cz))
+        return mach
+
+    def lift_from_speed(self,pamb,tamb,mach,mass):
+        """
+        Retrieves cz from mach using simplified lift equation
+        """
+        g = earth.gravity()
+        r,gam,Cp,Cv = earth.gas_data()
+        cz = (2.*mass*g)/(gam*pamb*mach**2*self.aircraft.airframe.wing.area)
+        return cz
+
+    def level_flight(self,pamb,tamb,mach,mass):
+        """
+        Level flight equilibrium
+        """
+        g = earth.gravity()
+        r,gam,Cp,Cv = earth.gas_data()
+
+        cz = (2.*mass*g)/(gam*pamb*mach**2*self.aircraft.airframe.wing.area)
+        cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
+
+        fn = (gam/2.)*pamb*mach**2*self.aircraft.airframe.wing.area*cx
+        sfc,throttle = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",fn)
+        if (throttle>1.): print("level_flight, throttle is higher than 1, throttle = ",throttle)
+
+        return cz,cx,lod,fn,sfc,throttle
+
+    def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating):
+        """
+        Retrieves air path in various conditions
+        """
+        g = earth.gravity()
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        mach = self.get_mach(pamb,speed_mode,speed)
+
+        fn,ff,sfc = self.aircraft.power_system.thrust(pamb,tamb,mach,rating)
+        cz = self.lift_from_speed(pamb,tamb,mach,mass)
+        cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
+
+        if(nei>0):
+            dcx = self.aircraft.power_system.oei_drag(pamb,mach)
+            cx = cx + dcx*nei
+            lod = cz/cx
+
+        acc_factor = earth.climb_mode(speed_mode,dtodz,tstd,disa,mach)
+        slope = ( fn/(mass*g) - 1/lod ) / acc_factor
+        vz = mach*slope*earth.sound_speed(tamb)
+
+        return slope,vz
 
 
 class Take_off(requirement.Take_off_req):
@@ -36,102 +118,90 @@ class Take_off(requirement.Take_off_req):
     Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(Take_off, self).__init__(aircraft)
+        super(Take_off, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
+        self.hld_conf = None
         self.tofl_eff = None
         self.kvs1g_eff = None
         self.v2 = None
         self.s2_path = None
+        self.limit = None
 
-    def simulate(self,mass,altp,disa):
-        pass
-
-
-
-    def take_off(aircraft,kvs1g,altp,disa,mass,hld_conf):
-        """
-        Take off field length and climb path at 35 ft depending on stall margin (kVs1g)
-        """
-
-        wing = aircraft.wing
-        propulsion = aircraft.propulsion
-
-        (MTO,MCN,MCL,MCR,FID) = propulsion.rating_code
-
-        czmax,cz_0 = airplane_aero.high_lift(wing,hld_conf)
-
-        rating = MTO
-
-        [pamb,tamb,tstd,dtodz] = earth.atmosphere(altp,disa)
-
-        [rho,sig] = earth.air_density(pamb,tamb)
-
-        cz_to = czmax / kvs1g**2
-
-        mach = flight.speed_from_lift(aircraft,pamb,tamb,cz_to,mass)
-
-        throttle = 1.
-
-        nei = 0    # For Magic Line factor computation
-
-        fn,sfc,sec,data = propu.thrust(aircraft,pamb,tamb,mach,rating,throttle,nei)
-
-        ml_factor = mass**2 / (cz_to*fn*wing.area*sig**0.8 )  # Magic Line factor
-
-        tofl = 15.5*ml_factor + 100.    # Magic line
-
-        nei = 1    # For 2nd segment computation
-        speed_mode = 1
-        speed = flight.get_speed(pamb,speed_mode,mach)
-
-        seg2path,vz = flight.air_path(aircraft,nei,altp,disa,speed_mode,speed,mass,rating)
-
-        return seg2path,tofl
-
-
-    def take_off_field_length(aircraft,altp,disa,mass,hld_conf):
+    def simulate(self,hld_conf):
         """
         Take off field length and climb path with eventual kVs1g increase to recover min regulatory slope
         """
+        kvs1g = self.kvs1g
+        altp = self.altp
+        disa = self.disa
+        mass = self.kmtow*self.aircraft.weight_cg.mtow
 
-        kvs1g = regul.kvs1g_min_take_off()
+        tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf)
 
-        [seg2_path,tofl] = take_off(aircraft,kvs1g,altp,disa,mass,hld_conf)
-
-        n_engine = aircraft.propulsion.n_engine
-
-        seg2_min_path = regul.seg2_min_path(n_engine)
-
-        if(seg2_min_path<seg2_path):
-            limitation = 1
+        if(self.s2_min_path<s2_path):
+            limitation = "fl"   # field length
         else:
             dkvs1g = 0.005
-            kvs1g_ = numpy.array([0.,0.])
-            kvs1g_[0] = kvs1g
+            kvs1g_ = np.array([0.,0.])
+            kvs1g_[0] = self.kvs1g
             kvs1g_[1] = kvs1g_[0] + dkvs1g
 
-            seg2_path_ = numpy.array([0.,0.])
-            seg2_path_[0] = seg2_path
-            seg2_path_[1],trash = take_off(aircraft,kvs1g_[1],altp,disa,mass,hld_conf)
+            s2_path_ = np.array([0.,0.])
+            s2_path_[0] = s2_path
+            tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf)
 
-            while(seg2_path_[0]<seg2_path_[1] and seg2_path_[1]<seg2_min_path):
+            while(s2_path_[0]<s2_path_[1] and s2_path_[1]<self.s2_min_path):
                 kvs1g_[0] = kvs1g_[1]
                 kvs1g_[1] = kvs1g_[1] + dkvs1g
-                seg2_path_[1],trash = take_off(aircraft,kvs1g_[1],altp,disa,mass,hld_conf)
+                tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf)
 
-            if(seg2_min_path<seg2_path_[1]):
-                kvs1g = kvs1g_[0] + ((kvs1g_[1]-kvs1g_[0])/(seg2_path_[1]-seg2_path_[0]))*(seg2_min_path-seg2_path_[0])
-                [seg2_path,tofl] = take_off(aircraft,kvs1g,altp,disa,mass,hld_conf)
-                seg2_path = seg2_min_path
-                limitation = 2
+            if(self.s2_min_path<s2_path_[1]):
+                kvs1g = kvs1g_[0] + ((kvs1g_[1]-kvs1g_[0])/(s2_path_[1]-s2_path_[0]))*(self.s2_min_path-s2_path_[0])
+                tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf)
+                s2_path = self.s2_min_path
+                limitation = "s2"   # second segment
             else:
-                tofl = numpy.nan
-                kvs1g = numpy.nan
-                seg2_path = 0.
-                limitation = 0
+                tofl = np.nan
+                kvs1g = np.nan
+                s2_path = 0.
+                limitation = None
 
-        return tofl,seg2_path,kvs1g,limitation
+            self.tofl_eff = tofl
+            self.kvs1g_eff = kvs1g
+            self.s2_path = s2_path
+            self.v2 = cas
+            self.limit = limitation
+
+        return
+
+    def take_off(self,kvs1g,altp,disa,mass,hld_conf):
+        """
+        Take off field length and climb path at 35 ft depending on stall margin (kVs1g)
+        """
+        czmax,cz_0 = self.aircraft.airframe.wing.high_lift(hld_conf)
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        rho,sig = earth.air_density(pamb,tamb)
+
+        cz_to = czmax / kvs1g**2
+        mach = self.aircraft.performance.speed_from_lift(pamb,tamb,cz_to,mass)
+
+        nei = 0    # For Magic Line factor computation
+        throttle = 1.
+        fn,ff,sfc = self.aircraft.power_system.thrust(pamb,tamb,mach,"MTO",throttle,nei)
+
+        ml_factor = mass**2 / (cz_to*fn*self.aircraft.airframe.wing.area*sig**0.8 )  # Magic Line factor
+        tofl = 15.5*ml_factor + 100.    # Magic line
+
+        nei = 1         # For 2nd segment computation
+        speed_mode = 1  # Constant CAS
+        speed = self.aircraft.performance.get_speed(pamb,speed_mode,mach)
+
+        s2_path,vz = self.aircraft.performance.air_path(nei,altp,disa,speed_mode,speed,mass,"MTO")
+
+        return tofl,s2_path,speed,mach
+
 
 
 
@@ -161,9 +231,9 @@ class Mission(object):
         mtow = self.aircraft.weight_cg.mtow
         owe = self.aircraft.weight_cg.owe
 
+        disa = self.aircraft.requirement.cruise_disa
         altp = self.aircraft.requirement.cruise_altp
         mach = self.aircraft.requirement.cruise_mach
-        disa = self.aircraft.requirement.cruise_disa
 
         self.max_payload.simulate(payload_max,mtow,owe,altp,mach,disa)
 
@@ -188,10 +258,10 @@ class Mission_fuel_from_range_and_tow(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.range = None   # Mission distance
         self.disa = None    # Mean cruise temperature shift
         self.altp = None    # Mean cruise altitude
         self.mach = None    # Cruise mach number
+        self.range = None   # Mission distance
         self.tow = None     # Take Off Weight
         self.payload = None         # Mission payload
         self.time_block = None      # Mission block duration
@@ -280,7 +350,7 @@ class Mission_fuel_from_range_and_tow(object):
         altp_holding = unit.m_ft(1500.)
         mach_holding = 0.50 * mach
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding,disa)
-        cz,cx,lod,fn,sfc,throttle = flight.level_flight(self.aircraft,pamb,tamb,mach_holding,mass)
+        cz,cx,lod,fn,sfc,throttle = self.aircraft.performance.level_flight(pamb,tamb,mach_holding,mass)
         fuel_holding = sfc*(mass*g/lod)*self.holding_time
 
         # Total

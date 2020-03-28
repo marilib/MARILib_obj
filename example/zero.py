@@ -48,3 +48,4 @@ ac.performance.mission.payload_range()
 
 process.mass_mission_adaptation(ac)
 
+ac.performance.analysis()

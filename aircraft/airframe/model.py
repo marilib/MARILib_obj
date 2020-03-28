@@ -321,7 +321,7 @@ class Turbofan(Power_system):
         Inoperative engine drag coefficient
         """
         wing_area = self.aircraft.airframe.wing.area
-        nacelle_width = self.aircraft.airframe.nacelle.width
+        nacelle_width = self.aircraft.airframe.nacelle.nacelle_width
 
         dCx = 0.12*nacelle_width**2 / wing_area
 
@@ -338,7 +338,7 @@ class Turbofan(Power_system):
 
         mass = 0.90*tow
 
-        cz,cx,lod,fn,sfc,thr = flight.level_flight(self.aircraft,pamb,tamb,mach,mass)
+        cz,cx,lod,fn,sfc,thr = self.aircraft.performance.level_flight(pamb,tamb,mach,mass)
         fuel = tow*(1-np.exp(-(sfc*g*range)/(tas*lod)))
         time = 1.09*(range/tas)
 

@@ -154,18 +154,17 @@ class Requirement(object):
                  cruise_altp = unit.m_ft(35000.),
                  arrangement = None):
 
-        self.design_range = design_range
-        self.cruise_mach = cruise_mach
-        self.cruise_altp = cruise_altp
         self.cruise_disa = 0.
+        self.cruise_altp = cruise_altp
+        self.cruise_mach = cruise_mach
+        self.design_range = design_range
+        self.cost_range = self.__cost_mission_range__()
 
         self.n_pax_ref = n_pax_ref
         self.n_pax_front = self.__n_pax_front__()
         self.n_aisle = self.__n_aisle__()
         self.m_pax_nominal = self.__m_pax_nominal__()
         self.m_pax_max = self.__m_pax_max__()
-
-        self.cost_range = self.__cost_mission_range__()
 
         self.take_off = Take_off_req(arrangement, self)
         self.approach = Approach_req(arrangement, self)
