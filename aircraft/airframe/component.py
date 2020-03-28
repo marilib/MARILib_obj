@@ -1234,7 +1234,7 @@ class Turbofan_nacelle(Component):
         vair = mach*earth.sound_speed(tamb)
 
         # tune_factor allows that output of unitary_thrust matches the definition of the reference thrust
-        fn, ff = self.unitary_thrust(pamb,tamb,mach,rating="MTO",throttle=1.,pw_offtake=0.,nei=0.)
+        fn, ff = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
         self.tune_factor = self.reference_thrust / (fn/0.80)
 
         # Following computation as aim to model the decrease in nacelle dimension due to
@@ -1276,7 +1276,7 @@ class Turbofan_nacelle(Component):
             bpr = 5.
         return bpr
 
-    def unitary_thrust(self,pamb,tamb,mach,rating,throttle,pw_offtake,nei):
+    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.,nei=0.):
         """
         Unitary thrust of a pure turbofan engine (semi-empirical model)
         """

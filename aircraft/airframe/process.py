@@ -133,14 +133,14 @@ def mass_mission_adaptation(ac):
     payload = ac.airframe.cabin.nominal_payload
 
     def fct(mtow):
-        ac.weight_cg.mtow = mtow
+        ac.weight_cg.mtow = mtow[0]
         ac.weight_cg.mass_pre_design()
         owe = ac.weight_cg.owe
         ac.performance.mission.nominal.simulate(range,mtow,owe,altp,mach,disa)
         fuel_total = ac.performance.mission.nominal.fuel_total
         return mtow - (owe + payload + fuel_total)
 
-    mtow_ini = ac.weight_cg.mtow
+    mtow_ini = [ac.weight_cg.mtow]
     output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
     if (output_dict[2]!=1): raise Exception("Convergence problem")
 

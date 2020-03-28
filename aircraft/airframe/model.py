@@ -211,7 +211,7 @@ class Power_system(object):
                       "sfc": None},
                      {"rating": "MCN",
                       "disa": 15.,
-                      "altp": self.aircraft.requirement.oei[0]["altp"],
+                      "altp": self.aircraft.requirement.oei.altp,
                       "mach": self.aircraft.requirement.cruise_mach*0.6,
                       "nei":  1,
                       "thrust": None,
@@ -219,24 +219,24 @@ class Power_system(object):
                       "sfc": None},
                      {"rating": "MCL",
                       "disa": 0.,
-                      "altp": self.aircraft.requirement.vz_mcl[0]["altp"],
-                      "mach": self.aircraft.requirement.cruise_mach,
+                      "altp": self.aircraft.requirement.vz_mcl.altp,
+                      "mach": self.aircraft.requirement.vz_mcl.mach,
                       "nei":  0,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
                      {"rating": "MCR",
                       "disa": 0.,
-                      "altp": self.aircraft.requirement.cruise_altp,
-                      "mach": self.aircraft.requirement.cruise_mach,
+                      "altp": self.aircraft.requirement.vz_mcr.altp,
+                      "mach": self.aircraft.requirement.vz_mcr.mach,
                       "nei":  0,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
                      {"rating": "FID",
                       "disa": 15.,
-                      "altp": self.aircraft.requirement.cruise_altp,
-                      "mach": self.aircraft.requirement.cruise_mach,
+                      "altp": unit.m_ft(1500.),
+                      "mach": 0.35,
                       "nei":  0,
                       "thrust": None,
                       "fuel_flow": None,
@@ -262,10 +262,10 @@ class Power_system(object):
             self.data[j]["fuel_flow"] = ff
             self.data[j]["sfc"] = sfc
 
-    def thrust(self,pamb,tamb,mach,rating,throttle,pw_offtake,nei):
+    def thrust(self,pamb,tamb,mach,rating,throttle,nei):
         raise NotImplementedError
 
-    def sc(self,pamb,tamb,mach,rating,thrust,pw_offtake,nei):
+    def sc(self,pamb,tamb,mach,rating,thrust,nei):
         raise NotImplementedError
 
     def oei_drag(self,pamb,tamb):
@@ -283,13 +283,13 @@ class Turbofan(Power_system):
     def __init__(self, aircraft):
         super(Turbofan, self).__init__(aircraft)
 
-    def thrust(self,pamb,tamb,mach,rating, throttle=1., pw_offtake=0., nei=0):
+    def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """
         Total thrust of a pure turbofan engine
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
-        fn1,ff1 = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle,pw_offtake,nei)
+        fn1,ff1 = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle,nei=nei)
 
         fn = fn1*(n_engine-nei)
         ff = ff1*(n_engine-nei)
@@ -297,14 +297,14 @@ class Turbofan(Power_system):
 
         return fn,ff,sfc
 
-    def sc(self,pamb,tamb,mach,rating, thrust, pw_offtake=0., nei=0):
+    def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """
         Total thrust of a pure turbofan engine
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
         def fct(throttle):
-            fn,ff,sfc = self.thrust(pamb,tamb,mach,rating,throttle,pw_offtake,nei)
+            fn,ff,sfc = self.thrust(pamb,tamb,mach,rating,throttle,nei=nei)
             return thrust-fn
 
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
@@ -312,7 +312,7 @@ class Turbofan(Power_system):
 
         throttle = output_dict[0][0]
 
-        fn,ff,sfc = self.thrust(pamb,tamb,mach,rating,throttle,pw_offtake,nei)
+        fn,ff,sfc = self.thrust(pamb,tamb,mach,rating,throttle,nei=nei)
 
         return sfc,throttle
 
