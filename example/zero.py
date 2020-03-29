@@ -8,6 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 from aircraft.tool import unit
 
 from aircraft.aircraft_root import Arrangement
+from aircraft.aircraft_root import Aircraft
 from aircraft.requirement import Requirement
 
 import aircraft.airframe.process as process
@@ -30,7 +31,9 @@ reqs = Requirement(n_pax_ref = 150.,
                    arrangement = agmt)
 
 
-ac = process.factory(name = "This_plane", reqs = reqs, agmt = agmt)
+ac = Aircraft("This_plane")
+
+ac.factory(agmt, reqs)
 
 # ac.airframe.geometry_analysis()
 ac.airframe.statistical_pre_design()
