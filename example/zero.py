@@ -7,9 +7,8 @@ Created on Thu Jan 20 20:20:20 2020
 
 from aircraft.tool import unit
 
+from aircraft.aircraft_root import Arrangement
 from aircraft.requirement import Requirement
-from aircraft.arrangement import Arrangement
-from aircraft.performance import Mission
 
 import aircraft.airframe.process as process
 
@@ -31,7 +30,7 @@ reqs = Requirement(n_pax_ref = 150.,
                    arrangement = agmt)
 
 
-ac = process.factory(name = "my_plane", reqs = reqs, agmt = agmt)
+ac = process.factory(name = "This_plane", reqs = reqs, agmt = agmt)
 
 # ac.airframe.geometry_analysis()
 ac.airframe.statistical_pre_design()
@@ -39,13 +38,15 @@ ac.airframe.statistical_pre_design()
 # ac.weight_cg.mass_analysis()
 ac.weight_cg.mass_pre_design()
 
+
+ac.performance.mission.mass_mission_adaptation()
+
+
 ac.power_system.thrust_analysis()
 
 ac.aerodynamics.aerodynamic_analysis()
 
-ac.performance.mission.payload_range()
-
-
-process.mass_mission_adaptation(ac)
-
 ac.performance.analysis()
+
+#ac.draw.payload_range("This_plot")
+ac.draw.view_3d("This_plot")

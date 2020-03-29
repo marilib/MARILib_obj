@@ -144,10 +144,10 @@ class Cabin(Component):
         return self.cg_furnishing
 
 
-class Cargo_hold(Component):
+class Cargo(Component):
 
     def __init__(self, aircraft):
-        super(Cargo_hold, self).__init__(aircraft)
+        super(Cargo, self).__init__(aircraft)
 
     def eval_geometry(self):
         cabin_frame_origin = self.aircraft.airframe.cabin.frame_origin
@@ -693,8 +693,8 @@ class HTP_classic(Component):
         self.volume = 0.94                  # Design rule
         self.lever_arm = None
 
-        self.root_loc = np.full(3,None)     # Position of root chord leading edge
-        self.root_c = None                  # root chord length
+        self.axe_loc = np.full(3,None)     # Position of the virtual central chord
+        self.axe_c = None                  # Length of the virtual central chord
 
         self.tip_loc = np.full(3,None)      # Position of tip chord leading edge
         self.tip_c = None                   # tip chord length
@@ -718,18 +718,18 @@ class HTP_classic(Component):
         z_axe = htp_z_wise_anchor*body_height
         z_tip = z_axe + y_tip*np.tan(self.dihedral)
 
-        self.c_axe = 2.*self.area/(self.span*(1+self.taper_ratio))
-        self.tip_c = self.taper_ratio*self.c_axe
+        self.axe_c = 2.*self.area/(self.span*(1+self.taper_ratio))
+        self.tip_c = self.taper_ratio*self.axe_c
 
         self.sweep25 = wing_sweep25 + unit.rad_deg(5)     # Design rule
 
-        self.mac = self.span*(self.c_axe**2+self.tip_c**2+self.c_axe*self.tip_c)/(3.*self.area)
-        y_mac = y_tip**2*(2*self.tip_c+self.c_axe)/(3*self.area)
-        z_mac = z_tip**2*(2*self.tip_c+self.c_axe)/(3*self.area)
-        x_tip_local = 0.25*(self.c_axe-self.tip_c) + y_tip*np.tan(self.sweep25)
-        x_mac_local = y_tip*x_tip_local*(self.tip_c*2.+self.c_axe)/(3.*self.area)
+        self.mac = self.span*(self.axe_c**2+self.tip_c**2+self.axe_c*self.tip_c)/(3.*self.area)
+        y_mac = y_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
+        z_mac = z_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
+        x_tip_local = 0.25*(self.axe_c-self.tip_c) + y_tip*np.tan(self.sweep25)
+        x_mac_local = y_tip*x_tip_local*(self.tip_c*2.+self.axe_c)/(3.*self.area)
 
-        x_axe = vtp_root_loc[0] + 0.50*vtp_root_c - 0.2*self.c_axe
+        x_axe = vtp_root_loc[0] + 0.50*vtp_root_c - 0.2*self.axe_c
 
         x_tip = x_axe + x_tip_local
         x_mac = x_axe + x_mac_local
@@ -776,8 +776,8 @@ class HTP_T(Component):
         self.volume = 0.94                  # Design rule
         self.lever_arm = None
 
-        self.root_loc = np.full(3,None)     # Position of root chord leading edge
-        self.root_c = None                  # root chord length
+        self.axe_loc = np.full(3,None)     # Position of the central chord
+        self.axe_c = None                  # Length of the central chord
 
         self.tip_loc = np.full(3,None)      # Position of tip chord leading edge
         self.tip_c = None                   # tip chord length
@@ -802,16 +802,16 @@ class HTP_T(Component):
         z_axe = body_height + vtp_height
         z_tip = z_axe + y_tip*np.tan(self.dihedral)
 
-        self.c_axe = 2.*self.area/(self.span*(1+self.taper_ratio))
-        self.tip_c = self.taper_ratio*self.c_axe
+        self.axe_c = 2.*self.area/(self.span*(1+self.taper_ratio))
+        self.tip_c = self.taper_ratio*self.axe_c
 
         self.sweep25 = wing_sweep25 + unit.rad_deg(5)     # Design rule
 
-        self.mac = self.span*(self.c_axe**2+self.tip_c**2+self.c_axe*self.tip_c)/(3.*self.area)
-        y_mac = y_tip**2*(2*self.tip_c+self.c_axe)/(3*self.area)
-        z_mac = z_tip**2*(2*self.tip_c+self.c_axe)/(3*self.area)
-        x_tip_local = 0.25*(self.c_axe-self.tip_c) + y_tip*np.tan(self.sweep25)
-        x_mac_local = y_tip*x_tip_local*(self.tip_c*2.+self.c_axe)/(3.*self.area)
+        self.mac = self.span*(self.axe_c**2+self.tip_c**2+self.axe_c*self.tip_c)/(3.*self.area)
+        y_mac = y_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
+        z_mac = z_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
+        x_tip_local = 0.25*(self.axe_c-self.tip_c) + y_tip*np.tan(self.sweep25)
+        x_mac_local = y_tip*x_tip_local*(self.tip_c*2.+self.axe_c)/(3.*self.area)
 
         x_axe = vtp_tip_loc[0] + 0.30*vtp_tip_c - 0.80*self.tip_c
 
@@ -860,8 +860,8 @@ class HTP_H(Component):
         self.volume = 0.94                  # Design rule
         self.lever_arm = None
 
-        self.root_loc = np.full(3,None)     # Position of root chord leading edge
-        self.root_c = None                  # root chord length
+        self.axe_loc = np.full(3,None)     # Position of the virtual central chord
+        self.axe_c = None                  # Length of the virtual central chord
 
         self.tip_loc = np.full(3,None)      # Position of tip chord leading edge
         self.tip_c = None                   # tip chord length
@@ -885,19 +885,19 @@ class HTP_H(Component):
         z_axe = htp_z_wise_anchor*body_height
         z_tip = z_axe + y_tip*np.tan(self.dihedral)
 
-        self.c_axe = 2.*self.area/(self.span*(1+self.taper_ratio))
-        self.tip_c = self.taper_ratio*self.c_axe
+        self.axe_c = 2.*self.area/(self.span*(1+self.taper_ratio))
+        self.tip_c = self.taper_ratio*self.axe_c
 
         self.sweep25 = wing_sweep25 + unit.rad_deg(5)     # Design rule
 
-        self.mac = self.span*(self.c_axe**2+self.tip_c**2+self.c_axe*self.tip_c)/(3.*self.area)
-        y_mac = y_tip**2*(2*self.tip_c+self.c_axe)/(3*self.area)
-        z_mac = z_tip**2*(2*self.tip_c+self.c_axe)/(3*self.area)
-        x_tip_local = 0.25*(self.c_axe-self.tip_c) + y_tip*np.tan(self.sweep25)
-        x_mac_local = y_tip*x_tip_local*(self.tip_c*2.+self.c_axe)/(3.*self.area)
+        self.mac = self.span*(self.axe_c**2+self.tip_c**2+self.axe_c*self.tip_c)/(3.*self.area)
+        y_mac = y_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
+        z_mac = z_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
+        x_tip_local = 0.25*(self.axe_c-self.tip_c) + y_tip*np.tan(self.sweep25)
+        x_mac_local = y_tip*x_tip_local*(self.tip_c*2.+self.axe_c)/(3.*self.area)
 
         htp_x_wise_anchor = 0.85
-        x_axe = body_length*(1-body_cone_length/body_length*(1-htp_x_wise_anchor)) - self.c_axe
+        x_axe = body_length*(1-body_cone_length/body_length*(1-htp_x_wise_anchor)) - self.axe_c
 
         x_tip = x_axe + x_tip_local
         x_mac = x_axe + x_mac_local
@@ -1017,6 +1017,8 @@ class Tank_wing_pod(Component):
 
         self.pod_length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
         self.pod_width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        self.wing_axe_c = None
+        self.wing_axe_x = None
         self.pod_volume = None
         self.max_volume = None
         self.mfw_volume_limited = None
@@ -1048,8 +1050,8 @@ class Tank_wing_pod(Component):
 
         self.frame_origin = [pod_x_axe, pod_y_axe, pod_z_axe]
 
-        wing_c_axe = wing_kink_c - (wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1])*(pod_y_axe-wing_kink_loc[1])
-        wing_x_axe = wing_kink_loc[0] - (wing_kink_loc[0]-wing_tip_loc[0])/(wing_tip_loc[1]-wing_kink_loc[1])*(pod_y_axe-wing_kink_loc[1])
+        self.wing_axe_c = wing_kink_c - (wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1])*(pod_y_axe-wing_kink_loc[1])
+        self.wing_axe_x = wing_kink_loc[0] - (wing_kink_loc[0]-wing_tip_loc[0])/(wing_tip_loc[1]-wing_kink_loc[1])*(pod_y_axe-wing_kink_loc[1])
 
         self.net_wetted_area = 2.*(0.85*3.14*self.pod_width*self.pod_length)
         self.aero_length = self.pod_length

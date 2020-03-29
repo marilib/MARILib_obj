@@ -57,7 +57,7 @@ class Approach_req(object):
         return app_speed_req
 
 
-class OEI_req(object):
+class OEI_ceiling_req(object):
     """
     Initialize approach requirements
     """
@@ -65,7 +65,7 @@ class OEI_req(object):
         self.disa = 15.
         self.altp = unit.m_ft(11000.)
         self.kmtow = 0.95
-        self.min_path = self.__oei_min_path__(arrangement)
+        self.path_req = self.__oei_min_path__(arrangement)
 
     def __oei_min_path__(self, arrangement):
         """
@@ -105,7 +105,7 @@ class Vz_mcl_req(Climb_req):
     def __init__(self, arrangement, requirement):
         super(Vz_mcl_req, self).__init__(arrangement, requirement)
         self.mach = requirement.cruise_mach
-        self.vz = unit.mps_ftpmin(300.)
+        self.vz_req = unit.mps_ftpmin(300.)
 
 
 class Vz_mcr_req(Climb_req):
@@ -115,7 +115,7 @@ class Vz_mcr_req(Climb_req):
     def __init__(self, arrangement, requirement):
         super(Vz_mcr_req, self).__init__(arrangement, requirement)
         self.mach = requirement.cruise_mach
-        self.vz = unit.mps_ftpmin(0.)
+        self.vz_req = unit.mps_ftpmin(0.)
 
 
 class TTC_req(Climb_req):
@@ -171,7 +171,7 @@ class Requirement(object):
 
         self.take_off = Take_off_req(arrangement, self)
         self.approach = Approach_req(arrangement, self)
-        self.oei = OEI_req(arrangement, self)
+        self.oei = OEI_ceiling_req(arrangement, self)
         self.vz_mcl = Vz_mcl_req(arrangement, self)
         self.vz_mcr = Vz_mcr_req(arrangement, self)
         self.ttc = TTC_req(arrangement, self)

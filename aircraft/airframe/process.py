@@ -46,7 +46,7 @@ def factory(name="my_plane", reqs=None, agmt=None):
     else:
         raise Exception("Type of wing is unknown")
 
-    ac.airframe.cargo = component.Cargo_hold(ac)
+    ac.airframe.cargo = component.Cargo(ac)
 
     if (ac.arrangement.stab_architecture=="classic"):
         ac.airframe.vertical_stab = component.VTP_classic(ac)
@@ -120,32 +120,6 @@ def factory(name="my_plane", reqs=None, agmt=None):
 
     return ac
 
-
-def mass_mission_adaptation(ac):
-    """
-    Build an aircraft
-    """
-    range = ac.requirement.design_range
-    altp = ac.requirement.cruise_altp
-    mach = ac.requirement.cruise_mach
-    disa = ac.requirement.cruise_disa
-
-    payload = ac.airframe.cabin.nominal_payload
-
-    def fct(mtow):
-        ac.weight_cg.mtow = mtow[0]
-        ac.weight_cg.mass_pre_design()
-        owe = ac.weight_cg.owe
-        ac.performance.mission.nominal.simulate(range,mtow,owe,altp,mach,disa)
-        fuel_total = ac.performance.mission.nominal.fuel_total
-        return mtow - (owe + payload + fuel_total)
-
-    mtow_ini = [ac.weight_cg.mtow]
-    output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
-    if (output_dict[2]!=1): raise Exception("Convergence problem")
-
-    ac.weight_cg.mtow = output_dict[0][0]
-    ac.performance.mission.payload_range()
 
 
 

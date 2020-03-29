@@ -11,7 +11,6 @@ from scipy.optimize import fsolve
 import aircraft.tool.unit as unit
 import earth
 
-import aircraft.flight as flight
 from aircraft.tool.math import lin_interp_1d, maximize_1d
 
 
