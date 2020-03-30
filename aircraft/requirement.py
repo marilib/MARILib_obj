@@ -65,6 +65,8 @@ class OEI_ceiling_req(object):
         self.disa = 15.
         self.altp = unit.m_ft(11000.)
         self.kmtow = 0.95
+        self.rating = "MCN"
+        self.speed_mode = "cas"
         self.path_req = self.__oei_min_path__(arrangement)
 
     def __oei_min_path__(self, arrangement):
@@ -85,6 +87,7 @@ class Climb_req(object):
     def __init__(self, arrangement, requirement):
         self.disa = 15.
         self.altp = self.__top_of_climb__(arrangement,requirement)
+        self.mach = requirement.cruise_mach
         self.kmtow = 0.97
 
     def __top_of_climb__(self, arrangement, requirement):
@@ -104,7 +107,8 @@ class Vz_mcl_req(Climb_req):
     """
     def __init__(self, arrangement, requirement):
         super(Vz_mcl_req, self).__init__(arrangement, requirement)
-        self.mach = requirement.cruise_mach
+        self.rating = "MCL"
+        self.speed_mode = "mach"
         self.vz_req = unit.mps_ftpmin(300.)
 
 
@@ -114,7 +118,8 @@ class Vz_mcr_req(Climb_req):
     """
     def __init__(self, arrangement, requirement):
         super(Vz_mcr_req, self).__init__(arrangement, requirement)
-        self.mach = requirement.cruise_mach
+        self.rating = "MCR"
+        self.speed_mode = "mach"
         self.vz_req = unit.mps_ftpmin(0.)
 
 
@@ -124,13 +129,11 @@ class TTC_req(Climb_req):
     """
     def __init__(self, arrangement, requirement):
         super(TTC_req, self).__init__(arrangement, requirement)
-        self.disa = 15.
         self.cas1 = self.__ttc_cas1__(requirement)
         self.altp1 = unit.m_ft(1500.)
         self.cas2 = self.__ttc_cas2__(requirement)
         self.altp2 = unit.m_ft(10000.)
-        self.mach = requirement.cruise_mach
-        self.toc = self.__top_of_climb__(arrangement,requirement)
+        self.altp = self.__top_of_climb__(arrangement,requirement)
         self.ttc_req = unit.s_min(25.)
 
     def __ttc_cas1__(self, requirement):

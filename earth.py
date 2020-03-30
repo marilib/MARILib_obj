@@ -426,11 +426,11 @@ def climb_mode(speed_mode,dtodz,tstd,disa,mach):
     g = gravity()
     r,gam,Cp,Cv = gas_data()
 
-    if (speed_mode==1):
+    if (speed_mode=="cas"):
         fac = (gam-1.)/2.
         acc_factor = 1. + (((1.+fac*mach**2)**(gam/(gam-1.))-1.)/(1.+fac*mach**2)**(1./(gam-1.))) \
                         + ((gam*r)/(2.*g))*(mach**2)*(tstd/(tstd+disa))*dtodz
-    elif (speed_mode==2):
+    elif (speed_mode=="mach"):
         acc_factor = 1. + ((gam*r)/(2.*g))*(mach**2)*(tstd/(tstd+disa))*dtodz
     else:
         raise Exception("climb_mode index is out of range")

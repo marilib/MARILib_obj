@@ -25,41 +25,93 @@ class Performance(object):
         self.mission = Mission(aircraft)
         self.take_off = Take_off(aircraft)
         self.landing = Approach(aircraft)
-        self.mcr_ceiling = MCL_ceiling(aircraft)
-        self.mcl_ceiling = MCR_ceiling(aircraft)
+        self.mcr_ceiling = Power_ceiling(aircraft,"MCL")
+        self.mcl_ceiling = Power_ceiling(aircraft,"MCR")
         self.oei_ceiling = OEI_ceiling(aircraft)
         self.time_to_climb = Tine_to_Climb(aircraft)
 
     def analysis(self):
-        hld_conf_to = self.aircraft.aerodynamics.hld_conf_to
-        self.take_off.simulate(hld_conf_to)
+        disa = self.aircraft.requirement.take_off.disa
+        altp = self.aircraft.requirement.take_off.altp
+        kmtow = self.aircraft.requirement.take_off.kmtow
+        kvs1g = self.aircraft.requirement.take_off.kvs1g
+        s2_min_path = self.aircraft.requirement.take_off.s2_min_path
+        mass = kmtow*self.aircraft.weight_cg.mtow
+        hld_conf = self.aircraft.aerodynamics.hld_conf_to
 
-        hld_conf_ld = self.aircraft.aerodynamics.hld_conf_ld
-        self.landing.simulate(hld_conf_ld)
+        self.tofl_req = self.aircraft.requirement.take_off.tofl_req
+        self.take_off.simulate(disa,altp,mass,hld_conf,kvs1g,s2_min_path)
 
-        self.mcl_ceiling.simulate()
-        self.mcr_ceiling.simulate()
-        self.oei_ceiling.simulate()
+        disa = self.aircraft.requirement.approach.disa
+        altp = self.aircraft.requirement.approach.altp
+        kmlw = self.aircraft.requirement.approach.kmlw
+        kvs1g = self.aircraft.requirement.approach.kvs1g
+        mass = kmlw*self.aircraft.weight_cg.mlw
+        hld_conf = self.aircraft.aerodynamics.hld_conf_ld
 
-        mtow = self.aircraft.weight_cg.mtow
-        self.time_to_climb.simulate(mtow)
+        self.app_speed_req = self.aircraft.requirement.approach.app_speed_req
+        self.landing.simulate(disa,altp,mass,hld_conf,kvs1g)
+
+        disa = self.aircraft.requirement.vz_mcl.disa
+        altp = self.aircraft.requirement.vz_mcl.altp
+        kmtow = self.aircraft.requirement.vz_mcl.kmtow
+        mach = self.aircraft.requirement.vz_mcl.mach
+        rating = self.aircraft.requirement.vz_mcl.rating
+        speed_mode = self.aircraft.requirement.vz_mcl.speed_mode
+        mass = kmtow*self.aircraft.weight_cg.mtow
+
+        self.vz_req = self.aircraft.requirement.vz_mcl.vz_req
+        self.mcl_ceiling.simulate(disa,altp,mach,mass,rating,speed_mode)
+
+        disa = self.aircraft.requirement.vz_mcr.disa
+        altp = self.aircraft.requirement.vz_mcr.altp
+        kmtow = self.aircraft.requirement.vz_mcr.kmtow
+        mach = self.aircraft.requirement.vz_mcr.mach
+        rating = self.aircraft.requirement.vz_mcr.rating
+        speed_mode = self.aircraft.requirement.vz_mcr.speed_mode
+        mass = kmtow*self.aircraft.weight_cg.mtow
+
+        self.vz_req = self.aircraft.requirement.vz_mcr.vz_req
+        self.mcr_ceiling.simulate(disa,altp,mach,mass,rating,speed_mode)
+
+        disa = self.aircraft.requirement.oei.disa
+        altp = self.aircraft.requirement.oei.altp
+        kmtow = self.aircraft.requirement.oei.kmtow
+        rating = self.aircraft.requirement.oei.rating
+        speed_mode = self.aircraft.requirement.oei.speed_mode
+        mass = kmtow*self.aircraft.weight_cg.mtow
+
+        self.path_req = self.aircraft.requirement.oei.path_req
+        self.oei_ceiling.simulate(disa,altp,mass,rating,speed_mode)
+
+        disa = self.aircraft.requirement.ttc.disa
+        cas1 = self.aircraft.requirement.ttc.cas1
+        altp1 = self.aircraft.requirement.ttc.altp1
+        cas2 = self.aircraft.requirement.ttc.cas2
+        altp2 = self.aircraft.requirement.ttc.altp2
+        mach = self.aircraft.requirement.ttc.mach
+        toc = self.aircraft.requirement.ttc.altp
+        mass = self.aircraft.weight_cg.mtow
+
+        self.ttc_req = self.aircraft.requirement.ttc.ttc_req
+        self.time_to_climb.simulate(disa,toc,mach,mass,altp1,cas1,altp2,cas2)
 
     def get_speed(self,pamb,speed_mode,mach):
         """
         retrieves CAS or Mach from mach depending on speed_mode
         """
-        speed = {1 : earth.vcas_from_mach(pamb,mach),   # CAS required
-                 2 : mach                               # mach required
-                 }.get(speed_mode, "Erreur: select speed_mode equal to 1 or 2")
+        speed = {"cas" : earth.vcas_from_mach(pamb,mach),   # CAS required
+                 "mach" : mach                               # mach required
+                 }.get(speed_mode, "Erreur: select speed_mode equal to cas or mach")
         return speed
 
     def get_mach(self,pamb,speed_mode,speed):
         """
         Retrieves Mach from CAS or mach depending on speed_mode
         """
-        mach = {1 : earth.mach_from_vcas(pamb,speed),   # Input is CAS
-                2 : speed                               # Input is mach
-                }.get(speed_mode, "Erreur: select speed_mode equal to 1 or 2")
+        mach = {"cas" : earth.mach_from_vcas(pamb,speed),   # Input is CAS
+                "mach" : speed                               # Input is mach
+                }.get(speed_mode, "Erreur: select speed_mode equal to cas or mach")
         return mach
 
     def speed_from_lift(self,pamb,tamb,cz,mass):
@@ -186,25 +238,18 @@ class Take_off(requirement.Take_off_req):
         self.s2_path = None
         self.limit = None
 
-    def simulate(self,hld_conf):
+    def simulate(self,disa,altp,mass,hld_conf,kvs1g,s2_min_path):
+        """Take off field length and climb path with eventual kVs1g increase to recover min regulatory slope
         """
-        Take off field length and climb path with eventual kVs1g increase to recover min regulatory slope
-        """
-        self.disa = self.aircraft.requirement.take_off.disa
-        self.altp = self.aircraft.requirement.take_off.altp
-        self.kmtow = self.aircraft.requirement.take_off.kmtow
-        self.kvs1g = self.aircraft.requirement.take_off.kvs1g
-        self.s2_min_path = self.aircraft.requirement.take_off.s2_min_path
-        self.tofl_req = self.aircraft.requirement.take_off.tofl_req
-
-        kvs1g = self.kvs1g
-        altp = self.altp
-        disa = self.disa
-        mass = self.kmtow*self.aircraft.weight_cg.mtow
+        self.disa = disa
+        self.altp = altp
+        self.kmtow = mass/self.aircraft.weight_cg.mtow
+        self.kvs1g = kvs1g
+        self.s2_min_path = s2_min_path
 
         tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf)
 
-        if(self.s2_min_path<s2_path):
+        if(s2_min_path<s2_path):
             limitation = "fl"   # field length
         else:
             dkvs1g = 0.005
@@ -216,15 +261,15 @@ class Take_off(requirement.Take_off_req):
             s2_path_[0] = s2_path
             tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf)
 
-            while(s2_path_[0]<s2_path_[1] and s2_path_[1]<self.s2_min_path):
+            while(s2_path_[0]<s2_path_[1] and s2_path_[1]<s2_min_path):
                 kvs1g_[0] = kvs1g_[1]
                 kvs1g_[1] = kvs1g_[1] + dkvs1g
                 tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf)
 
-            if(self.s2_min_path<s2_path_[1]):
-                kvs1g = kvs1g_[0] + ((kvs1g_[1]-kvs1g_[0])/(s2_path_[1]-s2_path_[0]))*(self.s2_min_path-s2_path_[0])
+            if(s2_min_path<s2_path_[1]):
+                kvs1g = kvs1g_[0] + ((kvs1g_[1]-kvs1g_[0])/(s2_path_[1]-s2_path_[0]))*(s2_min_path-s2_path_[0])
                 tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf)
-                s2_path = self.s2_min_path
+                s2_path = s2_min_path
                 limitation = "s2"   # second segment
             else:
                 tofl = np.nan
@@ -260,8 +305,8 @@ class Take_off(requirement.Take_off_req):
         ml_factor = mass**2 / (cz_to*fn*self.aircraft.airframe.wing.area*sig**0.8 )  # Magic Line factor
         tofl = 15.5*ml_factor + 100.    # Magic line
 
-        nei = 1         # For 2nd segment computation
-        speed_mode = 1  # Constant CAS
+        nei = 1             # For 2nd segment computation
+        speed_mode = "cas"  # Constant CAS
         speed = self.aircraft.performance.get_speed(pamb,speed_mode,mach)
 
         s2_path,vz = self.aircraft.performance.air_path(nei,altp,disa,speed_mode,speed,mass,"MTO")
@@ -280,20 +325,14 @@ class Approach(requirement.Approach_req):
         self.hld_conf = None
         self.app_speed_eff = None
 
-    def simulate(self,hld_conf):
+    def simulate(self,disa,altp,mass,hld_conf,kvs1g):
         """
         Minimum approach speed (VLS)
         """
-        self.disa = self.aircraft.requirement.approach.disa
-        self.altp = self.aircraft.requirement.approach.altp
-        self.kmlw = self.aircraft.requirement.approach.kmlw
-        self.kvs1g = self.aircraft.requirement.approach.kvs1g
-        self.app_speed_req = self.aircraft.requirement.approach.app_speed_req
-
-        kvs1g = self.kvs1g
-        altp = self.altp
-        disa = self.disa
-        mass = self.kmlw*self.aircraft.weight_cg.mlw
+        self.disa = disa
+        self.altp = altp
+        self.kmlw = mass/self.aircraft.weight_cg.mlw
+        self.kvs1g = kvs1g
 
         g = earth.gravity()
 
@@ -310,66 +349,28 @@ class Approach(requirement.Approach_req):
         return
 
 
-class MCL_ceiling(requirement.Vz_mcl_req):
+class Power_ceiling(requirement.Climb_req):
     """
     Definition of all mission types
     """
-    def __init__(self, aircraft):
-        super(MCL_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
+    def __init__(self, aircraft, rating):
+        super(Power_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
+        self.rating = rating
         self.vz_eff = None
 
-    def simulate(self):
+    def simulate(self,disa,altp,mach,mass,rating,speed_mode):
         """
         Minimum approach speed (VLS)
         """
-        self.disa = self.aircraft.requirement.vz_mcl.disa
-        self.altp = self.aircraft.requirement.vz_mcl.altp
-        self.kmtow = self.aircraft.requirement.vz_mcl.kmtow
-        self.mach = self.aircraft.requirement.vz_mcl.mach
-        self.vz_req = self.aircraft.requirement.vz_mcl.vz_req
+        self.disa = disa
+        self.altp = altp
+        self.mach = mach
+        self.rating = rating
+        self.speed_mode = speed_mode
+        self.kmtow = mass/self.aircraft.weight_cg.mtow
 
         nei = 0
-        altp = self.altp
-        disa = self.disa
-        speed_mode = 2      # Contant Mach
-        mach = self.mach
-        mass = 0.97*self.aircraft.weight_cg.mtow*self.kmtow
-        rating = "MCL"      # Max Climb
-
-        slope,vz = self.aircraft.performance.air_path(nei,altp,disa,speed_mode,mach,mass,rating)
-
-        self.vz_eff = vz
-
-        return
-
-
-class MCR_ceiling(requirement.Vz_mcr_req):
-    """
-    Definition of all mission types
-    """
-    def __init__(self, aircraft):
-        super(MCR_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
-        self.aircraft = aircraft
-        self.vz_eff = None
-
-    def simulate(self):
-        """
-        Minimum approach speed (VLS)
-        """
-        self.disa = self.aircraft.requirement.vz_mcr.disa
-        self.altp = self.aircraft.requirement.vz_mcr.altp
-        self.kmtow = self.aircraft.requirement.vz_mcr.kmtow
-        self.mach = self.aircraft.requirement.vz_mcr.mach
-        self.vz_req = self.aircraft.requirement.vz_mcr.vz_req
-
-        nei = 0
-        altp = self.altp
-        disa = self.disa
-        speed_mode = 2      # Contant Mach
-        mach = self.mach
-        mass = 0.97*self.aircraft.weight_cg.mtow*self.kmtow
-        rating = "MCR"      # Max Climb
 
         slope,vz = self.aircraft.performance.air_path(nei,altp,disa,speed_mode,mach,mass,rating)
 
@@ -389,21 +390,17 @@ class OEI_ceiling(requirement.OEI_ceiling_req):
         self.path_eff = None
         self.mach_opt = None
 
-    def simulate(self):
+    def simulate(self,disa,altp,mass,rating,speed_mode):
         """
         Compute one engine inoperative maximum path
         """
-        self.disa = self.aircraft.requirement.oei.disa
-        self.altp = self.aircraft.requirement.oei.altp
-        self.kmtow = self.aircraft.requirement.oei.kmtow
-        self.path_req = self.aircraft.requirement.oei.path_req
+        self.disa = disa
+        self.altp = altp
+        self.kmtow = mass/self.aircraft.weight_cg.mtow
+        self.rating = rating
+        self.speed_mode = speed_mode
 
         nei = 1.
-        altp = self.altp
-        disa = self.disa
-        speed_mode = 1      # Constant CAS
-        mass = self.aircraft.weight_cg.mtow*self.kmtow
-        rating = "MCL"
 
         path,vz,mach,cz = self.aircraft.performance.max_air_path(nei,altp,disa,speed_mode,mass,rating)
 
@@ -424,27 +421,18 @@ class Tine_to_Climb(requirement.TTC_req):
         self.mass = None
         self.ttc_eff = None
 
-    def simulate(self,mass):
+    def simulate(self,disa,toc,mach,mass,altp1,vcas1,altp2,vcas2):
         """
         Time to climb to initial cruise altitude
         For simplicity reasons, airplane mass is supposed constant
         """
-        self.disa = self.aircraft.requirement.ttc.disa
-        self.cas1 = self.aircraft.requirement.ttc.cas1
-        self.altp1 = self.aircraft.requirement.ttc.altp1
-        self.cas2 = self.aircraft.requirement.ttc.cas2
-        self.altp2 = self.aircraft.requirement.ttc.altp2
-        self.mach = self.aircraft.requirement.ttc.mach
-        self.toc = self.aircraft.requirement.ttc.toc
-        self.ttc_req = self.aircraft.requirement.ttc.ttc_req
-
-        disa = self.disa
-        vcas1 = self.cas1
-        altp1 = self.altp1
-        vcas2 = self.cas1
-        altp2 = self.altp2
-        mach = self.mach
-        toc = self.toc
+        self.disa = disa
+        self.cas1 = vcas1
+        self.altp1 = altp1
+        self.cas2 = vcas2
+        self.altp2 = altp2
+        self.mach = mach
+        self.altp = toc
 
         if(vcas1>unit.mps_kt(250.)):
             print("vcas1 = ",unit.kt_mps(vcas1))
@@ -470,7 +458,7 @@ class Tine_to_Climb(requirement.TTC_req):
         altp = np.array([altp_0, altp_1, altp_2])
 
         nei = 0
-        speed_mode = 1    # Constant CAS
+        speed_mode = "cas"    # Constant CAS
         rating = "MCL"
 
         [slope,v_z0] = self.aircraft.performance.air_path(nei,altp[0],disa,speed_mode,vcas1,mass,rating)
@@ -540,7 +528,7 @@ class Tine_to_Climb(requirement.TTC_req):
             altp_1 = (altp_0+altp_2)/2.
             altp = np.array([altp_0, altp_1, altp_2])
 
-            speed_mode = 2    # mach
+            speed_mode = "mach"    # mach
 
             [slope,v_z0] = self.aircraft.performance.air_path(nei,altp[0],disa,speed_mode,mach,mass,rating)
             [slope,v_z1] = self.aircraft.performance.air_path(nei,altp[1],disa,speed_mode,mach,mass,rating)
@@ -619,8 +607,8 @@ class Mission(object):
             self.aircraft.weight_cg.mtow = mtow[0]
             self.aircraft.weight_cg.mass_pre_design()
             owe = self.aircraft.weight_cg.owe
-            self.aircraft.performance.mission.nominal.simulate(range,mtow,owe,altp,mach,disa)
-            fuel_total = self.aircraft.performance.mission.nominal.fuel_total
+            self.nominal.simulate(range,mtow,owe,altp,mach,disa)
+            fuel_total = self.nominal.fuel_total
             return mtow - (owe + payload + fuel_total)
 
         mtow_ini = [self.aircraft.weight_cg.mtow]

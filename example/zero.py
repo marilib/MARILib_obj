@@ -11,8 +11,6 @@ from aircraft.aircraft_root import Arrangement
 from aircraft.aircraft_root import Aircraft
 from aircraft.requirement import Requirement
 
-import aircraft.airframe.process as process
-
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
@@ -52,4 +50,4 @@ ac.aerodynamics.aerodynamic_analysis()
 ac.performance.analysis()
 
 #ac.draw.payload_range("This_plot")
-ac.draw.view_3d("This_plot")
+#ac.draw.view_3d("This_plot")
