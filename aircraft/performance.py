@@ -40,7 +40,7 @@ class Performance(object):
         hld_conf = self.aircraft.aerodynamics.hld_conf_to
 
         self.tofl_req = self.aircraft.requirement.take_off.tofl_req
-        self.take_off.simulate(disa,altp,mass,hld_conf,kvs1g,s2_min_path)
+        self.take_off.eval(disa,altp,mass,hld_conf,kvs1g,s2_min_path)
 
         disa = self.aircraft.requirement.approach.disa
         altp = self.aircraft.requirement.approach.altp
@@ -50,7 +50,7 @@ class Performance(object):
         hld_conf = self.aircraft.aerodynamics.hld_conf_ld
 
         self.app_speed_req = self.aircraft.requirement.approach.app_speed_req
-        self.landing.simulate(disa,altp,mass,hld_conf,kvs1g)
+        self.landing.eval(disa,altp,mass,hld_conf,kvs1g)
 
         disa = self.aircraft.requirement.vz_mcl.disa
         altp = self.aircraft.requirement.vz_mcl.altp
@@ -61,7 +61,7 @@ class Performance(object):
         mass = kmtow*self.aircraft.weight_cg.mtow
 
         self.vz_req = self.aircraft.requirement.vz_mcl.vz_req
-        self.mcl_ceiling.simulate(disa,altp,mach,mass,rating,speed_mode)
+        self.mcl_ceiling.eval(disa,altp,mach,mass,rating,speed_mode)
 
         disa = self.aircraft.requirement.vz_mcr.disa
         altp = self.aircraft.requirement.vz_mcr.altp
@@ -72,7 +72,7 @@ class Performance(object):
         mass = kmtow*self.aircraft.weight_cg.mtow
 
         self.vz_req = self.aircraft.requirement.vz_mcr.vz_req
-        self.mcr_ceiling.simulate(disa,altp,mach,mass,rating,speed_mode)
+        self.mcr_ceiling.eval(disa,altp,mach,mass,rating,speed_mode)
 
         disa = self.aircraft.requirement.oei.disa
         altp = self.aircraft.requirement.oei.altp
@@ -82,7 +82,7 @@ class Performance(object):
         mass = kmtow*self.aircraft.weight_cg.mtow
 
         self.path_req = self.aircraft.requirement.oei.path_req
-        self.oei_ceiling.simulate(disa,altp,mass,rating,speed_mode)
+        self.oei_ceiling.eval(disa,altp,mass,rating,speed_mode)
 
         disa = self.aircraft.requirement.ttc.disa
         cas1 = self.aircraft.requirement.ttc.cas1
@@ -94,7 +94,7 @@ class Performance(object):
         mass = self.aircraft.weight_cg.mtow
 
         self.ttc_req = self.aircraft.requirement.ttc.ttc_req
-        self.time_to_climb.simulate(disa,toc,mach,mass,altp1,cas1,altp2,cas2)
+        self.time_to_climb.eval(disa,toc,mach,mass,altp1,cas1,altp2,cas2)
 
     def get_speed(self,pamb,speed_mode,mach):
         """
@@ -238,7 +238,7 @@ class Take_off(requirement.Take_off_req):
         self.s2_path = None
         self.limit = None
 
-    def simulate(self,disa,altp,mass,hld_conf,kvs1g,s2_min_path):
+    def eval(self,disa,altp,mass,hld_conf,kvs1g,s2_min_path):
         """Take off field length and climb path with eventual kVs1g increase to recover min regulatory slope
         """
         self.disa = disa
@@ -325,7 +325,7 @@ class Approach(requirement.Approach_req):
         self.hld_conf = None
         self.app_speed_eff = None
 
-    def simulate(self,disa,altp,mass,hld_conf,kvs1g):
+    def eval(self,disa,altp,mass,hld_conf,kvs1g):
         """
         Minimum approach speed (VLS)
         """
@@ -359,7 +359,7 @@ class Power_ceiling(requirement.Climb_req):
         self.rating = rating
         self.vz_eff = None
 
-    def simulate(self,disa,altp,mach,mass,rating,speed_mode):
+    def eval(self,disa,altp,mach,mass,rating,speed_mode):
         """
         Minimum approach speed (VLS)
         """
@@ -390,7 +390,7 @@ class OEI_ceiling(requirement.OEI_ceiling_req):
         self.path_eff = None
         self.mach_opt = None
 
-    def simulate(self,disa,altp,mass,rating,speed_mode):
+    def eval(self,disa,altp,mass,rating,speed_mode):
         """
         Compute one engine inoperative maximum path
         """
@@ -421,7 +421,7 @@ class Tine_to_Climb(requirement.TTC_req):
         self.mass = None
         self.ttc_eff = None
 
-    def simulate(self,disa,toc,mach,mass,altp1,vcas1,altp2,vcas2):
+    def eval(self,disa,toc,mach,mass,altp1,vcas1,altp2,vcas2):
         """
         Time to climb to initial cruise altitude
         For simplicity reasons, airplane mass is supposed constant
@@ -577,20 +577,20 @@ class Mission(object):
         altp = self.aircraft.requirement.cruise_altp
         mach = self.aircraft.requirement.cruise_mach
 
-        self.max_payload.simulate(payload_max,mtow,owe,altp,mach,disa)
+        self.max_payload.eval(payload_max,mtow,owe,altp,mach,disa)
 
         range = self.aircraft.requirement.design_range
-        self.nominal.simulate(range,mtow,owe,altp,mach,disa)
+        self.nominal.eval(range,mtow,owe,altp,mach,disa)
 
         fuel_max = self.aircraft.weight_cg.mfw
-        self.max_fuel.simulate(fuel_max,mtow,owe,altp,mach,disa)
+        self.max_fuel.eval(fuel_max,mtow,owe,altp,mach,disa)
 
         payload = 0.
-        self.zero_payload.simulate(fuel_max,payload,owe,altp,mach,disa)
+        self.zero_payload.eval(fuel_max,payload,owe,altp,mach,disa)
 
         range = self.aircraft.requirement.cost_range
         payload = self.aircraft.airframe.cabin.nominal_payload
-        self.cost.simulate(range,payload,owe,altp,mach,disa)
+        self.cost.eval(range,payload,owe,altp,mach,disa)
 
     def mass_mission_adaptation(self):
         """
@@ -607,7 +607,7 @@ class Mission(object):
             self.aircraft.weight_cg.mtow = mtow[0]
             self.aircraft.weight_cg.mass_pre_design()
             owe = self.aircraft.weight_cg.owe
-            self.nominal.simulate(range,mtow,owe,altp,mach,disa)
+            self.nominal.eval(range,mtow,owe,altp,mach,disa)
             fuel_total = self.nominal.fuel_total
             return mtow - (owe + payload + fuel_total)
 
@@ -641,7 +641,7 @@ class Mission_fuel_from_range_and_tow(object):
         self.reserve_fuel_ratio = self.__reserve_fuel_ratio__() # Ratio of mission fuel to account into reserve
         self.diversion_range = self.__diversion_range__()       # Diversion leg
 
-    def simulate(self,range,tow,owe,altp,mach,disa):
+    def eval(self,range,tow,owe,altp,mach,disa):
         self.range = range  # Mission distance
         self.disa = disa    # Mean cruise temperature shift
         self.altp = altp    # Mean cruise altitude
@@ -739,7 +739,7 @@ class Mission_range_from_payload_and_tow(Mission_fuel_from_range_and_tow):
     def __init__(self, aircraft):
         super(Mission_range_from_payload_and_tow, self).__init__(aircraft)
 
-    def simulate(self,payload,tow,owe,altp,mach,disa):
+    def eval(self,payload,tow,owe,altp,mach,disa):
         self.disa = disa    # Mean cruise temperature shift
         self.altp = altp    # Mean cruise altitude
         self.mach = mach    # Cruise mach number
@@ -767,7 +767,7 @@ class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
     def __init__(self, aircraft):
         super(Mission_range_from_fuel_and_tow, self).__init__(aircraft)
 
-    def simulate(self,fuel_total,tow,owe,altp,mach,disa):
+    def eval(self,fuel_total,tow,owe,altp,mach,disa):
         self.disa = disa    # Mean cruise temperature shift
         self.altp = altp    # Mean cruise altitude
         self.mach = mach    # Cruise mach number
@@ -795,7 +795,7 @@ class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
     def __init__(self, aircraft):
         super(Mission_range_from_fuel_and_payload, self).__init__(aircraft)
 
-    def simulate(self,fuel_total,payload,owe,altp,mach,disa):
+    def eval(self,fuel_total,payload,owe,altp,mach,disa):
         self.disa = disa    # Mean cruise temperature shift
         self.altp = altp    # Mean cruise altitude
         self.mach = mach    # Cruise mach number
@@ -823,7 +823,7 @@ class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
     def __init__(self, aircraft):
         super(Mission_fuel_from_range_and_payload, self).__init__(aircraft)
 
-    def simulate(self,range,payload,owe,altp,mach,disa):
+    def eval(self,range,payload,owe,altp,mach,disa):
         self.range = range     # Take Off Weight
         self.disa = disa    # Mean cruise temperature shift
         self.altp = altp    # Mean cruise altitude
