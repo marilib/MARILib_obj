@@ -635,7 +635,7 @@ class Mission_def(object):
         :param disa: mean temperature shift
         :param owe: Operating Weight empty
         """
-        if mach==None and altp==None and disa=None and owe=None: # 1: reset to default
+        if mach==None and altp==None and disa==None and owe==None: # 1: reset to default
             self.mach = self.aircraft.requirement.cruise_mach
             self.altp = self.aircraft.requirement.cruise_altp
             self.disa = self.aircraft.requirement.cruise_disa
@@ -651,7 +651,7 @@ class Mission_def(object):
             if altp != None:
                 self.altp = altp
 
-    def simulate(self, inputs={'range':None,'tow':None}, **kwargs):
+    def eval(self, inputs={'range':None,'tow':None}, **kwargs):
         """Solve mission equations for given inputs.
         During a mission at given cruise mach, altitude, temperature shift (disa) and Operating Weight Empty (owe)
         the four following parameters are linked
