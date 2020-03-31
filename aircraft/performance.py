@@ -24,9 +24,9 @@ class Performance(object):
 
         self.mission = Mission(aircraft)
         self.take_off = Take_off(aircraft)
-        self.landing = Approach(aircraft)
-        self.mcr_ceiling = Power_ceiling(aircraft,"MCL")
-        self.mcl_ceiling = Power_ceiling(aircraft,"MCR")
+        self.approach = Approach(aircraft)
+        self.mcr_ceiling = Power_ceiling(aircraft)
+        self.mcl_ceiling = Power_ceiling(aircraft)
         self.oei_ceiling = OEI_ceiling(aircraft)
         self.time_to_climb = Tine_to_Climb(aircraft)
 
@@ -36,8 +36,8 @@ class Performance(object):
         kmtow = self.aircraft.requirement.take_off.kmtow
         kvs1g = self.aircraft.requirement.take_off.kvs1g
         s2_min_path = self.aircraft.requirement.take_off.s2_min_path
+        hld_conf = self.aircraft.performance.take_off.hld_conf
         mass = kmtow*self.aircraft.weight_cg.mtow
-        hld_conf = self.aircraft.aerodynamics.hld_conf_to
 
         self.tofl_req = self.aircraft.requirement.take_off.tofl_req
         self.take_off.eval(disa,altp,mass,hld_conf,kvs1g,s2_min_path)
@@ -46,11 +46,11 @@ class Performance(object):
         altp = self.aircraft.requirement.approach.altp
         kmlw = self.aircraft.requirement.approach.kmlw
         kvs1g = self.aircraft.requirement.approach.kvs1g
+        hld_conf = self.aircraft.performance.approach.hld_conf
         mass = kmlw*self.aircraft.weight_cg.mlw
-        hld_conf = self.aircraft.aerodynamics.hld_conf_ld
 
         self.app_speed_req = self.aircraft.requirement.approach.app_speed_req
-        self.landing.eval(disa,altp,mass,hld_conf,kvs1g)
+        self.approach.eval(disa,altp,mass,hld_conf,kvs1g)
 
         disa = self.aircraft.requirement.vz_mcl.disa
         altp = self.aircraft.requirement.vz_mcl.altp
@@ -97,8 +97,7 @@ class Performance(object):
         self.time_to_climb.eval(disa,toc,mach,mass,altp1,cas1,altp2,cas2)
 
     def get_speed(self,pamb,speed_mode,mach):
-        """
-        retrieves CAS or Mach from mach depending on speed_mode
+        """retrieves CAS or Mach from mach depending on speed_mode
         """
         speed = {"cas" : earth.vcas_from_mach(pamb,mach),   # CAS required
                  "mach" : mach                               # mach required
@@ -115,8 +114,7 @@ class Performance(object):
         return mach
 
     def speed_from_lift(self,pamb,tamb,cz,mass):
-        """
-        Retrieves mach from cz using simplified lift equation
+        """Retrieves mach from cz using simplified lift equation
         """
         g = earth.gravity()
         r,gam,Cp,Cv = earth.gas_data()
@@ -124,8 +122,7 @@ class Performance(object):
         return mach
 
     def lift_from_speed(self,pamb,tamb,mach,mass):
-        """
-        Retrieves cz from mach using simplified lift equation
+        """Retrieves cz from mach using simplified lift equation
         """
         g = earth.gravity()
         r,gam,Cp,Cv = earth.gas_data()
@@ -133,8 +130,7 @@ class Performance(object):
         return cz
 
     def level_flight(self,pamb,tamb,mach,mass):
-        """
-        Level flight equilibrium
+        """Level flight equilibrium
         """
         g = earth.gravity()
         r,gam,Cp,Cv = earth.gas_data()
@@ -149,8 +145,7 @@ class Performance(object):
         return cz,cx,lod,fn,sfc,throttle
 
     def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating):
-        """
-        Retrieves air path in various conditions
+        """Retrieves air path in various conditions
         """
         g = earth.gravity()
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
@@ -172,11 +167,8 @@ class Performance(object):
         return slope,vz
 
     def max_air_path(self,nei,altp,disa,speed_mode,mass,rating):
+        """Optimizes the speed of the aircraft to maximize the air path
         """
-        Optimizes the speed of the aircraft to maximize the air path
-        """
-
-        #=======================================================================================
         def fct(cz):
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
             mach = self.speed_from_lift(pamb,tamb,cz,mass)
@@ -184,7 +176,6 @@ class Performance(object):
             [slope,vz] = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating)
             if isformax: return slope
             else: return slope,vz,mach
-        #---------------------------------------------------------------------------------------
 
         cz_ini = 0.5
         dcz = 0.05
@@ -200,10 +191,8 @@ class Performance(object):
 
 
     def acceleration(self,nei,altp,disa,speed_mode,speed,mass,rating):
+        """Aircraft acceleration on level flight
         """
-        Aircraft acceleration on level flight
-        """
-
         r,gam,Cp,Cv = earth.gas_data()
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
@@ -224,14 +213,13 @@ class Performance(object):
 
 
 class Take_off(requirement.Take_off_req):
-    """
-    Definition of all mission types
+    """Definition of all mission types
     """
     def __init__(self, aircraft):
         super(Take_off, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
-        self.hld_conf = None
+        self.hld_conf = self.aircraft.aerodynamics.hld_conf_to
         self.tofl_eff = None
         self.kvs1g_eff = None
         self.v2 = None
@@ -287,8 +275,7 @@ class Take_off(requirement.Take_off_req):
         return
 
     def take_off(self,kvs1g,altp,disa,mass,hld_conf):
-        """
-        Take off field length and climb path at 35 ft depending on stall margin (kVs1g)
+        """Take off field length and climb path at 35 ft depending on stall margin (kVs1g)
         """
         czmax,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)
 
@@ -315,14 +302,13 @@ class Take_off(requirement.Take_off_req):
 
 
 class Approach(requirement.Approach_req):
-    """
-    Definition of all mission types
+    """Definition of all mission types
     """
     def __init__(self, aircraft):
         super(Approach, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
-        self.hld_conf = None
+        self.hld_conf = self.aircraft.aerodynamics.hld_conf_ld
         self.app_speed_eff = None
 
     def eval(self,disa,altp,mass,hld_conf,kvs1g):
@@ -350,13 +336,13 @@ class Approach(requirement.Approach_req):
 
 
 class Power_ceiling(requirement.Climb_req):
+    """Definition of all mission types
     """
-    Definition of all mission types
-    """
-    def __init__(self, aircraft, rating):
+    def __init__(self, aircraft):
         super(Power_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
-        self.rating = rating
+
+        self.rating = None
         self.vz_eff = None
 
     def eval(self,disa,altp,mach,mass,rating,speed_mode):
@@ -380,8 +366,7 @@ class Power_ceiling(requirement.Climb_req):
 
 
 class OEI_ceiling(requirement.OEI_ceiling_req):
-    """
-    Definition of all mission types
+    """Definition of all mission types
     """
     def __init__(self, aircraft):
         super(OEI_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
@@ -411,8 +396,7 @@ class OEI_ceiling(requirement.OEI_ceiling_req):
 
 
 class Tine_to_Climb(requirement.TTC_req):
-    """
-    Definition of all mission types
+    """Definition of all mission types
     """
     def __init__(self, aircraft):
         super(Tine_to_Climb, self).__init__(aircraft.arrangement, aircraft.requirement)
@@ -556,8 +540,7 @@ class Tine_to_Climb(requirement.TTC_req):
 
 
 class Mission(object):
-    """
-    Definition of all mission types
+    """Definition of all mission types
     """
     def __init__(self, aircraft):
         self.aircraft = aircraft
@@ -620,8 +603,7 @@ class Mission(object):
 
 
 class Mission_fuel_from_range_and_tow(object):
-    """
-    Define common features for all mission types.
+    """Define common features for all mission types.
     """
     def __init__(self, aircraft):
         self.aircraft = aircraft
@@ -731,7 +713,7 @@ class Mission_fuel_from_range_and_tow(object):
 
 
 class Mission_range_from_payload_and_tow(Mission_fuel_from_range_and_tow):
-    """
+    """Specific mission evaluation from payload and take off weight
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and total_fuel from payload and tow
@@ -748,7 +730,7 @@ class Mission_range_from_payload_and_tow(Mission_fuel_from_range_and_tow):
 
         def fct(range):
             self.eval_breguet(range,tow,altp,mach,disa)
-            return payload - (tow-owe-self.fuel_total)
+            return  self.tow - (owe+self.payload+self.fuel_total)
 
         range_ini = [self.aircraft.requirement.design_range]
         output_dict = fsolve(fct, x0=range_ini, args=(), full_output=True)
@@ -759,7 +741,7 @@ class Mission_range_from_payload_and_tow(Mission_fuel_from_range_and_tow):
 
 
 class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
-    """
+    """Specific mission evaluation from total fuel and take off weight
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and payload from total_fuel and tow
@@ -776,7 +758,7 @@ class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
 
         def fct(range):
             self.eval_breguet(range,tow,altp,mach,disa)
-            return self.payload - (tow-owe-self.fuel_total)
+            return  self.tow - (owe+self.payload+self.fuel_total)
 
         range_ini = [self.aircraft.requirement.design_range]
         output_dict = fsolve(fct, x0=range_ini, args=(), full_output=True)
@@ -787,7 +769,7 @@ class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
 
 
 class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
-    """
+    """Specific mission evaluation from payload and total fuel
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and tow from total_fuel and payload
@@ -804,7 +786,7 @@ class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
 
         def fct(range):
             self.eval_breguet(range,self.tow,altp,mach,disa)
-            return self.tow-owe-self.payload-self.fuel_total
+            return  self.tow - (owe+self.payload+self.fuel_total)
 
         range_ini = [self.aircraft.requirement.design_range]
         output_dict = fsolve(fct, x0=range_ini, args=(), full_output=True)
@@ -815,7 +797,7 @@ class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
 
 
 class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
-    """
+    """Specific mission evaluation from range and payload
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes total_fuel and tow from range and payload
@@ -832,7 +814,7 @@ class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
 
         def fct(tow):
             self.eval_breguet(range,tow,altp,mach,disa)
-            return tow-owe-payload-self.fuel_total
+            return  tow - (owe+self.payload+self.fuel_total)
 
         tow_ini = [self.aircraft.weight_cg.mtow]
         output_dict = fsolve(fct, x0=tow_ini, args=(), full_output=True)

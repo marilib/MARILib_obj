@@ -10,8 +10,7 @@ from aircraft.tool import unit
 
 
 class Take_off_req(object):
-    """
-    Initialize take off requirements
+    """Initialize take off requirements
     """
     def __init__(self, arrangement, requirement):
         self.disa = 15.
@@ -22,8 +21,7 @@ class Take_off_req(object):
         self.tofl_req = self.__tofl_req__(requirement)
 
     def __s2_min_path__(self,arrangement):
-        """
-        Regulatory min climb path versus number of engine
+        """Regulatory min climb path versus number of engine
         """
         if(arrangement.number_of_engine == "twin"): s2_min_path = 0.024
      #   elif(arrangement.number_of_engine == "tri"): s2_min_path = 0.027
@@ -40,8 +38,7 @@ class Take_off_req(object):
 
 
 class Approach_req(object):
-    """
-    Initialize approach requirements
+    """Initialize approach requirements
     """
     def __init__(self, arrangement, requirement):
         self.disa = 15.
@@ -58,8 +55,7 @@ class Approach_req(object):
 
 
 class OEI_ceiling_req(object):
-    """
-    Initialize approach requirements
+    """Initialize one engine inoperative ceiling requirements
     """
     def __init__(self, arrangement, requirement):
         self.disa = 15.
@@ -70,8 +66,7 @@ class OEI_ceiling_req(object):
         self.path_req = self.__oei_min_path__(arrangement)
 
     def __oei_min_path__(self, arrangement):
-        """
-        Regulatory min climb path depending on the number of engine
+        """Regulatory min climb path depending on the number of engine
         """
         if(arrangement.number_of_engine == "twin"): oei_min_path = 0.011
      #   elif(arrangement.number_of_engine == "tri"):  oei_min_path = 0.013
@@ -81,8 +76,7 @@ class OEI_ceiling_req(object):
 
 
 class Climb_req(object):
-    """
-    Initialize approach requirements
+    """Initialize climb speed requirements
     """
     def __init__(self, arrangement, requirement):
         self.disa = 15.
@@ -102,8 +96,7 @@ class Climb_req(object):
 
 
 class Vz_mcl_req(Climb_req):
-    """
-    Initialize approach requirements
+    """Initialize climb speed requirements in MCL rating
     """
     def __init__(self, arrangement, requirement):
         super(Vz_mcl_req, self).__init__(arrangement, requirement)
@@ -113,8 +106,7 @@ class Vz_mcl_req(Climb_req):
 
 
 class Vz_mcr_req(Climb_req):
-    """
-    Initialize approach requirements
+    """Initialize climb speed requirements in MCR rating
     """
     def __init__(self, arrangement, requirement):
         super(Vz_mcr_req, self).__init__(arrangement, requirement)
@@ -124,8 +116,7 @@ class Vz_mcr_req(Climb_req):
 
 
 class TTC_req(Climb_req):
-    """
-    Initialize approach requirements
+    """Initialize time to climb requirements
     """
     def __init__(self, arrangement, requirement):
         super(TTC_req, self).__init__(arrangement, requirement)
@@ -151,8 +142,7 @@ class TTC_req(Climb_req):
 
 #===========================================================================================================
 class Requirement(object):
-    """
-    Initialize top level aircraft requirements
+    """Initialize top level aircraft requirements
     """
     def __init__(self, n_pax_ref = 150.,
                  design_range = unit.m_NM(3000.),

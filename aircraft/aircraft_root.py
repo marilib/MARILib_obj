@@ -15,8 +15,7 @@ from aircraft.tool.drawing import Drawing
 
 
 class Arrangement(object):
-    """
-    Top level aircraft requirements
+    """Architectural choices
     """
     def __init__(self,body_type = "fuselage",          # "fuselage" or "blended"
                       wing_type = "classic",           # "classic" or "blended"
@@ -28,9 +27,7 @@ class Arrangement(object):
                       power_architecture = "tf",       # "tf", "tp", "pte1", "ef1", "ep1",
                       energy_source = "kerosene"       # "kerosene", "methane", "liquid_h2", "700bar_h2" or "battery"
                  ):
-        """
-        Data structure, only one sub-level allowed
-        """
+
         self.body_type = body_type
         self.wing_type = wing_type
         self.wing_attachment = wing_attachment
@@ -43,13 +40,10 @@ class Arrangement(object):
 
 
 class Aircraft(object):
-    """
-    Logical aircraft description
+    """Logical aircraft description
     """
     def __init__(self, name):
-        """
-        Data structure, only one sub-level allowed
-        """
+
         self.name = name
         self.requirement = None
         self.arrangement = None
@@ -65,12 +59,7 @@ class Aircraft(object):
         self.draw = Drawing(self)
 
     def factory(self, arrangement, requirement):
-        """
-        Build an aircraft
-        :param name: the name of your aircraft
-        :param reqs: requirement object
-        :param agmt: arrangement object
-        :return: an aircraft
+        """Build an aircraft according to architectural choices
         """
         self.requirement = requirement
         self.arrangement = arrangement

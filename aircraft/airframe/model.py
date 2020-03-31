@@ -44,6 +44,8 @@ class Aerodynamics(object):
         self.cz_max_ld,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_ld)
 
     def drag(self,pamb,tamb,mach,cz):
+        """Retrieves airplane drag and L/D in current flying conditions
+        """
         # Form & friction drag
         #-----------------------------------------------------------------------------------------------------------
         re = earth.reynolds_number(pamb,tamb,mach)
@@ -102,8 +104,7 @@ class Aerodynamics(object):
         return cx,lod
 
     def lod_max(self,pamb,tamb,mach):
-        """
-        Maximum lift to drag ratio
+        """Maximum lift to drag ratio
         """
         def fct(cz):
             cx,lod = self.drag(pamb,tamb,mach,cz)
@@ -132,7 +133,8 @@ class Weight_cg(object):
         self.mfw = None
 
     def mass_analysis(self):
-        # update all component mass
+        """Update all component mass
+        """
         for comp in self.aircraft.airframe.mass_iter():
             comp.eval_mass()
 
@@ -165,8 +167,7 @@ class Weight_cg(object):
         # calculer les cg
 
     def mass_pre_design(self):
-        """
-        Solve the coupling through MZFW & MLW internally to mass functions
+        """Solve the coupling through MZFW & MLW for a given mtow
         """
         def fct(x_in):
             self.aircraft.weight_cg.mzfw = x_in[0]
@@ -192,9 +193,6 @@ class Weight_cg(object):
 
 #--------------------------------------------------------------------------------------------------------------------------------
 class Power_system(object):
-    """
-    Logical aircraft description
-    """
 
     def __init__(self, aircraft):
         self.aircraft = aircraft
@@ -283,8 +281,7 @@ class Turbofan(Power_system):
         super(Turbofan, self).__init__(aircraft)
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
-        """
-        Total thrust of a pure turbofan engine
+        """Total thrust of a pure turbofan engine
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
@@ -297,8 +294,7 @@ class Turbofan(Power_system):
         return fn,ff,sfc
 
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
-        """
-        Total thrust of a pure turbofan engine
+        """Total thrust of a pure turbofan engine
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
@@ -316,8 +312,7 @@ class Turbofan(Power_system):
         return sfc,throttle
 
     def oei_drag(self,pamb,tamb):
-        """
-        Inoperative engine drag coefficient
+        """Inoperative engine drag coefficient
         """
         wing_area = self.aircraft.airframe.wing.area
         nacelle_width = self.aircraft.airframe.nacelle.nacelle_width
@@ -330,6 +325,8 @@ class Turbofan(Power_system):
         return 1.
 
     def breguet_range(self,range,tow,altp,mach,disa):
+        """Breguet range equation is dependant from power source : fuel or battery
+        """
         g = earth.gravity()
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)

@@ -12,8 +12,7 @@ from aircraft.airframe.component import Component
 
 #--------------------------------------------------------------------------------------------------------------------------------
 class Airframe(object):
-    """
-    Logical aircraft description
+    """Logical aircraft components
     """
 
     def __init__(self, aircraft):
@@ -39,10 +38,10 @@ class Airframe(object):
         self.aircraft.airframe.cargo.eval_geometry()
         self.aircraft.airframe.nacelle.eval_geometry()
 
-        if (self.aircraft.arrangement.stab_architecture in ["classic","t_tail"]):
+        if (stab_architecture in ["classic","t_tail"]):
             self.aircraft.airframe.vertical_stab.eval_geometry()
             self.aircraft.airframe.horizontal_stab.eval_geometry()
-        elif (self.aircraft.arrangement.stab_architecture=="h_tail"):
+        elif (stab_architecture=="h_tail"):
             self.aircraft.airframe.horizontal_stab.eval_geometry()
             self.aircraft.airframe.vertical_stab.eval_geometry()
 
@@ -54,9 +53,10 @@ class Airframe(object):
         self.aircraft.airframe.system.eval_geometry()
 
     def statistical_pre_design(self):
+        """Solves strong coupling and compute tail areas using volume coefficients
         """
-        Solves strong coupling and compute tail areas using volume coefficients
-        """
+        stab_architecture = self.aircraft.arrangement.stab_architecture
+
         self.aircraft.airframe.cabin.eval_geometry()
         self.aircraft.airframe.body.eval_geometry()
         self.aircraft.airframe.wing.eval_geometry()
@@ -67,10 +67,10 @@ class Airframe(object):
             self.aircraft.airframe.vertical_stab.area = x_in[0]                           # Coupling variable
             self.aircraft.airframe.horizontal_stab.area = x_in[1]                             # Coupling variable
 
-            if (self.aircraft.arrangement.stab_architecture in ["classic","t_tail"]):
+            if (stab_architecture in ["classic","t_tail"]):
                 self.aircraft.airframe.vertical_stab.eval_geometry()
                 self.aircraft.airframe.horizontal_stab.eval_geometry()
-            elif (self.aircraft.arrangement.stab_architecture=="h_tail"):
+            elif (stab_architecture=="h_tail"):
                 self.aircraft.airframe.horizontal_stab.eval_geometry()
                 self.aircraft.airframe.vertical_stab.eval_geometry()
 
@@ -87,10 +87,10 @@ class Airframe(object):
         self.aircraft.airframe.vertical_stab.area = output_dict[0][0]                           # Coupling variable
         self.aircraft.airframe.horizontal_stab.area = output_dict[0][1]                             # Coupling variable
 
-        if (self.aircraft.arrangement.stab_architecture in ["classic","t_tail"]):
+        if (stab_architecture in ["classic","t_tail"]):
             self.aircraft.airframe.vertical_stab.eval_geometry()
             self.aircraft.airframe.horizontal_stab.eval_geometry()
-        elif (self.aircraft.arrangement.stab_architecture=="h_tail"):
+        elif (stab_architecture=="h_tail"):
             self.aircraft.airframe.horizontal_stab.eval_geometry()
             self.aircraft.airframe.vertical_stab.eval_geometry()
 

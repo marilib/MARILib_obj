@@ -384,8 +384,7 @@ class Wing(Component):
                  + 0.20*(self.tip_loc + 0.40*np.array([self.tip_c, 0., 0.]))
 
     def cza(self, mach):
-        """
-        Polhamus formula
+        """Polhamus formula
         """
         body_width = self.aircraft.airframe.body.width
         wing_span = self.aircraft.airframe.wing.span
@@ -397,8 +396,7 @@ class Wing(Component):
         return cza
 
     def wing_np(self, hld_conf):
-        """
-        Wing neutral point
+        """Wing neutral point
         """
         wing_c_mac = self.aircraft.airframe.wing.mac
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
@@ -407,9 +405,9 @@ class Wing(Component):
         return loc_np
 
     def high_lift(self, hld_conf):
-        """
-        0 =< hld_type =< 10
-        0 =< hld_conf =< 1
+        """Retrieves max lift and zero aoa lift of a given deflection (from 0 to 1)
+        0 =< hld_type =< 10 : type of high lift device
+        0 =< hld_conf =< 1  : (slat) flap deflection
         Typically : hld_conf = 1 ==> cz_max_ld
                   : hld_conf = 0.1 to 0.5 ==> cz_max_to
         """
@@ -1279,8 +1277,7 @@ class Turbofan_nacelle(Component):
         return bpr
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.,nei=0.):
-        """
-        Unitary thrust of a pure turbofan engine (semi-empirical model)
+        """Unitary thrust of a pure turbofan engine (semi-empirical model)
         """
         kth =  0.475*mach**2 + 0.091*(self.engine_bpr/10.)**2 \
              - 0.283*mach*self.engine_bpr/10. \
