@@ -5,6 +5,12 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
+import numpy as np
+
+from aircraft.tool import unit
+
+STANDARD_FORMAT = 4
+
 data_dict = {
     "body_type": {"unit":"string", "mag":8, "txt":"Type of main body, 'fuselage' or 'blended'"},
     "wing_type": {"unit":"string", "mag":6, "txt":"Type of lifting body, 'classic' or 'blended'"},
@@ -157,5 +163,51 @@ data_dict = {
 }
 
 
+def isNaN(num):
+    return num != num
+
+def convert_to_original_type(lst, orig_seq):
+    if isinstance(orig_seq, tuple):
+        return tuple(lst)
+    elif isinstance(orig_seq, np.ndarray):
+        return np.array(lst)
+    else:
+        return lst
+
+def convert_to_scientific_notation(value, dec_format=STANDARD_FORMAT):
+    str_value = format(value, "".join((".", str(dec_format), "E")))
+    return str_value
+
+def to_user_format(value, dec_format=STANDARD_FORMAT):
+    if isinstance(value, (tuple, list, np.ndarray)):
+        lst = list(value)
+        for i in np.arange(len(lst)):
+            lst[i] = to_user_format(lst[i], dec_format)
+        return str(convert_to_original_type(lst, value)).replace("'", "")
+    elif isinstance(value, dict):
+        for k, v in value.items():
+            value[k] = to_user_format(v, dec_format)
+        return str(value).replace("'", "")
+    elif isinstance(value, (float, np.float64)):
+        if isNaN(value):
+            return value
+        if value == 0. or value == -0.:
+            return format(value, "".join((".", str(dec_format), "f")))
+        else:
+            V = abs(value)
+            if V > 1:
+                if V > 1e6:
+                    return convert_to_scientific_notation(value,dec_format)
+                correction_factor = 1e-4  # to correct 10^n values format
+                nb_dec = int(max((0, (dec_format + 1) - np.ceil(np.log10(V + correction_factor)))))
+            else:
+                if V < 1e-3:
+                    return convert_to_scientific_notation(value,dec_format)
+                nb_dec = int((dec_format - 1) - np.floor(np.log10(V)))
+            return format(value, "".join((".", str(nb_dec), "f")))
+    elif isinstance(value, int) and abs(value) > 1e6:
+        return convert_to_scientific_notation(value,dec_format)
+    else:
+        return value
 
 
