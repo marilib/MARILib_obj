@@ -315,7 +315,7 @@ class Turbofan(Power_system):
         """Inoperative engine drag coefficient
         """
         wing_area = self.aircraft.airframe.wing.area
-        nacelle_width = self.aircraft.airframe.nacelle.nacelle_width
+        nacelle_width = self.aircraft.airframe.nacelle.width
 
         dCx = 0.12*nacelle_width**2 / wing_area
 

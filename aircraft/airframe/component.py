@@ -91,12 +91,12 @@ class Cabin(Component):
         self.nominal_payload = None
         self.maximum_payload = None
 
-        self.cg_furnishing = None
-        self.cg_op_item = None
+        self.cg_furnishing = np.full(3,None)
+        self.cg_op_item = np.full(3,None)
 
-        self.max_fwd_req_cg = None
+        self.max_fwd_req_cg = np.full(3,None)
         self.max_fwd_mass = None
-        self.max_bwd_req_cg = None
+        self.max_bwd_req_cg = np.full(3,None)
         self.max_bwd_mass = None
 
     def eval_geometry(self):
@@ -150,8 +150,7 @@ class Cargo(Component):
         super(Cargo, self).__init__(aircraft)
 
     def eval_geometry(self):
-        cabin_frame_origin = self.aircraft.airframe.cabin.frame_origin
-        self.frame_origin = cabin_frame_origin
+        self.frame_origin = self.aircraft.airframe.cabin.frame_origin
 
     def eval_mass(self):
         n_pax_front = self.aircraft.requirement.n_pax_front
@@ -452,8 +451,8 @@ class VTP_classic(Component):
         self.taper_ratio = 0.40     # Design rule
         self.toc = 0.10             # Design rule
         self.sweep25 = None
-        self.volume = 0.4           # Design rule
-        self.x_anchor = None
+        self.volume_factor = 0.4           # Design rule
+        self.anchor_ratio = None
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -479,8 +478,8 @@ class VTP_classic(Component):
 
         self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
 
-        self.x_anchor = 0.85       # Locate self versus end body length
-        x_root = body_length*(1-tail_cone_length/body_length*(1-self.x_anchor)) - self.root_c
+        self.anchor_ratio = 0.85       # Locate self versus end body length
+        x_root = body_length*(1-tail_cone_length/body_length*(1-self.anchor_ratio)) - self.root_c
         x_tip = x_root + 0.25*(self.root_c-self.tip_c) + self.height*np.tan(self.sweep25)
 
         y_root = 0.
@@ -514,8 +513,8 @@ class VTP_classic(Component):
 
     def eval_area(self):
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
-        nacelle_loc_ext = self.aircraft.airframe.nacelle.nacelle_loc_ext
-        self.area = self.volume*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
+        nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
+        self.area = self.volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
 
 
 class VTP_T(Component):
@@ -531,8 +530,8 @@ class VTP_T(Component):
         self.taper_ratio = 0.80     # Design rule
         self.toc = 0.10             # Design rule
         self.sweep25 = None
-        self.volume = 0.4           # Design rule
-        self.x_anchor = None
+        self.volume_factor = 0.4           # Design rule
+        self.anchor_ratio = None
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -558,8 +557,8 @@ class VTP_T(Component):
 
         self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
 
-        self.x_anchor = 0.85       # Locate self versus end body length
-        x_root = body_length*(1-tail_cone_length/body_length*(1-self.x_anchor)) - self.root_c
+        self.anchor_ratio = 0.85       # Locate self versus end body length
+        x_root = body_length*(1-tail_cone_length/body_length*(1-self.anchor_ratio)) - self.root_c
         x_tip = x_root + 0.25*(self.root_c-self.tip_c) + self.height*np.tan(self.sweep25)
 
         y_root = 0.
@@ -593,9 +592,9 @@ class VTP_T(Component):
 
     def eval_area(self):
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
-        nacelle_loc_ext = self.aircraft.airframe.nacelle.nacelle_loc_ext
+        nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
 
-        self.area = self.volume*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
+        self.area = self.volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
 
 
 class VTP_H(Component):
@@ -611,7 +610,7 @@ class VTP_H(Component):
         self.taper_ratio = 0.40     # Design rule
         self.toc = 0.10             # Design rule
         self.sweep25 = None
-        self.volume = 0.4           # Design rule
+        self.volume_factor = 0.4           # Design rule
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -669,9 +668,9 @@ class VTP_H(Component):
 
     def eval_area(self):
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
-        nacelle_loc_ext = self.aircraft.airframe.nacelle.nacelle_loc_ext
+        nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
 
-        self.area = self.volume*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
+        self.area = self.volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
 
 
 class HTP_classic(Component):
@@ -688,7 +687,7 @@ class HTP_classic(Component):
         self.toc = 0.10             # Design rule
         self.sweep25 = None
         self.dihedral = unit.rad_deg(5)     # HTP dihedral
-        self.volume = 0.94                  # Design rule
+        self.volume_factor = 0.94                  # Design rule
         self.lever_arm = None
 
         self.axe_loc = np.full(3,None)     # Position of the virtual central chord
@@ -754,7 +753,7 @@ class HTP_classic(Component):
         wing_area = self.aircraft.airframe.wing.area
         wing_mac = self.aircraft.airframe.wing.mac
 
-        self.area = self.volume*(wing_area*wing_mac/self.lever_arm)
+        self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
 
 class HTP_T(Component):
@@ -771,7 +770,7 @@ class HTP_T(Component):
         self.toc = 0.10             # Design rule
         self.sweep25 = None
         self.dihedral = unit.rad_deg(5)     # HTP dihedral
-        self.volume = 0.94                  # Design rule
+        self.volume_factor = 0.94                  # Design rule
         self.lever_arm = None
 
         self.axe_loc = np.full(3,None)     # Position of the central chord
@@ -838,7 +837,7 @@ class HTP_T(Component):
         wing_area = self.aircraft.airframe.wing.area
         wing_mac = self.aircraft.airframe.wing.mac
 
-        self.area = self.volume*(wing_area*wing_mac/self.lever_arm)
+        self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
 
 class HTP_H(Component):
@@ -855,7 +854,7 @@ class HTP_H(Component):
         self.toc = 0.10             # Design rule
         self.sweep25 = None
         self.dihedral = unit.rad_deg(5)     # HTP dihedral
-        self.volume = 0.94                  # Design rule
+        self.volume_factor = 0.94                  # Design rule
         self.lever_arm = None
 
         self.axe_loc = np.full(3,None)     # Position of the virtual central chord
@@ -922,7 +921,7 @@ class HTP_H(Component):
         wing_area = self.aircraft.airframe.wing.area
         wing_mac = self.aircraft.airframe.wing.mac
 
-        self.area = self.volume*(wing_area*wing_mac/self.lever_arm)
+        self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
 
 class Tank_wing_box(Component):
@@ -1013,11 +1012,11 @@ class Tank_wing_pod(Component):
         self.surface_mass = 50.
         self.fuel_density = None
 
-        self.pod_length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
-        self.pod_width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        self.length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
+        self.width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
         self.wing_axe_c = None
         self.wing_axe_x = None
-        self.pod_volume = None
+        self.volume = None
         self.max_volume = None
         self.mfw_volume_limited = None
 
@@ -1039,27 +1038,27 @@ class Tank_wing_pod(Component):
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
         if (self.aircraft.arrangement.nacelle_attachment == "pod"):
-            pod_y_axe = 0.8 * body_width + 1.5 * self.pod_width
+            y_axe = 0.8 * body_width + 1.5 * self.width
         else:
-            pod_y_axe = 0.8 * body_width + 3.0 * self.pod_width
+            y_axe = 0.8 * body_width + 3.0 * self.width
 
-        pod_x_axe = wing_root_loc[0] + (pod_y_axe-wing_root_loc[1])*tan_phi0 - 0.40*self.pod_length
-        pod_z_axe = (pod_y_axe - 0.5 * body_width) * np.tan(wing_dihedral)
+        x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - 0.40*self.length
+        z_axe = (y_axe - 0.5 * body_width) * np.tan(wing_dihedral)
 
-        self.frame_origin = [pod_x_axe, pod_y_axe, pod_z_axe]
+        self.frame_origin = [x_axe, y_axe, z_axe]
 
-        self.wing_axe_c = wing_kink_c - (wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1])*(pod_y_axe-wing_kink_loc[1])
-        self.wing_axe_x = wing_kink_loc[0] - (wing_kink_loc[0]-wing_tip_loc[0])/(wing_tip_loc[1]-wing_kink_loc[1])*(pod_y_axe-wing_kink_loc[1])
+        self.wing_axe_c = wing_kink_c - (wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
+        self.wing_axe_x = wing_kink_loc[0] - (wing_kink_loc[0]-wing_tip_loc[0])/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
 
-        self.net_wetted_area = 2.*(0.85*3.14*self.pod_width*self.pod_length)
-        self.aero_length = self.pod_length
+        self.net_wetted_area = 2.*(0.85*3.14*self.width*self.length)
+        self.aero_length = self.length
         self.form_factor = 1.05
 
-        self.pod_volume =   0.85 \
-                          * 2.0*self.pod_length*(0.25*np.pi*self.pod_width**2) \
+        self.volume =   0.85 \
+                          * 2.0*self.length*(0.25*np.pi*self.width**2) \
                           * (1. - self.structure_ratio)                             # for both pods
 
-        self.max_volume = self.pod_volume
+        self.max_volume = self.volume
 
     def eval_mass(self):
         energy_source = self.aircraft.arrangement.energy_source
@@ -1068,14 +1067,14 @@ class Tank_wing_pod(Component):
         self.fuel_density = earth.fuel_density(energy_source)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.mass = self.pod_net_wetted_area*self.surface_mass
-        self.cg = self.frame_origin + 0.45*np.array([self.pod_length, 0., 0.])
+        self.mass = self.net_wetted_area*self.surface_mass
+        self.cg = self.frame_origin + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
-        self.fuel_max_fwd_mass = self.pod_volume*self.fuel_density
+        self.fuel_max_fwd_mass = self.volume*self.fuel_density
 
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
-        self.fuel_max_bwd_mass = self.pod_volume*self.fuel_density
+        self.fuel_max_bwd_mass = self.volume*self.fuel_density
 
 
 class Tank_piggy_back(Component):
@@ -1091,9 +1090,9 @@ class Tank_piggy_back(Component):
         self.surface_mass = 50.
         self.fuel_density = None
 
-        self.pod_length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
-        self.pod_width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
-        self.pod_volume = None
+        self.length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
+        self.width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        self.volume = None
         self.max_volume = None
         self.mfw_volume_limited = None
 
@@ -1112,21 +1111,21 @@ class Tank_piggy_back(Component):
         wing_tip_c = self.aircraft.airframe.wing.tip_c
         wing_tip_loc = self.aircraft.airframe.wing.tip_loc
 
-        pod_x_axe = wing_mac_loc[0] - 0.35*self.pod_length
-        pod_y_axe = 0.
-        pod_z_axe = 1.07*body_width + 0.85*self.pod_width
+        x_axe = wing_mac_loc[0] - 0.35*self.length
+        y_axe = 0.
+        z_axe = 1.07*body_width + 0.85*self.width
 
-        self.frame_origin = [pod_x_axe, pod_y_axe, pod_z_axe]
+        self.frame_origin = [x_axe, y_axe, z_axe]
 
-        self.net_wetted_area = 0.85*3.14*self.pod_width*self.pod_length
-        self.aero_length = self.pod_length
+        self.net_wetted_area = 0.85*3.14*self.width*self.length
+        self.aero_length = self.length
         self.form_factor = 1.05
 
-        self.pod_volume =   0.85 \
-                          * self.pod_length*(0.25*np.pi*self.pod_width**2) \
+        self.volume =   0.85 \
+                          * self.length*(0.25*np.pi*self.width**2) \
                           * (1. - self.structure_ratio)
 
-        self.max_volume = self.pod_volume
+        self.max_volume = self.volume
 
     def eval_mass(self):
         energy_source = self.aircraft.arrangement.energy_source
@@ -1135,14 +1134,14 @@ class Tank_piggy_back(Component):
         self.fuel_density = earth.fuel_density(energy_source)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.mass = self.pod_net_wetted_area*self.surface_mass
-        self.cg = self.frame_origin[0] + 0.45*np.array([self.pod_length, 0., 0.])
+        self.mass = self.net_wetted_area*self.surface_mass
+        self.cg = self.frame_origin[0] + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
-        self.fuel_max_fwd_mass = self.pod_volume*self.fuel_density
+        self.fuel_max_fwd_mass = self.volume*self.fuel_density
 
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
-        self.fuel_max_bwd_mass = self.pod_volume*self.fuel_density
+        self.fuel_max_bwd_mass = self.volume*self.fuel_density
 
 
 class Landing_gear(Component):
@@ -1208,10 +1207,10 @@ class Turbofan_nacelle(Component):
         self.core_thrust_ratio = 0.13
         self.efficiency_prop = 0.82
 
-        self.nacelle_width = None
-        self.nacelle_length = None
+        self.width = None
+        self.length = None
 
-        self.nacelle_loc = np.full(3,None)
+        self.frame_origin = np.full(3,None)
 
     def eval_geometry(self):
         body_width = self.aircraft.airframe.body.width
@@ -1251,22 +1250,22 @@ class Turbofan_nacelle(Component):
 
         thrust_factor = total_thrust / total_thrust0
 
-        self.nacelle_width = 0.5*self.engine_bpr**0.7 + 5.E-6*self.reference_thrust*thrust_factor
-        self.nacelle_length = 0.86*self.nacelle_width + self.engine_bpr**0.37      # statistical regression
+        self.width = 0.5*self.engine_bpr**0.7 + 5.E-6*self.reference_thrust*thrust_factor
+        self.length = 0.86*self.width + self.engine_bpr**0.37      # statistical regression
 
-        knac = np.pi * self.nacelle_width * self.nacelle_length
+        knac = np.pi * self.width * self.length
         self.net_wetted_area = knac*(1.48 - 0.0076*knac)*2.       # statistical regression, two engines
-        self.aero_length = self.nacelle_length
+        self.aero_length = self.length
         self.form_factor = 1.15
 
-        self.nacelle_loc = self.__locate_nacelle__()
+        self.frame_origin = self.__locate_nacelle__()
 
     def __locate_nacelle__(self):
         return np.full(3,None)
 
     def eval_mass(self):
         self.mass = (1250. + 0.021*self.reference_thrust)*2.       # statistical regression, two engines
-        self.cg = self.nacelle_loc + 0.7 * np.array([self.nacelle_length, 0., 0.])      # statistical regression
+        self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
     def __turbofan_bpr__(self):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -1324,9 +1323,9 @@ class Inboard_wing_mounted_turbofan_nacelle(Turbofan_nacelle):
 
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
-        y_int = 0.8 * body_width + 1.5 * self.nacelle_width      # statistical regression
-        x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.nacelle_length
-        z_int = (y_int - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.nacelle_width
+        y_int = 0.8 * body_width + 1.5 * self.width      # statistical regression
+        x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.length
+        z_int = (y_int - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
 
         return np.array([x_int, y_int, z_int])
 
@@ -1348,9 +1347,9 @@ class Outboard_wing_mounted_turbofan_nacelle(Turbofan_nacelle):
 
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
-        y_ext = 2.0 * body_width + 1.5 * self.nacelle_width      # statistical regression
-        x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.nacelle_length
-        z_ext = (y_ext - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.nacelle_width
+        y_ext = 2.0 * body_width + 1.5 * self.width      # statistical regression
+        x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.length
+        z_ext = (y_ext - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
 
         return np.array([x_ext, y_ext, z_ext])
 
@@ -1365,8 +1364,8 @@ class Rear_mounted_turbofan_nacelle(Turbofan_nacelle):
         body_height = self.aircraft.airframe.body.height
         vtp_root_loc = self.aircraft.airframe.vertical_stab.root_loc
 
-        y_int = 0.5 * body_width + 0.6 * self.nacelle_width      # statistical regression
-        x_int = vtp_root_loc[0] - 0.5*self.nacelle_length
+        y_int = 0.5 * body_width + 0.6 * self.width      # statistical regression
+        x_int = vtp_root_loc[0] - 0.5*self.length
         z_int = body_height
 
         return np.array([x_int, y_int, z_int])
