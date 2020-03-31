@@ -28,7 +28,7 @@ class Performance(object):
         self.mcr_ceiling = Power_ceiling(aircraft)
         self.mcl_ceiling = Power_ceiling(aircraft)
         self.oei_ceiling = OEI_ceiling(aircraft)
-        self.time_to_climb = Tine_to_Climb(aircraft)
+        self.time_to_climb = Time_to_Climb(aircraft)
 
     def analysis(self):
         disa = self.aircraft.requirement.take_off.disa
@@ -395,11 +395,12 @@ class OEI_ceiling(requirement.OEI_ceiling_req):
         return
 
 
-class Tine_to_Climb(requirement.TTC_req):
-    """Definition of all mission types
+class Time_to_Climb(requirement.TTC_req):
+    """
+    Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(Tine_to_Climb, self).__init__(aircraft.arrangement, aircraft.requirement)
+        super(Time_to_Climb, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
         self.mass = None
@@ -600,6 +601,195 @@ class Mission(object):
 
         self.aircraft.weight_cg.mtow = output_dict[0][0]
         self.aircraft.performance.mission.payload_range()
+
+
+class Mission_def(object):
+    """Defines a mission evaluation for a fuel based propulsion system (kerozen, H2 ...etc)"""
+    def __init__(self,aircraft):
+        # Inputs
+        self.aircraft = aircraft
+        self.disa = None  # Mean cruise temperature shift
+        self.altp = None  # Mean cruise altitude
+        self.mach = None  # Cruise mach number
+        self.range = None  # Mission distance
+        self.owe = None # default Operating Weight Empty
+        # Outputs
+        self.tow = None  # Take Off Weight
+        self.payload = None  # Mission payload
+        self.time_block = None  # Mission block duration
+        self.fuel_block = None  # Mission block fuel consumption
+        self.fuel_reserve = None  # Mission reserve fuel
+        self.fuel_total = None  # Mission total fuel
+
+        self.holding_time = unit.s_min(30)  # Holding duration
+        self.reserve_fuel_ratio = self.__reserve_fuel_ratio__()  # Ratio of mission fuel to account into reserve
+        self.diversion_range = self.__diversion_range__()  # Diversion leg
+
+    def set_mission_parameters(self,mach=None, altp=None, disa=None, owe=None):
+        """Set the flight condition of the mission:
+            1) reset to default aircraft requirements value if no value is specified
+            2) Change only one attribut if a value is specified
+
+        :param mach: cruise Mach number
+        :param altp: cruise altitude
+        :param disa: mean temperature shift
+        :param owe: Operating Weight empty
+        """
+        if mach==None and altp==None and disa=None and owe=None: # 1: reset to default
+            self.mach = self.aircraft.requirement.cruise_mach
+            self.altp = self.aircraft.requirement.cruise_altp
+            self.disa = self.aircraft.requirement.cruise_disa
+            self.owe = self.aircraft.weight_cg.owe
+
+        else:
+            if mach != None:
+                self.mach = mach
+            if disa != None:
+                self.disa = disa
+            if owe != None:
+                self.owe = owe
+            if altp != None:
+                self.altp = altp
+
+    def simulate(self, inputs={'range':None,'tow':None}, **kwargs):
+        """Solve mission equations for given inputs.
+        During a mission at given cruise mach, altitude, temperature shift (disa) and Operating Weight Empty (owe)
+        the four following parameters are linked
+            * tow : Take-Off Weight
+            * payload : weight of Payload
+            * range : mission range
+            * fuel_total : weight of fuel taking into account safety margins
+        by two equations :
+            1) fSolve mission constraint for given inputs.
+        During a mission at given cruise mach, altitude, temperature shift (disa) and Operating Weight Empty (owe)
+        the four following variables are linked
+            * tow : Take-Off Weight
+            * payload : weight of Payload
+            * range : mission range
+            * fuel_total : weight of fuel taking into account safety margins
+        by two equations :
+            1) fuel_total = eval_Breguet(range,tow, altp, mach, disa)
+            2) tow - payload - fuel_total - owe = 0
+        By fixing two of the previous variables, we deduce the two remaining unknowns.
+
+        :param inputs: a dictionary of two fixed parameters. Default is {'range','tow'}
+        :param kwargs: optional named parameters for set_mission_parameters
+        :return: a dictionary of the two remaining unknown parameter. By default {'range':value, 'fuel_total':value}
+        """
+        # range,tow,altp,mach,disa
+        # payload,tow,owe,altp,mach,disa
+        # fuel_total,tow,owe,altp,mach,disa
+        # fuel_total,payload,owe,altp,mach,disa
+        # range,payload,owe,altp,mach,disa
+        # range, tow, altp, mach, disa, payload, owe, fuel_total
+
+        if len(kwargs)>0:
+            self.set_mission_parameters(**kwargs)
+
+        # Read the 2 inputs and store values in attributs
+        for key,val in inputs:
+            self.__dict__[key] = val
+
+        # Build the unknown dict
+        all_variables = ['range','tow','payload','fuel_total']
+        unknowns = []
+        for name in all_variables:
+            if name not in inputs.keys():
+                unknowns.append(name)
+        unknowns = dict.fromkeys(unknowns) # Build an empty dict
+
+        # TODO: implement the solve function
+
+        self.bob
+        self.range = range  # Mission distance
+        self.tow = tow  # Take Off Weight
+        self.eval_breguet(range, tow, altp, mach, disa)
+        self.eval_payload(owe)
+
+    def __reserve_fuel_ratio__(self):
+        design_range = self.aircraft.requirement.design_range
+        if (design_range > unit.m_NM(6500.)):
+            reserve_fuel_ratio = 0.03
+        else:
+            reserve_fuel_ratio = 0.05
+        return reserve_fuel_ratio
+
+    def __diversion_range__(self):
+        design_range = self.aircraft.requirement.design_range
+        if (design_range > unit.m_NM(200.)):
+            diversion_range = unit.m_NM(200.)
+        else:
+            diversion_range = design_range
+        return diversion_range
+
+    def eval_payload(self, owe):
+        """
+        Computing resulting payload
+        """
+        self.payload = self.tow - self.fuel_total - owe
+
+    def __mass_equation_to_solve__(self,unknowns,**kargs): # TODO
+        all_variables = ['range','tow','payload','fuel_total']
+
+        return kwargs['tow'] - kwargs['fuel_total'] - kwargs['owe'] - kwargs['payload']
+
+    def eval_breguet(self, range, tow, altp, mach, disa):
+        """
+        Mission computation using breguet equation, fixed L/D and fixed sfc
+        """
+
+        g = earth.gravity()
+        fhv = self.aircraft.power_system.fuel_heat
+        n_engine = self.aircraft.airframe.nacelle.n_engine
+        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
+
+        # Departure ground phases
+        # -----------------------------------------------------------------------------------------------------------
+        fuel_taxi_out = (34. + 2.3e-4 * reference_thrust) * n_engine
+        time_taxi_out = 540.
+
+        fuel_take_off = 1e-4 * (2.8 + 2.3 / engine_bpr) * tow
+        time_take_off = 220. * tow / (reference_thrust * n_engine)
+
+        # Mission leg
+        # -----------------------------------------------------------------------------------------------------------
+        fuel_mission, time_mission = self.aircraft.power_system.breguet_range(range, tow, altp, mach, disa)
+
+        mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)
+
+        # Arrival ground phases
+        # -----------------------------------------------------------------------------------------------------------
+        fuel_landing = 1e-4 * (0.5 + 2.3 / engine_bpr) * mass
+        time_landing = 180.
+
+        fuel_taxi_in = (26. + 1.8e-4 * reference_thrust) * n_engine
+        time_taxi_in = 420.
+
+        # Block fuel and time
+        # -----------------------------------------------------------------------------------------------------------
+        self.block_fuel = fuel_taxi_out + fuel_take_off + fuel_mission + fuel_landing + fuel_taxi_in
+        self.time_block = time_taxi_out + time_take_off + time_mission + time_landing + time_taxi_in
+
+        # Diversion fuel
+        # -----------------------------------------------------------------------------------------------------------
+        fuel_diversion, t = self.aircraft.power_system.breguet_range(self.diversion_range, tow, altp, mach, disa)
+
+        # Holding fuel
+        # -----------------------------------------------------------------------------------------------------------
+        altp_holding = unit.m_ft(1500.)
+        mach_holding = 0.50 * mach
+        pamb, tamb, tstd, dtodz = earth.atmosphere(altp_holding, disa)
+        cz, cx, lod, fn, sfc, throttle = self.aircraft.performance.level_flight(pamb, tamb, mach_holding, mass)
+        fuel_holding = sfc * (mass * g / lod) * self.holding_time
+
+        # Total
+        # -----------------------------------------------------------------------------------------------------------
+        self.fuel_reserve = fuel_mission * self.reserve_fuel_ratio + fuel_diversion + fuel_holding
+        self.fuel_total = self.block_fuel + self.fuel_reserve
+
+        # -----------------------------------------------------------------------------------------------------------
+        return
 
 
 class Mission_fuel_from_range_and_tow(object):
