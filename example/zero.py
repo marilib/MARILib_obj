@@ -4,12 +4,15 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: DRUOT Thierry, Nicolas Monrolin
 """
-from json import JSONEncoder, dumps
 
 from aircraft.tool import unit
 from aircraft.aircraft_root import Arrangement
 from aircraft.aircraft_root import Aircraft
 from aircraft.requirement import Requirement
+
+from aircraft.tool.dictionary import to_json_string
+
+
 
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
@@ -52,23 +55,5 @@ ac.performance.analysis()
 #ac.draw.payload_range("This_plot")
 #ac.draw.view_3d("This_plot")
 
-class MyEncoder(JSONEncoder):
-    def default(self, o):
-        hasdict = True
-        try:
-            json_dict = o.__dict__
-        except AttributeError:
-            hasdict = False
 
-        if hasdict:
-            try:
-                del json_dict['aircraft']
-            except KeyError:
-                print("no aircraft attribut in " + str(type(o)))
-            return json_dict
-
-        else:
-            return o
-
-
-print(dumps(ac,cls=MyEncoder))
+print(to_json_string(ac))

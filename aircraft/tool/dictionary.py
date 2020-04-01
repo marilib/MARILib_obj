@@ -6,6 +6,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
+from json import JSONEncoder, dumps
 
 from aircraft.tool import unit
 
@@ -210,6 +211,31 @@ def to_user_format(value, dec_format=STANDARD_FORMAT):
     else:
         return value
 
+class Marilib_Encoder(JSONEncoder):
+    """A JSON encoder adapted to MARILib objects.
+    It skips 'aircraft' attributes in all objects to avoid circular references and does not enter into Numpy arrays."""
+    def default(self, o):
+
+        if isinstance(o, type(np.array([]))):  # does not go inside numpy arrays
+            return list(o)
+
+        try:
+            json_dict = o.__dict__  # Store the attribut dict is there is one
+        except AttributeError:
+            return o  # no __dict__ is found => basic python type (int,str,float, list) => returns the object directly
+
+        try:
+            del json_dict['aircraft']  # Try to delete the 'aircraft' entry
+        except KeyError:
+            pass  # There was no aircraft entry => nothing to do
+
+        return json_dict
 
 
 
+def to_json_string(o):
+    """Json string of the object using Marilib_Encoder
+    :param o: the object to print
+    :return: a JSON formatted string
+    """
+    return dumps(o,indent=4,cls=Marilib_Encoder)
