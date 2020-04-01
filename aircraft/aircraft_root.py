@@ -45,8 +45,8 @@ class Aircraft(object):
     def __init__(self, name):
 
         self.name = name
-        self.requirement = None
         self.arrangement = None
+        self.requirement = None
 
         self.airframe = Airframe(self)
 
