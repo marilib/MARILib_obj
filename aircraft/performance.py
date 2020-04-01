@@ -547,6 +547,7 @@ class Mission(object):
         self.aircraft = aircraft
 
         self.max_payload = Mission_range_from_payload_and_tow(aircraft)
+        #self.max_payload2 = Mission_generic(aircraft)
         self.nominal = Mission_fuel_from_range_and_tow(aircraft)
         self.max_fuel = Mission_range_from_fuel_and_tow(aircraft)
         self.zero_payload = Mission_range_from_fuel_and_payload(aircraft)
@@ -562,6 +563,7 @@ class Mission(object):
         mach = self.aircraft.requirement.cruise_mach
 
         self.max_payload.eval(payload_max,mtow,owe,altp,mach,disa)
+        #self.max_payload2.eval(owe,altp,mach,disa, payload=payload_max,tow=mtow)
 
         range = self.aircraft.requirement.design_range
         self.nominal.eval(range,mtow,owe,altp,mach,disa)
@@ -1012,4 +1014,55 @@ class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
 
         self.tow = output_dict[0][0]
         self.eval_breguet(self.range,self.tow,altp,mach,disa)
+
+
+
+
+class Mission_generic(Mission_fuel_from_range_and_tow):
+    """Specific mission evaluation from payload and take off weight
+    Four variables are driving mission computation : total_fuel, tow, payload & range
+    Two of them are necessary to compute the two others
+    This version computes range and total_fuel from payload and tow
+    """
+    def __init__(self, aircraft):
+        super(Mission_generic, self).__init__(aircraft)
+
+    def eval(self,owe,altp,mach,disa,**kwargs):
+        """Generic mission solver
+        kwargs must contain affectations to the parameters that are fixed
+        among the following list : range, tow, payload, fuel_total
+        """
+        vars = list(set(["range","tow","payload","fuel_total"])-set(kwargs.keys())) # extract variable names
+#        (range,tow,payload,fuel_total) = [0.,0.,0.,0.]                              # initialize all variables
+        for key,val in kwargs.items():      # load parameter values, this quantities will not be modified
+            if (key=="fuel_total"): fuel_total = val
+            elif (key=="payload"): payload = val
+            elif (key=="range"): range = val
+            elif (key=="tow"): tow = val
+
+        def fct(x_in):
+            for k,key in enumerate(vars):      # load variable values
+                if (key=="fuel_total"): fuel_total = x_in[k]
+                elif (key=="payload"): payload = x_in[k]
+                elif (key=="range"): range = x_in[k]
+                elif (key=="tow"): tow = x_in[k]
+            self.eval_breguet(range,tow,altp,mach,disa)         # eval Breguet equation, fuel_total is updated in the object
+            return  [self.fuel_total - fuel_total,
+                     self.tow - (owe+payload+self.fuel_total)]  # constraints residuals are sent back
+
+        x_ini = np.zeros(2)
+        for k,key in enumerate(vars):              # load init values from object
+            if (key=="fuel_total"): x_ini[k] = self.fuel_total
+            elif (key=="payload"): x_ini[k] = self.payload
+            elif (key=="range"): x_ini[k] = self.range
+            elif (key=="tow"): x_ini[k] = self.tow
+        output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        for k,key in enumerate(vars):              # get solution
+            if (key=="fuel_total"): fuel_total = output_dict[0][k]
+            elif (key=="payload"): payload = output_dict[0][k]
+            elif (key=="range"): range = output_dict[0][k]
+            elif (key=="tow"): tow = output_dict[0][k]
+        self.eval_breguet(range,tow,altp,mach,disa)
 
