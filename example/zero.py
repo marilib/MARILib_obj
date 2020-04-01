@@ -6,10 +6,13 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 from aircraft.tool import unit
-
 from aircraft.aircraft_root import Arrangement
 from aircraft.aircraft_root import Aircraft
 from aircraft.requirement import Requirement
+
+from aircraft.tool.dictionary import *
+
+
 
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
@@ -52,4 +55,4 @@ ac.performance.analysis()
 #ac.draw.payload_range("This_plot")
 #ac.draw.view_3d("This_plot")
 
-
+write_to_file(ac,"aircraft_test.json")

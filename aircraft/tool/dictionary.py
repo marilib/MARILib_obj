@@ -6,7 +6,8 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
-from json import JSONEncoder, dumps
+from json import JSONEncoder, dumps, loads
+import re
 
 from aircraft.tool import unit
 
@@ -213,14 +214,18 @@ def to_user_format(value, dec_format=STANDARD_FORMAT):
 
 class Marilib_Encoder(JSONEncoder):
     """A JSON encoder adapted to MARILib objects.
-    It skips 'aircraft' attributes in all objects to avoid circular references and does not enter into Numpy arrays."""
+    It skips 'aircraft' attributes in MARILib objects to avoid circular references and returns Numpy arrays as lists."""
     def default(self, o):
+        """Default encoding fonction for MARILIB objects of non primitive types (int,float,list,string,tuple,dict)
+        :param o: the object to encode
+        :return: the attribut dict
+        """
 
-        if isinstance(o, type(np.array([]))):  # does not go inside numpy arrays
-            return list(o)
+        if isinstance(o, type(np.array([]))):  # convert numpy arrays to a dict containing a list
+            return {"__numpy_array__": True, "list": o.tolist()}
 
         try:
-            json_dict = o.__dict__  # Store the attribut dict is there is one
+            json_dict = o.__dict__  # Store the attribute dict is there is one
         except AttributeError:
             return o  # no __dict__ is found => basic python type (int,str,float, list) => returns the object directly
 
@@ -232,10 +237,28 @@ class Marilib_Encoder(JSONEncoder):
         return json_dict
 
 
-
-def to_json_string(o):
-    """Json string of the object using Marilib_Encoder
-    :param o: the object to print
-    :return: a JSON formatted string
+def to_string(marilib_object):
+    """Customized Json string of the object
+    It uses Marilib_Encoder and displays list on one line
+    :param marilib_object: the object to print
+    :return: a customized JSON-like formatted string
     """
-    return dumps(o,indent=4,cls=Marilib_Encoder)
+    json_string = dumps(marilib_object, indent=4, cls=Marilib_Encoder)
+    output = re.sub(r'\[\s+', '[', json_string)  # remove spaces after an opening bracket
+    output = re.sub(r'(?<!\}),\s+(?!\s*")', ', ', output)  # remove spaces after comma not followed by a \"
+    output = re.sub(r'\s+\]', ']', output)  # remove white spaces before a closing bracket
+    return output
+
+def from_json_string(json_string):
+    return loads(json_string, cls=Marilib_Encoder)
+
+def write_to_file(marilib_object,filename):
+    """Save a MARILib object as a JSON string in a file
+    :param marilib_object: the object to save
+    :param filename: name of the file. Ex: myObjCollection/marilib_obj.json
+    :return: None
+    """
+    with open(filename,'w') as f:
+        f.write(to_string(marilib_object))
+
+    return None
