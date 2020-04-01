@@ -1032,37 +1032,35 @@ class Mission_generic(Mission_fuel_from_range_and_tow):
         kwargs must contain affectations to the parameters that are fixed
         among the following list : range, tow, payload, fuel_total
         """
+        range = 0.
+        tow = 0.
+        payload = 0.
+        fuel_total = 0.
+
         vars = list(set(["range","tow","payload","fuel_total"])-set(kwargs.keys())) # extract variable names
-#        (range,tow,payload,fuel_total) = [0.,0.,0.,0.]                              # initialize all variables
         for key,val in kwargs.items():      # load parameter values, this quantities will not be modified
-            if (key=="fuel_total"): fuel_total = val
-            elif (key=="payload"): payload = val
-            elif (key=="range"): range = val
-            elif (key=="tow"): tow = val
+            exec(key+" = val")
+            print(key,eval(key))
+        print(payload,tow)
+        raise Exception()
 
         def fct(x_in):
             for k,key in enumerate(vars):      # load variable values
-                if (key=="fuel_total"): fuel_total = x_in[k]
-                elif (key=="payload"): payload = x_in[k]
-                elif (key=="range"): range = x_in[k]
-                elif (key=="tow"): tow = x_in[k]
+                exec(key+" = x_in[k]")
             self.eval_breguet(range,tow,altp,mach,disa)         # eval Breguet equation, fuel_total is updated in the object
             return  [self.fuel_total - fuel_total,
                      self.tow - (owe+payload+self.fuel_total)]  # constraints residuals are sent back
 
         x_ini = np.zeros(2)
         for k,key in enumerate(vars):              # load init values from object
-            if (key=="fuel_total"): x_ini[k] = self.fuel_total
-            elif (key=="payload"): x_ini[k] = self.payload
-            elif (key=="range"): x_ini[k] = self.range
-            elif (key=="tow"): x_ini[k] = self.tow
+            if (key=="fuel_total"): x_ini[k] = 0.25*owe
+            elif (key=="payload"): x_ini[k] = 0.25*owe
+            elif (key=="range"): x_ini[k] = self.aircraft.requirement.design_range
+            elif (key=="tow"): x_ini[k] = self.aircraft.weight_cg.mtow
         output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         for k,key in enumerate(vars):              # get solution
-            if (key=="fuel_total"): fuel_total = output_dict[0][k]
-            elif (key=="payload"): payload = output_dict[0][k]
-            elif (key=="range"): range = output_dict[0][k]
-            elif (key=="tow"): tow = output_dict[0][k]
+            exec(key+" = output_dict[0][k]")
         self.eval_breguet(range,tow,altp,mach,disa)
 
