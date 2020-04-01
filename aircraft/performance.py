@@ -265,12 +265,12 @@ class Take_off(requirement.Take_off_req):
                 s2_path = 0.
                 limitation = None
 
-            self.hld_conf = hld_conf
-            self.tofl_eff = tofl
-            self.kvs1g_eff = kvs1g
-            self.s2_path = s2_path
-            self.v2 = cas
-            self.limit = limitation
+        self.hld_conf = hld_conf
+        self.tofl_eff = tofl
+        self.kvs1g_eff = kvs1g
+        self.s2_path = s2_path
+        self.v2 = cas
+        self.limit = limitation
 
         return
 
@@ -342,7 +342,6 @@ class Power_ceiling(requirement.Climb_req):
         super(Power_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
-        self.rating = None
         self.vz_eff = None
 
     def eval(self,disa,altp,mach,mass,rating,speed_mode):
@@ -880,7 +879,7 @@ class Mission_fuel_from_range_and_tow(object):
 
         # Block fuel and time
         #-----------------------------------------------------------------------------------------------------------
-        self.block_fuel = fuel_taxi_out + fuel_take_off + fuel_mission + fuel_landing + fuel_taxi_in
+        self.fuel_block = fuel_taxi_out + fuel_take_off + fuel_mission + fuel_landing + fuel_taxi_in
         self.time_block = time_taxi_out + time_take_off + time_mission + time_landing + time_taxi_in
 
         # Diversion fuel
@@ -898,7 +897,7 @@ class Mission_fuel_from_range_and_tow(object):
         # Total
         #-----------------------------------------------------------------------------------------------------------
         self.fuel_reserve = fuel_mission*self.reserve_fuel_ratio + fuel_diversion + fuel_holding
-        self.fuel_total = self.block_fuel + self.fuel_reserve
+        self.fuel_total = self.fuel_block + self.fuel_reserve
 
         #-----------------------------------------------------------------------------------------------------------
         return

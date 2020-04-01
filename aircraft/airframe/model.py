@@ -39,9 +39,9 @@ class Aerodynamics(object):
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
 
         self.cruise_lodmax, self.cz_cruise_lodmax = self.lod_max(pamb,tamb,mach)
-        self.cz_max_clean,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_clean)
-        self.cz_max_to,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_to)
-        self.cz_max_ld,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_ld)
+        self.czmax_conf_clean,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_clean)
+        self.czmax_conf_to,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_to)
+        self.czmax_conf_ld,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_ld)
 
     def drag(self,pamb,tamb,mach,cz):
         """Retrieves airplane drag and L/D in current flying conditions
