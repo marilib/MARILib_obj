@@ -6,7 +6,8 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
-from json import JSONEncoder,JSONDecoder, dumps, loads
+import json as json
+import pickle as pickle
 import re
 
 from aircraft.tool import unit
@@ -213,67 +214,97 @@ def to_user_format(value, dec_format=STANDARD_FORMAT):
         return value
 
 class MarilibIO():
-    """A collection of Input and Ouput management functions for MARILib objects.
-    It uses a *JSON-like* encoding and decoding functions adapted to MARILib objects.
-    * **Writing**: skips 'aircraft' entry in MARILib objects to avoid circular references.
-    Numpy arrays are saved as **one line** lists.
-    * **Reading**: work in progress ..."""
+    """A collection of Input and Ouput functions for MARILib objects.
+    1) Human readable format uses a *JSON-like* encoding and decoding functions adapted to MARILib objects.
+    """
 
     def marilib_encoding(self, o):
         """Default encoding function for MARILIB objects of non primitive types (int,float,list,string,tuple,dict)
         Raises an `AttributeError` if te object has no __dict__ attribute.
+        Skips 'aircraft' entries to avoid circular reference and converts numpy array to list.
         :param o: the object to encode
         :return: the attribute dict
         """
-
-        if isinstance(o, type(np.array([]))):  # convert numpy arrays to a dict containing a list
-            return {"__npArray__": True, "list": o.tolist()}
+        if isinstance(o, type(np.array([]))):  # convert numpy arrays to list
+            return o.tolist()
 
         json_dict = o.__dict__  # Store the public attributes, raises an AttributeError if no __dict__ is found.
-
         try:
             del json_dict['aircraft']  # Try to delete the 'aircraft' entry to avoid circular reference
         except KeyError:
             pass  # There was no aircraft entry => nothing to do
 
+        for key,value in json_dict.items():
+            if key in data_dict.keys():  # if entry found in data_dict, add units and docstring
+                json_dict[key] = [value, "(%s) %s" % (data_dict[key]['unit'], data_dict[key]['txt'])]
+            else:
+                pass
+
         return json_dict
 
     def to_string(self,marilib_object):
-        """Customized Json string of the object
+        """Customized Json pretty string of the object
         It uses marilib_encoding() to parse objects into dict.
         .. warning::
             Numpy arrays and list of numbers are rewritten on one line only, which is not JSON standard
         :param marilib_object: the object to print
         :return: a customized JSON-like formatted string
         """
-        json_string = dumps(marilib_object, indent=4, default=self.marilib_encoding)
+        json_string = json.dumps(marilib_object, indent=4, default=self.marilib_encoding)
         output = re.sub(r'\[\s+', '[', json_string)  # remove spaces after an opening bracket
-        output = re.sub(r'(?<!\}),\s+(?!\s*")', ', ', output)  # remove spaces after comma not followed by a "
+        output = re.sub(r'(?<!\}),\s+(?!\s*".*":)', ', ', output)  # remove spaces after comma not followed by a "
         output = re.sub(r'\s+\]', ']', output)  # remove white spaces before a closing bracket
         return output
 
-    def write_to_file(self,marilib_object,filename):
-        """Save a MARILib object as a JSON-like string in a file
+    def from_string(self,json_string):
+        """Parse a JSON string into a dict.
+        :param json_string: the string to parse
+        :return: dictionary
+        """
+        return json.loads(json_string)
+
+    def to_json_file(self,marilib_object,filename):
+        """Save a MARILib object in a human readable format:
+        The object is serialized into a customized JSON-like string.
         :param marilib_object: the object to save
         :param filename: name of the file. Ex: myObjCollection/marilib_obj.json
         :return: None
         """
+        try:  # Add .json extension if necessary
+            last_point_position = filename.rindex(r'\.')
+            filename = filename[:last_point_position]+".json"
+        except ValueError:  # pattern not found
+            filename = filename + ".json"
         with open(filename,'w') as f:
             f.write(self.to_string(marilib_object))
-
         return None
 
-    def decoding(self,dct):
-        """Customized decoding for MARILib objects : use the appropriate class constructor in case of non primitive type.
-        :param dct: the dict returned by the default JSON decoder
-        :return: a MARILib object or a primitive type
-        """
-        if "__npArray__" in dct:
-            return np.array(dct['list'])
-        return dct
 
-    def from_string(self,json_string): # TODO: read a json string and build the Python object
-        dct = loads(json_string, object_hook=self.decoding)
-        return dct
+    def to_binary_file(self,obj,filename):
+        """Save the obj as a binary file .pkl
+        :param obj: the object to save
+        :param filename: the path
+        :return: None
+        """
+        try:  # Add .pkl extension if not specified
+            last_point_position = filename.rindex(r'\.')
+            filename = filename[:last_point_position]+".pkl"
+        except ValueError:  # pattern not found
+            filename = filename + ".pkl"
+
+        with open(filename,'wb') as f:
+            pickle.dump(obj,f)
+        return
+
+    def from_binary_file(self, filename):
+        """Load a .pkl file as a python object
+        :param filename: the binary filepath
+        :return: the object
+        """
+        with open(filename, 'rb') as f:
+            obj = pickle.load(f)
+
+        return obj
+
 
 

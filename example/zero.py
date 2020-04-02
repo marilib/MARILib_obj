@@ -56,7 +56,8 @@ ac.performance.analysis()
 #ac.draw.view_3d("This_plot")
 
 io = MarilibIO()
-json = io.to_string(ac)
-dico = io.from_string(json)
+json = io.to_json_file(ac,'aircraft_test')
+#dico = io.from_string(json)
 
-print(dico)
+#io.save_to_file(ac,'test')
+#ac2 = io.load_from_file('test.pkl')
