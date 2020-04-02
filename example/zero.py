@@ -12,7 +12,7 @@ from aircraft.requirement import Requirement
 
 import process
 
-from aircraft.tool.dictionary import *
+from aircraft.tool.dictionary import MarilibIO
 
 
 
@@ -95,4 +95,9 @@ process.draw_design_space(file, res, field, const, color, limit, bound)
 #ac.draw.payload_range("This_plot")
 #ac.draw.view_3d("This_plot")
 
-write_to_file(ac,"aircraft_test.json")
+io = MarilibIO()
+json = io.to_json_file(ac,'aircraft_test')
+#dico = io.from_string(json)
+
+#io.save_to_file(ac,'test')
+#ac2 = io.load_from_file('test.pkl')
