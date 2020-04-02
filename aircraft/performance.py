@@ -674,7 +674,7 @@ class Mission_def(object):
         By fixing two of the previous variables, we deduce the two remaining unknowns.
 
         :param inputs: a dictionary of two fixed parameters. Default is {'range','tow'}
-        :param kwargs: optional named parameters for set_mission_parameters
+        :param kwargs: optional named parameters for set_mission_parameters(**kwargs)
         :return: a dictionary of the two remaining unknown parameter. By default {'range':value, 'fuel_total':value}
         """
         # range,tow,altp,mach,disa

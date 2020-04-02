@@ -6,7 +6,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
-from json import JSONEncoder, dumps, loads
+from json import JSONEncoder,JSONDecoder, dumps, loads
 import re
 
 from aircraft.tool import unit
@@ -43,9 +43,9 @@ data_dict = {
     "cg_furnishing": {"unit":"m", "mag":1e1, "txt":"Position of the CG of furnishing in the assembly"},
     "cg_op_item": {"unit":"m", "mag":1e1, "txt":"Position of the CG of operator items in the assembly"},
     "max_fwd_req_cg": {"unit":"m", "mag":1e1, "txt":"Maximum forward position of the payload"},
-    "max_fwd_mass": {"unit":"kg", "mag":1e4, "txt":"Mass corresponding to mximum forward position of the payload"},
+    "max_fwd_mass": {"unit":"kg", "mag":1e4, "txt":"Mass corresponding to maximum forward position of the payload"},
     "max_bwd_req_cg": {"unit":"m", "mag":1e1, "txt":"Maximum backward position of the payload"},
-    "max_bwd_mass": {"unit":"kg", "mag":1e4, "txt":"Mass corresponding to mximum backward position of the payload"},
+    "max_bwd_mass": {"unit":"kg", "mag":1e4, "txt":"Mass corresponding to maximum backward position of the payload"},
     "n_pax_ref": {"unit":"", "mag":1e2, "txt":"Reference number of passenger for design"},
     "n_pax_front": {"unit":"int", "mag":1e2, "txt":"Number of front seats in economy class"},
     "n_aisle": {"unit":"int", "mag":1e0, "txt":"Number of aisle in economy class"},
@@ -212,53 +212,68 @@ def to_user_format(value, dec_format=STANDARD_FORMAT):
     else:
         return value
 
-class Marilib_Encoder(JSONEncoder):
-    """A JSON encoder adapted to MARILib objects.
-    It skips 'aircraft' attributes in MARILib objects to avoid circular references and returns Numpy arrays as lists."""
-    def default(self, o):
-        """Default encoding fonction for MARILIB objects of non primitive types (int,float,list,string,tuple,dict)
+class MarilibIO():
+    """A collection of Input and Ouput management functions for MARILib objects.
+    It uses a *JSON-like* encoding and decoding functions adapted to MARILib objects.
+    * **Writing**: skips 'aircraft' entry in MARILib objects to avoid circular references.
+    Numpy arrays are saved as **one line** lists.
+    * **Reading**: work in progress ..."""
+
+    def marilib_encoding(self, o):
+        """Default encoding function for MARILIB objects of non primitive types (int,float,list,string,tuple,dict)
+        Raises an `AttributeError` if te object has no __dict__ attribute.
         :param o: the object to encode
-        :return: the attribut dict
+        :return: the attribute dict
         """
 
         if isinstance(o, type(np.array([]))):  # convert numpy arrays to a dict containing a list
-            return {"__numpy_array__": True, "list": o.tolist()}
+            return {"__npArray__": True, "list": o.tolist()}
+
+        json_dict = o.__dict__  # Store the public attributes, raises an AttributeError if no __dict__ is found.
 
         try:
-            json_dict = o.__dict__  # Store the attribute dict is there is one
-        except AttributeError:
-            return o  # no __dict__ is found => basic python type (int,str,float, list) => returns the object directly
-
-        try:
-            del json_dict['aircraft']  # Try to delete the 'aircraft' entry
+            del json_dict['aircraft']  # Try to delete the 'aircraft' entry to avoid circular reference
         except KeyError:
             pass  # There was no aircraft entry => nothing to do
 
         return json_dict
 
+    def to_string(self,marilib_object):
+        """Customized Json string of the object
+        It uses marilib_encoding() to parse objects into dict.
+        .. warning::
+            Numpy arrays and list of numbers are rewritten on one line only, which is not JSON standard
+        :param marilib_object: the object to print
+        :return: a customized JSON-like formatted string
+        """
+        json_string = dumps(marilib_object, indent=4, default=self.marilib_encoding)
+        output = re.sub(r'\[\s+', '[', json_string)  # remove spaces after an opening bracket
+        output = re.sub(r'(?<!\}),\s+(?!\s*")', ', ', output)  # remove spaces after comma not followed by a "
+        output = re.sub(r'\s+\]', ']', output)  # remove white spaces before a closing bracket
+        return output
 
-def to_string(marilib_object):
-    """Customized Json string of the object
-    It uses Marilib_Encoder and displays list on one line
-    :param marilib_object: the object to print
-    :return: a customized JSON-like formatted string
-    """
-    json_string = dumps(marilib_object, indent=4, cls=Marilib_Encoder)
-    output = re.sub(r'\[\s+', '[', json_string)  # remove spaces after an opening bracket
-    output = re.sub(r'(?<!\}),\s+(?!\s*")', ', ', output)  # remove spaces after comma not followed by a \"
-    output = re.sub(r'\s+\]', ']', output)  # remove white spaces before a closing bracket
-    return output
+    def write_to_file(self,marilib_object,filename):
+        """Save a MARILib object as a JSON-like string in a file
+        :param marilib_object: the object to save
+        :param filename: name of the file. Ex: myObjCollection/marilib_obj.json
+        :return: None
+        """
+        with open(filename,'w') as f:
+            f.write(self.to_string(marilib_object))
 
-def from_json_string(json_string):
-    return loads(json_string, cls=Marilib_Encoder)
+        return None
 
-def write_to_file(marilib_object,filename):
-    """Save a MARILib object as a JSON string in a file
-    :param marilib_object: the object to save
-    :param filename: name of the file. Ex: myObjCollection/marilib_obj.json
-    :return: None
-    """
-    with open(filename,'w') as f:
-        f.write(to_string(marilib_object))
+    def decoding(self,dct):
+        """Customized decoding for MARILib objects : use the appropriate class constructor in case of non primitive type.
+        :param dct: the dict returned by the default JSON decoder
+        :return: a MARILib object or a primitive type
+        """
+        if "__npArray__" in dct:
+            return np.array(dct['list'])
+        return dct
 
-    return None
+    def from_string(self,json_string): # TODO: read a json string and build the Python object
+        dct = loads(json_string, object_hook=self.decoding)
+        return dct
+
+

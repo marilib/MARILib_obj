@@ -10,7 +10,7 @@ from aircraft.aircraft_root import Arrangement
 from aircraft.aircraft_root import Aircraft
 from aircraft.requirement import Requirement
 
-from aircraft.tool.dictionary import *
+from aircraft.tool.dictionary import MarilibIO
 
 
 
@@ -55,4 +55,8 @@ ac.performance.analysis()
 #ac.draw.payload_range("This_plot")
 #ac.draw.view_3d("This_plot")
 
-write_to_file(ac,"aircraft_test.json")
+io = MarilibIO()
+json = io.to_string(ac)
+dico = io.from_string(json)
+
+print(dico)
