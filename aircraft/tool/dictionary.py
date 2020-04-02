@@ -236,7 +236,12 @@ class MarilibIO():
 
         for key,value in json_dict.items():
             if key in data_dict.keys():  # if entry found in data_dict, add units and docstring
-                json_dict[key] = [value, "(%s) %s" % (data_dict[key]['unit'], data_dict[key]['txt'])]
+                unit = data_dict[key]['unit']
+                text = data_dict[key]['txt']
+                if isinstance(value,float):
+                    json_dict[key] = [PrettyFloat(value), f"({unit}) {text}"]
+                else:
+                    json_dict[key] = [value, f"({unit}) {text}"]
             else:
                 pass
 
@@ -252,9 +257,16 @@ class MarilibIO():
         """
         json_string = json.dumps(marilib_object, indent=4, default=self.marilib_encoding)
         output = re.sub(r'\[\s+', '[', json_string)  # remove spaces after an opening bracket
-        output = re.sub(r'(?<!\}),\s+(?!\s*".*":)', ', ', output)  # remove spaces after comma not followed by a "
+        output = re.sub(r'(?<!\}),\s+(?!\s*".*":)', ', ', output)  # remove spaces after comma not followed by ".*":
         output = re.sub(r'\s+\]', ']', output)  # remove white spaces before a closing bracket
-        return output
+        # reformat floats
+        float_pattern = re.compile(r'\d+\.\d+')
+        floats = (float(f) for f in float_pattern.findall(output))  # detect all floats in the json string
+        output_parts = float_pattern.split(output)  # split output around floats
+        output = ''  # init output
+        for part,val in zip(output_parts[:-1],floats):  # reconstruct output with proper float format
+            output += part + "%0.4g" % float(val)  # reformat with 4 significant digits max
+        return output + output_parts[-1]
 
     def from_string(self,json_string):
         """Parse a JSON string into a dict.
@@ -305,6 +317,12 @@ class MarilibIO():
             obj = pickle.load(f)
 
         return obj
+
+class PrettyFloat(float):
+    """Subclass of Float for pretty printing in text files
+    """
+    def __repr__(self):  # overwright the default representation method
+        return "%d" % self
 
 
 
