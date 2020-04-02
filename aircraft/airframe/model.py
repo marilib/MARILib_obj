@@ -122,15 +122,21 @@ class Weight_cg(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
-        design_range = self.aircraft.requirement.design_range
-
-        self.mtow = 20500. + 67.e-6*n_pax_ref*design_range
-        self.mzfw = 25000. + 41.e-6*n_pax_ref*design_range
-        self.mlw = 1.07*self.mzfw
+        self.mtow = self.__mtow_init__()
+        self.mzfw = self.__mzfw_init__()
+        self.mlw = self.__mlw_init__()
         self.owe = None
         self.mwe = None
         self.mfw = None
+
+    def __mtow_init__(self):
+        return 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
+
+    def __mzfw_init__(self):
+        return 25000. + 41.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
+
+    def __mlw_init__(self):
+        return 1.07*(25000. + 41.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range)
 
     def mass_analysis(self):
         """Update all component mass

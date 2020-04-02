@@ -10,6 +10,8 @@ from aircraft.aircraft_root import Arrangement
 from aircraft.aircraft_root import Aircraft
 from aircraft.requirement import Requirement
 
+import process
+
 from aircraft.tool.dictionary import *
 
 
@@ -32,25 +34,63 @@ reqs = Requirement(n_pax_ref = 150.,
                    arrangement = agmt)
 
 
+
+
+
 ac = Aircraft("This_plane")
 
 ac.factory(agmt, reqs)
 
-# ac.airframe.geometry_analysis()
-ac.airframe.statistical_pre_design()
 
-# ac.weight_cg.mass_analysis()
-ac.weight_cg.mass_pre_design()
+ac.airframe.wing.area = 110.
+ac.airframe.nacelle.reference_thrust = unit.N_kN(110.)
 
 
-ac.performance.mission.mass_mission_adaptation()
+process.mda(ac)
+
+var = ["aircraft.airframe.nacelle.reference_thrust",
+       "aircraft.airframe.wing.area"]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],
+           [100., 200.]]
+
+cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
+       "aircraft.performance.approach.app_speed_req - aircraft.performance.approach.app_speed_eff",
+       "aircraft.performance.mcl_ceiling.vz_eff - aircraft.performance.mcl_ceiling.vz_req",
+       "aircraft.performance.mcr_ceiling.vz_eff - aircraft.performance.mcr_ceiling.vz_req",
+       "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
+       "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff"]
+cst_mag = ["aircraft.performance.take_off.tofl_req",
+           "aircraft.performance.approach.app_speed_req",
+           "unit.mps_ftpmin(100.)",
+           "unit.mps_ftpmin(100.)",
+           "aircraft.performance.oei_ceiling.path_req",
+           "aircraft.performance.time_to_climb.ttc_req"]
+
+crt = "aircraft.weight_cg.mtow"
+
+#process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
 
-ac.power_system.thrust_analysis()
 
-ac.aerodynamics.aerodynamic_analysis()
+res = [ac.airframe.nacelle.reference_thrust,
+       ac.airframe.wing.area]
+step = [0.05, 0.05]    # Relative grid step
+file = "explore_design.txt"
 
-ac.performance.analysis()
+process.explore_design_space(ac, res, step, file)
+
+field = 'MTOW'
+const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']
+color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow']
+limit = [ac.performance.take_off.tofl_req,
+         unit.kt_mps(ac.performance.approach.app_speed_req),
+         unit.pc_no_dim(ac.performance.oei_ceiling.path_req),
+         unit.ftpmin_mps(ac.performance.mcl_ceiling.vz_req),
+         unit.ftpmin_mps(ac.performance.mcr_ceiling.vz_req),
+         unit.min_s(ac.performance.time_to_climb.ttc_req)]       # Limit values
+bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub"])                 # ub: upper bound, lb: lower bound
+
+process.draw_design_space(file, res, field, const, color, limit, bound)
 
 #ac.draw.payload_range("This_plot")
 #ac.draw.view_3d("This_plot")

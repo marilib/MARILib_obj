@@ -25,8 +25,8 @@ class Performance(object):
         self.mission = Mission(aircraft)
         self.take_off = Take_off(aircraft)
         self.approach = Approach(aircraft)
-        self.mcr_ceiling = Power_ceiling(aircraft)
-        self.mcl_ceiling = Power_ceiling(aircraft)
+        self.mcr_ceiling = MCR_ceiling(aircraft)
+        self.mcl_ceiling = MCL_ceiling(aircraft)
         self.oei_ceiling = OEI_ceiling(aircraft)
         self.time_to_climb = Time_to_Climb(aircraft)
 
@@ -219,8 +219,8 @@ class Take_off(requirement.Take_off_req):
         super(Take_off, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
-        self.hld_conf = self.aircraft.aerodynamics.hld_conf_to
         self.tofl_eff = None
+        self.hld_conf = self.aircraft.aerodynamics.hld_conf_to
         self.kvs1g_eff = None
         self.v2 = None
         self.s2_path = None
@@ -265,8 +265,8 @@ class Take_off(requirement.Take_off_req):
                 s2_path = 0.
                 limitation = None
 
-        self.hld_conf = hld_conf
         self.tofl_eff = tofl
+        self.hld_conf = hld_conf
         self.kvs1g_eff = kvs1g
         self.s2_path = s2_path
         self.v2 = cas
@@ -308,8 +308,8 @@ class Approach(requirement.Approach_req):
         super(Approach, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
-        self.hld_conf = self.aircraft.aerodynamics.hld_conf_ld
         self.app_speed_eff = None
+        self.hld_conf = self.aircraft.aerodynamics.hld_conf_ld
 
     def eval(self,disa,altp,mass,hld_conf,kvs1g):
         """
@@ -335,11 +335,40 @@ class Approach(requirement.Approach_req):
         return
 
 
-class Power_ceiling(requirement.Climb_req):
+class MCL_ceiling(requirement.Vz_mcl_req):
     """Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(Power_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
+        super(MCL_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
+        self.aircraft = aircraft
+
+        self.vz_eff = None
+
+    def eval(self,disa,altp,mach,mass,rating,speed_mode):
+        """
+        Minimum approach speed (VLS)
+        """
+        self.disa = disa
+        self.altp = altp
+        self.mach = mach
+        self.rating = rating
+        self.speed_mode = speed_mode
+        self.kmtow = mass/self.aircraft.weight_cg.mtow
+
+        nei = 0
+
+        slope,vz = self.aircraft.performance.air_path(nei,altp,disa,speed_mode,mach,mass,rating)
+
+        self.vz_eff = vz
+
+        return
+
+
+class MCR_ceiling(requirement.Vz_mcr_req):
+    """Definition of all mission types
+    """
+    def __init__(self, aircraft):
+        super(MCR_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
         self.vz_eff = None
@@ -402,7 +431,6 @@ class Time_to_Climb(requirement.TTC_req):
         super(Time_to_Climb, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
-        self.mass = None
         self.ttc_eff = None
 
     def eval(self,disa,toc,mach,mass,altp1,vcas1,altp2,vcas2):
@@ -417,6 +445,7 @@ class Time_to_Climb(requirement.TTC_req):
         self.altp2 = altp2
         self.mach = mach
         self.altp = toc
+        self.kmtow = mass/self.aircraft.weight_cg.mtow
 
         if(vcas1>unit.mps_kt(250.)):
             print("vcas1 = ",unit.kt_mps(vcas1))
@@ -533,7 +562,6 @@ class Time_to_Climb(requirement.TTC_req):
 
         #    Total time
         #-----------------------------------------------------------------------------------------------------------
-        self.mass = mass
         self.ttc_eff = time1 + time2 + time3 + time4
 
         return
@@ -601,6 +629,7 @@ class Mission(object):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         self.aircraft.weight_cg.mtow = output_dict[0][0]
+        self.aircraft.weight_cg.mass_pre_design()
         self.aircraft.performance.mission.payload_range()
 
 
@@ -1015,7 +1044,7 @@ class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
         self.eval_breguet(self.range,self.tow,altp,mach,disa)
 
 
-
+# TODO
 
 class Mission_generic(Mission_fuel_from_range_and_tow):
     """Specific mission evaluation from payload and take off weight
