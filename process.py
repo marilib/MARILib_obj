@@ -115,7 +115,7 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
     return res
 
 
-def explore_design_space(aircraft, res, step, file):
+def explore_design_space(aircraft, res, step, data, file):
 
     slst_list = [res[0]*(1-1.5*step[0]), res[0]*(1-0.5*step[0]), res[0]*(1+0.5*step[0]), res[0]*(1+1.5*step[0])]
     area_list = [res[1]*(1-1.5*step[1]), res[1]*(1-0.5*step[1]), res[1]*(1+0.5*step[1]), res[1]*(1+1.5*step[1])]
@@ -123,42 +123,13 @@ def explore_design_space(aircraft, res, step, file):
     print(slst_list)
     print(area_list)
 
-    # txt = np.array([["SLST","daN"],
-    #                 ["Wing_area","m2"],
-    #                 ["Wing_span","m"],
-    #                 ["MTOW","kg"],
-    #                 ["MLW","kg"],
-    #                 ["OWE","kg"],
-    #                 ["MWE","kg"],
-    #                 ["Cruise_SFC","kg/daN/h"],
-    #                 ["Cruise_LoD","no_dim"],
-    #                 ["TOFL","m"],
-    #                 ["App_speed","kt"],
-    #                 ["OEI_path","%"],
-    #                 ["Vz_MCL","ft/min"],
-    #                 ["Vz_MCR","ft/min"],
-    #                 ["TTC","min"],
-    #                 ["Fuel_margin","m3"],
-    #                 ["Block_fuel","kg"],
-    #                 ["COC","$/trip"],
-    #                 ["DOC","$/trip"],
-    #                 ["CO2_metric","10e-3uc"]])
-
-    txt = np.array([["SLST","daN"],
-                    ["Wing_area","m2"],
-                    ["Wing_span","m"],
-                    ["MTOW","kg"],
-                    ["MLW","kg"],
-                    ["OWE","kg"],
-                    ["MWE","kg"],
-                    ["Cruise_LoD","no_dim"],
-                    ["TOFL","m"],
-                    ["App_speed","kt"],
-                    ["OEI_path","%"],
-                    ["Vz_MCL","ft/min"],
-                    ["Vz_MCR","ft/min"],
-                    ["TTC","min"],
-                    ["Block_fuel","kg"]])
+    txt_list = []
+    val_list = []
+    for j in range(len(data)):
+        txt_list.append(data[j][0:2])
+        val_list.append("'"+data[j][2]+"'%("+data[j][3]+")")
+    txt = np.array(txt_list)
+    val = np.array(val_list)
 
     for area in area_list:
         for thrust in slst_list:
@@ -169,36 +140,16 @@ def explore_design_space(aircraft, res, step, file):
             print("-------------------------------------------")
             print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
 
-            # Perform MDA
-            #------------------------------------------------------------------------------------------------------
-
-            mda(aircraft)
-
+            mda(aircraft)   # Perform MDA
             print("Done")
 
-            # Store results
-            #------------------------------------------------------------------------------------------------------
-            res = np.array([
-                            ["%8.1f"%(aircraft.airframe.nacelle.reference_thrust/10.)],
-                            ["%8.1f"%aircraft.airframe.wing.area],
-                            ["%8.1f"%aircraft.airframe.wing.span],
-                            ["%8.1f"%aircraft.weight_cg.mtow],
-                            ["%8.1f"%aircraft.weight_cg.mlw],
-                            ["%8.1f"%aircraft.weight_cg.owe],
-                            ["%8.1f"%aircraft.weight_cg.mwe],
-                            ["%8.4f"%(aircraft.aerodynamics.cruise_lodmax)],
-                            ["%8.1f"%aircraft.performance.take_off.tofl_eff],
-                            ["%8.1f"%unit.kt_mps(aircraft.performance.approach.app_speed_eff)],
-                            ["%8.2f"%(aircraft.performance.oei_ceiling.path_eff*100)],
-                            ["%8.1f"%unit.ftpmin_mps(aircraft.performance.mcl_ceiling.vz_eff)],
-                            ["%8.1f"%unit.ftpmin_mps(aircraft.performance.mcr_ceiling.vz_eff)],
-                            ["%8.1f"%unit.min_s(aircraft.performance.time_to_climb.ttc_eff)],
-                            ["%8.1f"%aircraft.performance.mission.cost.fuel_block]
-                          ])
+            res_list = []
+            for j in range(len(data)):
+                res_list.append([str(eval(val[j]))])
+            res = np.array(res_list)
 
             txt = np.hstack([txt,res])
 
-    #------------------------------------------------------------------------------------------------------
     np.savetxt(file,txt,delimiter=";",fmt='%10s')
 
 

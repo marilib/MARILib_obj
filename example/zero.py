@@ -77,9 +77,25 @@ process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 res = [ac.airframe.nacelle.reference_thrust,
        ac.airframe.wing.area]
 step = [0.05, 0.05]    # Relative grid step
+
+data = [["SLST", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/10."],
+        ["Wing_area", "m2", "%8.1f", "aircraft.airframe.wing.area"],
+        ["Wing_span", "m", "%8.1f", "aircraft.airframe.wing.span"],
+        ["MTOW", "kg", "%8.1f", "aircraft.weight_cg.mtow"],
+        ["MLW", "kg", "%8.1f", "aircraft.weight_cg.mlw"],
+        ["OWE", "kg", "%8.1f", "aircraft.weight_cg.owe"],
+        ["MWE", "kg", "%8.1f", "aircraft.weight_cg.mwe"],
+        ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.aerodynamics.cruise_lodmax"],
+        ["TOFL", "m", "%8.1f", "aircraft.performance.take_off.tofl_eff"],
+        ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.performance.approach.app_speed_eff)"],
+        ["OEI_path", "%", "%8.1f", "aircraft.performance.oei_ceiling.path_eff*100"],
+        ["Vz_MCL", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcl_ceiling.vz_eff)"],
+        ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcr_ceiling.vz_eff)"],
+        ["TTC", "min", "%8.1f", "unit.min_s(aircraft.performance.time_to_climb.ttc_eff)"],
+        ["Block_fuel", "kg", "%8.1f", "aircraft.performance.mission.cost.fuel_block"]]
 file = "explore_design.txt"
 
-process.explore_design_space(ac, res, step, file)
+process.explore_design_space(ac, res, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']
