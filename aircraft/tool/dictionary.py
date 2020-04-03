@@ -265,7 +265,7 @@ class MarilibIO():
         output_parts = float_pattern.split(output)  # split output around floats
         output = ''  # init output
         for part,val in zip(output_parts[:-1],floats):  # reconstruct output with proper float format
-            output += part + "%0.4g" % float(val)  # reformat with 4 significant digits max
+            output += part + "%0.6g" % float(val)  # reformat with 6 significant digits max
         return output + output_parts[-1]
 
     def from_string(self,json_string):

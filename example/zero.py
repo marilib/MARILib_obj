@@ -5,6 +5,8 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
+import numpy as np
+
 from aircraft.tool import unit
 from aircraft.aircraft_root import Arrangement
 from aircraft.aircraft_root import Aircraft
@@ -29,7 +31,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
 
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
-                   cruise_mach = 0.78,
+                   cruise_mach = 0.76,
                    cruise_altp = unit.m_ft(35000.),
                    arrangement = agmt)
 
@@ -42,8 +44,8 @@ ac = Aircraft("This_plane")
 ac.factory(agmt, reqs)
 
 
-ac.airframe.wing.area = 110.
-ac.airframe.nacelle.reference_thrust = unit.N_kN(110.)
+# ac.airframe.wing.area = 110.
+# ac.airframe.nacelle.reference_thrust = unit.N_kN(110.)
 
 
 process.mda(ac)
@@ -68,7 +70,7 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 
 crt = "aircraft.weight_cg.mtow"
 
-#process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
 
 

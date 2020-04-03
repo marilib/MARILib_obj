@@ -261,7 +261,7 @@ class Power_system(object):
             nei = self.data[j]["nei"]
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
             fn,ff,sfc = self.thrust(pamb,tamb,mach,rating, nei=nei)
-            self.data[j]["thrust"] = fn
+            self.data[j]["thrust"] = fn/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[j]["fuel_flow"] = ff
             self.data[j]["sfc"] = sfc
 

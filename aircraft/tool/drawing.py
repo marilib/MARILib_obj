@@ -118,16 +118,16 @@ class Drawing(object):
 
         nacelle = self.aircraft.airframe.nacelle
 
-        nac_length = self.aircraft.airframe.nacelle.nacelle_length
-        nac_height = self.aircraft.airframe.nacelle.nacelle_width
-        nac_width = self.aircraft.airframe.nacelle.nacelle_width
-        nac_x_ext = self.aircraft.airframe.nacelle.nacelle_loc[0]
-        nac_y_ext = self.aircraft.airframe.nacelle.nacelle_loc[1]
-        nac_z_ext = self.aircraft.airframe.nacelle.nacelle_loc[2]
+        nac_length = self.aircraft.airframe.nacelle.length
+        nac_height = self.aircraft.airframe.nacelle.width
+        nac_width = self.aircraft.airframe.nacelle.width
+        nac_x_ext = self.aircraft.airframe.nacelle.frame_origin[0]
+        nac_y_ext = self.aircraft.airframe.nacelle.frame_origin[1]
+        nac_z_ext = self.aircraft.airframe.nacelle.frame_origin[2]
         if (self.aircraft.arrangement.number_of_engine=="quadri"):
-            nac_x_int = self.aircraft.airframe.internal_nacelle.nacelle_loc[0]
-            nac_y_int = self.aircraft.airframe.internal_nacelle.nacelle_loc[1]
-            nac_z_int = self.aircraft.airframe.internal_nacelle.nacelle_loc[2]
+            nac_x_int = self.aircraft.airframe.internal_nacelle.frame_origin[0]
+            nac_y_int = self.aircraft.airframe.internal_nacelle.frame_origin[1]
+            nac_z_int = self.aircraft.airframe.internal_nacelle.frame_origin[2]
 
         # r_nac_length = aircraft.rear_electric_nacelle.length
         # r_nac_width = aircraft.rear_electric_nacelle.width

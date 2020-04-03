@@ -74,6 +74,9 @@ class Airframe(object):
                 self.aircraft.airframe.horizontal_stab.eval_geometry()
                 self.aircraft.airframe.vertical_stab.eval_geometry()
 
+            self.aircraft.airframe.horizontal_stab.eval_area()
+            self.aircraft.airframe.vertical_stab.eval_area()
+
             y_out = np.array([x_in[0] - self.aircraft.airframe.vertical_stab.area,
                               x_in[1] - self.aircraft.airframe.horizontal_stab.area])
             return y_out

@@ -232,7 +232,7 @@ class Wing(Component):
         self.area = 60. + 88.*n_pax_ref*design_range*1.e-9
         self.span = None
         self.aspect_ratio = 9.          # Default value
-        self.taper_ratio = 0.25
+        self.taper_ratio = None
         self.sweep0 = None
         self.sweep25 = None
         self.sweep100 = None
@@ -245,9 +245,9 @@ class Wing(Component):
         self.root_toc = None                # thickness over chord ratio of root chord
         self.root_c = None                  # root chord length
 
-        x_kink = 1.2*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        y_kink = 1.75*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
-        self.kink_loc = np.array([x_kink, None, None])     # Position of kink chord leading edge
+        self.kink_loc =  np.full(3,None)    # Position of kink chord leading edge
         self.kink_toc = None                # thickness over chord ratio of kink chord
         self.kink_c = None                  # kink chord length
 
@@ -264,6 +264,7 @@ class Wing(Component):
         body_width = self.aircraft.airframe.body.width
         body_length = self.aircraft.airframe.body.length
         body_height = self.aircraft.airframe.body.height
+        mtow = self.aircraft.weight_cg.mtow
 
         self.tip_toc = 0.10
         self.kink_toc = self.tip_toc + 0.01
@@ -280,8 +281,11 @@ class Wing(Component):
         else:
             print("geometry_predesign_, wing_morphing index is unkown")
 
+        # Correlation between span loading and tapper ratio
+        self.taper_ratio = 0.3 - 0.025*(1e-3*mtow/self.span)
+
         y_root = 0.5*body_width
-        y_kink = self.kink_loc[0]
+        y_kink = 1.75*body_width
         y_tip = 0.5*self.span
 
         if(15< unit.deg_rad(self.sweep25)):  # With kink
@@ -1233,6 +1237,7 @@ class Turbofan_nacelle(Component):
         vair = mach*earth.sound_speed(tamb)
 
         # tune_factor allows that output of unitary_thrust matches the definition of the reference thrust
+        self.tune_factor = 1.
         fn, ff = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
         self.tune_factor = self.reference_thrust / (fn/0.80)
 
@@ -1254,7 +1259,8 @@ class Turbofan_nacelle(Component):
         self.length = 0.86*self.width + self.engine_bpr**0.37      # statistical regression
 
         knac = np.pi * self.width * self.length
-        self.net_wetted_area = knac*(1.48 - 0.0076*knac)*2.       # statistical regression, two engines
+        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*2.       # statistical regression, two engines
+        self.net_wet_area = self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.15
 

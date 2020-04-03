@@ -69,7 +69,6 @@ def eval_optim_cst(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
     return cst
 
 
-#===========================================================================================================
 def eval_optim_crt(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
     """Retreve criteria
     """
@@ -79,7 +78,6 @@ def eval_optim_crt(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
     return crit
 
 
-#===========================================================================================================
 def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
     """
     Compute criterion and constraints
