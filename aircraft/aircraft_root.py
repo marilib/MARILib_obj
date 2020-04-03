@@ -10,6 +10,7 @@ from aircraft.airframe import component
 from aircraft.airframe import model
 
 from aircraft.performance import Performance
+from aircraft.environment import Economics
 
 from aircraft.tool.drawing import Drawing
 
@@ -148,6 +149,8 @@ class Aircraft(object):
         self.weight_cg = model.Weight_cg(self)
 
         self.performance = Performance(self)
+
+        self.economics = Economics(self)
 
         return
 

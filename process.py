@@ -41,6 +41,8 @@ def mda(aircraft):
 
     aircraft.power_system.thrust_analysis()
 
+    aircraft.economics.operating_cost_analysis()
+
 
 
 def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
@@ -137,7 +139,7 @@ def explore_design_space(aircraft, res, step, data, file):
             aircraft.airframe.nacelle.reference_thrust = thrust
             aircraft.airframe.wing.area = area
 
-            print("-------------------------------------------")
+            print("-----------------------------------------------------------------------")
             print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
 
             mda(aircraft)   # Perform MDA
