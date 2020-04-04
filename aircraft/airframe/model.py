@@ -203,6 +203,7 @@ class Power_system(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
+        self.fuel_heat = self.__fuel_heat__()
         self.data = [
                      {"rating": "MTO",
                       "disa": 15.,
@@ -245,8 +246,6 @@ class Power_system(object):
                       "fuel_flow": None,
                       "sfc": None}
                      ]
-
-        self.fuel_heat = self.__fuel_heat__()
 
     def __fuel_heat__(self):
         energy_source = self.aircraft.arrangement.energy_source
@@ -338,9 +337,9 @@ class Turbofan(Power_system):
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
         tas = mach*earth.sound_speed(tamb)
 
-        mass = 0.90*tow
+        mass = self.aircraft.performance.mission.ktow*tow
 
-        cz,cx,lod,fn,sfc,thr = self.aircraft.performance.level_flight(pamb,tamb,mach,mass)
+        sar,cz,cx,lod,thrust,throttle,sfc = self.aircraft.performance.level_flight(pamb,tamb,mach,mass)
         fuel = tow*(1-np.exp(-(sfc*g*range)/(tas*lod)))
         time = 1.09*(range/tas)
 

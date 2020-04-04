@@ -12,7 +12,7 @@ import re
 
 from aircraft.tool import unit
 
-STANDARD_FORMAT = 4
+STANDARD_FORMAT = 6
 
 data_dict = {
     "body_type": {"unit":"string", "mag":8, "txt":"Type of main body, 'fuselage' or 'blended'"},
@@ -81,7 +81,7 @@ data_dict = {
     "tip_toc": {"unit":"no_dim", "mag":1e0, "txt":"Thickness to chord ratio of the tip chord of the lifting surface"},
     "tip_c": {"unit":"m", "mag":1e1, "txt":"Tip chord length of the lifting surface"},
     "mac_loc": {"unit":"m", "mag":1e1, "txt":"Position of the mean aerodynamic chord of the lifting surface"},
-    "mac_c": {"unit":"m", "mag":1e1, "txt":"Mean aerodynamic chord length of the lifting surface"},
+    "mac": {"unit":"m", "mag":1e1, "txt":"Mean aerodynamic chord length of the lifting surface"},
     "toc": {"unit":"no_dim", "mag":1e0, "txt":"Thickness to chord ratio of the lifting surface"},
     "volume_factor": {"unit":"no_dim", "mag":1e0, "txt":"Volume coefficient of the stabilization surface"},
     "anchor_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Relative position of the reference point of the stabilization surface"},
@@ -91,6 +91,9 @@ data_dict = {
     "surface_mass": {"unit":"kg/m2", "mag":1e1, "txt":"Mass of tank structure per tank surface unit"},
     "cantilever_volume": {"unit":"m3", "mag":1e1, "txt":"Tank volume outside of the main body"},
     "central_volume": {"unit":"m3", "mag":1e1, "txt":"Tank volume inside of the main body"},
+    "fuel_cantilever_cg": {"unit":"m", "mag":1e1, "txt":"Position of the CG of the fuel volume which is outside of the main body"},
+    "fuel_central_cg": {"unit":"m", "mag":1e1, "txt":"Position of the CG of the fuel volume which is in the main body"},
+    "fuel_total_cg": {"unit":"m", "mag":1e1, "txt":"Position of the CG of the total fuel volume"},
     "max_volume": {"unit":"m3", "mag":1e1, "txt":"Total available volume for fuel"},
     "mfw_volume_limited": {"unit":"kg", "mag":1e3, "txt":"Maximum fuel mass according to available volume"},
     "volume": {"unit":"m3", "mag":1e1, "txt":"Volume of the component"},
@@ -115,6 +118,7 @@ data_dict = {
     "efficiency_prop": {"unit":"no_dim", "mag":1e0, "txt":"Propeller like fan efficiency Thrust.Speed/shaft_power"},
     "rating": {"unit":"string", "mag":3, "txt":"Engine rating name ('MTO','MCN','MCL','MCR','FID'"},
     "fuel_flow": {"unit":"kg/s", "mag":1e0, "txt":"Fuel flow"},
+    "fuel_heat": {"unit":"MJ/kg", "mag":1e1, "txt":"Fuel heating value"},
     "sfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific Fuel Consumption"},
     "nei": {"unit":"int", "mag":1e0, "txt":"Number of engine inoperative, typically 0 or 1"},
     "disa": {"unit":"degK", "mag":1e1, "txt":"Temperature shift versus ISA conditions"},
@@ -163,6 +167,10 @@ data_dict = {
     "altp2": {"unit":"ft", "mag":1e4, "txt":"Transtion pressure altitude from cas1 to cas2, typically 10000ft"},
     "cas2": {"unit":"kt", "mag":1e2, "txt":"Calibrated Air Speed above altp2"},
     "tow": {"unit":"kg", "mag":1e5, "txt":"Mission take off weight"},
+    "range": {"unit":"NM", "mag":1e3, "txt":"Mission range"},
+    "diversion_range": {"unit":"NM", "mag":1e1, "txt":"Range of diversion mission for reserve fuel evaluation"},
+    "reserve_fuel_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Fraction of mission fuel for reserve fuel evaluation"},
+    "holding_time": {"unit":"min", "mag":1e1, "txt":"Holding duration for reserve fuel evaluation"},
     "payload": {"unit":"kg", "mag":1e4, "txt":"Mission payload"},
     "time_block": {"unit":"h", "mag":1e1, "txt":"Mission block time"},
     "fuel_block": {"unit":"kg", "mag":1e4, "txt":"Mission block fuel"},
@@ -205,7 +213,22 @@ data_dict = {
     "sulfuric_acid_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of sulfuric acid emitted per kg of fuel"},
     "nitrous_acid_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of nitrous acid emitted per kg of fuel"},
     "nitric_acid_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of nitric acid emitted per kg of fuel"},
-    "soot_index": {"unit":"int", "mag":1e12, "txt":"Number of soot particles emitted per kg of fuel"}
+    "soot_index": {"unit":"int", "mag":1e12, "txt":"Number of soot particles emitted per kg of fuel"},
+    "ktow": {"unit":"no_dim", "mag":1e0, "txt":"Ratio of TOW defining the aircraft weight"},
+    "crz_altp": {"unit":"ft", "mag":1e4, "txt":"Cruise altitude for design"},
+    "crz_sar": {"unit":"NM/kg", "mag":1e0, "txt":"Cruise specific air range"},
+    "crz_cz": {"unit":"no_dim", "mag":1e0, "txt":"Cruise lift coefficient"},
+    "crz_lod": {"unit":"no_dim", "mag":1e0, "txt":"Cruise lift to drag ratio"},
+    "crz_thrust": {"unit":"kN", "mag":1e0, "txt":"Cruise thrust"},
+    "crz_throttle": {"unit":"no_dim", "mag":1e0, "txt":"Cruise throttle versus MCR"},
+    "crz_sfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Cruise specific fuel consumption"},
+    "max_sar_altp": {"unit":"ft", "mag":1e0, "txt":"Altitude of specific air range"},
+    "max_sar": {"unit":"NM/kg", "mag":1e0, "txt":"Maximum specific air range"},
+    "max_sar_cz": {"unit":"no_dim", "mag":1e0, "txt":"Lift coefficient for maximum specific air range"},
+    "max_sar_lod": {"unit":"no_dim", "mag":1e0, "txt":"Lift to drag ratio for maximum specific air range"},
+    "max_sar_thrust": {"unit":"kN", "mag":1e0, "txt":"Thrust for maximum specific air range"},
+    "max_sar_throttle": {"unit":"no_dim", "mag":1e0, "txt":"Throttle versus MCR for maximum specific air range"},
+    "max_sar_sfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific fuel consumption for maximum specific air range"}
 }
 
 
