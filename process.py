@@ -43,6 +43,8 @@ def mda(aircraft):
 
     aircraft.economics.operating_cost_analysis()
 
+    aircraft.environment.fuel_efficiency_metric()
+
 
 
 def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):

@@ -163,7 +163,6 @@ class Performance(object):
         acc_factor = earth.climb_mode(speed_mode,dtodz,tstd,disa,mach)
         slope = ( fn/(mass*g) - 1/lod ) / acc_factor
         vz = mach*slope*earth.sound_speed(tamb)
-
         return slope,vz
 
     def max_air_path(self,nei,altp,disa,speed_mode,mass,rating):
@@ -179,16 +178,44 @@ class Performance(object):
 
         cz_ini = 0.5
         dcz = 0.05
+
         isformax = True
-
         cz,slope,rc = maximize_1d(cz_ini,dcz,[fct])
-
         isformax = False
 
         slope,vz,mach = fct(cz)
-
         return slope,vz,mach,cz
 
+    def max_sar(self,mass,mach,disa):
+
+        def fct(altp,mass,mach,disa):
+            sar = self.mission.eval_sar(altp,mass,mach,disa)
+            return sar
+
+        d_altp = 250.
+        altp_ini = self.aircraft.requirement.cruise_altp
+        fct = [fct, mass,mach,disa]
+
+        altp_sar_max,sar_max,rc = maximize_1d(altp_ini,d_altp,fct)
+        return sar_max,altp_sar_max
+
+    def propulsion_ceiling(self,altp_ini,nei,vzreq,disa,speed_mode,speed,mass,rating):
+        """Optimize the speed of the aircraft to maximize the air path
+        """
+        def fct_prop_ceiling(altp,nei,vzreq,disa,speed_mode,speed,mass,rating):
+            [slope,vz] = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating)
+            delta_vz = vz - vzreq
+            return delta_vz
+
+        fct_arg = (nei,vzreq,disa,speed_mode,speed,mass,rating)
+
+        output_dict = fsolve(fct_prop_ceiling, x0 = altp_ini, args=fct_arg, full_output = True)
+
+        altp = output_dict[0][0]
+        rei = output_dict[2]
+        if(rei!=1): altp = np.NaN
+
+        return altp, rei
 
     def acceleration(self,nei,altp,disa,speed_mode,speed,mass,rating):
         """Aircraft acceleration on level flight
@@ -208,7 +235,6 @@ class Performance(object):
             cx = cx + dcx*nei
 
         acc = (fn - 0.5*gam*pamb*mach**2*self.aircraft.airframe.wing.area*cx) / mass
-
         return acc
 
 
@@ -271,7 +297,6 @@ class Take_off(requirement.Take_off_req):
         self.s2_path = s2_path
         self.v2 = cas
         self.limit = limitation
-
         return
 
     def take_off(self,kvs1g,altp,disa,mass,hld_conf):
@@ -580,6 +605,23 @@ class Mission(object):
         self.zero_payload = Mission_range_from_fuel_and_payload(aircraft)
         self.cost = Mission_fuel_from_range_and_payload(aircraft)
 
+    def eval_sar(self,altp,mass,mach,disa):
+        """Evaluate Specific Air Range
+        """
+        g = earth.gravity()
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        vsnd = earth.sound_speed(tamb)
+
+        cz = self.aircraft.performance.lift_from_speed(pamb,tamb,mach,mass)
+        cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
+
+        nei = 0
+        thrust = mass*g / lod
+        sfc,thr = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust,nei)
+
+        sar = (vsnd*mach*lod)/(mass*g*sfc)
+        return sar
+
     def payload_range(self):
         payload_max = self.aircraft.airframe.cabin.maximum_payload
         mtow = self.aircraft.weight_cg.mtow
@@ -844,6 +886,8 @@ class Mission_fuel_from_range_and_tow(object):
         self.diversion_range = self.__diversion_range__()       # Diversion leg
 
     def eval(self,range,tow,owe,altp,mach,disa):
+        """Evaluate mission and store results in object attributes
+        """
         self.range = range  # Mission distance
         self.disa = disa    # Mean cruise temperature shift
         self.altp = altp    # Mean cruise altitude
@@ -869,8 +913,7 @@ class Mission_fuel_from_range_and_tow(object):
         return diversion_range
 
     def eval_payload(self,owe):
-        """
-        Computing resulting payload
+        """Computing resulting payload
         """
         self.payload = self.tow - self.fuel_total - owe
 

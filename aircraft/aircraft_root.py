@@ -11,6 +11,7 @@ from aircraft.airframe import model
 
 from aircraft.performance import Performance
 from aircraft.environment import Economics
+from aircraft.environment import Environment
 
 from aircraft.tool.drawing import Drawing
 
@@ -151,6 +152,9 @@ class Aircraft(object):
         self.performance = Performance(self)
 
         self.economics = Economics(self)
+
+        self.environment = Environment(self)
+
 
         return
 

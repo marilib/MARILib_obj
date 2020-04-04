@@ -104,6 +104,11 @@ data_dict = {
     "reference_thrust": {"unit":"daN", "mag":1e5, "txt":"Engine reference thrust, thrus(sea level, ISA+15, Mach 0.25)/0.8"},
     "reference_offtake": {"unit":"kW", "mag":1e4, "txt":"Refrence power offtake for design"},
     "rating_factor": {"unit":"no_dim", "mag":1e0, "txt":"Factor on max thrust corresponding to each rating"},
+    "MTO": {"unit":"string", "mag":None, "txt":"Max Takeoff rating factor"},
+    "MCN": {"unit":"string", "mag":None, "txt":"Maxi Continuous rating factor"},
+    "MCL": {"unit":"string", "mag":None, "txt":"Max Climb rating factor"},
+    "MCR": {"unit":"string", "mag":None, "txt":"Max Cruise rating factor"},
+    "FID": {"unit":"string", "mag":None, "txt":"Flight idle rating factor"},
     "tune_factor": {"unit":"no_dim", "mag":1e0, "txt":"Factor on unitary engine thrust to match with reference thrust definition"},
     "engine_bpr": {"unit":"no_dim", "mag":1e0, "txt":"Reference By Pass Ratio of the engine"},
     "core_thrust_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Reference ratio of the total thrust delivered by the core"},
@@ -162,7 +167,45 @@ data_dict = {
     "time_block": {"unit":"h", "mag":1e1, "txt":"Mission block time"},
     "fuel_block": {"unit":"kg", "mag":1e4, "txt":"Mission block fuel"},
     "fuel_reserve": {"unit":"kg", "mag":1e3, "txt":"Mission reserve fuel"},
-    "fuel_total": {"unit":"", "mag":1e4, "txt":"Mission total fuel"}
+    "fuel_total": {"unit":"kg", "mag":1e4, "txt":"Mission total fuel"},
+    "irp": {"unit":"year", "mag":1e1, "txt":"Interest recovery period"},
+    "period": {"unit":"year", "mag":1e1, "txt":"Utilisation period"},
+    "interest_rate": {"unit":"%", "mag":1e0, "txt":"Interest rate"},
+    "labor_cost": {"unit":"$/h", "mag":1e1, "txt":"Labor cost"},
+    "utilisation": {"unit":"int", "mag":1e3, "txt":"Number of flights per year"},
+    "engine_price": {"unit":"M$", "mag":1e1, "txt":"Price of one engine"},
+    "gear_price": {"unit":"M$", "mag":1e1, "txt":"Price of landing gears"},
+    "frame_price": {"unit":"M$", "mag":1e1, "txt":"Price of the airframe"},
+    "fuel_price": {"unit":"$/gal", "mag":1e0, "txt":"Fuel price"},
+    "frame_cost": {"unit":"$/trip", "mag":1e3, "txt":"Airframe maintenance cost"},
+    "engine_cost": {"unit":"$/trip", "mag":1e3, "txt":"Engine maintenance cost"},
+    "cockpit_crew_cost": {"unit":"$/trip", "mag":1e3, "txt":"Cockpit crew cost"},
+    "cabin_crew_cost": {"unit":"$/trip", "mag":1e3, "txt":"Cabin crew cost"},
+    "landing_fees": {"unit":"$/trip", "mag":1e3, "txt":"Landing fees"},
+    "navigation_fees": {"unit":"$/trip", "mag":1e3, "txt":"Navigation fees"},
+    "catering_cost": {"unit":"$/trip", "mag":1e3, "txt":"Catering cost"},
+    "pax_handling_cost": {"unit":"$/trip", "mag":1e3, "txt":"Passenger handling cost"},
+    "ramp_handling_cost": {"unit":"$/trip", "mag":1e3, "txt":"Ramp handling cost"},
+    "std_op_cost": {"unit":"$/trip", "mag":1e4, "txt":"Standard operating cost"},
+    "cash_op_cost": {"unit":"$/trip", "mag":1e4, "txt":"Cash operating cost"},
+    "direct_op_cost": {"unit":"$/trip", "mag":1e4, "txt":"Direct operating cost"},
+    "fuel_cost": {"unit":"$/trip", "mag":1e4, "txt":"Fuel cost"},
+    "aircraft_price": {"unit":"M$", "mag":1e5, "txt":"Aircraft price"},
+    "total_investment": {"unit":"M$", "mag":1e4, "txt":"Total investmenent"},
+    "interest": {"unit":"$/trip", "mag":1e3, "txt":"Interest"},
+    "insurance": {"unit":"$/trip", "mag":1e3, "txt":"Insurance"},
+    "depreciation": {"unit":"$/trip", "mag":1e3, "txt":"Depreciation"},
+    "CO2_metric": {"unit":"kg/km/m0.48", "mag":1e0, "txt":"Fuel efficiency metric"},
+    "CO2_index": {"unit":"g/kg", "mag":1e3, "txt":"Mass of carbon dioxide emitted per kg of fuel"},
+    "CO_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of carbon monoxide emitted per kg of fuel"},
+    "H2O_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of water emitted per kg of fuel"},
+    "SO2_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of sulfur dioxide emitted per kg of fuel"},
+    "NOx_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of nitrogen oxide emitted per kg of fuel"},
+    "HC_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of unburnt hydrocarbon emitted per kg of fuel"},
+    "sulfuric_acid_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of sulfuric acid emitted per kg of fuel"},
+    "nitrous_acid_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of nitrous acid emitted per kg of fuel"},
+    "nitric_acid_index": {"unit":"g/kg", "mag":1e-5, "txt":"Mass of nitric acid emitted per kg of fuel"},
+    "soot_index": {"unit":"int", "mag":1e12, "txt":"Number of soot particles emitted per kg of fuel"}
 }
 
 
@@ -290,7 +333,6 @@ class MarilibIO():
         with open(filename,'w') as f:
             f.write(self.to_string(marilib_object))
         return None
-
 
     def to_binary_file(self,obj,filename):
         """Save the obj as a binary file .pkl
