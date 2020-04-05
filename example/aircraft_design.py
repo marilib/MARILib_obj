@@ -103,7 +103,7 @@ data = [["SLST", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/10.
         ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
         ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],
         ["Direct_op_cost", "$/trip", "%8.1f", "aircraft.economics.direct_op_cost"],
-        ["CO2_metric", "kg/km/m0.48", "%8.4f", "aircraft.environment.CO2_metric"]]
+        ["CO2_metric", "kg/km/m0.48", "%8.4f", "unit.convert_to('kg/km/m0.48',aircraft.environment.CO2_metric)"]]
 
 file = "explore_design.txt"
 
@@ -131,3 +131,4 @@ json = io.to_json_file(ac,'aircraft_test')
 
 io.to_binary_file(ac,'test')
 #ac2 = io.from_binary_file('test.pkl')
+

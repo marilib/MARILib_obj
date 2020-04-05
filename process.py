@@ -154,7 +154,7 @@ def explore_design_space(aircraft, res, step, data, file):
 
             txt = np.hstack([txt,res])
 
-    np.savetxt(file,txt,delimiter=";",fmt='%10s')
+    np.savetxt(file,txt,delimiter=";",fmt='%14s')
 
 
 def draw_design_space(file, mark, field, const, color, limit, bound):

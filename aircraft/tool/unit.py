@@ -485,9 +485,11 @@ UNIT["l/seat/100km"] = 0.01
 
 # dim = "CO2metric"
 UNIT["kg/m/m^0.48"] = 1.
+UNIT["kg/m/m0.48"] = 1.
 UNIT["kg/km/m^0.48"] = 0.001
 UNIT["kg/km/m0.48"] = 0.001
 UNIT["kg/NM/m^0.48"] = 1./1852.
+UNIT["kg/NM/m0.48"] = 1./1852.
 
 # dim = "GlobalWarmingTemperature"
 UNIT["K/m2/km/year"] = 1.
