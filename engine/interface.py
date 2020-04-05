@@ -53,16 +53,6 @@ class Exergetic_turbofan_nacelle(Component):
         return np.full(3,None)
 
     def eval_geometry(self):
-        body_width = self.aircraft.airframe.body.width
-        body_height = self.aircraft.airframe.body.height
-        wing_root_loc = self.aircraft.airframe.wing.root_loc
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
-        wing_dihedral = self.aircraft.airframe.wing.dihedral
-        wing_kink_c = self.aircraft.airframe.wing.kink_c
-        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
-        wing_tip_c = self.aircraft.airframe.wing.tip_c
-        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
-        vtp_root_loc = self.aircraft.airframe.vertical_stab.root_loc
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         mach = 0.25
@@ -77,7 +67,9 @@ class Exergetic_turbofan_nacelle(Component):
         TF = Turbofan()
 
         # Set the flight conditions to 35000ft, ISA, Mn 0.78 as static temperature, static pressure and Mach number
-        TF.set_flight(218.808, 23842.272, 0.78)
+        TF.set_flight(218.808,
+                      23842.272,
+                      0.78)
 
         # Set the losses for all components
         TF.ex_loss = {"inlet": 0., "LPC": 0.132764781, "HPC": 0.100735895, "Burner": 0.010989737,

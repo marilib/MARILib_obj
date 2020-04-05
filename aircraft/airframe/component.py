@@ -1217,16 +1217,6 @@ class Turbofan_nacelle(Component):
         self.frame_origin = np.full(3,None)
 
     def eval_geometry(self):
-        body_width = self.aircraft.airframe.body.width
-        body_height = self.aircraft.airframe.body.height
-        wing_root_loc = self.aircraft.airframe.wing.root_loc
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
-        wing_dihedral = self.aircraft.airframe.wing.dihedral
-        wing_kink_c = self.aircraft.airframe.wing.kink_c
-        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
-        wing_tip_c = self.aircraft.airframe.wing.tip_c
-        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
-        vtp_root_loc = self.aircraft.airframe.vertical_stab.root_loc
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         mach = 0.25
