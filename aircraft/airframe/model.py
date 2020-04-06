@@ -203,6 +203,7 @@ class Power_system(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
+        self.fuel_density = self.__fuel_density__()
         self.fuel_heat = self.__fuel_heat__()
         self.data = [
                      {"rating": "MTO",
@@ -210,6 +211,8 @@ class Power_system(object):
                       "altp": None,
                       "mach": None,
                       "nei":  1,
+                      "thrttl_opt": None,
+                      "thrust_req": None,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
@@ -218,6 +221,8 @@ class Power_system(object):
                       "altp": None,
                       "mach": None,
                       "nei":  1,
+                      "thrttl_opt": None,
+                      "thrust_req": None,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
@@ -226,6 +231,8 @@ class Power_system(object):
                       "altp": None,
                       "mach": None,
                       "nei":  0,
+                      "thrttl_opt": None,
+                      "thrust_req": None,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
@@ -234,6 +241,8 @@ class Power_system(object):
                       "altp": None,
                       "mach": None,
                       "nei":  0,
+                      "thrttl_opt": None,
+                      "thrust_req": None,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
@@ -242,6 +251,8 @@ class Power_system(object):
                       "altp": None,
                       "mach": None,
                       "nei":  0,
+                      "thrttl_opt": 1.,
+                      "thrust_req": None,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None}
@@ -251,22 +262,51 @@ class Power_system(object):
         energy_source = self.aircraft.arrangement.energy_source
         return earth.fuel_heat(energy_source)
 
+    def __fuel_density__(self):
+        energy_source = self.aircraft.arrangement.energy_source
+        return earth.fuel_density(energy_source)
+
     def thrust_analysis(self):
         self.data[0]["disa"] = self.aircraft.performance.take_off.disa
         self.data[0]["altp"] = self.aircraft.performance.take_off.altp
         self.data[0]["mach"] = self.aircraft.performance.take_off.mach2
 
+        fct = self.aircraft.performance.take_off.thrust_req
+        output_dict = fsolve(fct, x0=1., args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        self.data[0]["thrttl_opt"] = output_dict[0][0]
+
         self.data[1]["disa"] = self.aircraft.performance.oei_ceiling.disa
         self.data[1]["altp"] = self.aircraft.performance.oei_ceiling.altp
         self.data[1]["mach"] = self.aircraft.performance.oei_ceiling.mach_opt
+
+        fct = self.aircraft.performance.oei_ceiling.thrust_req
+        output_dict = fsolve(fct, x0=1., args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        self.data[1]["thrttl_opt"] = output_dict[0][0]
 
         self.data[2]["disa"] = self.aircraft.performance.mcl_ceiling.disa
         self.data[2]["altp"] = self.aircraft.performance.mcl_ceiling.altp
         self.data[2]["mach"] = self.aircraft.performance.mcl_ceiling.mach
 
+        fct = self.aircraft.performance.mcl_ceiling.thrust_req
+        output_dict = fsolve(fct, x0=1., args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        throttle_1 = output_dict[0][0]
+        fct = self.aircraft.performance.oei_ceiling.thrust_req
+        output_dict = fsolve(fct, x0=1., args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        throttle_2 = output_dict[0][0]
+        self.data[2]["thrttl_opt"] = max(throttle_1,throttle_2)
+
         self.data[3]["disa"] = self.aircraft.performance.mcr_ceiling.disa
         self.data[3]["altp"] = self.aircraft.performance.mcr_ceiling.altp
         self.data[3]["mach"] = self.aircraft.performance.mcr_ceiling.mach
+
+        fct = self.aircraft.performance.mcr_ceiling.thrust_req
+        output_dict = fsolve(fct, x0=1., args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        self.data[3]["thrttl_opt"] = output_dict[0][0]
 
         self.data[4]["disa"] = self.aircraft.performance.mission.disa
         self.data[4]["altp"] = self.aircraft.performance.mission.altp
@@ -278,16 +318,14 @@ class Power_system(object):
             altp = self.data[j]["altp"]
             mach = self.data[j]["mach"]
             nei = self.data[j]["nei"]
+            throttle = self.data[j]["thrttl_opt"]
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+            fn,ff,sfc = self.thrust(pamb,tamb,mach,rating, throttle=throttle, nei=nei)
+            self.data[j]["thrust_req"] = fn/(self.aircraft.airframe.nacelle.n_engine - nei)
             fn,ff,sfc = self.thrust(pamb,tamb,mach,rating, nei=nei)
             self.data[j]["thrust"] = fn/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[j]["fuel_flow"] = ff
             self.data[j]["sfc"] = sfc
-
-# TODO
-    # compute required thrust
-
-
 
     def thrust(self,pamb,tamb,mach,rating,throttle,nei):
         raise NotImplementedError

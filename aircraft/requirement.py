@@ -59,7 +59,7 @@ class OEI_ceiling_req(object):
     """
     def __init__(self, arrangement, requirement):
         self.disa = 15.
-        self.altp = unit.m_ft(11000.)
+        self.altp = 0.75*requirement.cruise_altp
         self.kmtow = 0.95
         self.rating = "MCN"
         self.speed_mode = "cas"

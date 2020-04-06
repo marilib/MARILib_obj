@@ -229,21 +229,22 @@ class Environment():
         nei = 0
 
         altp = altp_ini
+        throttle = 1.
         ceiling = 0
 
-        slope,vz_clb = self.aircraft.performance.air_path(nei,altp_ini,disa,isomach,mach,mass,"MCL")
+        slope,vz_clb = self.aircraft.performance.air_path(nei,altp_ini,disa,isomach,mach,mass,"MCL",throttle)
 
         if(vz_clb<vz_req_mcl):
-            altp, rei = self.aircraft.performance.propulsion_ceiling(altp_ini,nei,vz_req_mcl,disa,isomach,mach,mass,"MCL")
+            altp, rei = self.aircraft.performance.propulsion_ceiling(altp_ini,nei,vz_req_mcl,disa,isomach,mach,mass,"MCL",throttle)
             if(rei==1):
                 ceiling = 1
             else:
                 ceiling = -1
 
-        [slope,vz_crz] = self.aircraft.performance.air_path(nei,altp_ini,disa,isomach,mach,mass,"MCR")
+        [slope,vz_crz] = self.aircraft.performance.air_path(nei,altp_ini,disa,isomach,mach,mass,"MCR",throttle)
 
         if(vz_crz<vz_req_mcr):
-            altp, rei = self.aircraft.performance.propulsion_ceiling(altp_ini,nei,vz_req_mcr,disa,isomach,mach,mass,"MCR")
+            altp, rei = self.aircraft.performance.propulsion_ceiling(altp_ini,nei,vz_req_mcr,disa,isomach,mach,mass,"MCR",throttle)
 
             if(rei==1):
                 ceiling = 2
