@@ -206,41 +206,41 @@ class Power_system(object):
         self.fuel_heat = self.__fuel_heat__()
         self.data = [
                      {"rating": "MTO",
-                      "disa": 15.,
-                      "altp": 0.,
-                      "mach": 0.25,
-                      "nei":  0,
+                      "disa": None,
+                      "altp": None,
+                      "mach": None,
+                      "nei":  1,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
                      {"rating": "MCN",
-                      "disa": 15.,
-                      "altp": self.aircraft.requirement.oei.altp,
-                      "mach": self.aircraft.requirement.cruise_mach*0.6,
+                      "disa": None,
+                      "altp": None,
+                      "mach": None,
                       "nei":  1,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
                      {"rating": "MCL",
-                      "disa": 0.,
-                      "altp": self.aircraft.requirement.vz_mcl.altp,
-                      "mach": self.aircraft.requirement.vz_mcl.mach,
+                      "disa": None,
+                      "altp": None,
+                      "mach": None,
                       "nei":  0,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
                      {"rating": "MCR",
-                      "disa": 0.,
-                      "altp": self.aircraft.requirement.vz_mcr.altp,
-                      "mach": self.aircraft.requirement.vz_mcr.mach,
+                      "disa": None,
+                      "altp": None,
+                      "mach": None,
                       "nei":  0,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
                      {"rating": "FID",
-                      "disa": 15.,
-                      "altp": unit.m_ft(1500.),
-                      "mach": 0.35,
+                      "disa": None,
+                      "altp": None,
+                      "mach": None,
                       "nei":  0,
                       "thrust": None,
                       "fuel_flow": None,
@@ -252,6 +252,26 @@ class Power_system(object):
         return earth.fuel_heat(energy_source)
 
     def thrust_analysis(self):
+        self.data[0]["disa"] = self.aircraft.performance.take_off.disa
+        self.data[0]["altp"] = self.aircraft.performance.take_off.altp
+        self.data[0]["mach"] = self.aircraft.performance.take_off.mach2
+
+        self.data[1]["disa"] = self.aircraft.performance.oei_ceiling.disa
+        self.data[1]["altp"] = self.aircraft.performance.oei_ceiling.altp
+        self.data[1]["mach"] = self.aircraft.performance.oei_ceiling.mach_opt
+
+        self.data[2]["disa"] = self.aircraft.performance.mcl_ceiling.disa
+        self.data[2]["altp"] = self.aircraft.performance.mcl_ceiling.altp
+        self.data[2]["mach"] = self.aircraft.performance.mcl_ceiling.mach
+
+        self.data[3]["disa"] = self.aircraft.performance.mcr_ceiling.disa
+        self.data[3]["altp"] = self.aircraft.performance.mcr_ceiling.altp
+        self.data[3]["mach"] = self.aircraft.performance.mcr_ceiling.mach
+
+        self.data[4]["disa"] = self.aircraft.performance.mission.disa
+        self.data[4]["altp"] = self.aircraft.performance.mission.altp
+        self.data[4]["mach"] = self.aircraft.performance.mission.mach
+
         for j in range(len(self.data)):
             rating = self.data[j]["rating"]
             disa = self.data[j]["disa"]
@@ -263,6 +283,11 @@ class Power_system(object):
             self.data[j]["thrust"] = fn/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[j]["fuel_flow"] = ff
             self.data[j]["sfc"] = sfc
+
+# TODO
+    # compute required thrust
+
+
 
     def thrust(self,pamb,tamb,mach,rating,throttle,nei):
         raise NotImplementedError

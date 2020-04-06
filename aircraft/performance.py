@@ -33,67 +33,144 @@ class Performance(object):
     def analysis(self):
         """Evaluate general performances of the airplane
         """
+        #---------------------------------------------------------------------------------------------------
         disa = self.aircraft.requirement.cruise_disa
         altp = self.aircraft.requirement.cruise_altp
         mach = self.aircraft.requirement.cruise_mach
         ktow = self.aircraft.performance.mission.ktow
+
         mass = ktow*self.aircraft.weight_cg.mtow
+        lf_dict, sm_dict = self.aircraft.performance.mission.eval_cruise_point(disa,altp,mach,mass)
 
-        self.aircraft.performance.mission.eval_cruise_point(disa,altp,mach,mass)
+        self.mission.disa = disa
+        self.mission.altp = altp
+        self.mission.mach = mach
+        self.mission.ktow = ktow
 
+        self.mission.crz_altp = altp
+        self.mission.crz_sar = lf_dict["sar"]
+        self.mission.crz_cz = lf_dict["cz"]
+        self.mission.crz_lod = lf_dict["lod"]
+        self.mission.crz_thrust = lf_dict["thrust"]
+        self.mission.crz_throttle = lf_dict["throttle"]
+        self.mission.crz_sfc = lf_dict["sfc"]
+
+        self.mission.max_sar_altp = sm_dict["altp"]
+        self.mission.max_sar = sm_dict["sar"]
+        self.mission.max_sar_cz = sm_dict["cz"]
+        self.mission.max_sar_lod = sm_dict["lod"]
+        self.mission.max_sar_thrust = sm_dict["thrust"]
+        self.mission.max_sar_throttle = sm_dict["throttle"]
+        self.mission.max_sar_sfc = sm_dict["sfc"]
+
+        #---------------------------------------------------------------------------------------------------
         disa = self.aircraft.requirement.take_off.disa
         altp = self.aircraft.requirement.take_off.altp
         kmtow = self.aircraft.requirement.take_off.kmtow
         kvs1g = self.aircraft.requirement.take_off.kvs1g
         s2_min_path = self.aircraft.requirement.take_off.s2_min_path
         hld_conf = self.aircraft.performance.take_off.hld_conf
+
+        self.take_off.disa = disa
+        self.take_off.altp = altp
+        self.take_off.kmtow = kmtow
+        self.take_off.kvs1g = kvs1g
+        self.take_off.s2_min_path = s2_min_path
+        self.take_off.hld_conf = hld_conf
+        self.take_off.tofl_req = self.aircraft.requirement.take_off.tofl_req
+
         mass = kmtow*self.aircraft.weight_cg.mtow
+        to_dict = self.take_off.eval(disa,altp,mass,hld_conf,kvs1g,s2_min_path)
 
-        self.tofl_req = self.aircraft.requirement.take_off.tofl_req
-        self.take_off.eval(disa,altp,mass,hld_conf,kvs1g,s2_min_path)
+        self.take_off.tofl_eff = to_dict["tofl"]
+        self.take_off.kvs1g_eff = to_dict["kvs1g"]
+        self.take_off.s2_path = to_dict["path"]
+        self.take_off.v2 = to_dict["v2"]
+        self.take_off.mach2 = to_dict["mach2"]
+        self.take_off.limit = to_dict["limit"]
 
+        #---------------------------------------------------------------------------------------------------
         disa = self.aircraft.requirement.approach.disa
         altp = self.aircraft.requirement.approach.altp
         kmlw = self.aircraft.requirement.approach.kmlw
         kvs1g = self.aircraft.requirement.approach.kvs1g
         hld_conf = self.aircraft.performance.approach.hld_conf
+
+        self.approach.disa = disa
+        self.approach.altp = altp
+        self.approach.kmlw = kmlw
+        self.approach.kvs1g = kvs1g
+        self.approach.hld_conf = hld_conf
+        self.approach.app_speed_req = self.aircraft.requirement.approach.app_speed_req
+
         mass = kmlw*self.aircraft.weight_cg.mlw
+        ld_dict = self.approach.eval(disa,altp,mass,hld_conf,kvs1g)
 
-        self.app_speed_req = self.aircraft.requirement.approach.app_speed_req
-        self.approach.eval(disa,altp,mass,hld_conf,kvs1g)
+        self.approach.app_speed_eff = ld_dict["vapp"]
 
+        #---------------------------------------------------------------------------------------------------
         disa = self.aircraft.requirement.vz_mcl.disa
         altp = self.aircraft.requirement.vz_mcl.altp
         kmtow = self.aircraft.requirement.vz_mcl.kmtow
         mach = self.aircraft.requirement.vz_mcl.mach
         rating = self.aircraft.requirement.vz_mcl.rating
         speed_mode = self.aircraft.requirement.vz_mcl.speed_mode
+
+        self.mcl_ceiling.disa = disa
+        self.mcl_ceiling.altp = altp
+        self.mcl_ceiling.mach = mach
+        self.mcl_ceiling.rating = rating
+        self.mcl_ceiling.speed_mode = speed_mode
+        self.mcl_ceiling.kmtow = kmtow
+        self.mcl_ceiling.vz_req = self.aircraft.requirement.vz_mcl.vz_req
+
         mass = kmtow*self.aircraft.weight_cg.mtow
+        cl_dict = self.mcl_ceiling.eval(disa,altp,mach,mass,rating,speed_mode)
 
-        self.vz_req = self.aircraft.requirement.vz_mcl.vz_req
-        self.mcl_ceiling.eval(disa,altp,mach,mass,rating,speed_mode)
+        self.mcl_ceiling.vz_eff = cl_dict["vz"]
 
+        #---------------------------------------------------------------------------------------------------
         disa = self.aircraft.requirement.vz_mcr.disa
         altp = self.aircraft.requirement.vz_mcr.altp
         kmtow = self.aircraft.requirement.vz_mcr.kmtow
         mach = self.aircraft.requirement.vz_mcr.mach
         rating = self.aircraft.requirement.vz_mcr.rating
         speed_mode = self.aircraft.requirement.vz_mcr.speed_mode
+
+        self.mcr_ceiling.disa = disa
+        self.mcr_ceiling.altp = altp
+        self.mcr_ceiling.mach = mach
+        self.mcr_ceiling.rating = rating
+        self.mcr_ceiling.speed_mode = speed_mode
+        self.mcr_ceiling.kmtow = kmtow
+        self.mcr_ceiling.vz_req = self.aircraft.requirement.vz_mcr.vz_req
+
         mass = kmtow*self.aircraft.weight_cg.mtow
+        cr_dict = self.mcr_ceiling.eval(disa,altp,mach,mass,rating,speed_mode)
 
-        self.vz_req = self.aircraft.requirement.vz_mcr.vz_req
-        self.mcr_ceiling.eval(disa,altp,mach,mass,rating,speed_mode)
+        self.mcr_ceiling.vz_eff = cr_dict["vz"]
 
+        #---------------------------------------------------------------------------------------------------
         disa = self.aircraft.requirement.oei.disa
         altp = self.aircraft.requirement.oei.altp
         kmtow = self.aircraft.requirement.oei.kmtow
         rating = self.aircraft.requirement.oei.rating
         speed_mode = self.aircraft.requirement.oei.speed_mode
+
+        self.oei_ceiling.disa = disa
+        self.oei_ceiling.altp = altp
+        self.oei_ceiling.kmtow = kmtow
+        self.oei_ceiling.rating = rating
+        self.oei_ceiling.speed_mode = speed_mode
+        self.oei_ceiling.path_req = self.aircraft.requirement.oei.path_req
+
         mass = kmtow*self.aircraft.weight_cg.mtow
+        ei_dict = self.oei_ceiling.eval(disa,altp,mass,rating,speed_mode)
 
-        self.path_req = self.aircraft.requirement.oei.path_req
-        self.oei_ceiling.eval(disa,altp,mass,rating,speed_mode)
+        self.oei_ceiling.path_eff = ei_dict["path"]
+        self.oei_ceiling.mach_opt = ei_dict["mach"]
 
+        #---------------------------------------------------------------------------------------------------
         disa = self.aircraft.requirement.ttc.disa
         cas1 = self.aircraft.requirement.ttc.cas1
         altp1 = self.aircraft.requirement.ttc.altp1
@@ -101,10 +178,20 @@ class Performance(object):
         altp2 = self.aircraft.requirement.ttc.altp2
         mach = self.aircraft.requirement.ttc.mach
         toc = self.aircraft.requirement.ttc.altp
-        mass = self.aircraft.weight_cg.mtow
 
-        self.ttc_req = self.aircraft.requirement.ttc.ttc_req
-        self.time_to_climb.eval(disa,toc,mach,mass,altp1,cas1,altp2,cas2)
+        self.time_to_climb.disa = disa
+        self.time_to_climb.cas1 = cas1
+        self.time_to_climb.altp1 = altp1
+        self.time_to_climb.cas2 = cas2
+        self.time_to_climb.altp2 = altp2
+        self.time_to_climb.mach = mach
+        self.time_to_climb.altp = toc
+        self.time_to_climb.ttc_req = self.aircraft.requirement.ttc.ttc_req
+
+        mass = self.aircraft.weight_cg.mtow
+        tc_dict = self.time_to_climb.eval(disa,toc,mach,mass,altp1,cas1,altp2,cas2)
+
+        self.time_to_climb.ttc_eff = tc_dict["ttc"]
 
     def get_speed(self,pamb,speed_mode,mach):
         """retrieves CAS or Mach from mach depending on speed_mode
@@ -264,18 +351,13 @@ class Take_off(requirement.Take_off_req):
         self.hld_conf = self.aircraft.aerodynamics.hld_conf_to
         self.kvs1g_eff = None
         self.v2 = None
+        self.mach2 = None
         self.s2_path = None
         self.limit = None
 
     def eval(self,disa,altp,mass,hld_conf,kvs1g,s2_min_path):
         """Take off field length and climb path with eventual kVs1g increase to recover min regulatory slope
         """
-        self.disa = disa
-        self.altp = altp
-        self.kmtow = mass/self.aircraft.weight_cg.mtow
-        self.kvs1g = kvs1g
-        self.s2_min_path = s2_min_path
-
         tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf)
 
         if(s2_min_path<s2_path):
@@ -306,13 +388,9 @@ class Take_off(requirement.Take_off_req):
                 s2_path = 0.
                 limitation = None
 
-        self.tofl_eff = tofl
-        self.hld_conf = hld_conf
-        self.kvs1g_eff = kvs1g
-        self.s2_path = s2_path
-        self.v2 = cas
-        self.limit = limitation
-        return
+        to_dict = {"tofl":tofl, "kvs1g":kvs1g, "path":s2_path, "v2":cas, "mach2":mach, "limit":limitation}
+
+        return to_dict
 
     def take_off(self,kvs1g,altp,disa,mass,hld_conf):
         """Take off field length and climb path at 35 ft depending on stall margin (kVs1g)
@@ -355,11 +433,6 @@ class Approach(requirement.Approach_req):
         """
         Minimum approach speed (VLS)
         """
-        self.disa = disa
-        self.altp = altp
-        self.kmlw = mass/self.aircraft.weight_cg.mlw
-        self.kvs1g = kvs1g
-
         g = earth.gravity()
 
         czmax,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)
@@ -369,10 +442,7 @@ class Approach(requirement.Approach_req):
 
         vapp = np.sqrt((mass*g) / (0.5*rho*self.aircraft.airframe.wing.area*(czmax / kvs1g**2)))
 
-        self.hld_conf = hld_conf
-        self.app_speed_eff = vapp
-
-        return
+        return {"vapp":vapp}
 
 
 class MCL_ceiling(requirement.Vz_mcl_req):
@@ -388,20 +458,11 @@ class MCL_ceiling(requirement.Vz_mcl_req):
         """
         Minimum approach speed (VLS)
         """
-        self.disa = disa
-        self.altp = altp
-        self.mach = mach
-        self.rating = rating
-        self.speed_mode = speed_mode
-        self.kmtow = mass/self.aircraft.weight_cg.mtow
-
         nei = 0
 
         slope,vz = self.aircraft.performance.air_path(nei,altp,disa,speed_mode,mach,mass,rating)
 
-        self.vz_eff = vz
-
-        return
+        return {"vz":vz, "slope":slope}
 
 
 class MCR_ceiling(requirement.Vz_mcr_req):
@@ -417,20 +478,11 @@ class MCR_ceiling(requirement.Vz_mcr_req):
         """
         Minimum approach speed (VLS)
         """
-        self.disa = disa
-        self.altp = altp
-        self.mach = mach
-        self.rating = rating
-        self.speed_mode = speed_mode
-        self.kmtow = mass/self.aircraft.weight_cg.mtow
-
         nei = 0
 
         slope,vz = self.aircraft.performance.air_path(nei,altp,disa,speed_mode,mach,mass,rating)
 
-        self.vz_eff = vz
-
-        return
+        return {"vz":vz, "slope":slope}
 
 
 class OEI_ceiling(requirement.OEI_ceiling_req):
@@ -447,20 +499,11 @@ class OEI_ceiling(requirement.OEI_ceiling_req):
         """
         Compute one engine inoperative maximum path
         """
-        self.disa = disa
-        self.altp = altp
-        self.kmtow = mass/self.aircraft.weight_cg.mtow
-        self.rating = rating
-        self.speed_mode = speed_mode
-
         nei = 1.
 
         path,vz,mach,cz = self.aircraft.performance.max_air_path(nei,altp,disa,speed_mode,mass,rating)
 
-        self.path_eff = path
-        self.mach_opt = mach
-
-        return
+        return {"path":path, "vz":vz, "mach":mach, "cz":cz}
 
 
 class Time_to_Climb(requirement.TTC_req):
@@ -478,15 +521,6 @@ class Time_to_Climb(requirement.TTC_req):
         Time to climb to initial cruise altitude
         For simplicity reasons, airplane mass is supposed constant
         """
-        self.disa = disa
-        self.cas1 = vcas1
-        self.altp1 = altp1
-        self.cas2 = vcas2
-        self.altp2 = altp2
-        self.mach = mach
-        self.altp = toc
-        self.kmtow = mass/self.aircraft.weight_cg.mtow
-
         if(vcas1>unit.mps_kt(250.)):
             print("vcas1 = ",unit.kt_mps(vcas1))
             print("vcas1 must be lower than or equal to 250kt")
@@ -602,9 +636,9 @@ class Time_to_Climb(requirement.TTC_req):
 
         #    Total time
         #-----------------------------------------------------------------------------------------------------------
-        self.ttc_eff = time1 + time2 + time3 + time4
+        ttc = time1 + time2 + time3 + time4
 
-        return
+        return {"ttc":ttc}
 
 
 class Mission(object):
@@ -645,32 +679,15 @@ class Mission(object):
     def eval_cruise_point(self,disa,altp,mach,mass):
         """Evaluate cruise point characteristics
         """
-        self.disa = disa
-        self.altp = altp
-        self.mach = mach
-        self.ktow = mass/self.aircraft.weight_cg.mtow
-
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
 
         sar,cz,cx,lod,thrust,throttle,sfc = self.aircraft.performance.level_flight(pamb,tamb,mach,mass)
-
-        self.crz_altp = altp
-        self.crz_sar = sar
-        self.crz_cz = cz
-        self.crz_lod = lod
-        self.crz_thrust = thrust
-        self.crz_throttle = throttle
-        self.crz_sfc = sfc
+        lf_dict = {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "thrust":thrust, "throttle":throttle, "sfc":sfc}
 
         altp_sar_max,sar_max,cz,cx,lod,thrust,throttle,sfc = self.aircraft.performance.max_sar(mass,mach,disa)
+        sm_dict = {"altp":altp_sar_max, "sar":sar_max, "cz":cz, "cx":cx, "lod":lod, "thrust":thrust, "throttle":throttle, "sfc":sfc}
 
-        self.max_sar_altp = altp_sar_max
-        self.max_sar = sar_max
-        self.max_sar_cz = cz
-        self.max_sar_lod = lod
-        self.max_sar_thrust = thrust
-        self.max_sar_throttle = throttle
-        self.max_sar_sfc = sfc
+        return lf_dict, sm_dict
 
     def eval_sar(self,altp,mass,mach,disa):
         """Evaluate Specific Air Range

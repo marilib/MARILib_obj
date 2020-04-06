@@ -107,7 +107,7 @@ data = [["SLST", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/10.
 
 file = "explore_design.txt"
 
-process.explore_design_space(ac, res, step, data, file)
+#process.explore_design_space(ac, res, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']
@@ -120,7 +120,7 @@ limit = [ac.performance.take_off.tofl_req,
          unit.min_s(ac.performance.time_to_climb.ttc_req)]       # Limit values
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub"])                 # ub: upper bound, lb: lower bound
 
-process.draw_design_space(file, res, field, const, color, limit, bound)
+#process.draw_design_space(file, res, field, const, color, limit, bound)
 
 #ac.draw.payload_range("This_plot")
 #ac.draw.view_3d("This_plot")
