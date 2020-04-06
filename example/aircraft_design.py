@@ -132,3 +132,19 @@ json = io.to_json_file(ac,'aircraft_test')
 io.to_binary_file(ac,'test')
 #ac2 = io.from_binary_file('test.pkl')
 
+
+
+def print_table(line1,line2,col1,col2,data,fmt=None,fmt_line=[],fmt_col=[]):
+    """Generic printer for data table with line titles and column titles
+
+    :param line1: a list of string to put in line 1, none if []
+    :param line2: a list of string to put in line 2, none if []
+    :param col1: a list string to put in column 1 under the first element of line(s), none if []
+    :param col2: a list string to put in column 2 under the second element of line(s), none if []
+    :param data: a list of list to interprete by line or by column depending on the provided fmt
+    :param fmt: a format descriptor to apply to all element of the matrix
+    :param fmt_col: a list of format descriptor to apply to all elements by collumn
+    :param fmt_line: a format descriptor to apply to all element of the matrix by line
+    :return:
+    """
+    pass
