@@ -9,6 +9,8 @@ from aircraft.airframe.airframe_root import Airframe
 from aircraft.airframe import component
 from aircraft.airframe import model
 
+from engine import interface
+
 from aircraft.performance import Performance
 from aircraft.environment import Economics
 from aircraft.environment import Environment
@@ -109,15 +111,27 @@ class Aircraft(object):
         if (self.arrangement.power_architecture=="tf"):
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = component.Inboard_wing_mounted_turbofan_nacelle(self)
+                    self.airframe.nacelle = component.Outboard_wing_mounted_tf_nacelle(self)
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = component.Outboard_wing_mounted_turbofan_nacelle(self)
-                    self.airframe.internal_nacelle = component.Inboard_wing_mounted_turbofan_nacelle(self)
+                    self.airframe.nacelle = component.Outboard_wing_mounted_tf_nacelle(self)
+                    self.airframe.internal_nacelle = component.Inboard_wing_mounted_tf_nacelle(self)
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = component.Rear_mounted_turbofan_nacelle(self)
+                    self.airframe.nacelle = component.Rear_mounted_tf_nacelle(self)
+                else:
+                    raise Exception("Number of engines not allowed")
+            else:
+                raise Exception("Type of nacelle attachment is unknown")
+            self.power_system = model.Turbofan(self)
+        elif (self.arrangement.power_architecture=="extf"):
+            if (self.arrangement.nacelle_attachment=="wing"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = interface.Outboard_wing_mounted_extf_nacelle(self)
+                elif (self.arrangement.number_of_engine=="quadri"):
+                    self.airframe.nacelle = interface.Outboard_wing_mounted_extf_nacelle(self)
+                    self.airframe.internal_nacelle = interface.Inboard_wing_mounted_extf_nacelle(self)
                 else:
                     raise Exception("Number of engines not allowed")
             else:

@@ -13,28 +13,30 @@ import earth
 
 from engine.ExergeticEngine import Turbofan
 
-from aircraft.airframe.component import Component
+from aircraft.airframe.component import Component, Inboard_wing_mounted_nacelle, Outboard_wing_mounted_nacelle
 
 
-class Exergetic_turbofan_nacelle(Component):
+class Exergetic_tf_nacelle(Component):
 
     def __init__(self, aircraft):
-        super(Exergetic_turbofan_nacelle, self).__init__(aircraft)
+        super(Exergetic_tf_nacelle, self).__init__(aircraft)
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+        self.cruise_thrust = self.__cruise_thrust__()
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
         self.reference_wBleed = 0.
-        self.rating_factor = {"MTO":1.00, "MCN":0.86, "MCL":0.78, "MCR":0.70, "FID":0.10}
+        self.rating_factor = {"MTO":1.00, "MCN":0.95, "MCL":0.92, "MCR":0.90, "FID":0.25}
         self.engine_bpr = self.__turbofan_bpr__()
         self.engine_fpr = 1.66
         self.engine_lpc_pr = 2.4
         self.engine_hpc_pr = 14.
-        self.engine_t41 = 1750.
+        self.engine_T4max = 1750.
+        self.TF_model = None
 
         self.width = None
         self.length = None
@@ -49,43 +51,57 @@ class Exergetic_turbofan_nacelle(Component):
             bpr = 5.
         return bpr
 
-     def __locate_nacelle__(self):
+    def __cruise_thrust__(self):
+        g = earth.gravity()
+        mass = self.aircraft.weight_cg.mtow
+        lod = 18.
+        fn =(mass*g/lod)/self.n_engine
+        return fn
+
+    def __locate_nacelle__(self):
         return np.full(3,None)
 
     def eval_geometry(self):
 
-        # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
-        mach = 0.25
-        disa = 15.
-        altp = 0.
+        self.TF_model = Turbofan()
+
+        disa = self.aircraft.requirement.cruise_disa
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-        vair = mach*earth.sound_speed(tamb)
 
-
-
-        TF = Turbofan()
-
-        # Set the flight conditions to 35000ft, ISA, Mn 0.78 as static temperature, static pressure and Mach number
-        TF.set_flight(218.808,
-                      23842.272,
-                      0.78)
+        # Set the flight conditions as static temperature, static pressure and Mach number
+        self.TF_model.set_flight(tamb,pamb,mach)
 
         # Set the losses for all components
-        TF.ex_loss = {"inlet": 0., "LPC": 0.132764781, "HPC": 0.100735895, "Burner": 0.010989737,
-                      "HPT": 0.078125215, "LPT": 0.104386722, "Fan": 0.074168491, "SE": 0.0, "PE": 0.}
+        self.TF_model.ex_loss = {"inlet": 0., "LPC": 0.132764781, "HPC": 0.100735895, "Burner": 0.010989737,
+                                 "HPT": 0.078125215, "LPT": 0.104386722, "Fan": 0.074168491, "SE": 0.0, "PE": 0.}
 
         # Design for a given thrust (Newton), BPR, FPR, LPC PR, HPC PR, T41 (Kelvin)
-        s, c, p = TF.design(21000.,
-                            self.engine_bpr,
-                            self.engine_fpr,
-                            self.engine_lpc_pr,
-                            self.engine_hpc_pr,
-                            Ttmax = self.engine_t41,
-                            HPX = self.reference_offtake,
-                            wBleed = self.reference_wBleed)
+        s, c, p = self.TF_model.design(self.cruise_thrust,
+                                       self.engine_bpr,
+                                       self.engine_fpr,
+                                       self.engine_lpc_pr,
+                                       self.engine_hpc_pr,
+                                       self.engine_T4max * self.rating_factor["MCR"],
+                                       self.reference_offtake,
+                                       self.reference_wBleed)
 
+        # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
+        disa = 15.
+        altp = 0.
+        mach = 0.25
 
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+
+        # Off design at take off
+        self.TF_model.set_flight(tamb, pamb, mach)
+        Ttmax = self.engine_T4max * self.rating_factor["MTO"]
+        x0 = self.TF_model.magic_guess()
+        s, c, p = self.TF_model.off_design(Ttmax=Ttmax, guess=x0)
+
+        self.reference_thrust = p['Fnet']
 
         self.width = 0.5*self.engine_bpr**0.7 + 5.E-6*self.reference_thrust
         self.length = 0.86*self.width + self.engine_bpr**0.37      # statistical regression
@@ -102,15 +118,31 @@ class Exergetic_turbofan_nacelle(Component):
         self.mass = (1250. + 0.021*self.reference_thrust)*2.       # statistical regression, two engines
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
-   def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.,nei=0.):
+    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.,nei=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
         """
+        self.TF_model.set_flight(tamb, pamb, mach)
+        kthrttl = throttle + self.rating_factor["FID"]*(1.-throttle)
+        Ttmax = self.engine_T4max * self.rating_factor[rating] * kthrttl
+        x0 = self.TF_model.magic_guess()
 
+        s, c, p = self.TF_model.off_design(Ttmax=Ttmax, guess=x0, HPX=pw_offtake)
 
+        total_thrust = p['Fnet']*(self.n_engine-nei)
+        fuel_flow = p['wfe']*(self.n_engine-nei)
         return total_thrust, fuel_flow
 
 
+class Outboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Outboard_wing_mounted_nacelle):
 
+    def __init__(self, aircraft):
+        super(Outboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
+
+
+class Inboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Inboard_wing_mounted_nacelle):
+
+    def __init__(self, aircraft):
+        super(Inboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
 
 
 

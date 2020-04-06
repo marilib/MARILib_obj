@@ -1193,10 +1193,10 @@ class System(Component):
     #              + 0.10*power_system_cg \         # TODO
 
 
-class Turbofan_nacelle(Component):
+class Semi_empiric_tf_nacelle(Component):
 
     def __init__(self, aircraft):
-        super(Turbofan_nacelle, self).__init__(aircraft)
+        super(Semi_empiric_tf_nacelle, self).__init__(aircraft)
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -1256,9 +1256,6 @@ class Turbofan_nacelle(Component):
 
         self.frame_origin = self.__locate_nacelle__()
 
-    def __locate_nacelle__(self):
-        return np.full(3,None)
-
     def eval_mass(self):
         self.mass = (1250. + 0.021*self.reference_thrust)*2.       # statistical regression, two engines
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
@@ -1302,10 +1299,10 @@ class Turbofan_nacelle(Component):
         return total_thrust, fuel_flow
 
 
-class Inboard_wing_mounted_turbofan_nacelle(Turbofan_nacelle):
+class Inboard_wing_mounted_nacelle(Component):
 
     def __init__(self, aircraft):
-        super(Inboard_wing_mounted_turbofan_nacelle, self).__init__(aircraft)
+        super(Inboard_wing_mounted_nacelle, self).__init__(aircraft)
 
     def __locate_nacelle__(self):
         body_width = self.aircraft.airframe.body.width
@@ -1326,10 +1323,10 @@ class Inboard_wing_mounted_turbofan_nacelle(Turbofan_nacelle):
         return np.array([x_int, y_int, z_int])
 
 
-class Outboard_wing_mounted_turbofan_nacelle(Turbofan_nacelle):
+class Outboard_wing_mounted_nacelle(Component):
 
     def __init__(self, aircraft):
-        super(Outboard_wing_mounted_turbofan_nacelle, self).__init__(aircraft)
+        super(Outboard_wing_mounted_nacelle, self).__init__(aircraft)
 
     def __locate_nacelle__(self):
         body_width = self.aircraft.airframe.body.width
@@ -1350,10 +1347,10 @@ class Outboard_wing_mounted_turbofan_nacelle(Turbofan_nacelle):
         return np.array([x_ext, y_ext, z_ext])
 
 
-class Rear_mounted_turbofan_nacelle(Turbofan_nacelle):
+class Rear_mounted_nacelle(Component):
 
     def __init__(self, aircraft):
-        super(Rear_mounted_turbofan_nacelle, self).__init__(aircraft)
+        super(Rear_mounted_nacelle, self).__init__(aircraft)
 
     def __locate_nacelle__(self):
         body_width = self.aircraft.airframe.body.width
@@ -1366,3 +1363,20 @@ class Rear_mounted_turbofan_nacelle(Turbofan_nacelle):
 
         return np.array([x_int, y_int, z_int])
 
+
+class Outboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Outboard_wing_mounted_nacelle):
+
+    def __init__(self, aircraft):
+        super(Outboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
+
+
+class Inboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Inboard_wing_mounted_nacelle):
+
+    def __init__(self, aircraft):
+        super(Inboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
+
+
+class Rear_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Rear_mounted_nacelle):
+
+    def __init__(self, aircraft):
+        super(Rear_mounted_tf_nacelle, self).__init__(aircraft)
