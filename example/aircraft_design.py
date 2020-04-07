@@ -26,7 +26,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "extf",       # "tf", "extf", "pf", "pte1", "ef1", "ep1",
+                   power_architecture = "tf",       # "tf", "extf", "pf", "pte1", "ef1", "ep1",
                    energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2" or "battery"
 
 reqs = Requirement(n_pax_ref = 150.,

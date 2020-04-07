@@ -34,20 +34,14 @@ class Performance(object):
         """Evaluate general performances of the airplane
         """
         #---------------------------------------------------------------------------------------------------
-        disa = self.aircraft.requirement.cruise_disa
-        altp = self.aircraft.requirement.cruise_altp
-        mach = self.aircraft.requirement.cruise_mach
-        ktow = self.aircraft.performance.mission.ktow
+        self.mission.disa = self.aircraft.requirement.cruise_disa
+        self.mission.altp = self.aircraft.requirement.cruise_altp
+        self.mission.mach = self.aircraft.requirement.cruise_mach
+        self.mission.ktow = self.aircraft.performance.mission.ktow
 
-        mass = ktow*self.aircraft.weight_cg.mtow
-        lf_dict, sm_dict = self.aircraft.performance.mission.eval_cruise_point(disa,altp,mach,mass)
+        mass = self.mission.ktow*self.aircraft.weight_cg.mtow
+        lf_dict, sm_dict = self.aircraft.performance.mission.eval_cruise_point(self.mission.disa, self.mission.altp, self.mission.mach, mass)
 
-        self.mission.disa = disa
-        self.mission.altp = altp
-        self.mission.mach = mach
-        self.mission.ktow = ktow
-
-        self.mission.crz_altp = altp
         self.mission.crz_sar = lf_dict["sar"]
         self.mission.crz_cz = lf_dict["cz"]
         self.mission.crz_lod = lf_dict["lod"]
@@ -64,24 +58,18 @@ class Performance(object):
         self.mission.max_sar_sfc = sm_dict["sfc"]
 
         #---------------------------------------------------------------------------------------------------
-        disa = self.aircraft.requirement.take_off.disa
-        altp = self.aircraft.requirement.take_off.altp
-        kmtow = self.aircraft.requirement.take_off.kmtow
-        kvs1g = self.aircraft.requirement.take_off.kvs1g
-        s2_min_path = self.aircraft.requirement.take_off.s2_min_path
-        hld_conf = self.aircraft.performance.take_off.hld_conf
-
-        self.take_off.disa = disa
-        self.take_off.altp = altp
-        self.take_off.kmtow = kmtow
-        self.take_off.kvs1g = kvs1g
-        self.take_off.s2_min_path = s2_min_path
-        self.take_off.hld_conf = hld_conf
+        self.take_off.disa = self.aircraft.requirement.take_off.disa
+        self.take_off.altp = self.aircraft.requirement.take_off.altp
+        self.take_off.kmtow = self.aircraft.requirement.take_off.kmtow
+        self.take_off.kvs1g = self.aircraft.requirement.take_off.kvs1g
+        self.take_off.s2_min_path = self.aircraft.requirement.take_off.s2_min_path
+        self.take_off.hld_conf = self.aircraft.performance.take_off.hld_conf
         self.take_off.tofl_req = self.aircraft.requirement.take_off.tofl_req
 
         throttle = 1.
-        mass = kmtow*self.aircraft.weight_cg.mtow
-        to_dict = self.take_off.eval(disa,altp,mass,hld_conf,throttle,kvs1g,s2_min_path)
+        mass = self.take_off.kmtow*self.aircraft.weight_cg.mtow
+        to_dict = self.take_off.eval(self.take_off.disa, self.take_off.altp, mass, self.take_off.hld_conf,
+                                     throttle, self.take_off.kvs1g, self.take_off.s2_min_path)
 
         self.take_off.tofl_eff = to_dict["tofl"]
         self.take_off.kvs1g_eff = to_dict["kvs1g"]
@@ -91,110 +79,80 @@ class Performance(object):
         self.take_off.limit = to_dict["limit"]
 
         #---------------------------------------------------------------------------------------------------
-        disa = self.aircraft.requirement.approach.disa
-        altp = self.aircraft.requirement.approach.altp
-        kmlw = self.aircraft.requirement.approach.kmlw
-        kvs1g = self.aircraft.requirement.approach.kvs1g
-        hld_conf = self.aircraft.performance.approach.hld_conf
-
-        self.approach.disa = disa
-        self.approach.altp = altp
-        self.approach.kmlw = kmlw
-        self.approach.kvs1g = kvs1g
-        self.approach.hld_conf = hld_conf
+        self.approach.disa = self.aircraft.requirement.approach.disa
+        self.approach.altp = self.aircraft.requirement.approach.altp
+        self.approach.kmlw = self.aircraft.requirement.approach.kmlw
+        self.approach.kvs1g = self.aircraft.requirement.approach.kvs1g
+        self.approach.hld_conf = self.aircraft.performance.approach.hld_conf
         self.approach.app_speed_req = self.aircraft.requirement.approach.app_speed_req
 
-        mass = kmlw*self.aircraft.weight_cg.mlw
-        ld_dict = self.approach.eval(disa,altp,mass,hld_conf,kvs1g)
+        mass = self.approach.kmlw*self.aircraft.weight_cg.mlw
+        ld_dict = self.approach.eval(self.approach.disa,self.approach.altp,mass,self.approach.hld_conf,self.approach.kvs1g)
 
         self.approach.app_speed_eff = ld_dict["vapp"]
 
         #---------------------------------------------------------------------------------------------------
-        disa = self.aircraft.requirement.vz_mcl.disa
-        altp = self.aircraft.requirement.vz_mcl.altp
-        kmtow = self.aircraft.requirement.vz_mcl.kmtow
-        mach = self.aircraft.requirement.vz_mcl.mach
-        rating = self.aircraft.requirement.vz_mcl.rating
-        speed_mode = self.aircraft.requirement.vz_mcl.speed_mode
-
-        self.mcl_ceiling.disa = disa
-        self.mcl_ceiling.altp = altp
-        self.mcl_ceiling.mach = mach
-        self.mcl_ceiling.rating = rating
-        self.mcl_ceiling.speed_mode = speed_mode
-        self.mcl_ceiling.kmtow = kmtow
+        self.mcl_ceiling.disa = self.aircraft.requirement.vz_mcl.disa
+        self.mcl_ceiling.altp = self.aircraft.requirement.vz_mcl.altp
+        self.mcl_ceiling.mach = self.aircraft.requirement.vz_mcl.mach
+        self.mcl_ceiling.kmtow = self.aircraft.requirement.vz_mcl.kmtow
+        self.mcl_ceiling.rating = self.aircraft.requirement.vz_mcl.rating
+        self.mcl_ceiling.speed_mode = self.aircraft.requirement.vz_mcl.speed_mode
         self.mcl_ceiling.vz_req = self.aircraft.requirement.vz_mcl.vz_req
 
         throttle = 1.
-        mass = kmtow*self.aircraft.weight_cg.mtow
-        cl_dict = self.mcl_ceiling.eval(disa,altp,mach,mass,rating,throttle,speed_mode)
+        mass = self.mcl_ceiling.kmtow*self.aircraft.weight_cg.mtow
+        cl_dict = self.mcl_ceiling.eval(self.mcl_ceiling.disa,self.mcl_ceiling.altp,self.mcl_ceiling.mach,mass,
+                                        self.mcl_ceiling.rating,throttle,self.mcl_ceiling.speed_mode)
 
         self.mcl_ceiling.vz_eff = cl_dict["vz"]
 
         #---------------------------------------------------------------------------------------------------
-        disa = self.aircraft.requirement.vz_mcr.disa
-        altp = self.aircraft.requirement.vz_mcr.altp
-        kmtow = self.aircraft.requirement.vz_mcr.kmtow
-        mach = self.aircraft.requirement.vz_mcr.mach
-        rating = self.aircraft.requirement.vz_mcr.rating
-        speed_mode = self.aircraft.requirement.vz_mcr.speed_mode
-
-        self.mcr_ceiling.disa = disa
-        self.mcr_ceiling.altp = altp
-        self.mcr_ceiling.mach = mach
-        self.mcr_ceiling.rating = rating
-        self.mcr_ceiling.speed_mode = speed_mode
-        self.mcr_ceiling.kmtow = kmtow
+        self.mcr_ceiling.disa = self.aircraft.requirement.vz_mcr.disa
+        self.mcr_ceiling.altp = self.aircraft.requirement.vz_mcr.altp
+        self.mcr_ceiling.mach = self.aircraft.requirement.vz_mcr.mach
+        self.mcr_ceiling.kmtow = self.aircraft.requirement.vz_mcr.kmtow
+        self.mcr_ceiling.rating = self.aircraft.requirement.vz_mcr.rating
+        self.mcr_ceiling.speed_mode = self.aircraft.requirement.vz_mcr.speed_mode
         self.mcr_ceiling.vz_req = self.aircraft.requirement.vz_mcr.vz_req
 
         throttle = 1.
-        mass = kmtow*self.aircraft.weight_cg.mtow
-        cr_dict = self.mcr_ceiling.eval(disa,altp,mach,mass,rating,throttle,speed_mode)
+        mass = self.mcr_ceiling.kmtow*self.aircraft.weight_cg.mtow
+        cl_dict = self.mcr_ceiling.eval(self.mcr_ceiling.disa,self.mcr_ceiling.altp,self.mcr_ceiling.mach,mass,
+                                        self.mcr_ceiling.rating,throttle,self.mcr_ceiling.speed_mode)
 
-        self.mcr_ceiling.vz_eff = cr_dict["vz"]
+        self.mcr_ceiling.vz_eff = cl_dict["vz"]
 
         #---------------------------------------------------------------------------------------------------
-        disa = self.aircraft.requirement.oei.disa
-        altp = self.aircraft.requirement.oei.altp
-        kmtow = self.aircraft.requirement.oei.kmtow
-        rating = self.aircraft.requirement.oei.rating
-        speed_mode = self.aircraft.requirement.oei.speed_mode
-
-        self.oei_ceiling.disa = disa
-        self.oei_ceiling.altp = altp
-        self.oei_ceiling.kmtow = kmtow
-        self.oei_ceiling.rating = rating
-        self.oei_ceiling.speed_mode = speed_mode
+        self.oei_ceiling.disa = self.aircraft.requirement.oei.disa
+        self.oei_ceiling.altp = self.aircraft.requirement.oei.altp
+        self.oei_ceiling.kmtow = self.aircraft.requirement.oei.kmtow
+        self.oei_ceiling.rating = self.aircraft.requirement.oei.rating
+        self.oei_ceiling.speed_mode = self.aircraft.requirement.oei.speed_mode
         self.oei_ceiling.path_req = self.aircraft.requirement.oei.path_req
 
         throttle = 1.
-        mass = kmtow*self.aircraft.weight_cg.mtow
-        ei_dict = self.oei_ceiling.eval(disa,altp,mass,rating,throttle,speed_mode)
+        mass = self.oei_ceiling.kmtow*self.aircraft.weight_cg.mtow
+        ei_dict = self.oei_ceiling.eval(self.oei_ceiling.disa,self.oei_ceiling.altp,mass,self.oei_ceiling.rating,throttle,self.oei_ceiling.speed_mode)
 
         self.oei_ceiling.path_eff = ei_dict["path"]
         self.oei_ceiling.mach_opt = ei_dict["mach"]
 
         #---------------------------------------------------------------------------------------------------
-        disa = self.aircraft.requirement.ttc.disa
-        cas1 = self.aircraft.requirement.ttc.cas1
-        altp1 = self.aircraft.requirement.ttc.altp1
-        cas2 = self.aircraft.requirement.ttc.cas2
-        altp2 = self.aircraft.requirement.ttc.altp2
-        mach = self.aircraft.requirement.ttc.mach
-        toc = self.aircraft.requirement.ttc.altp
-
-        self.time_to_climb.disa = disa
-        self.time_to_climb.cas1 = cas1
-        self.time_to_climb.altp1 = altp1
-        self.time_to_climb.cas2 = cas2
-        self.time_to_climb.altp2 = altp2
-        self.time_to_climb.mach = mach
-        self.time_to_climb.altp = toc
+        self.time_to_climb.disa = self.aircraft.requirement.ttc.disa
+        self.time_to_climb.cas1 = self.aircraft.requirement.ttc.cas1
+        self.time_to_climb.altp1 = self.aircraft.requirement.ttc.altp1
+        self.time_to_climb.cas2 = self.aircraft.requirement.ttc.cas2
+        self.time_to_climb.altp2 = self.aircraft.requirement.ttc.altp2
+        self.time_to_climb.mach = self.aircraft.requirement.ttc.mach
+        self.time_to_climb.altp = self.aircraft.requirement.ttc.altp
         self.time_to_climb.ttc_req = self.aircraft.requirement.ttc.ttc_req
 
         throttle = 1.
         mass = self.aircraft.weight_cg.mtow
-        tc_dict = self.time_to_climb.eval(disa,toc,mach,mass,altp1,cas1,altp2,cas2,throttle)
+        tc_dict = self.time_to_climb.eval(self.time_to_climb.disa,self.time_to_climb.altp,self.time_to_climb.mach,mass,
+                                          self.time_to_climb.altp1,self.time_to_climb.cas1,self.time_to_climb.altp2,
+                                          self.time_to_climb.cas2,throttle)
 
         self.time_to_climb.ttc_eff = tc_dict["ttc"]
 
@@ -344,13 +302,18 @@ class Performance(object):
         return acc
 
 
-class Take_off(requirement.Take_off_req):
+class Take_off(object):
     """Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(Take_off, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
+        self.disa = None
+        self.altp = None
+        self.kmtow = None
+        self.kvs1g = None
+        self.s2_min_path = None
+        self.tofl_req = None
         self.tofl_eff = None
         self.hld_conf = self.aircraft.aerodynamics.hld_conf_to
         self.kvs1g_eff = None
@@ -374,7 +337,7 @@ class Take_off(requirement.Take_off_req):
         else:
             dkvs1g = 0.005
             kvs1g_ = np.array([0.,0.])
-            kvs1g_[0] = self.kvs1g
+            kvs1g_[0] = kvs1g
             kvs1g_[1] = kvs1g_[0] + dkvs1g
 
             s2_path_ = np.array([0.,0.])
@@ -427,13 +390,17 @@ class Take_off(requirement.Take_off_req):
         return tofl,s2_path,speed,mach
 
 
-class Approach(requirement.Approach_req):
+class Approach():
     """Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(Approach, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
+        self.disa = None
+        self.altp = None
+        self.kmlw = None
+        self.kvs1g = None
+        self.app_speed_req = None
         self.app_speed_eff = None
         self.hld_conf = self.aircraft.aerodynamics.hld_conf_ld
 
@@ -453,13 +420,19 @@ class Approach(requirement.Approach_req):
         return {"vapp":vapp}
 
 
-class MCL_ceiling(requirement.Vz_mcl_req):
+class MCL_ceiling():
     """Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(MCL_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
+        self.disa = None
+        self.altp = None
+        self.mach = None
+        self.kmtow = None
+        self.rating = None
+        self.speed_mode = None
+        self.vz_req = None
         self.vz_eff = None
 
     def thrust_req(self,throttle):
@@ -478,13 +451,19 @@ class MCL_ceiling(requirement.Vz_mcl_req):
         return {"vz":vz, "slope":slope}
 
 
-class MCR_ceiling(requirement.Vz_mcr_req):
+class MCR_ceiling():
     """Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(MCR_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
+        self.disa = None
+        self.altp = None
+        self.mach = None
+        self.kmtow = None
+        self.rating = None
+        self.speed_mode = None
+        self.vz_req = None
         self.vz_eff = None
 
     def thrust_req(self,throttle):
@@ -503,13 +482,18 @@ class MCR_ceiling(requirement.Vz_mcr_req):
         return {"vz":vz, "slope":slope}
 
 
-class OEI_ceiling(requirement.OEI_ceiling_req):
+class OEI_ceiling():
     """Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(OEI_ceiling, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
+        self.disa = None
+        self.altp = None
+        self.kmtow = None
+        self.rating = None
+        self.speed_mode = None
+        self.path_req = None
         self.path_eff = None
         self.mach_opt = None
 
@@ -537,6 +521,12 @@ class Time_to_Climb(requirement.TTC_req):
         super(Time_to_Climb, self).__init__(aircraft.arrangement, aircraft.requirement)
         self.aircraft = aircraft
 
+        self.cas1 = None
+        self.altp1 = None
+        self.cas2 = None
+        self.altp2 = None
+        self.altp = None
+        self.ttc_req = None
         self.ttc_eff = None
 
     def thrust_req(self,throttle):
@@ -681,7 +671,6 @@ class Mission(object):
 
         self.ktow = 0.90
 
-        self.crz_altp = None
         self.crz_sar = None
         self.crz_cz = None
         self.crz_lod = None

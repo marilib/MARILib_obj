@@ -1347,10 +1347,10 @@ class Outboard_wing_mounted_nacelle(Component):
         return np.array([x_ext, y_ext, z_ext])
 
 
-class Rear_mounted_nacelle(Component):
+class Rear_fuselage_mounted_nacelle(Component):
 
     def __init__(self, aircraft):
-        super(Rear_mounted_nacelle, self).__init__(aircraft)
+        super(Rear_fuselage_mounted_nacelle, self).__init__(aircraft)
 
     def __locate_nacelle__(self):
         body_width = self.aircraft.airframe.body.width
@@ -1376,7 +1376,7 @@ class Inboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Inboard_wing_mount
         super(Inboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
 
 
-class Rear_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Rear_mounted_nacelle):
+class Rear_fuselage_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Rear_fuselage_mounted_nacelle):
 
     def __init__(self, aircraft):
-        super(Rear_mounted_tf_nacelle, self).__init__(aircraft)
+        super(Rear_fuselage_mounted_tf_nacelle, self).__init__(aircraft)

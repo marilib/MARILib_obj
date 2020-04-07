@@ -119,7 +119,7 @@ class Aircraft(object):
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = component.Rear_mounted_tf_nacelle(self)
+                    self.airframe.nacelle = component.Rear_fuselage_mounted_tf_nacelle(self)
                 else:
                     raise Exception("Number of engines not allowed")
             else:
