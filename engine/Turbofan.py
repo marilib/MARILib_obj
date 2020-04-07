@@ -97,3 +97,16 @@ TF.print_stations(s)
 TF.print_perfos(p)
 print("+++++++++++++++++++++++++++++++++++++++++++++++++++")
 print(x0)
+
+
+# other point
+TF.set_flight(285.1782, 95951.78827609782, 0.38)
+#x0 = np.ones_like(TF.dp)
+#x0[0] = x0[0] * 2.
+#x0 = p['sol']
+x0 = TF.magic_guess()
+s, c, p = TF.off_design(Ttmax=1200., guess=x0)
+TF.print_stations(s)
+TF.print_perfos(p)
+print("+++++++++++++++++++++++++++++++++++++++++++++++++++")
+print(x0)

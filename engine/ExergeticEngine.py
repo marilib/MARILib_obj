@@ -732,6 +732,7 @@ class ExergeticEngine(object):
         # other keyed argument will be forwarded to the cycle method
         other_kwargs = {k: kwargs[k] for k in kwargs.keys() if k not in ['guess']}
         if guess is None:
+            print(*args)
             guess = self.design_guess(*args)
 
         # find out the cycle parameters that provide the performance required
@@ -1221,7 +1222,7 @@ class Turbofan(ExergeticEngine):
         Provide a starting point for off-design computation which revealed to be very robust to flying conditions,
         but nothing is guaranty
         """
-        guess = [0.8, 0.9, 0.9, 0.9, 0.9]
+        guess = [0.7, 0.9, 0.9, 0.9, 0.9]
         return guess
 
     def draw_sankey(self, s, c, p, ax):

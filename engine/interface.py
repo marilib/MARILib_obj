@@ -11,7 +11,7 @@ import numpy as np
 from aircraft.tool import unit
 import earth
 
-from engine.ExergeticEngine import Turbofan
+from engine.ExergeticEngine import ExergeticEngine, Turbofan
 
 from aircraft.airframe.component import Component, Inboard_wing_mounted_nacelle, Outboard_wing_mounted_nacelle
 
@@ -33,10 +33,11 @@ class Exergetic_tf_nacelle(Component):
         self.rating_factor = {"MTO":1.00, "MCN":0.95, "MCL":0.92, "MCR":0.90, "FID":0.25}
         self.engine_bpr = self.__turbofan_bpr__()
         self.engine_fpr = 1.66
-        self.engine_lpc_pr = 2.4
+        self.engine_lpc_pr = 2.85
         self.engine_hpc_pr = 14.
         self.engine_T4max = 1750.
-        self.TF_model = None
+        self.engine_wfe_ref = None
+        self.TF_model = Turbofan()
 
         self.width = None
         self.length = None
@@ -53,17 +54,12 @@ class Exergetic_tf_nacelle(Component):
 
     def __cruise_thrust__(self):
         g = earth.gravity()
-        mass = self.aircraft.weight_cg.mtow
+        mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
         lod = 18.
         fn =(mass*g/lod)/self.n_engine
         return fn
 
-    def __locate_nacelle__(self):
-        return np.full(3,None)
-
     def eval_geometry(self):
-
-        self.TF_model = Turbofan()
 
         disa = self.aircraft.requirement.cruise_disa
         altp = self.aircraft.requirement.cruise_altp
@@ -84,9 +80,11 @@ class Exergetic_tf_nacelle(Component):
                                        self.engine_fpr,
                                        self.engine_lpc_pr,
                                        self.engine_hpc_pr,
-                                       self.engine_T4max * self.rating_factor["MCR"],
-                                       self.reference_offtake,
-                                       self.reference_wBleed)
+                                       Ttmax = self.engine_T4max * self.rating_factor["MCR"],
+                                       HPX = self.reference_offtake,
+                                       wBleed = self.reference_wBleed)
+
+        self.engine_wfe_ref = p['wfe']
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         disa = 15.
@@ -123,10 +121,12 @@ class Exergetic_tf_nacelle(Component):
         """
         self.TF_model.set_flight(tamb, pamb, mach)
         kthrttl = throttle + self.rating_factor["FID"]*(1.-throttle)
-        Ttmax = self.engine_T4max * self.rating_factor[rating] * kthrttl
+        T4 = self.engine_T4max * self.rating_factor[rating] * kthrttl
         x0 = self.TF_model.magic_guess()
 
-        s, c, p = self.TF_model.off_design(Ttmax=Ttmax, guess=x0, HPX=pw_offtake)
+        print(pamb,tamb,mach,rating,throttle)
+
+        s, c, p = self.TF_model.off_design(Ttmax=T4, guess=x0, HPX=pw_offtake)
 
         total_thrust = p['Fnet']*(self.n_engine-nei)
         fuel_flow = p['wfe']*(self.n_engine-nei)

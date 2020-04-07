@@ -242,7 +242,6 @@ class Performance(object):
 
         thrust = (gam/2.)*pamb*mach**2*self.aircraft.airframe.wing.area*cx
         sfc,throttle = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust)
-        if (throttle>1.): print("level_flight, throttle is higher than 1, throttle = ",throttle)
 
         vsnd = earth.sound_speed(tamb)
         sar = (vsnd*mach*lod)/(mass*g*sfc)
@@ -731,7 +730,6 @@ class Mission(object):
         nei = 0
         thrust = mass*g / lod
         sfc,throttle = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust,nei)
-        if (throttle>1.): print("eval_sar, throttle is higher than 1, throttle = ",throttle)
 
         sar = (vsnd*mach*lod)/(mass*g*sfc)
         return sar,cz,cx,lod,thrust,throttle,sfc

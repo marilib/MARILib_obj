@@ -365,6 +365,7 @@ class Turbofan(Power_system):
         """Total thrust of a pure turbofan engine
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
+        rating_factor = self.aircraft.airframe.nacelle.rating_factor
 
         def fct(throttle):
             fn,ff,sfc = self.thrust(pamb,tamb,mach,rating,throttle,nei=nei)
@@ -374,6 +375,8 @@ class Turbofan(Power_system):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         throttle = output_dict[0][0]
+        if (throttle>1.):
+            print("Throttle is higher than rating, rating = ",rating,"  throttle = ",throttle)
 
         fn,ff,sfc = self.thrust(pamb,tamb,mach,rating,throttle,nei=nei)
 
