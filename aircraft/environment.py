@@ -11,6 +11,8 @@ import earth
 
 from aircraft.tool import unit
 
+from aircraft.performance import Flight
+
 
 class Economics():
 
@@ -152,9 +154,10 @@ class Economics():
         return
 
 
-class Environment():
+class Environment(Flight):
 
     def __init__(self, aircraft):
+        super(Environment, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.CO2_metric = None
@@ -184,35 +187,35 @@ class Environment():
 
         # WARNING : Maximum SAR altitude or speed may be lowered by propulsion ceilings
         #-----------------------------------------------------------------------------------------------------------
-        altp_sar_max_hw,sar_max_hw,_,_,_,_,_,_ = self.aircraft.performance.max_sar(high_weight,mach,disa)
+        altp_sar_max_hw,sar_max_hw,_,_,_,_,_,_ = self.eval_max_sar(high_weight,mach,disa)
         altp_sar_max_hw,hw_ceiling = self.check_ceiling(high_weight,altp_sar_max_hw,mach,disa)
         if(hw_ceiling<0.):
             lower_mach = mach - 0.03
-            altp_sar_max_hw,sar_max_hw,_,_,_,_,_,_ = self.aircraft.performance.max_sar(high_weight,lower_mach,disa)
+            altp_sar_max_hw,sar_max_hw,_,_,_,_,_,_ = self.eval_max_sar(high_weight,lower_mach,disa)
             altp_sar_max_hw,hw_ceiling = self.check_ceiling(high_weight,altp_sar_max_hw,lower_mach,disa)
-            sar_max_hw,_,_,_,_,_,_ = self.aircraft.performance.mission.eval_sar(altp_sar_max_hw,high_weight,lower_mach,disa)
+            sar_max_hw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_hw,high_weight,lower_mach,disa)
         else:
-            sar_max_hw,_,_,_,_,_,_ = self.aircraft.performance.mission.eval_sar(altp_sar_max_hw,high_weight,mach,disa)
+            sar_max_hw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_hw,high_weight,mach,disa)
 
-        altp_sar_max_mw,sar_max_mw,_,_,_,_,_,_ = self.aircraft.performance.max_sar(medium_weight,mach,disa)
+        altp_sar_max_mw,sar_max_mw,_,_,_,_,_,_ = self.eval_max_sar(medium_weight,mach,disa)
         altp_sar_max_mw,mw_ceiling = self.check_ceiling(medium_weight,altp_sar_max_mw,mach,disa)
         if(mw_ceiling<0.):
             lower_mach = mach - 0.03
-            altp_sar_max_mw,sar_max_mw,_,_,_,_,_,_ = self.aircraft.performance.max_sar(medium_weight,lower_mach,disa)
+            altp_sar_max_mw,sar_max_mw,_,_,_,_,_,_ = self.eval_max_sar(medium_weight,lower_mach,disa)
             altp_sar_max_mw,mw_ceiling = self.check_ceiling(medium_weight,altp_sar_max_mw,lower_mach,disa)
-            sar_max_mw,_,_,_,_,_,_ = self.aircraft.performance.mission.eval_sar(altp_sar_max_mw,medium_weight,lower_mach,disa)
+            sar_max_mw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_mw,medium_weight,lower_mach,disa)
         else:
-            sar_max_mw,_,_,_,_,_,_ = self.aircraft.performance.mission.eval_sar(altp_sar_max_mw,medium_weight,mach,disa)
+            sar_max_mw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_mw,medium_weight,mach,disa)
 
-        altp_sar_max_lw,sar_max_lw,_,_,_,_,_,_ = self.aircraft.performance.max_sar(low_weight,mach,disa)
+        altp_sar_max_lw,sar_max_lw,_,_,_,_,_,_ = self.eval_max_sar(low_weight,mach,disa)
         altp_sar_max_lw,lw_ceiling = self.check_ceiling(low_weight,altp_sar_max_lw,mach,disa)
         if(lw_ceiling<0.):
             lower_mach = mach - 0.03
-            altp_sar_max_lw,sar_max_lw,_,_,_,_,_,_ = self.aircraft.performance.max_sar(low_weight,lower_mach,disa)
+            altp_sar_max_lw,sar_max_lw,_,_,_,_,_,_ = self.eval_max_sar(low_weight,lower_mach,disa)
             altp_sar_max_lw,lw_ceiling = self.check_ceiling(low_weight,altp_sar_max_lw,lower_mach,disa)
-            sar_max_lw,_,_,_,_,_,_ = self.aircraft.performance.mission.eval_sar(altp_sar_max_lw,low_weight,lower_mach,disa)
+            sar_max_lw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_lw,low_weight,lower_mach,disa)
         else:
-            sar_max_lw,_,_,_,_,_,_ = self.aircraft.performance.mission.eval_sar(altp_sar_max_lw,low_weight,mach,disa)
+            sar_max_lw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_lw,low_weight,mach,disa)
 
         self.CO2_metric = (1./rgf**0.24)*(1./sar_max_hw + 1./sar_max_mw + 1./sar_max_lw)/3.        # kg/m/m2
         return
@@ -232,19 +235,19 @@ class Environment():
         throttle = 1.
         ceiling = 0
 
-        slope,vz_clb = self.aircraft.performance.air_path(nei,altp_ini,disa,isomach,mach,mass,"MCL",throttle)
+        slope,vz_clb = self.air_path(nei,altp_ini,disa,isomach,mach,mass,"MCL",throttle)
 
         if(vz_clb<vz_req_mcl):
-            altp, rei = self.aircraft.performance.propulsion_ceiling(altp_ini,nei,vz_req_mcl,disa,isomach,mach,mass,"MCL",throttle)
+            altp, rei = self.propulsion_ceiling(altp_ini,nei,vz_req_mcl,disa,isomach,mach,mass,"MCL",throttle)
             if(rei==1):
                 ceiling = 1
             else:
                 ceiling = -1
 
-        [slope,vz_crz] = self.aircraft.performance.air_path(nei,altp_ini,disa,isomach,mach,mass,"MCR",throttle)
+        [slope,vz_crz] = self.air_path(nei,altp_ini,disa,isomach,mach,mass,"MCR",throttle)
 
         if(vz_crz<vz_req_mcr):
-            altp, rei = self.aircraft.performance.propulsion_ceiling(altp_ini,nei,vz_req_mcr,disa,isomach,mach,mass,"MCR",throttle)
+            altp, rei = self.propulsion_ceiling(altp_ini,nei,vz_req_mcr,disa,isomach,mach,mass,"MCR",throttle)
 
             if(rei==1):
                 ceiling = 2

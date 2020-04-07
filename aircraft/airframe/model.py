@@ -11,6 +11,8 @@ from scipy.optimize import fsolve
 import aircraft.tool.unit as unit
 import earth
 
+from aircraft.performance import Flight
+
 from aircraft.tool.math import lin_interp_1d, maximize_1d
 
 
@@ -343,7 +345,7 @@ class Power_system(object):
         raise NotImplementedError
 
 
-class Turbofan(Power_system):
+class Turbofan(Power_system, Flight):
 
     def __init__(self, aircraft):
         super(Turbofan, self).__init__(aircraft)
@@ -405,7 +407,7 @@ class Turbofan(Power_system):
 
         mass = self.aircraft.performance.mission.ktow*tow
 
-        sar,cz,cx,lod,thrust,throttle,sfc = self.aircraft.performance.level_flight(pamb,tamb,mach,mass)
+        sar,cz,cx,lod,thrust,throttle,sfc = self.level_flight(pamb,tamb,mach,mass)
         fuel = tow*(1-np.exp(-(sfc*g*range)/(tas*lod)))
         time = 1.09*(range/tas)
 
