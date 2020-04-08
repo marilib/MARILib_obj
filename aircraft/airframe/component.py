@@ -1268,7 +1268,7 @@ class Semi_empiric_tf_nacelle(Component):
             bpr = 5.
         return bpr
 
-    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.,nei=0.):
+    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
         """
         kth =  0.475*mach**2 + 0.091*(self.engine_bpr/10.)**2 \
@@ -1288,8 +1288,7 @@ class Semi_empiric_tf_nacelle(Component):
         fan_thrust0 = total_thrust0 * (1.-self.core_thrust_ratio)    # Fan thrust
         fan_power0 = fan_thrust0*vair/self.efficiency_prop   # Available total shaft power for one engine
 
-        overall_fan_power = fan_power0*(self.n_engine-nei) - pw_offtake
-        fan_power = overall_fan_power / (self.n_engine-nei)
+        fan_power = fan_power0 - pw_offtake
         fan_thrust = (fan_power/vair)*self.efficiency_prop
         total_thrust = fan_thrust + core_thrust0
 
@@ -1297,6 +1296,17 @@ class Semi_empiric_tf_nacelle(Component):
         fuel_flow = sfc_ref * total_thrust0
 
         return total_thrust, fuel_flow
+
+
+    def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
+        """Unitary thrust of a pure turbofan engine (semi-empirical model)
+        """
+        fn, ff = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake)
+
+        throttle = thrust/fn
+        sfc = ff/fn
+
+        return sfc, throttle
 
 
 class Inboard_wing_mounted_nacelle(Component):

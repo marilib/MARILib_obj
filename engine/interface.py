@@ -32,11 +32,12 @@ class Exergetic_tf_nacelle(Component):
         self.reference_wBleed = 0.
         self.rating_factor = {"MTO":1.00, "MCN":0.95, "MCL":0.92, "MCR":0.90, "FID":0.25}
         self.engine_bpr = self.__turbofan_bpr__()
-        self.engine_fpr = 1.66
-        self.engine_lpc_pr = 2.85
-        self.engine_hpc_pr = 14.
-        self.engine_T4max = 1750.
-        self.engine_wfe_ref = None
+        self.engine_fpr = 1.2
+        self.engine_lpc_pr = 3.0
+        self.engine_hpc_pr = 14.2
+        self.engine_T4max = 1700.
+        self.cooling_flow = 0.1
+
         self.TF_model = Turbofan()
 
         self.width = None
@@ -73,6 +74,13 @@ class Exergetic_tf_nacelle(Component):
         # Set the losses for all components
         self.TF_model.ex_loss = {"inlet": 0., "LPC": 0.132764781, "HPC": 0.100735895, "Burner": 0.010989737,
                                  "HPT": 0.078125215, "LPT": 0.104386722, "Fan": 0.074168491, "SE": 0.0, "PE": 0.}
+        self.TF_model.ex_loss["inlet"] = self.TF_model.from_PR_loss_to_Ex_loss(0.9985)
+        tau_f, self.TF_model.ex_loss["Fan"] = self.TF_model.from_PR_to_tau_pol(1.166, 0.93689)
+        tau_l, self.TF_model.ex_loss["LPC"] = self.TF_model.from_PR_to_tau_pol(3.12, 0.89)
+        tau_h, self.TF_model.ex_loss["HPC"] = self.TF_model.from_PR_to_tau_pol(14.22820513, 0.89)
+        self.TF_model.ex_loss["SE"] = self.TF_model.from_PR_loss_to_Ex_loss(0.992419452)
+
+        self.TF_model.cooling_flow = self.cooling_flow
 
         # Design for a given thrust (Newton), BPR, FPR, LPC PR, HPC PR, T41 (Kelvin)
         s, c, p = self.TF_model.design(self.cruise_thrust,
@@ -83,8 +91,6 @@ class Exergetic_tf_nacelle(Component):
                                        Ttmax = self.engine_T4max * self.rating_factor["MCR"],
                                        HPX = self.reference_offtake,
                                        wBleed = self.reference_wBleed)
-
-        self.engine_wfe_ref = p['wfe']
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         disa = 15.
@@ -116,21 +122,39 @@ class Exergetic_tf_nacelle(Component):
         self.mass = (1250. + 0.021*self.reference_thrust)*2.       # statistical regression, two engines
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
-    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.,nei=0.):
+    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
+        Thrust is defined by flying conditions and rating, throttle may be used to modulate max thrust but should be avoided if possible
+        Note that throttle is used here to drive T4 which is not the usual way of working as throttle, normally, drives N1
         """
         self.TF_model.set_flight(tamb, pamb, mach)
         kthrttl = throttle + self.rating_factor["FID"]*(1.-throttle)
         T4 = self.engine_T4max * self.rating_factor[rating] * kthrttl
         x0 = self.TF_model.magic_guess()
 
-        print(pamb,tamb,mach,rating,throttle)
-
         s, c, p = self.TF_model.off_design(Ttmax=T4, guess=x0, HPX=pw_offtake)
 
-        total_thrust = p['Fnet']*(self.n_engine-nei)
-        fuel_flow = p['wfe']*(self.n_engine-nei)
+        total_thrust = p['Fnet']
+        fuel_flow = p['wfe']
         return total_thrust, fuel_flow
+
+    def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
+        """Unitary thrust of a pure turbofan engine (semi-empirical model)
+        Consumption is driven by flying conditions and thrust, rating is their to provide a reference of T4 to compute throttle
+        Note that throttle is used here to drive T4 which is not the usual way of working as throttle, normally, drives N1
+        """
+        self.TF_model.set_flight(tamb, pamb, mach)
+        x0 = self.TF_model.magic_guess()
+
+        s, c, p = self.TF_model.off_design(Fnet=thrust, guess=x0, HPX=pw_offtake)
+
+        T4 = s["4"]["Tt"]
+        T4max = self.engine_T4max * self.rating_factor[rating]
+
+        throttle = T4/T4max
+        sfc = p['wfe']/p['Fnet']
+
+        return sfc, throttle
 
 
 class Outboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Outboard_wing_mounted_nacelle):
