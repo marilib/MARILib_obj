@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 TF = Turbofan()
 TF.cooling_flow = 0.1
 # Set the flight conditions to 35000ft, ISA, Mn 0.78 as static temperature, static pressure and Mach number
-TF.set_flight(218.808, 23842.272, 0.75)
+TF.set_flight(218.808, 23842.3, 0.76)
 
 TF.ex_loss = {"inlet": 0., "LPC": 0.132764781, "HPC": 0.100735895, "Burner": 0.010989737,
               "HPT": 0.08, "LPT": 0.11, "Fan": 0.074168491, "SE": 0.0, "PE": 0.}
@@ -24,7 +24,7 @@ TF.ex_loss["SE"] = TF.from_PR_loss_to_Ex_loss(0.992419452)
 # Design for a given thrust (Newton), BPR, FPR, LPC PR, HPC PR, T41 (Kelvin)
 Ttm = 1700.
 # s, c, p = TF.cycle(15.05, 28.47, tau_f, tau_l, tau_h, Ttmax=Ttm, HPX=90*745.7, wBleed=0.50983516)
-s, c, p = TF.design(25000., 15.05, 1.166, 3.12, 14.2282, Ttmax=Ttm, HPX=90*745.7, wBleed=0.50983516)
+s, c, p = TF.design(20795., 15.05, 1.166, 3.12, 14.2282, Ttmax=Ttm, HPX=90*745.7, wBleed=0.50983516)
 TF.print_stations(s)
 TF.print_perfos(p)
 
@@ -57,21 +57,30 @@ TF.print_perfos(p)
 # plt.show()
 
 
-# recompute the design point in off-design mode
-print("\nConvergence on Net thrust:")
-s, c, p = TF.off_design(Fnet=25000., HPX=90*745.7, wBleed=0.50983516)
-TF.print_stations(s)
-TF.print_perfos(p)
+# # recompute the design point in off-design mode
+# print("\nConvergence on Net thrust:")
+# TF.set_flight(285.1782, 95951.78827609782, 0.38)
+# s, c, p = TF.off_design(Fnet=17786., HPX=0., wBleed=0.)
+# print(p["Fnet"])
+# print(s["4"]["Tt"])
+# #s, c, p = TF.off_design(Fnet=17786., HPX=90*745.7, wBleed=0.50983516)
+# TF.print_stations(s)
+# TF.print_perfos(p)
 
 # recompute the design point in off-design mode
 print("\nConvergence on Ttmax:")
-s, c, p = TF.off_design(Ttmax=Ttm, HPX=90*745.7, wBleed=0.50983516)
+TF.set_flight(285.1782, 95952., 0.38)
+s, c, p = TF.off_design(Ttmax=1530., HPX=0., wBleed=0.)
+print(p["Fnet"])
+print(s["4"]["Tt"])
 TF.print_stations(s)
 TF.print_perfos(p)
 
 # recompute the design point in off-design mode
 print("\nConvergence on N1:")
-s, c, p = TF.off_design(N1=1., HPX=90*745.7, wBleed=0.50983516)
+s, c, p = TF.off_design(N1=0.85, HPX=0., wBleed=0.)
+print(p["Fnet"])
+print(s["4"]["Tt"])
 TF.print_stations(s)
 TF.print_perfos(p)
 

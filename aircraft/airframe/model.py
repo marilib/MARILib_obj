@@ -355,7 +355,7 @@ class Turbofan(Power_system, Flight):
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
-        fn1,ff1 = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle)
+        fn1,ff1 = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
 
         fn = fn1*(n_engine-nei)
         ff = ff1*(n_engine-nei)

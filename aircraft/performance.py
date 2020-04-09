@@ -66,10 +66,11 @@ class Performance(object):
         self.take_off.hld_conf = self.aircraft.performance.take_off.hld_conf
         self.take_off.tofl_req = self.aircraft.requirement.take_off.tofl_req
 
+        rating = "MTO"
         throttle = 1.
         mass = self.take_off.kmtow*self.aircraft.weight_cg.mtow
         to_dict = self.take_off.eval(self.take_off.disa, self.take_off.altp, mass, self.take_off.hld_conf,
-                                     throttle, self.take_off.kvs1g, self.take_off.s2_min_path)
+                                     rating, throttle, self.take_off.kvs1g, self.take_off.s2_min_path)
 
         self.take_off.tofl_eff = to_dict["tofl"]
         self.take_off.kvs1g_eff = to_dict["kvs1g"]
@@ -148,11 +149,12 @@ class Performance(object):
         self.time_to_climb.altp = self.aircraft.requirement.ttc.altp
         self.time_to_climb.ttc_req = self.aircraft.requirement.ttc.ttc_req
 
+        rating = "MCL"
         throttle = 1.
         mass = self.aircraft.weight_cg.mtow
         tc_dict = self.time_to_climb.eval(self.time_to_climb.disa,self.time_to_climb.altp,self.time_to_climb.mach,mass,
                                           self.time_to_climb.altp1,self.time_to_climb.cas1,self.time_to_climb.altp2,
-                                          self.time_to_climb.cas2,throttle)
+                                          self.time_to_climb.cas2,rating,throttle)
 
         self.time_to_climb.ttc_eff = tc_dict["ttc"]
 
@@ -348,13 +350,13 @@ class Take_off(Flight):
 
     def thrust_req(self,throttle):
         mass = self.kmtow*self.aircraft.weight_cg.mtow
-        dict = self.eval(self.disa,self.altp,mass,self.hld_conf,throttle,self.kvs1g,self.s2_min_path)
+        dict = self.eval(self.disa,self.altp,mass,self.hld_conf,"VAR",throttle,self.kvs1g,self.s2_min_path)
         return self.tofl_req/dict["tofl"] - 1.
 
-    def eval(self,disa,altp,mass,hld_conf,throttle,kvs1g,s2_min_path):
+    def eval(self,disa,altp,mass,hld_conf,rating,throttle,kvs1g,s2_min_path):
         """Take off field length and climb path with eventual kVs1g increase to recover min regulatory slope
         """
-        tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf,throttle)
+        tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf,rating,throttle)
 
         if(s2_min_path<s2_path):
             limitation = "fl"   # field length
@@ -366,16 +368,16 @@ class Take_off(Flight):
 
             s2_path_ = np.array([0.,0.])
             s2_path_[0] = s2_path
-            tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf,throttle)
+            tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf,rating,throttle)
 
             while(s2_path_[0]<s2_path_[1] and s2_path_[1]<s2_min_path):
                 kvs1g_[0] = kvs1g_[1]
                 kvs1g_[1] = kvs1g_[1] + dkvs1g
-                tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf,throttle)
+                tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf,rating,throttle)
 
             if(s2_min_path<s2_path_[1]):
                 kvs1g = kvs1g_[0] + ((kvs1g_[1]-kvs1g_[0])/(s2_path_[1]-s2_path_[0]))*(s2_min_path-s2_path_[0])
-                tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf,throttle)
+                tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf,rating,throttle)
                 s2_path = s2_min_path
                 limitation = "s2"   # second segment
             else:
@@ -388,7 +390,7 @@ class Take_off(Flight):
 
         return to_dict
 
-    def take_off(self,kvs1g,altp,disa,mass,hld_conf,throttle):
+    def take_off(self,kvs1g,altp,disa,mass,hld_conf,rating,throttle):
         """Take off field length and climb path at 35 ft depending on stall margin (kVs1g)
         """
         czmax,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)
@@ -400,7 +402,7 @@ class Take_off(Flight):
         mach = self.speed_from_lift(pamb,tamb,cz_to,mass)
 
         nei = 0    # For Magic Line factor computation
-        fn,ff,sfc = self.aircraft.power_system.thrust(pamb,tamb,mach,"MTO",throttle,nei)
+        fn,ff,sfc = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,throttle,nei)
 
         ml_factor = mass**2 / (cz_to*fn*self.aircraft.airframe.wing.area*sig**0.8 )  # Magic Line factor
         tofl = 15.5*ml_factor + 100.    # Magic line
@@ -461,7 +463,7 @@ class MCL_ceiling(Flight):
 
     def thrust_req(self,throttle):
         mass = self.kmtow*self.aircraft.weight_cg.mtow
-        dict = self.eval(self.disa,self.altp,self.mach,mass,self.rating,throttle,self.speed_mode)
+        dict = self.eval(self.disa,self.altp,self.mach,mass,"VAR",throttle,self.speed_mode)
         return dict["vz"]-self.vz_req
 
     def eval(self,disa,altp,mach,mass,rating,throttle,speed_mode):
@@ -492,7 +494,7 @@ class MCR_ceiling(Flight):
 
     def thrust_req(self,throttle):
         mass = self.kmtow*self.aircraft.weight_cg.mtow
-        dict = self.eval(self.disa,self.altp,self.mach,mass,self.rating,throttle,self.speed_mode)
+        dict = self.eval(self.disa,self.altp,self.mach,mass,"VAR",throttle,self.speed_mode)
         return dict["vz"]-self.vz_req
 
     def eval(self,disa,altp,mach,mass,rating,throttle,speed_mode):
@@ -523,7 +525,7 @@ class OEI_ceiling(Flight):
 
     def thrust_req(self,throttle):
         mass = self.kmtow*self.aircraft.weight_cg.mtow
-        dict = self.eval(self.disa,self.altp,mass,self.rating,throttle,self.speed_mode)
+        dict = self.eval(self.disa,self.altp,mass,"VAR",throttle,self.speed_mode)
         return dict["path"]-self.path_req
 
     def eval(self,disa,altp,mass,rating,throttle,speed_mode):
@@ -559,10 +561,10 @@ class Time_to_Climb(Flight):
 
     def thrust_req(self,throttle):
         mass = self.kmtow*self.aircraft.weight_cg.mtow
-        dict = self.eval(self.disa,self.altp,self.mach,mass,self.altp1,self.cas1,self.altp2,self.cas2,throttle)
+        dict = self.eval(self.disa,self.altp,self.mach,mass,self.altp1,self.cas1,self.altp2,self.cas2,"VAR",throttle)
         return dict["ttc"]/self.ttc_req - 1.
 
-    def eval(self,disa,toc,mach,mass,altp1,vcas1,altp2,vcas2,throttle):
+    def eval(self,disa,toc,mach,mass,altp1,vcas1,altp2,vcas2,rating,throttle):
         """
         Time to climb to initial cruise altitude
         For simplicity reasons, airplane mass is supposed constant
@@ -592,7 +594,6 @@ class Time_to_Climb(Flight):
 
         nei = 0
         speed_mode = "cas"    # Constant CAS
-        rating = "MCL"
 
         [slope,v_z0] = self.air_path(nei,altp[0],disa,speed_mode,vcas1,mass,rating,throttle)
         [slope,v_z1] = self.air_path(nei,altp[1],disa,speed_mode,vcas1,mass,rating,throttle)

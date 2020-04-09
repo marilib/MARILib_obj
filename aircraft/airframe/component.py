@@ -1205,7 +1205,7 @@ class Semi_empiric_tf_nacelle(Component):
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
-        self.rating_factor = {"MTO":1.00, "MCN":0.86, "MCL":0.78, "MCR":0.70, "FID":0.10}
+        self.rating_factor = {"MTO":1.00, "MCN":0.86, "MCL":0.78, "MCR":0.70, "FID":0.10, "VAR":1.}
         self.tune_factor = 1.
         self.engine_bpr = self.__turbofan_bpr__()
         self.core_thrust_ratio = 0.13
@@ -1301,7 +1301,7 @@ class Semi_empiric_tf_nacelle(Component):
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
         """
-        fn, ff = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake)
+        fn, ff = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake=pw_offtake)
 
         throttle = thrust/fn
         sfc = ff/fn
