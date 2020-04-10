@@ -31,11 +31,11 @@ class Exergetic_tf_nacelle(Component):
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
         self.reference_wBleed = 0.
-        self.rating_factor = {"MTO":1.00, "MCN":0.95, "MCL":0.92, "MCR":0.90, "FID":0.55, "VAR":1.}
-        self.engine_bpr = 15.
-        self.engine_fpr = 1.17
-        self.engine_lpc_pr = 3.12
-        self.engine_hpc_pr = 14.23
+        self.rating_factor = {"MTO":1.00, "MCN":0.95, "MCL":0.94, "MCR":0.90, "FID":0.55, "VAR":1.}
+        self.engine_bpr = 9.
+        self.engine_fpr = 1.2
+        self.engine_lpc_pr = 3.0
+        self.engine_hpc_pr = 14.0
         self.engine_T4max = 1700.
         self.cooling_flow = 0.1
 
@@ -89,8 +89,8 @@ class Exergetic_tf_nacelle(Component):
     def __cruise_thrust__(self):
         g = earth.gravity()
         mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
-        lod = 18.
-        fn =(mass*g/lod)/self.n_engine
+        lod = 16.
+        fn = 1.50*(mass*g/lod)/self.n_engine
         return fn
 
     def eval_geometry(self):
@@ -127,14 +127,17 @@ class Exergetic_tf_nacelle(Component):
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
-        Thrust is defined by flying conditions and rating, throttle may be used to modulate max thrust but should be avoided if possible
-        Note that throttle is used here to drive T4 which is not the usual way of working as throttle, normally, drives N1
+        Thrust is defined by flying conditions and rating, throttle can be used only with rating="VAR"
+        If rating =="VAR" 0<=throttle<=1 drives the N1, throttle has no influence if rating is diffrent from "VAR"
+        WARNING : throttle must not exceed 1.
         """
         self.TF_model.set_flight(tamb, pamb, mach)
-        kthrttl = throttle + self.rating_factor["FID"]*(1.-throttle)
-        T4 = self.engine_T4max * self.rating_factor[rating] * kthrttl
 
-        s, c, p = self.TF_model.off_design(Ttmax=T4, HPX=pw_offtake)
+        if (rating!="VAR"):
+            T4 = self.engine_T4max * self.rating_factor[rating]
+            s, c, p = self.TF_model.off_design(Ttmax=T4, HPX=pw_offtake)
+        else:
+            s, c, p = self.TF_model.off_design(N1=throttle, HPX=pw_offtake)
 
         total_thrust = p['Fnet']
         fuel_flow = p['wfe']
@@ -143,28 +146,26 @@ class Exergetic_tf_nacelle(Component):
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
         Consumption is driven by flying conditions and thrust, rating is their to provide a reference of T4 to compute throttle
-        Note that throttle is used here to drive T4 which is not the usual way of working as throttle, normally, drives N1
         """
         self.TF_model.set_flight(tamb, pamb, mach)
 
-        print(self.cruise_thrust)
-        print(tamb,pamb,mach,rating,thrust)
+        # print(self.cruise_thrust)
+        # print(tamb,pamb,mach,rating,thrust)
 
         def fct(x):
             s, c, p = self.TF_model.off_design(N1=x, HPX=pw_offtake)
             return thrust - p["Fnet"]
 
-        output_dict = fsolve(fct, x0=1., args=(), full_output=True)
+        output_dict = fsolve(fct, x0=0.95, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        N1 = output_dict[0][0]
+        throttle = output_dict[0][0]
 
-        s, c, p = self.TF_model.off_design(N1=N1, HPX=pw_offtake)
+        s, c, p = self.TF_model.off_design(N1=throttle, HPX=pw_offtake)
+        sfc = p['wfe']/p['Fnet']
 
         T4 = s["4"]["Tt"]
         T4max = self.engine_T4max * self.rating_factor[rating]
-
-        throttle = T4/T4max
-        sfc = p['wfe']/p['Fnet']
+        kT4 = T4/T4max
 
         return sfc, throttle
 

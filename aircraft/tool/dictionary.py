@@ -5,6 +5,7 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
+import copy
 import numpy as np
 import json as json
 import pickle as pickle
@@ -219,14 +220,14 @@ data_dict = {
     "crz_sar": {"unit":"NM/kg", "mag":1e0, "txt":"Cruise specific air range"},
     "crz_cz": {"unit":"no_dim", "mag":1e0, "txt":"Cruise lift coefficient"},
     "crz_lod": {"unit":"no_dim", "mag":1e0, "txt":"Cruise lift to drag ratio"},
-    "crz_thrust": {"unit":"kN", "mag":1e0, "txt":"Cruise thrust"},
+    "crz_thrust": {"unit":"kN", "mag":1e0, "txt":"Total cruise thrust"},
     "crz_throttle": {"unit":"no_dim", "mag":1e0, "txt":"Cruise throttle versus MCR"},
     "crz_sfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Cruise specific fuel consumption"},
     "max_sar_altp": {"unit":"ft", "mag":1e0, "txt":"Altitude of specific air range"},
     "max_sar": {"unit":"NM/kg", "mag":1e0, "txt":"Maximum specific air range"},
     "max_sar_cz": {"unit":"no_dim", "mag":1e0, "txt":"Lift coefficient for maximum specific air range"},
     "max_sar_lod": {"unit":"no_dim", "mag":1e0, "txt":"Lift to drag ratio for maximum specific air range"},
-    "max_sar_thrust": {"unit":"kN", "mag":1e0, "txt":"Thrust for maximum specific air range"},
+    "max_sar_thrust": {"unit":"kN", "mag":1e0, "txt":"Total thrust for maximum specific air range"},
     "max_sar_throttle": {"unit":"no_dim", "mag":1e0, "txt":"Throttle versus MCR for maximum specific air range"},
     "max_sar_sfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific fuel consumption for maximum specific air range"}
 }
@@ -341,13 +342,14 @@ class MarilibIO():
         """
         return json.loads(json_string)
 
-    def to_json_file(self,marilib_object,filename):
+    def to_json_file(self,aircraft_object,filename):
         """Save a MARILib object in a human readable format:
         The object is serialized into a customized JSON-like string.
         :param marilib_object: the object to save
         :param filename: name of the file. Ex: myObjCollection/marilib_obj.json
         :return: None
         """
+        marilib_object = copy.deepcopy(aircraft_object)
         try:  # Add .json extension if necessary
             last_point_position = filename.rindex(r'\.')
             filename = filename[:last_point_position]+".json"

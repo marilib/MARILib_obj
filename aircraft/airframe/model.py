@@ -213,8 +213,8 @@ class Power_system(object):
                       "altp": None,
                       "mach": None,
                       "nei":  1,
-                      "thrttl_opt": None,
-                      "thrust_req": None,
+                      "kfn_opt": None,
+                      "thrust_opt": None,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
@@ -223,8 +223,8 @@ class Power_system(object):
                       "altp": None,
                       "mach": None,
                       "nei":  1,
-                      "thrttl_opt": None,
-                      "thrust_req": None,
+                      "kfn_opt": None,
+                      "thrust_opt": None,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
@@ -233,8 +233,8 @@ class Power_system(object):
                       "altp": None,
                       "mach": None,
                       "nei":  0,
-                      "thrttl_opt": None,
-                      "thrust_req": None,
+                      "kfn_opt": None,
+                      "thrust_opt": None,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None},
@@ -243,18 +243,8 @@ class Power_system(object):
                       "altp": None,
                       "mach": None,
                       "nei":  0,
-                      "thrttl_opt": None,
-                      "thrust_req": None,
-                      "thrust": None,
-                      "fuel_flow": None,
-                      "sfc": None},
-                     {"rating": "FID",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  0,
-                      "thrttl_opt": 1.,
-                      "thrust_req": None,
+                      "kfn_opt": None,
+                      "thrust_opt": None,
                       "thrust": None,
                       "fuel_flow": None,
                       "sfc": None}
@@ -273,46 +263,37 @@ class Power_system(object):
         self.data[0]["altp"] = self.aircraft.performance.take_off.altp
         self.data[0]["mach"] = self.aircraft.performance.take_off.mach2
 
-        fct = self.aircraft.performance.take_off.thrust_req
+        fct = self.aircraft.performance.take_off.thrust_opt
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        self.data[0]["thrttl_opt"] = output_dict[0][0]
+        self.data[0]["kfn_opt"] = output_dict[0][0]
 
         self.data[1]["disa"] = self.aircraft.performance.oei_ceiling.disa
         self.data[1]["altp"] = self.aircraft.performance.oei_ceiling.altp
         self.data[1]["mach"] = self.aircraft.performance.oei_ceiling.mach_opt
 
-        fct = self.aircraft.performance.oei_ceiling.thrust_req
+        fct = self.aircraft.performance.oei_ceiling.thrust_opt
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        self.data[1]["thrttl_opt"] = output_dict[0][0]
+        self.data[1]["kfn_opt"] = output_dict[0][0]
 
         self.data[2]["disa"] = self.aircraft.performance.mcl_ceiling.disa
         self.data[2]["altp"] = self.aircraft.performance.mcl_ceiling.altp
         self.data[2]["mach"] = self.aircraft.performance.mcl_ceiling.mach
 
-        fct = self.aircraft.performance.mcl_ceiling.thrust_req
+        fct = self.aircraft.performance.mcl_ceiling.thrust_opt
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        throttle_1 = output_dict[0][0]
-        fct = self.aircraft.performance.oei_ceiling.thrust_req
-        output_dict = fsolve(fct, x0=1., args=(), full_output=True)
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
-        throttle_2 = output_dict[0][0]
-        self.data[2]["thrttl_opt"] = max(throttle_1,throttle_2)
+        self.data[2]["kfn_opt"] = output_dict[0][0]
 
         self.data[3]["disa"] = self.aircraft.performance.mcr_ceiling.disa
         self.data[3]["altp"] = self.aircraft.performance.mcr_ceiling.altp
         self.data[3]["mach"] = self.aircraft.performance.mcr_ceiling.mach
 
-        fct = self.aircraft.performance.mcr_ceiling.thrust_req
+        fct = self.aircraft.performance.mcr_ceiling.thrust_opt
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        self.data[3]["thrttl_opt"] = output_dict[0][0]
-
-        self.data[4]["disa"] = self.aircraft.performance.mission.disa
-        self.data[4]["altp"] = self.aircraft.performance.mission.altp
-        self.data[4]["mach"] = self.aircraft.performance.mission.mach
+        self.data[3]["kfn_opt"] = output_dict[0][0]
 
         for j in range(len(self.data)):
             rating = self.data[j]["rating"]
@@ -320,11 +301,10 @@ class Power_system(object):
             altp = self.data[j]["altp"]
             mach = self.data[j]["mach"]
             nei = self.data[j]["nei"]
-            throttle = self.data[j]["thrttl_opt"]
+            kfn = self.data[j]["kfn_opt"]
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-            fn,ff,sfc = self.thrust(pamb,tamb,mach,rating, throttle=throttle, nei=nei)
-            self.data[j]["thrust_req"] = fn/(self.aircraft.airframe.nacelle.n_engine - nei)
             fn,ff,sfc = self.thrust(pamb,tamb,mach,rating, nei=nei)
+            self.data[j]["thrust_opt"] = kfn*fn/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[j]["thrust"] = fn/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[j]["fuel_flow"] = ff
             self.data[j]["sfc"] = sfc

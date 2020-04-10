@@ -5,6 +5,7 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
+import copy
 import numpy as np
 
 from aircraft.tool import unit
@@ -26,7 +27,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "tf",       # "tf", "extf", "pf", "pte1", "ef1", "ep1",
+                   power_architecture = "extf",       # "tf", "extf", "pf", "pte1", "ef1", "ep1",
                    energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2" or "battery"
 
 reqs = Requirement(n_pax_ref = 150.,
@@ -77,6 +78,16 @@ crt = "aircraft.performance.mission.cost.fuel_block"
 #process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
 
+#ac.draw.payload_range("This_plot")
+#ac.draw.view_3d("This_plot")
+
+io = MarilibIO()
+json = io.to_json_file(ac,'aircraft_test')
+#dico = io.from_string(json)
+
+io.to_binary_file(ac,'test')
+#ac2 = io.from_binary_file('test.pkl')
+
 
 res = [ac.airframe.nacelle.reference_thrust,
        ac.airframe.wing.area]
@@ -121,16 +132,6 @@ limit = [ac.performance.take_off.tofl_req,
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub"])                 # ub: upper bound, lb: lower bound
 
 #process.draw_design_space(file, res, field, const, color, limit, bound)
-
-#ac.draw.payload_range("This_plot")
-#ac.draw.view_3d("This_plot")
-
-io = MarilibIO()
-json = io.to_json_file(ac,'aircraft_test')
-#dico = io.from_string(json)
-
-io.to_binary_file(ac,'test')
-#ac2 = io.from_binary_file('test.pkl')
 
 
 

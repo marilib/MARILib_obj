@@ -39,11 +39,11 @@ def mda(aircraft):
 
     aircraft.aerodynamics.aerodynamic_analysis()
 
-    aircraft.power_system.thrust_analysis()
-
     aircraft.economics.operating_cost_analysis()
 
     aircraft.environment.fuel_efficiency_metric()
+
+    aircraft.power_system.thrust_analysis()
 
 
 
