@@ -888,7 +888,7 @@ class Mission_fuel_from_range_and_tow(Flight):
         # Holding fuel
         #-----------------------------------------------------------------------------------------------------------
         altp_holding = unit.m_ft(1500.)
-        mach_holding = 0.50 * mach
+        mach_holding = 0.65 * mach
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding,disa)
         sar,cz,cx,lod,thrust,throttle,sfc = self.level_flight(pamb,tamb,mach_holding,mass)
         fuel_holding = sfc*(mass*g/lod)*self.holding_time

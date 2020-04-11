@@ -119,7 +119,11 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
     return res
 
 
-def explore_design_space(aircraft, res, step, data, file):
+def explore_design_space(aircraft, var, step, data, file):
+
+    res = [0.,0.]
+    res[0] = eval(var[0])
+    res[1] = eval(var[1])
 
     slst_list = [res[0]*(1-1.5*step[0]), res[0]*(1-0.5*step[0]), res[0]*(1+0.5*step[0]), res[0]*(1+1.5*step[0])]
     area_list = [res[1]*(1-1.5*step[1]), res[1]*(1-0.5*step[1]), res[1]*(1+0.5*step[1]), res[1]*(1+1.5*step[1])]
@@ -138,8 +142,10 @@ def explore_design_space(aircraft, res, step, data, file):
     for area in area_list:
         for thrust in slst_list:
 
-            aircraft.airframe.nacelle.reference_thrust = thrust
-            aircraft.airframe.wing.area = area
+            exec(var[0]+" = thrust")
+            exec(var[1]+" = area")
+            # aircraft.airframe.nacelle.reference_thrust = thrust
+            # aircraft.airframe.wing.area = area
 
             print("-----------------------------------------------------------------------")
             print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")

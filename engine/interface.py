@@ -31,7 +31,8 @@ class Exergetic_tf_nacelle(Component):
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
         self.reference_wBleed = 0.
-        self.rating_factor = {"MTO":1.00, "MCN":0.95, "MCL":0.94, "MCR":0.90, "FID":0.55, "VAR":1.}
+        # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
+        self.rating_factor = {"MTO":1.00, "MCN":0.82, "MCL":0.80, "MCR":0.78, "FID":0.55, "VAR":1.}
         self.engine_bpr = 9.
         self.engine_fpr = 1.2
         self.engine_lpc_pr = 3.0
@@ -46,15 +47,6 @@ class Exergetic_tf_nacelle(Component):
 
         self.frame_origin = np.full(3,None)
 
-        disa = self.aircraft.requirement.cruise_disa
-        altp = self.aircraft.requirement.cruise_altp
-        mach = self.aircraft.requirement.cruise_mach
-
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-
-        # Set the flight conditions as static temperature, static pressure and Mach number
-        self.TF_model.set_flight(tamb,pamb,mach)
-
         # Set the losses for all components
         self.TF_model.ex_loss = {"inlet": 0., "LPC": 0.132764781, "HPC": 0.100735895, "Burner": 0.010989737,
                                  "HPT": 0.078125215, "LPT": 0.104386722, "Fan": 0.074168491, "SE": 0.0, "PE": 0.}
@@ -65,18 +57,6 @@ class Exergetic_tf_nacelle(Component):
         self.TF_model.ex_loss["SE"] = self.TF_model.from_PR_loss_to_Ex_loss(0.992419452)
 
         self.TF_model.cooling_flow = self.cooling_flow
-
-        # Design for a given thrust (Newton), BPR, FPR, LPC PR, HPC PR, T41 (Kelvin)
-        s, c, p = self.TF_model.design(self.cruise_thrust,
-                                       self.engine_bpr,
-                                       self.engine_fpr,
-                                       self.engine_lpc_pr,
-                                       self.engine_hpc_pr,
-                                       Ttmax = self.engine_T4max * self.rating_factor["MCR"],
-                                       HPX = self.reference_offtake,
-                                       wBleed = self.reference_wBleed)
-
-        # print(tamb,pamb,mach,"MCR",self.cruise_thrust)
 
     def __turbofan_bpr__(self):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -90,10 +70,29 @@ class Exergetic_tf_nacelle(Component):
         g = earth.gravity()
         mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
         lod = 16.
-        fn = 1.50*(mass*g/lod)/self.n_engine
+        fn = 2.0*(mass*g/lod)/self.n_engine
         return fn
 
     def eval_geometry(self):
+
+        disa = self.aircraft.requirement.cruise_disa
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+
+        # Set the flight conditions as static temperature, static pressure and Mach number
+        self.TF_model.set_flight(tamb,pamb,mach)
+
+        # Design for a given cruise thrust (Newton), BPR, FPR, LPC PR, HPC PR, T41 (Kelvin)
+        s, c, p = self.TF_model.design(self.cruise_thrust,
+                                       self.engine_bpr,
+                                       self.engine_fpr,
+                                       self.engine_lpc_pr,
+                                       self.engine_hpc_pr,
+                                       Ttmax = self.engine_T4max * self.rating_factor["MCR"],
+                                       HPX = self.reference_offtake,
+                                       wBleed = self.reference_wBleed)
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         disa = 15.

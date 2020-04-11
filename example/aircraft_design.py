@@ -45,6 +45,9 @@ ac = Aircraft("This_plane")
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
 
+ac.requirement.take_off.tofl_req = 2500.
+
+
 # ac.airframe.wing.area = 110.
 # ac.airframe.nacelle.reference_thrust = unit.N_kN(110.)
 
@@ -52,10 +55,16 @@ ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this l
 process.mda(ac)
 
 
-var = ["aircraft.airframe.nacelle.reference_thrust",
+# var = ["aircraft.airframe.nacelle.reference_thrust",
+#        "aircraft.airframe.wing.area"]
+#
+# var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],
+#            [100., 200.]]
+
+var = ["aircraft.airframe.nacelle.cruise_thrust",
        "aircraft.airframe.wing.area"]
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],
+var_bnd = [[unit.N_kN(15.), unit.N_kN(35.)],
            [100., 200.]]
 
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -91,11 +100,14 @@ io.to_binary_file(ac,'test')
 
 res = [ac.airframe.nacelle.reference_thrust,
        ac.airframe.wing.area]
+#
+# res = [ac.airframe.nacelle.cruise_thrust,
+#        ac.airframe.wing.area]
 
 step = [0.05,
         0.05]    # Relative grid step
 
-data = [["SLST", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/10."],
+data = [["Thrust", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/10."],
         ["Wing_area", "m2", "%8.1f", "aircraft.airframe.wing.area"],
         ["Wing_span", "m", "%8.1f", "aircraft.airframe.wing.span"],
         ["MTOW", "kg", "%8.1f", "aircraft.weight_cg.mtow"],
@@ -118,7 +130,7 @@ data = [["SLST", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/10.
 
 file = "explore_design.txt"
 
-#process.explore_design_space(ac, res, step, data, file)
+#process.explore_design_space(ac, var, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']

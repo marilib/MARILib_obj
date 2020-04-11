@@ -113,3 +113,10 @@ s, c0, p = TF.off_design(Ttmax=Ttm)
 if s is not None:
     TF.print_stations(s)
     TF.print_perfos(p)
+
+# now for a maxi cont point
+TF.set_flight(228.15, 81325., 0.40)
+s, c0, p = TF.off_design(Ttmax=Ttm*0.95)
+if s is not None:
+    TF.print_stations(s)
+    TF.print_perfos(p)
