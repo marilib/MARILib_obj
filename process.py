@@ -23,6 +23,12 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from aircraft.tool import unit
 
 
+def eval_this(aircraft,var):
+    res = []
+    for str in var:
+        res.append(eval(str))
+    return res
+
 def mda(aircraft):
     """Perform Multidsciplinary_Design_Analysis
     All coupling constraints are solved
@@ -121,9 +127,7 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
 
 def explore_design_space(aircraft, var, step, data, file):
 
-    res = [0.,0.]
-    res[0] = eval(var[0])
-    res[1] = eval(var[1])
+    res = eval_this(aircraft,var)
 
     slst_list = [res[0]*(1-1.5*step[0]), res[0]*(1-0.5*step[0]), res[0]*(1+0.5*step[0]), res[0]*(1+1.5*step[0])]
     area_list = [res[1]*(1-1.5*step[1]), res[1]*(1-0.5*step[1]), res[1]*(1+0.5*step[1]), res[1]*(1+1.5*step[1])]
@@ -156,11 +160,13 @@ def explore_design_space(aircraft, var, step, data, file):
             res_list = []
             for j in range(len(data)):
                 res_list.append([str(eval(val[j]))])
-            res = np.array(res_list)
+            res_array = np.array(res_list)
 
-            txt = np.hstack([txt,res])
+            txt = np.hstack([txt,res_array])
 
     np.savetxt(file,txt,delimiter=";",fmt='%14s')
+
+    return res
 
 
 def draw_design_space(file, mark, field, const, color, limit, bound):

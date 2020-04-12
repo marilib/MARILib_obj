@@ -32,10 +32,10 @@ class Requirement(object):
 
         self.take_off = Take_off_req(arrangement, self)
         self.approach = Approach_req(arrangement, self)
-        self.oei = OEI_ceiling_req(arrangement, self)
-        self.vz_mcl = Vz_mcl_req(arrangement, self)
-        self.vz_mcr = Vz_mcr_req(arrangement, self)
-        self.ttc = TTC_req(arrangement, self)
+        self.oei_ceiling = OEI_ceiling_req(arrangement, self)
+        self.mcl_ceiling = Vz_mcl_req(arrangement, self)
+        self.mcr_ceiling = Vz_mcr_req(arrangement, self)
+        self.time_to_climb = TTC_req(arrangement, self)
 
     def __n_pax_front__(self):
         if  (self.n_pax_ref<=8):   n_pax_front = 2
@@ -129,7 +129,7 @@ class OEI_ceiling_req(object):
     """
     def __init__(self, arrangement, requirement):
         self.disa = 15.
-        self.altp = 0.75*requirement.cruise_altp
+        self.altp = 0.50*requirement.cruise_altp
         self.kmtow = 0.95
         self.rating = "MCN"
         self.speed_mode = "cas"
@@ -155,7 +155,7 @@ class Climb_req(object):
         self.kmtow = 0.97
 
     def __top_of_climb__(self, arrangement, requirement):
-        if (arrangement.power_architecture in ["tf","extf"]): altp = unit.m_ft(31000.)
+        if (arrangement.power_architecture in ["tf","extf"]): altp = unit.m_ft(35000.)
         elif (arrangement.power_architecture=="tp"): altp = unit.m_ft(16000.)
         elif (arrangement.power_architecture=="pte1"): altp = unit.m_ft(31000.)
         elif (arrangement.power_architecture=="ef1"): altp = unit.m_ft(21000.)
@@ -171,7 +171,7 @@ class Vz_mcl_req(Climb_req):
     def __init__(self, arrangement, requirement):
         super(Vz_mcl_req, self).__init__(arrangement, requirement)
         self.rating = "MCL"
-        self.speed_mode = "mach"
+        self.speed_mode = "cas"
         self.vz_req = unit.mps_ftpmin(300.)
 
 
@@ -198,13 +198,13 @@ class TTC_req(Climb_req):
         self.ttc_req = unit.s_min(25.)
 
     def __ttc_cas1__(self, requirement):
-        if (requirement.cruise_mach>=0.6): cas1 = unit.mps_kt(250.)
-        elif (requirement.cruise_mach>=0.4): cas1 = unit.mps_kt(180.)
+        if (requirement.cruise_mach>=0.6): cas1 = unit.mps_kt(180.)
+        elif (requirement.cruise_mach>=0.4): cas1 = unit.mps_kt(130.)
         else: cas1 = unit.mps_kt(70.)
         return cas1
 
     def __ttc_cas2__(self, requirement):
-        if (requirement.cruise_mach>=0.6): cas2 = unit.mps_kt(300.)
+        if (requirement.cruise_mach>=0.6): cas2 = unit.mps_kt(250.)
         elif (requirement.cruise_mach>=0.4): cas2 = unit.mps_kt(200.)
         else: cas2 = unit.mps_kt(70.)
         return cas2

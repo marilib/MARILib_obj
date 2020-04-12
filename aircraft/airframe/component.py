@@ -1228,8 +1228,8 @@ class Semi_empiric_tf_nacelle(Component):
 
         # tune_factor allows that output of unitary_thrust matches the definition of the reference thrust
         self.tune_factor = 1.
-        fn, ff = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
-        self.tune_factor = self.reference_thrust / (fn/0.80)
+        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
+        self.tune_factor = self.reference_thrust / (dict["fn"]/0.80)
 
         # Following computation as aim to model the decrease in nacelle dimension due to
         # the amount of power offtaken to drive an eventual electric chain
@@ -1294,19 +1294,21 @@ class Semi_empiric_tf_nacelle(Component):
 
         sfc_ref = ( 0.4 + 1./self.engine_bpr**0.895 )/36000.
         fuel_flow = sfc_ref * total_thrust0
+        t41 = None
 
-        return total_thrust, fuel_flow
+        return {"fn":total_thrust, "ff":fuel_flow, "t4":t41}
 
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
         """
-        fn, ff = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake=pw_offtake)
+        dict = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake=pw_offtake)
 
-        throttle = thrust/fn
-        sfc = ff/fn
+        throttle = thrust/dict["fn"]
+        sfc = dict["ff"]/dict["fn"]
+        t41 = dict["t4"]
 
-        return sfc, throttle
+        return {"sfc":sfc, "thtl":throttle, "t4":t41}
 
 
 class Inboard_wing_mounted_nacelle(Component):

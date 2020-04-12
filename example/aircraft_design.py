@@ -14,10 +14,9 @@ from aircraft.aircraft_root import Aircraft
 from aircraft.requirement import Requirement
 
 import process
+import earth
 
 from aircraft.tool.dictionary import MarilibIO
-
-
 
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
@@ -35,8 +34,6 @@ reqs = Requirement(n_pax_ref = 150.,
                    cruise_mach = 0.76,
                    cruise_altp = unit.m_ft(35000.),
                    arrangement = agmt)
-
-
 
 
 
@@ -98,24 +95,18 @@ io.to_binary_file(ac,'test')
 #ac2 = io.from_binary_file('test.pkl')
 
 
-res = [ac.airframe.nacelle.reference_thrust,
-       ac.airframe.wing.area]
-#
-# res = [ac.airframe.nacelle.cruise_thrust,
-#        ac.airframe.wing.area]
-
 step = [0.05,
         0.05]    # Relative grid step
 
-data = [["Thrust", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/10."],
-        ["Wing_area", "m2", "%8.1f", "aircraft.airframe.wing.area"],
+data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
+        ["Wing_area", "m2", "%8.1f", var[1]],
         ["Wing_span", "m", "%8.1f", "aircraft.airframe.wing.span"],
         ["MTOW", "kg", "%8.1f", "aircraft.weight_cg.mtow"],
         ["MLW", "kg", "%8.1f", "aircraft.weight_cg.mlw"],
         ["OWE", "kg", "%8.1f", "aircraft.weight_cg.owe"],
         ["MWE", "kg", "%8.1f", "aircraft.weight_cg.mwe"],
         ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.performance.mission.crz_lod"],
-        ["Cruise_SFC", "kg/daN/h", "%8.1f", "aircraft.performance.mission.crz_sfc"],
+        ["Cruise_SFC", "kg/daN/h", "%8.4f", "aircraft.performance.mission.crz_sfc"],
         ["TOFL", "m", "%8.1f", "aircraft.performance.take_off.tofl_eff"],
         ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.performance.approach.app_speed_eff)"],
         ["OEI_path", "%", "%8.1f", "aircraft.performance.oei_ceiling.path_eff*100"],
@@ -130,20 +121,21 @@ data = [["Thrust", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/1
 
 file = "explore_design.txt"
 
-#process.explore_design_space(ac, var, step, data, file)
+#res = process.eval_this(ac,var)
+res = process.explore_design_space(ac, var, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']
 color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow']
-limit = [ac.performance.take_off.tofl_req,
-         unit.kt_mps(ac.performance.approach.app_speed_req),
-         unit.pc_no_dim(ac.performance.oei_ceiling.path_req),
-         unit.ftpmin_mps(ac.performance.mcl_ceiling.vz_req),
-         unit.ftpmin_mps(ac.performance.mcr_ceiling.vz_req),
-         unit.min_s(ac.performance.time_to_climb.ttc_req)]       # Limit values
+limit = [ac.requirement.take_off.tofl_req,
+         unit.kt_mps(ac.requirement.approach.app_speed_req),
+         unit.pc_no_dim(ac.requirement.oei_ceiling.path_req),
+         unit.ftpmin_mps(ac.requirement.mcl_ceiling.vz_req),
+         unit.ftpmin_mps(ac.requirement.mcr_ceiling.vz_req),
+         unit.min_s(ac.requirement.time_to_climb.ttc_req)]       # Limit values
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub"])                 # ub: upper bound, lb: lower bound
 
-#process.draw_design_space(file, res, field, const, color, limit, bound)
+process.draw_design_space(file, res, field, const, color, limit, bound)
 
 
 

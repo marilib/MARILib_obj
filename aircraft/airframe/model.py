@@ -217,7 +217,8 @@ class Power_system(object):
                       "thrust_opt": None,
                       "thrust": None,
                       "fuel_flow": None,
-                      "sfc": None},
+                      "sfc": None,
+                      "T41": None},
                      {"rating": "MCN",
                       "disa": None,
                       "altp": None,
@@ -227,7 +228,8 @@ class Power_system(object):
                       "thrust_opt": None,
                       "thrust": None,
                       "fuel_flow": None,
-                      "sfc": None},
+                      "sfc": None,
+                      "T41": None},
                      {"rating": "MCL",
                       "disa": None,
                       "altp": None,
@@ -237,7 +239,8 @@ class Power_system(object):
                       "thrust_opt": None,
                       "thrust": None,
                       "fuel_flow": None,
-                      "sfc": None},
+                      "sfc": None,
+                      "T41": None},
                      {"rating": "MCR",
                       "disa": None,
                       "altp": None,
@@ -247,7 +250,8 @@ class Power_system(object):
                       "thrust_opt": None,
                       "thrust": None,
                       "fuel_flow": None,
-                      "sfc": None}
+                      "sfc": None,
+                      "T41": None}
                      ]
 
     def __fuel_heat__(self):
@@ -303,11 +307,12 @@ class Power_system(object):
             nei = self.data[j]["nei"]
             kfn = self.data[j]["kfn_opt"]
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-            fn,ff,sfc = self.thrust(pamb,tamb,mach,rating, nei=nei)
-            self.data[j]["thrust_opt"] = kfn*fn/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[j]["thrust"] = fn/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[j]["fuel_flow"] = ff
-            self.data[j]["sfc"] = sfc
+            dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
+            self.data[j]["thrust_opt"] = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[j]["thrust"] = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[j]["fuel_flow"] = dict["ff"]
+            self.data[j]["sfc"] = dict["sfc"]
+            self.data[j]["T41"] = dict["t4"]
 
     def thrust(self,pamb,tamb,mach,rating,throttle,nei):
         raise NotImplementedError
@@ -335,24 +340,24 @@ class Turbofan(Power_system, Flight):
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
-        fn1,ff1 = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
+        dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
 
-        fn = fn1*(n_engine-nei)
-        ff = ff1*(n_engine-nei)
+        fn = dict["fn"]*(n_engine-nei)
+        ff = dict["ff"]*(n_engine-nei)
         sfc = ff/fn
+        t41 = dict["t4"]
 
-        return fn,ff,sfc
+        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41}
 
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
-
         fn = thrust/(n_engine - nei)
 
-        sfc,throttle = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
+        dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
 
-        return sfc,throttle
+        return dict
 
     def oei_drag(self,pamb,tamb):
         """Inoperative engine drag coefficient
@@ -377,8 +382,8 @@ class Turbofan(Power_system, Flight):
 
         mass = self.aircraft.performance.mission.ktow*tow
 
-        sar,cz,cx,lod,thrust,throttle,sfc = self.level_flight(pamb,tamb,mach,mass)
-        fuel = tow*(1-np.exp(-(sfc*g*range)/(tas*lod)))
+        dict = self.level_flight(pamb,tamb,mach,mass)
+        fuel = tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
         time = 1.09*(range/tas)
 
         return fuel,time

@@ -32,9 +32,9 @@ class Exergetic_tf_nacelle(Component):
         self.reference_offtake = 0.
         self.reference_wBleed = 0.
         # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
-        self.rating_factor = {"MTO":1.00, "MCN":0.82, "MCL":0.80, "MCR":0.78, "FID":0.55, "VAR":1.}
-        self.engine_bpr = 9.
-        self.engine_fpr = 1.2
+        self.rating_factor = {"MTO":1.00, "MCN":0.95, "MCL":0.85, "MCR":0.78, "FID":0.55, "VAR":1.}
+        self.engine_bpr = 14.
+        self.engine_fpr = 1.15
         self.engine_lpc_pr = 3.0
         self.engine_hpc_pr = 14.0
         self.engine_T4max = 1700.
@@ -70,7 +70,7 @@ class Exergetic_tf_nacelle(Component):
         g = earth.gravity()
         mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
         lod = 16.
-        fn = 2.0*(mass*g/lod)/self.n_engine
+        fn = 1.6*(mass*g/lod)/self.n_engine
         return fn
 
     def eval_geometry(self):
@@ -133,14 +133,15 @@ class Exergetic_tf_nacelle(Component):
         self.TF_model.set_flight(tamb, pamb, mach)
 
         if (rating!="VAR"):
-            T4 = self.engine_T4max * self.rating_factor[rating]
-            s, c, p = self.TF_model.off_design(Ttmax=T4, HPX=pw_offtake)
+            t41 = self.engine_T4max * self.rating_factor[rating]
+            s, c, p = self.TF_model.off_design(Ttmax=t41, HPX=pw_offtake)
         else:
             s, c, p = self.TF_model.off_design(N1=throttle, HPX=pw_offtake)
+            t41 = s["4"]["Tt"]
 
         total_thrust = p['Fnet']
         fuel_flow = p['wfe']
-        return total_thrust, fuel_flow
+        return {"fn":total_thrust, "ff":fuel_flow, "t4":t41}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
@@ -162,11 +163,29 @@ class Exergetic_tf_nacelle(Component):
         s, c, p = self.TF_model.off_design(N1=throttle, HPX=pw_offtake)
         sfc = p['wfe']/p['Fnet']
 
+        t41 = s["4"]["Tt"]
+        T4max = self.engine_T4max * self.rating_factor[rating]
+
+        return {"sfc":sfc, "thtl":throttle, "t4":t41}
+
+    def unitary_sc_fn(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
+        """Unitary thrust of a pure turbofan engine (semi-empirical model)
+        Consumption is driven by flying conditions and thrust, rating is their to provide a reference of T4 to compute throttle
+        """
+        self.TF_model.set_flight(tamb, pamb, mach)
+
+        # print(self.cruise_thrust)
+        # print(tamb,pamb,mach,rating,thrust)
+
+        s, c, p = self.TF_model.off_design(Fnet=thrust, HPX=pw_offtake)
+
+        sfc = p['wfe']/p['Fnet']
+
         T4 = s["4"]["Tt"]
         T4max = self.engine_T4max * self.rating_factor[rating]
         kT4 = T4/T4max
 
-        return sfc, throttle
+        return sfc, kT4
 
 
 class Outboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Outboard_wing_mounted_nacelle):

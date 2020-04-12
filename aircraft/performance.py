@@ -45,16 +45,16 @@ class Performance(object):
         self.mission.crz_sar = lf_dict["sar"]
         self.mission.crz_cz = lf_dict["cz"]
         self.mission.crz_lod = lf_dict["lod"]
-        self.mission.crz_thrust = lf_dict["thrust"]
-        self.mission.crz_throttle = lf_dict["throttle"]
+        self.mission.crz_thrust = lf_dict["fn"]
+        self.mission.crz_throttle = lf_dict["thtl"]
         self.mission.crz_sfc = lf_dict["sfc"]
 
         self.mission.max_sar_altp = sm_dict["altp"]
         self.mission.max_sar = sm_dict["sar"]
         self.mission.max_sar_cz = sm_dict["cz"]
         self.mission.max_sar_lod = sm_dict["lod"]
-        self.mission.max_sar_thrust = sm_dict["thrust"]
-        self.mission.max_sar_throttle = sm_dict["throttle"]
+        self.mission.max_sar_thrust = sm_dict["fn"]
+        self.mission.max_sar_throttle = sm_dict["thtl"]
         self.mission.max_sar_sfc = sm_dict["sfc"]
 
         #---------------------------------------------------------------------------------------------------
@@ -93,13 +93,13 @@ class Performance(object):
         self.approach.app_speed_eff = ld_dict["vapp"]
 
         #---------------------------------------------------------------------------------------------------
-        self.mcl_ceiling.disa = self.aircraft.requirement.vz_mcl.disa
-        self.mcl_ceiling.altp = self.aircraft.requirement.vz_mcl.altp
-        self.mcl_ceiling.mach = self.aircraft.requirement.vz_mcl.mach
-        self.mcl_ceiling.kmtow = self.aircraft.requirement.vz_mcl.kmtow
-        self.mcl_ceiling.rating = self.aircraft.requirement.vz_mcl.rating
-        self.mcl_ceiling.speed_mode = self.aircraft.requirement.vz_mcl.speed_mode
-        self.mcl_ceiling.vz_req = self.aircraft.requirement.vz_mcl.vz_req
+        self.mcl_ceiling.disa = self.aircraft.requirement.mcl_ceiling.disa
+        self.mcl_ceiling.altp = self.aircraft.requirement.mcl_ceiling.altp
+        self.mcl_ceiling.mach = self.aircraft.requirement.mcl_ceiling.mach
+        self.mcl_ceiling.kmtow = self.aircraft.requirement.mcl_ceiling.kmtow
+        self.mcl_ceiling.rating = self.aircraft.requirement.mcl_ceiling.rating
+        self.mcl_ceiling.speed_mode = self.aircraft.requirement.mcl_ceiling.speed_mode
+        self.mcl_ceiling.vz_req = self.aircraft.requirement.mcl_ceiling.vz_req
 
         kfn = 1.
         mass = self.mcl_ceiling.kmtow*self.aircraft.weight_cg.mtow
@@ -109,13 +109,13 @@ class Performance(object):
         self.mcl_ceiling.vz_eff = cl_dict["vz"]
 
         #---------------------------------------------------------------------------------------------------
-        self.mcr_ceiling.disa = self.aircraft.requirement.vz_mcr.disa
-        self.mcr_ceiling.altp = self.aircraft.requirement.vz_mcr.altp
-        self.mcr_ceiling.mach = self.aircraft.requirement.vz_mcr.mach
-        self.mcr_ceiling.kmtow = self.aircraft.requirement.vz_mcr.kmtow
-        self.mcr_ceiling.rating = self.aircraft.requirement.vz_mcr.rating
-        self.mcr_ceiling.speed_mode = self.aircraft.requirement.vz_mcr.speed_mode
-        self.mcr_ceiling.vz_req = self.aircraft.requirement.vz_mcr.vz_req
+        self.mcr_ceiling.disa = self.aircraft.requirement.mcr_ceiling.disa
+        self.mcr_ceiling.altp = self.aircraft.requirement.mcr_ceiling.altp
+        self.mcr_ceiling.mach = self.aircraft.requirement.mcr_ceiling.mach
+        self.mcr_ceiling.kmtow = self.aircraft.requirement.mcr_ceiling.kmtow
+        self.mcr_ceiling.rating = self.aircraft.requirement.mcr_ceiling.rating
+        self.mcr_ceiling.speed_mode = self.aircraft.requirement.mcr_ceiling.speed_mode
+        self.mcr_ceiling.vz_req = self.aircraft.requirement.mcr_ceiling.vz_req
 
         kfn = 1.
         mass = self.mcr_ceiling.kmtow*self.aircraft.weight_cg.mtow
@@ -125,12 +125,12 @@ class Performance(object):
         self.mcr_ceiling.vz_eff = cl_dict["vz"]
 
         #---------------------------------------------------------------------------------------------------
-        self.oei_ceiling.disa = self.aircraft.requirement.oei.disa
-        self.oei_ceiling.altp = self.aircraft.requirement.oei.altp
-        self.oei_ceiling.kmtow = self.aircraft.requirement.oei.kmtow
-        self.oei_ceiling.rating = self.aircraft.requirement.oei.rating
-        self.oei_ceiling.speed_mode = self.aircraft.requirement.oei.speed_mode
-        self.oei_ceiling.path_req = self.aircraft.requirement.oei.path_req
+        self.oei_ceiling.disa = self.aircraft.requirement.oei_ceiling.disa
+        self.oei_ceiling.altp = self.aircraft.requirement.oei_ceiling.altp
+        self.oei_ceiling.kmtow = self.aircraft.requirement.oei_ceiling.kmtow
+        self.oei_ceiling.rating = self.aircraft.requirement.oei_ceiling.rating
+        self.oei_ceiling.speed_mode = self.aircraft.requirement.oei_ceiling.speed_mode
+        self.oei_ceiling.path_req = self.aircraft.requirement.oei_ceiling.path_req
 
         kfn = 1.
         mass = self.oei_ceiling.kmtow*self.aircraft.weight_cg.mtow
@@ -140,14 +140,14 @@ class Performance(object):
         self.oei_ceiling.mach_opt = ei_dict["mach"]
 
         #---------------------------------------------------------------------------------------------------
-        self.time_to_climb.disa = self.aircraft.requirement.ttc.disa
-        self.time_to_climb.cas1 = self.aircraft.requirement.ttc.cas1
-        self.time_to_climb.altp1 = self.aircraft.requirement.ttc.altp1
-        self.time_to_climb.cas2 = self.aircraft.requirement.ttc.cas2
-        self.time_to_climb.altp2 = self.aircraft.requirement.ttc.altp2
-        self.time_to_climb.mach = self.aircraft.requirement.ttc.mach
-        self.time_to_climb.altp = self.aircraft.requirement.ttc.altp
-        self.time_to_climb.ttc_req = self.aircraft.requirement.ttc.ttc_req
+        self.time_to_climb.disa = self.aircraft.requirement.time_to_climb.disa
+        self.time_to_climb.cas1 = self.aircraft.requirement.time_to_climb.cas1
+        self.time_to_climb.altp1 = self.aircraft.requirement.time_to_climb.altp1
+        self.time_to_climb.cas2 = self.aircraft.requirement.time_to_climb.cas2
+        self.time_to_climb.altp2 = self.aircraft.requirement.time_to_climb.altp2
+        self.time_to_climb.mach = self.aircraft.requirement.time_to_climb.mach
+        self.time_to_climb.altp = self.aircraft.requirement.time_to_climb.altp
+        self.time_to_climb.ttc_req = self.aircraft.requirement.time_to_climb.ttc_req
 
         rating = "MCL"
         kfn = 1.
@@ -207,12 +207,14 @@ class Flight(object):
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
 
         thrust = (gam/2.)*pamb*mach**2*self.aircraft.airframe.wing.area*cx
-        sfc,throttle = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust)
+        dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust)
+        throttle = dict["thtl"]
+        sfc = dict["sfc"]
 
         vsnd = earth.sound_speed(tamb)
         sar = (vsnd*mach*lod)/(mass*g*sfc)
 
-        return sar,cz,cx,lod,thrust,throttle,sfc
+        return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sfc":sfc}
 
     def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating,kfn):
         """Retrieve air path in various conditions
@@ -221,8 +223,8 @@ class Flight(object):
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
         mach = self.get_mach(pamb,speed_mode,speed)
 
-        fn0,ff0,sfc = self.aircraft.power_system.thrust(pamb,tamb,mach,rating)
-        fn = fn0*kfn
+        dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating)
+        fn = dict["fn"]*kfn
         cz = self.lift_from_speed(pamb,tamb,mach,mass)
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
 
@@ -287,25 +289,34 @@ class Flight(object):
 
         nei = 0
         thrust = mass*g / lod
-        sfc,throttle = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust,nei)
+        dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust,nei)
+        throttle = dict["thtl"]
+        sfc = dict["sfc"]
 
         sar = (vsnd*mach*lod)/(mass*g*sfc)
-        return sar,cz,cx,lod,thrust,throttle,sfc
+        return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sfc":sfc}
 
     def eval_max_sar(self,mass,mach,disa):
 
         def fct(altp,mass,mach,disa):
-            sar,cz,cx,lod,thrust,throttle,sfc = self.eval_sar(altp,mass,mach,disa)
-            return sar
+            dict = self.eval_sar(altp,mass,mach,disa)
+            return dict["sar"]
 
         d_altp = 250.
         altp_ini = self.aircraft.requirement.cruise_altp
         fct = [fct, mass,mach,disa]
 
         altp_sar_max,sar_max,rc = maximize_1d(altp_ini,d_altp,fct)
-        sar,cz,cx,lod,thrust,throttle,sfc = self.eval_sar(altp_sar_max,mass,mach,disa)
+        dict = self.eval_sar(altp_sar_max,mass,mach,disa)
+        sar = dict["sar"]
+        cz = dict["cz"]
+        cx = dict["cx"]
+        lod = dict["lod"]
+        fn = dict["fn"]
+        thtl = dict["thtl"]
+        sfc = dict["sfc"]
 
-        return altp_sar_max,sar_max,cz,cx,lod,thrust,throttle,sfc
+        return {"altp":altp_sar_max, "sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":fn, "thtl":thtl, "sfc":sfc}
 
     def acceleration(self,nei,altp,disa,speed_mode,speed,mass,rating,throttle):
         """Aircraft acceleration on level flight
@@ -315,7 +326,7 @@ class Flight(object):
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
         mach = self.get_mach(pamb,speed_mode,speed)
 
-        fn,ff,sfc = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,throttle=throttle,nei=nei)
+        dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,throttle=throttle,nei=nei)
 
         cz = self.lift_from_speed(pamb,tamb,mach,mass)
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
@@ -324,7 +335,7 @@ class Flight(object):
             dcx = self.aircraft.power_system.oei_drag(pamb,mach)
             cx = cx + dcx*nei
 
-        acc = (fn - 0.5*gam*pamb*mach**2*self.aircraft.airframe.wing.area*cx) / mass
+        acc = (dict["fn"] - 0.5*gam*pamb*mach**2*self.aircraft.airframe.wing.area*cx) / mass
         return acc
 
 
@@ -404,8 +415,8 @@ class Take_off(Flight):
 
         nei = 0    # For Magic Line factor computation
         throttle = 1.
-        fn0,ff,sfc = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,throttle,nei)
-        fn = kfn*fn0
+        dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,throttle,nei)
+        fn = kfn*dict["fn"]
 
         ml_factor = mass**2 / (cz_to*fn*self.aircraft.airframe.wing.area*sig**0.8 )  # Magic Line factor
         tofl = 15.5*ml_factor + 100.    # Magic line
@@ -472,7 +483,9 @@ class MCL_ceiling(Flight):
         """Residual climb speed in MCL rating
         """
         nei = 0
-        slope,vz = self.air_path(nei,altp,disa,speed_mode,mach,mass,rating,kfn)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+        speed = self.get_speed(pamb,self.speed_mode,self.mach)
+        slope,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
         return {"vz":vz, "slope":slope}
 
 
@@ -504,7 +517,9 @@ class MCR_ceiling(Flight):
         """Residual climb speed in MCR rating
         """
         nei = 0
-        slope,vz = self.air_path(nei,altp,disa,speed_mode,mach,mass,rating,kfn)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+        speed = self.get_speed(pamb,self.speed_mode,self.mach)
+        slope,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
         return {"vz":vz, "slope":slope}
 
 
@@ -596,9 +611,9 @@ class Time_to_Climb(Flight):
         nei = 0
         speed_mode = "cas"    # Constant CAS
 
-        [slope,v_z0] = self.air_path(nei,altp[0],disa,speed_mode,vcas1,mass,rating,kfn)
-        [slope,v_z1] = self.air_path(nei,altp[1],disa,speed_mode,vcas1,mass,rating,kfn)
-        [slope,v_z2] = self.air_path(nei,altp[2],disa,speed_mode,vcas1,mass,rating,kfn)
+        slope,v_z0 = self.air_path(nei,altp[0],disa,speed_mode,vcas1,mass,rating,kfn)
+        slope,v_z1 = self.air_path(nei,altp[1],disa,speed_mode,vcas1,mass,rating,kfn)
+        slope,v_z2 = self.air_path(nei,altp[2],disa,speed_mode,vcas1,mass,rating,kfn)
         v_z = np.array([v_z0, v_z1, v_z2])
 
         if (v_z[0]<0. or v_z[1]<0. or v_z[2]<0.):
@@ -640,9 +655,9 @@ class Time_to_Climb(Flight):
         altp_1 = (altp_0+altp_2)/2.
         altp = np.array([altp_0, altp_1, altp_2])
 
-        [slope,v_z0] = self.air_path(nei,altp[0],disa,speed_mode,vcas2,mass,rating,kfn)
-        [slope,v_z1] = self.air_path(nei,altp[1],disa,speed_mode,vcas2,mass,rating,kfn)
-        [slope,v_z2] = self.air_path(nei,altp[2],disa,speed_mode,vcas2,mass,rating,kfn)
+        slope,v_z0 = self.air_path(nei,altp[0],disa,speed_mode,vcas2,mass,rating,kfn)
+        slope,v_z1 = self.air_path(nei,altp[1],disa,speed_mode,vcas2,mass,rating,kfn)
+        slope,v_z2 = self.air_path(nei,altp[2],disa,speed_mode,vcas2,mass,rating,kfn)
         v_z = np.array([v_z0, v_z1, v_z2])
 
         if(v_z[0]<0. or v_z[1]<0. or v_z[2]<0.):
@@ -665,9 +680,9 @@ class Time_to_Climb(Flight):
 
             speed_mode = "mach"    # mach
 
-            [slope,v_z0] = self.air_path(nei,altp[0],disa,speed_mode,mach,mass,rating,kfn)
-            [slope,v_z1] = self.air_path(nei,altp[1],disa,speed_mode,mach,mass,rating,kfn)
-            [slope,v_z2] = self.air_path(nei,altp[2],disa,speed_mode,mach,mass,rating,kfn)
+            slope,v_z0 = self.air_path(nei,altp[0],disa,speed_mode,mach,mass,rating,kfn)
+            slope,v_z1 = self.air_path(nei,altp[1],disa,speed_mode,mach,mass,rating,kfn)
+            slope,v_z2 = self.air_path(nei,altp[2],disa,speed_mode,mach,mass,rating,kfn)
             v_z = np.array([v_z0, v_z1, v_z2])
 
             if(v_z[0]<0. or v_z[1]<0. or v_z[2]<0.):
@@ -729,11 +744,9 @@ class Mission(Flight):
         """
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
 
-        sar,cz,cx,lod,thrust,throttle,sfc = self.level_flight(pamb,tamb,mach,mass)
-        lf_dict = {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "thrust":thrust, "throttle":throttle, "sfc":sfc}
+        lf_dict = self.level_flight(pamb,tamb,mach,mass)
 
-        altp_sar_max,sar_max,cz,cx,lod,thrust,throttle,sfc = self.eval_max_sar(mass,mach,disa)
-        sm_dict = {"altp":altp_sar_max, "sar":sar_max, "cz":cz, "cx":cx, "lod":lod, "thrust":thrust, "throttle":throttle, "sfc":sfc}
+        sm_dict = self.eval_max_sar(mass,mach,disa)
 
         return lf_dict, sm_dict
 
@@ -890,8 +903,8 @@ class Mission_fuel_from_range_and_tow(Flight):
         altp_holding = unit.m_ft(1500.)
         mach_holding = 0.65 * mach
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding,disa)
-        sar,cz,cx,lod,thrust,throttle,sfc = self.level_flight(pamb,tamb,mach_holding,mass)
-        fuel_holding = sfc*(mass*g/lod)*self.holding_time
+        dict = self.level_flight(pamb,tamb,mach_holding,mass)
+        fuel_holding = dict["sfc"]*(mass*g/dict["lod"])*self.holding_time
 
         # Total
         #-----------------------------------------------------------------------------------------------------------
@@ -1240,8 +1253,8 @@ class Mission_def(object):
         altp_holding = unit.m_ft(1500.)
         mach_holding = 0.50 * mach
         pamb, tamb, tstd, dtodz = earth.atmosphere(altp_holding, disa)
-        sar,cz,cx,lod,thrust,throttle,sfc = self.aircraft.performance.level_flight(pamb, tamb, mach_holding, mass)
-        fuel_holding = sfc * (mass * g / lod) * self.holding_time
+        dict = self.aircraft.performance.level_flight(pamb, tamb, mach_holding, mass)
+        fuel_holding = dict["sfc"] * (mass * g / dict["lod"]) * self.holding_time
 
         # Total
         # -----------------------------------------------------------------------------------------------------------

@@ -187,35 +187,47 @@ class Environment(Flight):
 
         # WARNING : Maximum SAR altitude or speed may be lowered by propulsion ceilings
         #-----------------------------------------------------------------------------------------------------------
-        altp_sar_max_hw,sar_max_hw,_,_,_,_,_,_ = self.eval_max_sar(high_weight,mach,disa)
+        dict = self.eval_max_sar(high_weight,mach,disa)
+        altp_sar_max_hw = dict["altp"]
         altp_sar_max_hw,hw_ceiling = self.check_ceiling(high_weight,altp_sar_max_hw,mach,disa)
         if(hw_ceiling<0.):
             lower_mach = mach - 0.03
-            altp_sar_max_hw,sar_max_hw,_,_,_,_,_,_ = self.eval_max_sar(high_weight,lower_mach,disa)
+            dict = self.eval_max_sar(high_weight,lower_mach,disa)
+            altp_sar_max_hw = dict["altp"]
             altp_sar_max_hw,hw_ceiling = self.check_ceiling(high_weight,altp_sar_max_hw,lower_mach,disa)
-            sar_max_hw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_hw,high_weight,lower_mach,disa)
+            dict = self.eval_sar(altp_sar_max_hw,high_weight,lower_mach,disa)
+            sar_max_hw = dict["sar"]
         else:
-            sar_max_hw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_hw,high_weight,mach,disa)
+            dict = self.eval_sar(altp_sar_max_hw,high_weight,mach,disa)
+            sar_max_hw = dict["sar"]
 
-        altp_sar_max_mw,sar_max_mw,_,_,_,_,_,_ = self.eval_max_sar(medium_weight,mach,disa)
+        dict = self.eval_max_sar(medium_weight,mach,disa)
+        altp_sar_max_mw = dict["altp"]
         altp_sar_max_mw,mw_ceiling = self.check_ceiling(medium_weight,altp_sar_max_mw,mach,disa)
         if(mw_ceiling<0.):
             lower_mach = mach - 0.03
-            altp_sar_max_mw,sar_max_mw,_,_,_,_,_,_ = self.eval_max_sar(medium_weight,lower_mach,disa)
+            dict = self.eval_max_sar(medium_weight,lower_mach,disa)
+            altp_sar_max_mw = dict["altp"]
             altp_sar_max_mw,mw_ceiling = self.check_ceiling(medium_weight,altp_sar_max_mw,lower_mach,disa)
-            sar_max_mw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_mw,medium_weight,lower_mach,disa)
+            dict = self.eval_sar(altp_sar_max_mw,medium_weight,lower_mach,disa)
+            sar_max_mw = dict["sar"]
         else:
-            sar_max_mw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_mw,medium_weight,mach,disa)
+            dict = self.eval_sar(altp_sar_max_mw,medium_weight,mach,disa)
+            sar_max_mw = dict["sar"]
 
-        altp_sar_max_lw,sar_max_lw,_,_,_,_,_,_ = self.eval_max_sar(low_weight,mach,disa)
+        dict = self.eval_max_sar(low_weight,mach,disa)
+        altp_sar_max_lw = dict["altp"]
         altp_sar_max_lw,lw_ceiling = self.check_ceiling(low_weight,altp_sar_max_lw,mach,disa)
         if(lw_ceiling<0.):
             lower_mach = mach - 0.03
-            altp_sar_max_lw,sar_max_lw,_,_,_,_,_,_ = self.eval_max_sar(low_weight,lower_mach,disa)
+            dict = self.eval_max_sar(low_weight,lower_mach,disa)
+            altp_sar_max_lw = dict["altp"]
             altp_sar_max_lw,lw_ceiling = self.check_ceiling(low_weight,altp_sar_max_lw,lower_mach,disa)
-            sar_max_lw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_lw,low_weight,lower_mach,disa)
+            dict = self.eval_sar(altp_sar_max_lw,low_weight,lower_mach,disa)
+            sar_max_lw = dict["sar"]
         else:
-            sar_max_lw,_,_,_,_,_,_ = self.eval_sar(altp_sar_max_lw,low_weight,mach,disa)
+            dict = self.eval_sar(altp_sar_max_lw,low_weight,mach,disa)
+            sar_max_lw = dict["sar"]
 
         self.CO2_metric = (1./rgf**0.24)*(1./sar_max_hw + 1./sar_max_mw + 1./sar_max_lw)/3.        # kg/m/m2
         return

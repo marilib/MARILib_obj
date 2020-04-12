@@ -8,6 +8,11 @@ from engine.ExergeticEngine import Turbofan
 from matplotlib import pyplot as plt
 
 
+import earth
+from aircraft.tool import unit
+
+
+
 TF = Turbofan()
 TF.cooling_flow = 0.1
 # Set the flight conditions to 35000ft, ISA, Mn 0.78 as static temperature, static pressure and Mach number
@@ -114,8 +119,15 @@ if s is not None:
     TF.print_stations(s)
     TF.print_perfos(p)
 
+
+disa = 15.
+altp = unit.m_ft(15000.)
+mach = 0.40
+pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+print("ici",tamb,pamb)
+
 # now for a maxi cont point
-TF.set_flight(228.15, 81325., 0.40)
+TF.set_flight(273.43, 57182., 0.40)
 s, c0, p = TF.off_design(Ttmax=Ttm*0.95)
 if s is not None:
     TF.print_stations(s)
