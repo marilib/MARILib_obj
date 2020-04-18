@@ -14,7 +14,10 @@ import earth
 
 from engine.ExergeticEngine import ExergeticEngine, Turbofan
 
-from aircraft.airframe.component import Component, Inboard_wing_mounted_nacelle, Outboard_wing_mounted_nacelle
+from aircraft.airframe.component import Component,\
+                                        Inboard_wing_mounted_nacelle,\
+                                        Outboard_wing_mounted_nacelle,\
+                                        Rear_fuselage_mounted_nacelle
 
 
 class Exergetic_tf_nacelle(Component):
@@ -113,7 +116,7 @@ class Exergetic_tf_nacelle(Component):
         self.length = 0.86*self.width + self.engine_bpr**0.37      # statistical regression
 
         knac = np.pi * self.width * self.length
-        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*2.       # statistical regression, two engines
+        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*self.n_engine       # statistical regression, all engines
         self.net_wet_area = self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.15
@@ -121,7 +124,9 @@ class Exergetic_tf_nacelle(Component):
         self.frame_origin = self.__locate_nacelle__()
 
     def eval_mass(self):
-        self.mass = (1250. + 0.021*self.reference_thrust)*2.       # statistical regression, two engines
+        engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
+        pylon_mass = 0.0031*self.reference_thrust*self.n_engine
+        self.mass = engine_mass + pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
@@ -200,4 +205,8 @@ class Inboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Inboard_wing_mounte
         super(Inboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
 
 
+class Rear_fuselage_mounted_tf_nacelle(Exergetic_tf_nacelle,Rear_fuselage_mounted_nacelle):
+
+    def __init__(self, aircraft):
+        super(Rear_fuselage_mounted_tf_nacelle, self).__init__(aircraft)
 

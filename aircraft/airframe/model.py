@@ -22,7 +22,7 @@ class Aerodynamics(object):
         self.aircraft = aircraft
 
         self.cx_correction = 0.     # drag correction on cx coefficient
-        self.cruise_lodmax = None
+        self.cruise_lodmax = 16.    # Assumption on L/D max for some initializations
         self.cz_cruise_lodmax = None
 
         self.hld_conf_clean = 0.
