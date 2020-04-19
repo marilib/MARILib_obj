@@ -22,7 +22,7 @@ class Performance(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.mission = Mission(aircraft)
+        self.mission = None
         self.take_off = Take_off(aircraft)
         self.approach = Approach(aircraft)
         self.mcr_ceiling = MCR_ceiling(aircraft)
@@ -34,28 +34,7 @@ class Performance(object):
         """Evaluate general performances of the airplane
         """
         #---------------------------------------------------------------------------------------------------
-        self.mission.disa = self.aircraft.requirement.cruise_disa
-        self.mission.altp = self.aircraft.requirement.cruise_altp
-        self.mission.mach = self.aircraft.requirement.cruise_mach
-        self.mission.ktow = self.aircraft.performance.mission.ktow
-
-        mass = self.mission.ktow*self.aircraft.weight_cg.mtow
-        lf_dict, sm_dict = self.mission.eval_cruise_point(self.mission.disa, self.mission.altp, self.mission.mach, mass)
-
-        self.mission.crz_sar = lf_dict["sar"]
-        self.mission.crz_cz = lf_dict["cz"]
-        self.mission.crz_lod = lf_dict["lod"]
-        self.mission.crz_thrust = lf_dict["fn"]
-        self.mission.crz_throttle = lf_dict["thtl"]
-        self.mission.crz_sfc = lf_dict["sfc"]
-
-        self.mission.max_sar_altp = sm_dict["altp"]
-        self.mission.max_sar = sm_dict["sar"]
-        self.mission.max_sar_cz = sm_dict["cz"]
-        self.mission.max_sar_lod = sm_dict["lod"]
-        self.mission.max_sar_thrust = sm_dict["fn"]
-        self.mission.max_sar_throttle = sm_dict["thtl"]
-        self.mission.max_sar_sfc = sm_dict["sfc"]
+        self.mission.eval_cruise_point()
 
         #---------------------------------------------------------------------------------------------------
         self.take_off.disa = self.aircraft.requirement.take_off.disa
@@ -202,19 +181,23 @@ class Flight(object):
         """
         g = earth.gravity()
         r,gam,Cp,Cv = earth.gas_data()
+        vsnd = earth.sound_speed(tamb)
 
         cz = (2.*mass*g)/(gam*pamb*mach**2*self.aircraft.airframe.wing.area)
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
 
         thrust = (gam/2.)*pamb*mach**2*self.aircraft.airframe.wing.area*cx
         dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust)
-        throttle = dict["thtl"]
-        sfc = dict["sfc"]
+        throttle = dict.get("thtl")
+        sfc = dict.get("sfc")
+        if sfc is not None:
+            sar = (vsnd*mach*lod)/(mass*g*sfc)
+            return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sfc":sfc}
+        else:
+            sec = dict.get("sec")
+            sar = (vsnd*mach*lod)/(mass*g*sec)
+            return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sec":sec}
 
-        vsnd = earth.sound_speed(tamb)
-        sar = (vsnd*mach*lod)/(mass*g*sfc)
-
-        return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sfc":sfc}
 
     def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating,kfn):
         """Retrieve air path in various conditions
@@ -290,11 +273,15 @@ class Flight(object):
         nei = 0
         thrust = mass*g / lod
         dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust,nei)
-        throttle = dict["thtl"]
-        sfc = dict["sfc"]
-
-        sar = (vsnd*mach*lod)/(mass*g*sfc)
-        return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sfc":sfc}
+        throttle = dict.get("thtl")
+        sfc = dict.get("sfc")
+        if sfc is not None:
+            sar = (vsnd*mach*lod)/(mass*g*sfc)
+            return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sfc":sfc}
+        else:
+            sec = dict.get("sec")
+            sar = (vsnd*mach*lod)/(mass*g*sec)
+            return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sec":sec}
 
     def eval_max_sar(self,mass,mach,disa):
 
@@ -308,15 +295,13 @@ class Flight(object):
 
         altp_sar_max,sar_max,rc = maximize_1d(altp_ini,d_altp,fct)
         dict = self.eval_sar(altp_sar_max,mass,mach,disa)
-        sar = dict["sar"]
-        cz = dict["cz"]
-        cx = dict["cx"]
-        lod = dict["lod"]
-        fn = dict["fn"]
-        thtl = dict["thtl"]
-        sfc = dict["sfc"]
-
-        return {"altp":altp_sar_max, "sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":fn, "thtl":thtl, "sfc":sfc}
+        sfc = dict.get("sfc")
+        if sfc is not None:
+            [sar,cz,cx,lod,fn,thtl,sfc] = dict.values()
+            return {"altp":altp_sar_max, "sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":fn, "thtl":thtl, "sfc":sfc}
+        else:
+            [sar,cz,cx,lod,fn,thtl,sec] = dict.values()
+            return {"altp":altp_sar_max, "sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":fn, "thtl":thtl, "sfc":sec}
 
     def acceleration(self,nei,altp,disa,speed_mode,speed,mass,rating,throttle):
         """Aircraft acceleration on level flight
@@ -704,51 +689,26 @@ class Time_to_Climb(Flight):
         return {"ttc":ttc}
 
 
-class Mission(Flight):
-    """Definition of all mission types
+class Basic_mission(Flight):
+    """Definition of all mission types for fuel powered airplanes
     """
     def __init__(self, aircraft):
-        super(Mission, self).__init__(aircraft)
+        super(Basic_mission, self).__init__(aircraft)
         self.aircraft = aircraft
+
+        self.max_payload = None
+        self.nominal = None
+        self.max_fuel = None
+        self.zero_payload = None
+        self.cost = None
 
         self.disa = None
         self.altp = None
         self.mach = None
+        self.mass = None
 
-        self.ktow = 0.90
-
-        self.crz_sar = None
-        self.crz_cz = None
-        self.crz_lod = None
-        self.crz_thrust = None
-        self.crz_throttle = None
-        self.crz_sfc = None
-
-        self.max_sar_altp = None
-        self.max_sar = None
-        self.max_sar_cz = None
-        self.max_sar_lod = None
-        self.max_sar_thrust = None
-        self.max_sar_throttle = None
-        self.max_sar_sfc = None
-
-        self.max_payload = Mission_range_from_payload_and_tow(aircraft)
-        #self.max_payload2 = Mission_generic(aircraft)
-        self.nominal = Mission_fuel_from_range_and_tow(aircraft)
-        self.max_fuel = Mission_range_from_fuel_and_tow(aircraft)
-        self.zero_payload = Mission_range_from_fuel_and_payload(aircraft)
-        self.cost = Mission_fuel_from_range_and_payload(aircraft)
-
-    def eval_cruise_point(self,disa,altp,mach,mass):
-        """Evaluate cruise point characteristics
-        """
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-
-        lf_dict = self.level_flight(pamb,tamb,mach,mass)
-
-        sm_dict = self.eval_max_sar(mass,mach,disa)
-
-        return lf_dict, sm_dict
+    def eval_cruise_point(self):
+        raise NotImplementedError
 
     def payload_range(self):
         payload_max = self.aircraft.airframe.cabin.maximum_payload
@@ -775,9 +735,387 @@ class Mission(Flight):
         payload = self.aircraft.airframe.cabin.nominal_payload
         self.cost.eval(range,payload,owe,altp,mach,disa)
 
-    def mass_mission_adaptation(self):
+
+class E_mission(Basic_mission):
+    """Definition of all mission types for battery powered airplanes
+    """
+    def __init__(self, aircraft):
+        super(E_mission, self).__init__(aircraft)
+        self.aircraft = aircraft
+
+        self.max_payload = E_mission_range_from_payload_and_tow(aircraft)
+        self.nominal = E_mission_batt_from_range_and_tow(aircraft)
+        self.max_fuel = E_mission_range_from_batt_and_tow(aircraft)
+        self.zero_payload = E_mission_range_from_batt_and_payload(aircraft)
+        self.cost = E_mission_batt_from_range_and_payload(aircraft)
+
+        self.crz_esar = None
+        self.crz_cz = None
+        self.crz_lod = None
+        self.crz_thrust = None
+        self.crz_throttle = None
+        self.crz_sec = None
+
+        self.max_esar_altp = None
+        self.max_esar = None
+        self.max_esar_cz = None
+        self.max_esar_lod = None
+        self.max_esar_thrust = None
+        self.max_esar_throttle = None
+        self.max_esar_sec = None
+
+    def eval_cruise_point(self):
+        """Evaluate cruise point characteristics
         """
-        Build an aircraft
+        self.disa = self.aircraft.requirement.cruise_disa
+        self.altp = self.aircraft.requirement.cruise_altp
+        self.mach = self.aircraft.requirement.cruise_mach
+        self.mass = self.aircraft.weight_cg.mtow
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+
+        lf_dict = self.level_flight(pamb,tamb,self.mach,self.mass)
+        sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
+
+        self.crz_esar = lf_dict["sar"]
+        self.crz_cz = lf_dict["cz"]
+        self.crz_lod = lf_dict["lod"]
+        self.crz_thrust = lf_dict["fn"]
+        self.crz_throttle = lf_dict["thtl"]
+        self.crz_sec = lf_dict["sec"]
+
+        self.max_esar_altp = sm_dict["altp"]
+        self.max_esar = sm_dict["sar"]
+        self.max_esar_cz = sm_dict["cz"]
+        self.max_esar_lod = sm_dict["lod"]
+        self.max_esar_thrust = sm_dict["fn"]
+        self.max_esar_throttle = sm_dict["thtl"]
+        self.max_esar_sec = sm_dict["sec"]
+
+    def mass_mission_adaptation(self):
+        """Solves coupling between MTOW and OWE
+        """
+        range = self.aircraft.requirement.design_range
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
+        disa = self.aircraft.requirement.cruise_disa
+
+        payload = self.aircraft.airframe.cabin.nominal_payload
+
+        def fct(mtow):
+            self.aircraft.weight_cg.mtow = mtow[0]
+            self.aircraft.weight_cg.mass_pre_design()
+            owe = self.aircraft.weight_cg.owe
+            self.nominal.eval(range,mtow,owe,altp,mach,disa)
+            battery_mass = self.nominal.battery_mass
+            return mtow - (owe + payload + battery_mass)
+
+        mtow_ini = [self.aircraft.weight_cg.mtow]
+        output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        self.aircraft.weight_cg.mtow = output_dict[0][0]
+        self.aircraft.weight_cg.mass_pre_design()
+        self.aircraft.performance.mission.payload_range()
+
+
+class E_mission_batt_from_range_and_tow(Flight):
+    """Define common features for all mission types.
+    """
+    def __init__(self, aircraft):
+        super(E_mission_batt_from_range_and_tow, self).__init__(aircraft)
+        self.aircraft = aircraft
+
+        self.disa = None    # Mean cruise temperature shift
+        self.altp = None    # Mean cruise altitude
+        self.mach = None    # Cruise mach number
+        self.range = None   # Mission distance
+        self.tow = None     # Take Off Weight
+        self.payload = None         # Mission payload
+        self.time_block = None      # Mission block duration
+        self.enrg_block = None      # Mission block energy consumption
+        self.enrg_reserve = None    # Mission reserve energy
+        self.enrg_total = None      # Mission total energy
+        self.battery_mass = None    # Mission battery mass
+
+        self.holding_time = unit.s_min(30)  # Holding duration
+        self.reserve_enrg_ratio = self.__reserve_enrg_ratio__() # Ratio of mission fuel to account into reserve
+        self.diversion_range = self.__diversion_range__()       # Diversion leg
+
+    def eval(self,range,tow,owe,altp,mach,disa):
+        """Evaluate mission and store results in object attributes
+        """
+        self.range = range  # Mission distance
+        self.disa = disa    # Mean cruise temperature shift
+        self.altp = altp    # Mean cruise altitude
+        self.mach = mach    # Cruise mach number
+        self.tow = tow      # Take Off Weight
+        self.eval_breguet(range,tow,altp,mach,disa)
+        self.eval_payload(owe)
+
+    def __reserve_enrg_ratio__(self):
+        design_range = self.aircraft.requirement.design_range
+        if (design_range> unit.m_NM(6500.)):
+            reserve_enrg_ratio = 0.03
+        else:
+            reserve_enrg_ratio = 0.05
+        return reserve_enrg_ratio
+
+    def __diversion_range__(self):
+        design_range = self.aircraft.requirement.design_range
+        if (design_range> unit.m_NM(200.)):
+            diversion_range = unit.m_NM(200.)
+        else:
+            diversion_range = design_range
+        return diversion_range
+
+    def eval_payload(self,owe):
+        """Computing resulting payload
+        """
+        self.payload = self.tow - self.battery_mass - owe
+
+    def breguet_range(self,range,tow,altp,mach,disa):
+        """Breguet range equation is dependant from power source : fuel or battery
+        """
+        g = earth.gravity()
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        tas = mach*earth.sound_speed(tamb)
+
+        dict = self.level_flight(pamb,tamb,mach,tow)
+        enrg = tow*g*range*dict["sec"] / (tas*dict["lod"])
+        time = 1.09*(range/tas)
+
+        return enrg,time
+
+    def eval_breguet(self,range,tow,altp,mach,disa):
+        """
+        Mission computation using bregueçt equation, fixed L/D and fixed sfc
+        """
+        g = earth.gravity()
+        n_engine = self.aircraft.airframe.nacelle.n_engine
+        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+
+        # Departure ground phases
+        #-----------------------------------------------------------------------------------------------------------
+        enrg_taxi_out = (0.25*43.1e6)*(34. + 2.3e-4*reference_thrust)*n_engine
+        time_taxi_out = 540.
+
+        enrg_take_off = (0.25*43.1e6)*3.e-4*tow
+        time_take_off = 220.*tow/(reference_thrust*n_engine)
+
+        # Mission leg
+        #-----------------------------------------------------------------------------------------------------------
+        enrg_mission,time_mission = self.breguet_range(range,tow,altp,mach,disa)
+
+        # Arrival ground phases
+        #-----------------------------------------------------------------------------------------------------------
+        enrg_landing = (0.25*43.1e6)*0.75e-4*tow
+        time_landing = 180.
+
+        enrg_taxi_in = (0.25*43.1e6)*(26. + 1.8e-4*reference_thrust)*n_engine
+        time_taxi_in = 420.
+
+        # Block fuel and time
+        #-----------------------------------------------------------------------------------------------------------
+        self.enrg_block = enrg_taxi_out + enrg_take_off + enrg_mission + enrg_landing + enrg_taxi_in
+        self.time_block = time_taxi_out + time_take_off + time_mission + time_landing + time_taxi_in
+
+        # Diversion fuel
+        #-----------------------------------------------------------------------------------------------------------
+        enrg_diversion,t = self.breguet_range(self.diversion_range,tow,altp,mach,disa)
+
+        # Holding fuel
+        #-----------------------------------------------------------------------------------------------------------
+        altp_holding = unit.m_ft(1500.)
+        mach_holding = 0.65 * mach
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding,disa)
+        dict = self.level_flight(pamb,tamb,mach_holding,tow)
+        enrg_holding = dict["sec"]*(tow*g/dict["lod"])*self.holding_time
+
+        # Total
+        #-----------------------------------------------------------------------------------------------------------
+        self.enrg_reserve = enrg_mission*self.reserve_enrg_ratio + enrg_diversion + enrg_holding
+        self.enrg_total = self.enrg_block + self.enrg_reserve
+        self.battery_mass = self.enrg_total / self.aircraft.airframe.system.battery_energy_density
+
+        #-----------------------------------------------------------------------------------------------------------
+        return
+
+
+class E_mission_range_from_payload_and_tow(E_mission_batt_from_range_and_tow):
+    """Specific mission evaluation from payload and take off weight
+    Four variables are driving mission computation : total_fuel, tow, payload & range
+    Two of them are necessary to compute the two others
+    This version computes range and total_fuel from payload and tow
+    """
+    def __init__(self, aircraft):
+        super(E_mission_range_from_payload_and_tow, self).__init__(aircraft)
+
+    def eval(self,payload,tow,owe,altp,mach,disa):
+        self.disa = disa    # Mean cruise temperature shift
+        self.altp = altp    # Mean cruise altitude
+        self.mach = mach    # Cruise mach number
+        self.tow = tow      # Take Off Weight
+        self.payload = payload  # Mission payload
+
+        def fct(range):
+            self.eval_breguet(range,tow,altp,mach,disa)
+            return  self.tow - (owe+self.payload+self.battery_mass)
+
+        range_ini = [self.aircraft.requirement.design_range]
+        output_dict = fsolve(fct, x0=range_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        self.range = output_dict[0][0]                           # Coupling variable
+        self.eval_breguet(self.range,tow,altp,mach,disa)
+
+
+class E_mission_range_from_batt_and_tow(E_mission_batt_from_range_and_tow):
+    """Specific mission evaluation from total fuel and take off weight
+    Four variables are driving mission computation : total_fuel, tow, payload & range
+    Two of them are necessary to compute the two others
+    This version computes range and payload from total_fuel and tow
+    """
+    def __init__(self, aircraft):
+        super(E_mission_range_from_batt_and_tow, self).__init__(aircraft)
+
+    def eval(self,battery_mass,tow,owe,altp,mach,disa):
+        self.disa = disa    # Mean cruise temperature shift
+        self.altp = altp    # Mean cruise altitude
+        self.mach = mach    # Cruise mach number
+        self.tow = tow      # Take Off Weight
+        self.payload = tow-owe-battery_mass  # Mission payload
+
+        def fct(range):
+            self.eval_breguet(range,tow,altp,mach,disa)
+            return  self.tow - (owe+self.payload+self.battery_mass)
+
+        range_ini = [self.aircraft.requirement.design_range]
+        output_dict = fsolve(fct, x0=range_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        self.range = output_dict[0][0]                           # Coupling variable
+        self.eval_breguet(self.range,tow,altp,mach,disa)
+
+
+class E_mission_range_from_batt_and_payload(E_mission_batt_from_range_and_tow):
+    """Specific mission evaluation from payload and total fuel
+    Four variables are driving mission computation : total_fuel, tow, payload & range
+    Two of them are necessary to compute the two others
+    This version computes range and tow from total_fuel and payload
+    """
+    def __init__(self, aircraft):
+        super(E_mission_range_from_batt_and_payload, self).__init__(aircraft)
+
+    def eval(self,battery_mass,payload,owe,altp,mach,disa):
+        self.disa = disa    # Mean cruise temperature shift
+        self.altp = altp    # Mean cruise altitude
+        self.mach = mach    # Cruise mach number
+        self.tow = owe+payload+battery_mass     # Take Off Weight
+        self.payload = payload  # Mission payload
+
+        def fct(range):
+            self.eval_breguet(range,self.tow,altp,mach,disa)
+            return  self.tow - (owe+self.payload+self.battery_mass)
+
+        range_ini = [self.aircraft.requirement.design_range]
+        output_dict = fsolve(fct, x0=range_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        self.range = output_dict[0][0]                           # Coupling variable
+        self.eval_breguet(self.range,self.tow,altp,mach,disa)
+
+
+class E_mission_batt_from_range_and_payload(E_mission_batt_from_range_and_tow):
+    """Specific mission evaluation from range and payload
+    Four variables are driving mission computation : total_fuel, tow, payload & range
+    Two of them are necessary to compute the two others
+    This version computes total_fuel and tow from range and payload
+    """
+    def __init__(self, aircraft):
+        super(E_mission_batt_from_range_and_payload, self).__init__(aircraft)
+
+    def eval(self,range,payload,owe,altp,mach,disa):
+        self.range = range     # Take Off Weight
+        self.disa = disa    # Mean cruise temperature shift
+        self.altp = altp    # Mean cruise altitude
+        self.mach = mach    # Cruise mach number
+        self.payload = payload  # Mission payload
+
+        def fct(tow):
+            self.eval_breguet(range,tow,altp,mach,disa)
+            return  tow - (owe+self.payload+self.battery_mass)
+
+        tow_ini = [self.aircraft.weight_cg.mtow]
+        output_dict = fsolve(fct, x0=tow_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        self.tow = output_dict[0][0]
+        self.eval_breguet(self.range,self.tow,altp,mach,disa)
+
+
+class Mission(Basic_mission):
+    """Definition of all mission types for fuel powered airplanes
+    """
+    def __init__(self, aircraft):
+        super(Mission, self).__init__(aircraft)
+        self.aircraft = aircraft
+
+        self.max_payload = Mission_range_from_payload_and_tow(aircraft)
+        #self.max_payload2 = Mission_generic(aircraft)
+        self.nominal = Mission_fuel_from_range_and_tow(aircraft)
+        self.max_fuel = Mission_range_from_fuel_and_tow(aircraft)
+        self.zero_payload = Mission_range_from_fuel_and_payload(aircraft)
+        self.cost = Mission_fuel_from_range_and_payload(aircraft)
+
+        self.ktow = 0.90    # TOW ratio at which cruise mean consumption is computed for fueled airplanes only
+
+        self.crz_sar = None
+        self.crz_cz = None
+        self.crz_lod = None
+        self.crz_thrust = None
+        self.crz_throttle = None
+        self.crz_sfc = None
+
+        self.max_sar_altp = None
+        self.max_sar = None
+        self.max_sar_cz = None
+        self.max_sar_lod = None
+        self.max_sar_thrust = None
+        self.max_sar_throttle = None
+        self.max_sar_sfc = None
+
+    def eval_cruise_point(self):
+        """Evaluate cruise point characteristics
+        """
+        self.disa = self.aircraft.requirement.cruise_disa
+        self.altp = self.aircraft.requirement.cruise_altp
+        self.mach = self.aircraft.requirement.cruise_mach
+        self.mass = self.ktow*self.aircraft.weight_cg.mtow
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+
+        lf_dict = self.level_flight(pamb,tamb,self.mach,self.mass)
+        sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
+
+        self.crz_sar = lf_dict["sar"]
+        self.crz_cz = lf_dict["cz"]
+        self.crz_lod = lf_dict["lod"]
+        self.crz_thrust = lf_dict["fn"]
+        self.crz_throttle = lf_dict["thtl"]
+        self.crz_sfc = lf_dict["sfc"]
+
+        self.max_sar_altp = sm_dict["altp"]
+        self.max_sar = sm_dict["sar"]
+        self.max_sar_cz = sm_dict["cz"]
+        self.max_sar_lod = sm_dict["lod"]
+        self.max_sar_thrust = sm_dict["fn"]
+        self.max_sar_throttle = sm_dict["thtl"]
+        self.max_sar_sfc = sm_dict["sfc"]
+
+    def mass_mission_adaptation(self):
+        """Solves coupling between MTOW and OWE
         """
         range = self.aircraft.requirement.design_range
         altp = self.aircraft.requirement.cruise_altp
@@ -857,12 +1195,27 @@ class Mission_fuel_from_range_and_tow(Flight):
         """
         self.payload = self.tow - self.fuel_total - owe
 
+    def breguet_range(self,range,tow,altp,mach,disa):
+        """Breguet range equation is dependant from power source : fuel or battery
+        """
+        g = earth.gravity()
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        tas = mach*earth.sound_speed(tamb)
+
+        mass = self.aircraft.performance.mission.ktow*tow
+
+        dict = self.level_flight(pamb,tamb,mach,mass)
+        fuel = tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
+        time = 1.09*(range/tas)
+
+        return fuel,time
+
     def eval_breguet(self,range,tow,altp,mach,disa):
         """
         Mission computation using bregueçt equation, fixed L/D and fixed sfc
         """
         g = earth.gravity()
-        fhv = self.aircraft.power_system.fuel_heat
         n_engine = self.aircraft.airframe.nacelle.n_engine
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
         engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
@@ -877,9 +1230,9 @@ class Mission_fuel_from_range_and_tow(Flight):
 
         # Mission leg
         #-----------------------------------------------------------------------------------------------------------
-        fuel_mission,time_mission = self.aircraft.power_system.breguet_range(range,tow,altp,mach,disa)
+        fuel_mission,time_mission = self.breguet_range(range,tow,altp,mach,disa)
 
-        mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)
+        mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)     # mass is not landing weight
 
         # Arrival ground phases
         #-----------------------------------------------------------------------------------------------------------
@@ -896,7 +1249,7 @@ class Mission_fuel_from_range_and_tow(Flight):
 
         # Diversion fuel
         #-----------------------------------------------------------------------------------------------------------
-        fuel_diversion,t = self.aircraft.power_system.breguet_range(self.diversion_range,tow,altp,mach,disa)
+        fuel_diversion,t = self.breguet_range(self.diversion_range,tow,altp,mach,disa)
 
         # Holding fuel
         #-----------------------------------------------------------------------------------------------------------
@@ -1025,6 +1378,12 @@ class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
 
         self.tow = output_dict[0][0]
         self.eval_breguet(self.range,self.tow,altp,mach,disa)
+
+
+
+
+
+
 
 
 # TODO

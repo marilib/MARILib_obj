@@ -26,13 +26,13 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "extf",       # "tf", "extf", "pf", "pte1", "ef1", "ep1",
-                   energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2" or "battery"
+                   power_architecture = "efb",       # "tf", "extf", "efb", "tp", "pte1", "ef1", "ep1",
+                   energy_source = "battery")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
 
 reqs = Requirement(n_pax_ref = 150.,
-                   design_range = unit.m_NM(3000.),
+                   design_range = unit.m_NM(100.),
                    cruise_mach = 0.76,
-                   cruise_altp = unit.m_ft(35000.),
+                   cruise_altp = unit.m_ft(25000.),
                    arrangement = agmt)
 
 
@@ -122,7 +122,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
 file = "explore_design.txt"
 
 #res = process.eval_this(ac,var)
-res = process.explore_design_space(ac, var, step, data, file)
+#res = process.explore_design_space(ac, var, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']
@@ -135,7 +135,7 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req)]       # Limit values
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub"])                 # ub: upper bound, lb: lower bound
 
-process.draw_design_space(file, res, field, const, color, limit, bound)
+#process.draw_design_space(file, res, field, const, color, limit, bound)
 
 
 

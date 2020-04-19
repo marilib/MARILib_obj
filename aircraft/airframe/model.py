@@ -206,7 +206,6 @@ class Power_system(object):
         self.aircraft = aircraft
 
         self.fuel_density = self.__fuel_density__()
-        self.fuel_heat = self.__fuel_heat__()
         self.data = [
                      {"rating": "MTO",
                       "disa": None,
@@ -253,10 +252,6 @@ class Power_system(object):
                       "sfc": None,
                       "T41": None}
                      ]
-
-    def __fuel_heat__(self):
-        energy_source = self.aircraft.arrangement.energy_source
-        return earth.fuel_heat(energy_source)
 
     def __fuel_density__(self):
         energy_source = self.aircraft.arrangement.energy_source
@@ -372,20 +367,48 @@ class Turbofan(Power_system, Flight):
     def tail_cone_drag_factor(self):
         return 1.
 
-    def breguet_range(self,range,tow,altp,mach,disa):
-        """Breguet range equation is dependant from power source : fuel or battery
+
+class Electrofan(Power_system, Flight):
+
+    def __init__(self, aircraft):
+        super(Electrofan, self).__init__(aircraft)
+
+    def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
+        """Total thrust of a pure turbofan engine
         """
-        g = earth.gravity()
+        n_engine = self.aircraft.airframe.nacelle.n_engine
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-        tas = mach*earth.sound_speed(tamb)
+        dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
 
-        mass = self.aircraft.performance.mission.ktow*tow
+        fn = dict["fn"]*(n_engine-nei)
+        pw = dict["pw"]*(n_engine-nei)
+        sec = pw/fn
 
-        dict = self.level_flight(pamb,tamb,mach,mass)
-        fuel = tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
-        time = 1.09*(range/tas)
+        return {"fn":fn, "pw":pw, "sec":sec}
 
-        return fuel,time
+    def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
+        """Total thrust of a pure turbofan engine
+        """
+        n_engine = self.aircraft.airframe.nacelle.n_engine
+        fn = thrust/(n_engine - nei)
+
+        dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
+
+        return dict
+
+    def oei_drag(self,pamb,tamb):
+        """Inoperative engine drag coefficient
+        """
+        wing_area = self.aircraft.airframe.wing.area
+        nacelle_width = self.aircraft.airframe.nacelle.width
+
+        dCx = 0.12*nacelle_width**2 / wing_area
+
+        return dCx
+
+    def tail_cone_drag_factor(self):
+        return 1.
+
+
 
 
