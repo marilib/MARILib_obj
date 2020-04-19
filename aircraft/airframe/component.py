@@ -1501,7 +1501,7 @@ class Semi_empiric_ef_nacelle(Component):
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
 
-        shaft_power = self.reference_thrust*self.rating_factor["MCR"]
+        shaft_power = self.reference_power*self.rating_factor["MCR"]
 
         self.efan_nacelle_design(pamb,tamb,mach,shaft_power)
 
@@ -1609,8 +1609,7 @@ class Semi_empiric_ef_nacelle(Component):
         Ptot = earth.total_pressure(pamb,mach)        # Total pressure at inlet position
         Ttot = earth.total_temperature(tamb,mach)     # Total temperature at inlet position
 
-        Vsnd = earth.sound_speed(tamb)
-        Vair = Vsnd*mach
+        Vair = mach*earth.sound_speed(tamb)
 
         fct_arg = (PwShaft,pamb,Ttot,Vair)
 
@@ -1673,8 +1672,7 @@ class Semi_empiric_ef_nacelle(Component):
         Ptot = earth.total_pressure(pamb,mach)        # Total pressure at inlet position
         Ttot = earth.total_temperature(tamb,mach)     # Total temperature at inlet position
 
-        Vsnd = earth.sound_speed(tamb)
-        Vair = Vsnd*mach
+        Vair = mach*earth.sound_speed(tamb)
 
         fct_arg = (thrust,pamb,Ttot,Vair)
 
