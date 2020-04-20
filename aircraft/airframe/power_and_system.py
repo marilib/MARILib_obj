@@ -234,19 +234,16 @@ class Rear_fuselage_mounted_nacelle(Component):
 
 
 class Outboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Outboard_wing_mounted_nacelle):
-
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
 
 
 class Inboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Inboard_wing_mounted_nacelle):
-
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
 
 
 class Rear_fuselage_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Rear_fuselage_mounted_nacelle):
-
     def __init__(self, aircraft):
         super(Rear_fuselage_mounted_tf_nacelle, self).__init__(aircraft)
 
@@ -255,12 +252,6 @@ class System_efb(Component):
 
     def __init__(self, aircraft):
         super(System_efb, self).__init__(aircraft)
-
-        self.generator_efficiency = 0.95
-        self.generator_pw_density = 10.e3   # W/kg, Electric generator
-
-        self.rectifier_efficiency = 0.98
-        self.rectifier_pw_density = 20.e3   # W/kg, Rectifier
 
         self.wiring_efficiency = 0.995
         self.wiring_pw_density = 20.e3      # W/kg, Wiring
@@ -284,9 +275,7 @@ class System_efb(Component):
         nacelle_cg = self.aircraft.airframe.nacelle.cg
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
 
-        self.power_chain_efficiency =   self.generator_efficiency \
-                                      * self.rectifier_efficiency \
-                                      * self.wiring_efficiency \
+        self.power_chain_efficiency =   self.wiring_efficiency \
                                       * self.aircraft.airframe.nacelle.controller_efficiency \
                                       * self.aircraft.airframe.nacelle.motor_efficiency
 
@@ -377,8 +366,7 @@ class Semi_empiric_ef_nacelle(Component):
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
     def efan_nacelle_design(self,Pamb,Tamb,Mach,shaft_power):
-        """
-        Electrofan nacelle design
+        """Electrofan nacelle design
         """
         r,gam,Cp,Cv = earth.gas_data()
         Vair = Mach*earth.sound_speed(Tamb)
@@ -550,18 +538,38 @@ class Semi_empiric_ef_nacelle(Component):
 
 
 class Outboard_wing_mounted_ef_nacelle(Semi_empiric_ef_nacelle,Outboard_wing_mounted_nacelle):
-
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_ef_nacelle, self).__init__(aircraft)
 
 
 class Inboard_wing_mounted_ef_nacelle(Semi_empiric_ef_nacelle,Inboard_wing_mounted_nacelle):
-
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_ef_nacelle, self).__init__(aircraft)
 
 
 class Rear_fuselage_mounted_ef_nacelle(Semi_empiric_ef_nacelle,Rear_fuselage_mounted_nacelle):
-
     def __init__(self, aircraft):
         super(Rear_fuselage_mounted_ef_nacelle, self).__init__(aircraft)
+
+
+class System_pte(Component):
+
+    def __init__(self, aircraft):
+        super(System_efb, self).__init__(aircraft)
+
+        self.generator_efficiency = 0.95
+        self.generator_pw_density = 10.e3   # W/kg, Electric generator
+
+        self.rectifier_efficiency = 0.98
+        self.rectifier_pw_density = 20.e3   # W/kg, Rectifier
+
+        self.wiring_efficiency = 0.995
+        self.wiring_pw_density = 20.e3      # W/kg, Wiring
+
+        self.cooling_pw_density = 15.e3     # W/kg, Cooling
+
+        self.battery_density = 2800.                    # kg/m3
+        self.battery_energy_density = unit.J_kWh(1.2)   # J/kg
+
+        self.power_chain_efficiency = None
+

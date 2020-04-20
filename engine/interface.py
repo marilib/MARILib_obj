@@ -195,19 +195,16 @@ class Exergetic_tf_nacelle(Component):
 
 
 class Outboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Outboard_wing_mounted_nacelle):
-
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
 
 
 class Inboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Inboard_wing_mounted_nacelle):
-
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
 
 
 class Rear_fuselage_mounted_extf_nacelle(Exergetic_tf_nacelle,Rear_fuselage_mounted_nacelle):
-
     def __init__(self, aircraft):
         super(Rear_fuselage_mounted_extf_nacelle, self).__init__(aircraft)
 

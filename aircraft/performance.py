@@ -198,7 +198,6 @@ class Flight(object):
             sar = (vsnd*mach*lod)/(mass*g*sec)
             return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sec":sec}
 
-
     def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating,kfn):
         """Retrieve air path in various conditions
         """
