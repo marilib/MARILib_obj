@@ -9,6 +9,76 @@ Created on Thu Jan 20 20:20:20 2020
 from aircraft.tool import unit
 
 
+class Requirement(object):
+    """Initialize top level aircraft requirements
+    """
+    def __init__(self, n_pax_ref = 150.,
+                 design_range = unit.m_NM(3000.),
+                 cruise_mach = 0.78,
+                 cruise_altp = unit.m_ft(35000.),
+                 arrangement = None):
+
+        self.cruise_disa = 0.
+        self.cruise_altp = cruise_altp
+        self.cruise_mach = cruise_mach
+        self.design_range = design_range
+        self.cost_range = self.__cost_mission_range__()
+
+        self.n_pax_ref = n_pax_ref
+        self.n_pax_front = self.__n_pax_front__()
+        self.n_aisle = self.__n_aisle__()
+        self.m_pax_nominal = self.__m_pax_nominal__()
+        self.m_pax_max = self.__m_pax_max__()
+
+        self.take_off = Take_off_req(arrangement, self)
+        self.approach = Approach_req(arrangement, self)
+        self.oei_ceiling = OEI_ceiling_req(arrangement, self)
+        self.mcl_ceiling = Vz_mcl_req(arrangement, self)
+        self.mcr_ceiling = Vz_mcr_req(arrangement, self)
+        self.time_to_climb = TTC_req(arrangement, self)
+
+    def __n_pax_front__(self):
+        if  (self.n_pax_ref<=8):   n_pax_front = 2
+        elif(self.n_pax_ref<=16):  n_pax_front = 3
+        elif(self.n_pax_ref<=70):  n_pax_front = 4
+        elif(self.n_pax_ref<=120): n_pax_front = 5
+        elif(self.n_pax_ref<=225): n_pax_front = 6
+        elif(self.n_pax_ref<=300): n_pax_front = 8
+        elif(self.n_pax_ref<=375): n_pax_front = 9
+        else:                      n_pax_front = 10
+        return n_pax_front
+
+    def __n_aisle__(self):
+        if(self.n_pax_front <= 6): n_aisle = 1
+        else:                      n_aisle = 2
+        return n_aisle
+
+    def __m_pax_nominal__(self):
+        if(self.design_range <= unit.m_NM(500.)): m_pax_nominal = 85.
+        elif(self.design_range <= unit.m_NM(1500.)): m_pax_nominal = 95.
+        elif(self.design_range <= unit.m_NM(3500.)): m_pax_nominal = 100.
+        elif(self.design_range <= unit.m_NM(5500.)): m_pax_nominal = 105.
+        else: m_pax_nominal = 110.
+        return m_pax_nominal
+
+    def __m_pax_max__(self):
+        if(self.design_range <= unit.m_NM(500.)): m_pax_max = 95.
+        elif(self.design_range <= unit.m_NM(1500.)): m_pax_max = 105.
+        elif(self.design_range <= unit.m_NM(3500.)): m_pax_max = 120.
+        elif(self.design_range <= unit.m_NM(5500.)): m_pax_max = 135.
+        else: m_pax_max = 150.
+        return m_pax_max
+
+    def __cost_mission_range__(self):
+        if(self.design_range < unit.m_NM(400.)): cost_mission_range = unit.m_NM(100.)
+        elif(self.design_range < unit.m_NM(1000.)): cost_mission_range = unit.m_NM(200.)
+        elif(self.design_range < unit.m_NM(2500.)): cost_mission_range = unit.m_NM(400.)
+        elif(self.design_range < unit.m_NM(4500.)): cost_mission_range = unit.m_NM(800.)
+        elif(self.design_range < unit.m_NM(6500.)): cost_mission_range = unit.m_NM(2000.)
+        else: cost_mission_range = unit.m_NM(4000.)
+        return cost_mission_range
+
+
 class Take_off_req(object):
     """Initialize take off requirements
     """
@@ -59,7 +129,7 @@ class OEI_ceiling_req(object):
     """
     def __init__(self, arrangement, requirement):
         self.disa = 15.
-        self.altp = 0.75*requirement.cruise_altp
+        self.altp = 0.50*requirement.cruise_altp
         self.kmtow = 0.95
         self.rating = "MCN"
         self.speed_mode = "cas"
@@ -85,7 +155,7 @@ class Climb_req(object):
         self.kmtow = 0.97
 
     def __top_of_climb__(self, arrangement, requirement):
-        if (arrangement.power_architecture in ["tf","extf"]): altp = unit.m_ft(31000.)
+        if (arrangement.power_architecture in ["tf","extf","efb"]): altp = unit.m_ft(35000.)
         elif (arrangement.power_architecture=="tp"): altp = unit.m_ft(16000.)
         elif (arrangement.power_architecture=="pte1"): altp = unit.m_ft(31000.)
         elif (arrangement.power_architecture=="ef1"): altp = unit.m_ft(21000.)
@@ -101,7 +171,7 @@ class Vz_mcl_req(Climb_req):
     def __init__(self, arrangement, requirement):
         super(Vz_mcl_req, self).__init__(arrangement, requirement)
         self.rating = "MCL"
-        self.speed_mode = "mach"
+        self.speed_mode = "cas"
         self.vz_req = unit.mps_ftpmin(300.)
 
 
@@ -128,84 +198,15 @@ class TTC_req(Climb_req):
         self.ttc_req = unit.s_min(25.)
 
     def __ttc_cas1__(self, requirement):
-        if (requirement.cruise_mach>=0.6): cas1 = unit.mps_kt(250.)
-        elif (requirement.cruise_mach>=0.4): cas1 = unit.mps_kt(180.)
+        if (requirement.cruise_mach>=0.6): cas1 = unit.mps_kt(180.)
+        elif (requirement.cruise_mach>=0.4): cas1 = unit.mps_kt(130.)
         else: cas1 = unit.mps_kt(70.)
         return cas1
 
     def __ttc_cas2__(self, requirement):
-        if (requirement.cruise_mach>=0.6): cas2 = unit.mps_kt(300.)
+        if (requirement.cruise_mach>=0.6): cas2 = unit.mps_kt(250.)
         elif (requirement.cruise_mach>=0.4): cas2 = unit.mps_kt(200.)
         else: cas2 = unit.mps_kt(70.)
         return cas2
 
 
-#===========================================================================================================
-class Requirement(object):
-    """Initialize top level aircraft requirements
-    """
-    def __init__(self, n_pax_ref = 150.,
-                 design_range = unit.m_NM(3000.),
-                 cruise_mach = 0.78,
-                 cruise_altp = unit.m_ft(35000.),
-                 arrangement = None):
-
-        self.cruise_disa = 0.
-        self.cruise_altp = cruise_altp
-        self.cruise_mach = cruise_mach
-        self.design_range = design_range
-        self.cost_range = self.__cost_mission_range__()
-
-        self.n_pax_ref = n_pax_ref
-        self.n_pax_front = self.__n_pax_front__()
-        self.n_aisle = self.__n_aisle__()
-        self.m_pax_nominal = self.__m_pax_nominal__()
-        self.m_pax_max = self.__m_pax_max__()
-
-        self.take_off = Take_off_req(arrangement, self)
-        self.approach = Approach_req(arrangement, self)
-        self.oei = OEI_ceiling_req(arrangement, self)
-        self.vz_mcl = Vz_mcl_req(arrangement, self)
-        self.vz_mcr = Vz_mcr_req(arrangement, self)
-        self.ttc = TTC_req(arrangement, self)
-
-    def __n_pax_front__(self):
-        if  (self.n_pax_ref<=8):   n_pax_front = 2
-        elif(self.n_pax_ref<=16):  n_pax_front = 3
-        elif(self.n_pax_ref<=70):  n_pax_front = 4
-        elif(self.n_pax_ref<=120): n_pax_front = 5
-        elif(self.n_pax_ref<=225): n_pax_front = 6
-        elif(self.n_pax_ref<=300): n_pax_front = 8
-        elif(self.n_pax_ref<=375): n_pax_front = 9
-        else:                      n_pax_front = 10
-        return n_pax_front
-
-    def __n_aisle__(self):
-        if(self.n_pax_front <= 6): n_aisle = 1
-        else:                      n_aisle = 2
-        return n_aisle
-
-    def __m_pax_nominal__(self):
-        if(self.design_range <= unit.m_NM(500.)): m_pax_nominal = 85.
-        elif(self.design_range <= unit.m_NM(1500.)): m_pax_nominal = 95.
-        elif(self.design_range <= unit.m_NM(3500.)): m_pax_nominal = 100.
-        elif(self.design_range <= unit.m_NM(5500.)): m_pax_nominal = 105.
-        else: m_pax_nominal = 110.
-        return m_pax_nominal
-
-    def __m_pax_max__(self):
-        if(self.design_range <= unit.m_NM(500.)): m_pax_max = 95.
-        elif(self.design_range <= unit.m_NM(1500.)): m_pax_max = 105.
-        elif(self.design_range <= unit.m_NM(3500.)): m_pax_max = 120.
-        elif(self.design_range <= unit.m_NM(5500.)): m_pax_max = 135.
-        else: m_pax_max = 150.
-        return m_pax_max
-
-    def __cost_mission_range__(self):
-        if(self.design_range < unit.m_NM(400.)): cost_mission_range = unit.m_NM(100.)
-        elif(self.design_range < unit.m_NM(1000.)): cost_mission_range = unit.m_NM(200.)
-        elif(self.design_range < unit.m_NM(2500.)): cost_mission_range = unit.m_NM(400.)
-        elif(self.design_range < unit.m_NM(4500.)): cost_mission_range = unit.m_NM(800.)
-        elif(self.design_range < unit.m_NM(6500.)): cost_mission_range = unit.m_NM(2000.)
-        else: cost_mission_range = unit.m_NM(4000.)
-        return cost_mission_range

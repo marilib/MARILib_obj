@@ -8,6 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
+from scipy.optimize import fsolve
 
 from aircraft.tool import unit
 import earth
@@ -1054,7 +1055,7 @@ class Tank_wing_pod(Component):
         self.wing_axe_c = wing_kink_c - (wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
         self.wing_axe_x = wing_kink_loc[0] - (wing_kink_loc[0]-wing_tip_loc[0])/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
 
-        self.net_wetted_area = 2.*(0.85*3.14*self.width*self.length)
+        self.net_wet_area = 2.*(0.85*3.14*self.width*self.length)
         self.aero_length = self.length
         self.form_factor = 1.05
 
@@ -1071,7 +1072,7 @@ class Tank_wing_pod(Component):
         self.fuel_density = earth.fuel_density(energy_source)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.mass = self.net_wetted_area*self.surface_mass
+        self.mass = self.net_wet_area*self.surface_mass
         self.cg = self.frame_origin + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
@@ -1121,7 +1122,7 @@ class Tank_piggy_back(Component):
 
         self.frame_origin = [x_axe, y_axe, z_axe]
 
-        self.net_wetted_area = 0.85*3.14*self.width*self.length
+        self.net_wet_area = 0.85*3.14*self.width*self.length
         self.aero_length = self.length
         self.form_factor = 1.05
 
@@ -1138,7 +1139,7 @@ class Tank_piggy_back(Component):
         self.fuel_density = earth.fuel_density(energy_source)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.mass = self.net_wetted_area*self.surface_mass
+        self.mass = self.net_wet_area*self.surface_mass
         self.cg = self.frame_origin[0] + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
@@ -1167,216 +1168,3 @@ class Landing_gear(Component):
         self.cg = self.frame_origin
 
 
-class System(Component):
-
-    def __init__(self, aircraft):
-        super(System, self).__init__(aircraft)
-
-    def eval_geometry(self):
-        self.frame_origin = [0., 0., 0.]
-
-    def eval_mass(self):
-        mtow = self.aircraft.weight_cg.mtow
-        body_cg = self.aircraft.airframe.body.cg
-        wing_cg = self.aircraft.airframe.wing.cg
-        horizontal_stab_cg = self.aircraft.airframe.horizontal_stab.cg
-        vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
-        landing_gear_cg = self.aircraft.airframe.landing_gear.cg
-
-        self.mass = 0.545*mtow**0.8    # global mass of all systems
-
-        self.cg =   0.50*body_cg \
-                  + 0.20*wing_cg \
-                  + 0.10*landing_gear_cg \
-                  + 0.05*horizontal_stab_cg \
-                  + 0.05*vertical_stab_cg
-    #              + 0.10*power_system_cg \         # TODO
-
-
-class Semi_empiric_tf_nacelle(Component):
-
-    def __init__(self, aircraft):
-        super(Semi_empiric_tf_nacelle, self).__init__(aircraft)
-
-        ne = self.aircraft.arrangement.number_of_engine
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
-        design_range = self.aircraft.requirement.design_range
-
-        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
-        self.reference_offtake = 0.
-        self.rating_factor = {"MTO":1.00, "MCN":0.86, "MCL":0.78, "MCR":0.70, "FID":0.10}
-        self.tune_factor = 1.
-        self.engine_bpr = self.__turbofan_bpr__()
-        self.core_thrust_ratio = 0.13
-        self.efficiency_prop = 0.82
-
-        self.width = None
-        self.length = None
-
-        self.frame_origin = np.full(3,None)
-
-    def eval_geometry(self):
-
-        # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
-        mach = 0.25
-        disa = 15.
-        altp = 0.
-
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-        vair = mach*earth.sound_speed(tamb)
-
-        # tune_factor allows that output of unitary_thrust matches the definition of the reference thrust
-        self.tune_factor = 1.
-        fn, ff = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
-        self.tune_factor = self.reference_thrust / (fn/0.80)
-
-        # Following computation as aim to model the decrease in nacelle dimension due to
-        # the amount of power offtaken to drive an eventual electric chain
-        total_thrust0 = self.reference_thrust*0.80
-        core_thrust0 = total_thrust0*self.core_thrust_ratio
-        fan_thrust0 = total_thrust0*(1.-self.core_thrust_ratio)
-        fan_power0 = fan_thrust0*vair/self.efficiency_prop
-
-        # total offtake is split over all engines
-        fan_power = fan_power0 - self.reference_offtake*self.n_engine
-        fan_thrust = (fan_power/vair)*self.efficiency_prop
-        total_thrust = fan_thrust + core_thrust0
-
-        thrust_factor = total_thrust / total_thrust0
-
-        self.width = 0.5*self.engine_bpr**0.7 + 5.E-6*self.reference_thrust*thrust_factor
-        self.length = 0.86*self.width + self.engine_bpr**0.37      # statistical regression
-
-        knac = np.pi * self.width * self.length
-        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*2.       # statistical regression, two engines
-        self.net_wet_area = self.gross_wet_area
-        self.aero_length = self.length
-        self.form_factor = 1.15
-
-        self.frame_origin = self.__locate_nacelle__()
-
-    def eval_mass(self):
-        self.mass = (1250. + 0.021*self.reference_thrust)*2.       # statistical regression, two engines
-        self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
-
-    def __turbofan_bpr__(self):
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
-        if (80<n_pax_ref):
-            bpr = 9.
-        else:
-            bpr = 5.
-        return bpr
-
-    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.,nei=0.):
-        """Unitary thrust of a pure turbofan engine (semi-empirical model)
-        """
-        kth =  0.475*mach**2 + 0.091*(self.engine_bpr/10.)**2 \
-             - 0.283*mach*self.engine_bpr/10. \
-             - 0.633*mach - 0.081*self.engine_bpr/10. + 1.192
-
-        rho,sig = earth.air_density(pamb,tamb)
-        vair = mach*earth.sound_speed(tamb)
-
-        total_thrust0 =   self.reference_thrust \
-                        * self.tune_factor \
-                        * kth \
-                        * self.rating_factor[rating] \
-                        * throttle \
-                        * sig**0.75
-        core_thrust0 = total_thrust0 * self.core_thrust_ratio        # Core thrust
-        fan_thrust0 = total_thrust0 * (1.-self.core_thrust_ratio)    # Fan thrust
-        fan_power0 = fan_thrust0*vair/self.efficiency_prop   # Available total shaft power for one engine
-
-        overall_fan_power = fan_power0*(self.n_engine-nei) - pw_offtake
-        fan_power = overall_fan_power / (self.n_engine-nei)
-        fan_thrust = (fan_power/vair)*self.efficiency_prop
-        total_thrust = fan_thrust + core_thrust0
-
-        sfc_ref = ( 0.4 + 1./self.engine_bpr**0.895 )/36000.
-        fuel_flow = sfc_ref * total_thrust0
-
-        return total_thrust, fuel_flow
-
-
-class Inboard_wing_mounted_nacelle(Component):
-
-    def __init__(self, aircraft):
-        super(Inboard_wing_mounted_nacelle, self).__init__(aircraft)
-
-    def __locate_nacelle__(self):
-        body_width = self.aircraft.airframe.body.width
-        wing_root_loc = self.aircraft.airframe.wing.root_loc
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
-        wing_dihedral = self.aircraft.airframe.wing.dihedral
-        wing_kink_c = self.aircraft.airframe.wing.kink_c
-        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
-        wing_tip_c = self.aircraft.airframe.wing.tip_c
-        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
-
-        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
-
-        y_int = 0.8 * body_width + 1.5 * self.width      # statistical regression
-        x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.length
-        z_int = (y_int - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
-
-        return np.array([x_int, y_int, z_int])
-
-
-class Outboard_wing_mounted_nacelle(Component):
-
-    def __init__(self, aircraft):
-        super(Outboard_wing_mounted_nacelle, self).__init__(aircraft)
-
-    def __locate_nacelle__(self):
-        body_width = self.aircraft.airframe.body.width
-        wing_root_loc = self.aircraft.airframe.wing.root_loc
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
-        wing_dihedral = self.aircraft.airframe.wing.dihedral
-        wing_kink_c = self.aircraft.airframe.wing.kink_c
-        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
-        wing_tip_c = self.aircraft.airframe.wing.tip_c
-        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
-
-        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
-
-        y_ext = 2.0 * body_width + 1.5 * self.width      # statistical regression
-        x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.length
-        z_ext = (y_ext - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
-
-        return np.array([x_ext, y_ext, z_ext])
-
-
-class Rear_mounted_nacelle(Component):
-
-    def __init__(self, aircraft):
-        super(Rear_mounted_nacelle, self).__init__(aircraft)
-
-    def __locate_nacelle__(self):
-        body_width = self.aircraft.airframe.body.width
-        body_height = self.aircraft.airframe.body.height
-        vtp_root_loc = self.aircraft.airframe.vertical_stab.root_loc
-
-        y_int = 0.5 * body_width + 0.6 * self.width      # statistical regression
-        x_int = vtp_root_loc[0] - 0.5*self.length
-        z_int = body_height
-
-        return np.array([x_int, y_int, z_int])
-
-
-class Outboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Outboard_wing_mounted_nacelle):
-
-    def __init__(self, aircraft):
-        super(Outboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
-
-
-class Inboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Inboard_wing_mounted_nacelle):
-
-    def __init__(self, aircraft):
-        super(Inboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
-
-
-class Rear_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Rear_mounted_nacelle):
-
-    def __init__(self, aircraft):
-        super(Rear_mounted_tf_nacelle, self).__init__(aircraft)

@@ -5,6 +5,7 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
+import copy
 import numpy as np
 
 from aircraft.tool import unit
@@ -13,10 +14,9 @@ from aircraft.aircraft_root import Aircraft
 from aircraft.requirement import Requirement
 
 import process
+import earth
 
 from aircraft.tool.dictionary import MarilibIO
-
-
 
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
@@ -26,22 +26,23 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "extf",       # "tf", "extf", "pf", "pte1", "ef1", "ep1",
-                   energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2" or "battery"
+                   power_architecture = "efb",       # "tf", "extf", "efb", "tp", "pte1", "ef1", "ep1",
+                   energy_source = "battery")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
 
-reqs = Requirement(n_pax_ref = 150.,
-                   design_range = unit.m_NM(3000.),
+reqs = Requirement(n_pax_ref = 40.,
+                   design_range = unit.m_NM(100.),
                    cruise_mach = 0.76,
-                   cruise_altp = unit.m_ft(35000.),
+                   cruise_altp = unit.m_ft(25000.),
                    arrangement = agmt)
-
-
 
 
 
 ac = Aircraft("This_plane")
 
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
+
+
+ac.requirement.take_off.tofl_req = 2500.
 
 
 # ac.airframe.wing.area = 110.
@@ -51,10 +52,16 @@ ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this l
 process.mda(ac)
 
 
-var = ["aircraft.airframe.nacelle.reference_thrust",
+# var = ["aircraft.airframe.nacelle.reference_thrust",
+#        "aircraft.airframe.wing.area"]
+#
+# var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],
+#            [100., 200.]]
+
+var = ["aircraft.airframe.nacelle.cruise_thrust",
        "aircraft.airframe.wing.area"]
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],
+var_bnd = [[unit.N_kN(15.), unit.N_kN(35.)],
            [100., 200.]]
 
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -77,22 +84,29 @@ crt = "aircraft.performance.mission.cost.fuel_block"
 #process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
 
+ac.draw.payload_range("This_plot")
+ac.draw.view_3d("This_plane")
 
-res = [ac.airframe.nacelle.reference_thrust,
-       ac.airframe.wing.area]
+io = MarilibIO()
+json = io.to_json_file(ac,'aircraft_test')
+#dico = io.from_string(json)
+
+io.to_binary_file(ac,'test')
+#ac2 = io.from_binary_file('test.pkl')
+
 
 step = [0.05,
         0.05]    # Relative grid step
 
-data = [["SLST", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/10."],
-        ["Wing_area", "m2", "%8.1f", "aircraft.airframe.wing.area"],
+data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
+        ["Wing_area", "m2", "%8.1f", var[1]],
         ["Wing_span", "m", "%8.1f", "aircraft.airframe.wing.span"],
         ["MTOW", "kg", "%8.1f", "aircraft.weight_cg.mtow"],
         ["MLW", "kg", "%8.1f", "aircraft.weight_cg.mlw"],
         ["OWE", "kg", "%8.1f", "aircraft.weight_cg.owe"],
         ["MWE", "kg", "%8.1f", "aircraft.weight_cg.mwe"],
         ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.performance.mission.crz_lod"],
-        ["Cruise_SFC", "kg/daN/h", "%8.1f", "aircraft.performance.mission.crz_sfc"],
+        ["Cruise_SFC", "kg/daN/h", "%8.4f", "aircraft.performance.mission.crz_sfc"],
         ["TOFL", "m", "%8.1f", "aircraft.performance.take_off.tofl_eff"],
         ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.performance.approach.app_speed_eff)"],
         ["OEI_path", "%", "%8.1f", "aircraft.performance.oei_ceiling.path_eff*100"],
@@ -107,30 +121,21 @@ data = [["SLST", "daN", "%8.1f", "aircraft.airframe.nacelle.reference_thrust/10.
 
 file = "explore_design.txt"
 
-#process.explore_design_space(ac, res, step, data, file)
+#res = process.eval_this(ac,var)
+#res = process.explore_design_space(ac, var, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']
 color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow']
-limit = [ac.performance.take_off.tofl_req,
-         unit.kt_mps(ac.performance.approach.app_speed_req),
-         unit.pc_no_dim(ac.performance.oei_ceiling.path_req),
-         unit.ftpmin_mps(ac.performance.mcl_ceiling.vz_req),
-         unit.ftpmin_mps(ac.performance.mcr_ceiling.vz_req),
-         unit.min_s(ac.performance.time_to_climb.ttc_req)]       # Limit values
+limit = [ac.requirement.take_off.tofl_req,
+         unit.kt_mps(ac.requirement.approach.app_speed_req),
+         unit.pc_no_dim(ac.requirement.oei_ceiling.path_req),
+         unit.ftpmin_mps(ac.requirement.mcl_ceiling.vz_req),
+         unit.ftpmin_mps(ac.requirement.mcr_ceiling.vz_req),
+         unit.min_s(ac.requirement.time_to_climb.ttc_req)]       # Limit values
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub"])                 # ub: upper bound, lb: lower bound
 
 #process.draw_design_space(file, res, field, const, color, limit, bound)
-
-#ac.draw.payload_range("This_plot")
-#ac.draw.view_3d("This_plot")
-
-io = MarilibIO()
-json = io.to_json_file(ac,'aircraft_test')
-#dico = io.from_string(json)
-
-io.to_binary_file(ac,'test')
-#ac2 = io.from_binary_file('test.pkl')
 
 
 

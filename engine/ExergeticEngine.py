@@ -41,16 +41,17 @@ The model is implemented with the following assumptions:
 
 """
 
+import math
 import copy
 import numpy as np
-from scipy.optimize import fsolve
+from scipy.optimize import root
 from matplotlib import pyplot as plt
 from matplotlib.sankey import Sankey
 
 
 # global constants
 gamma = 1.4  # heat capacity ratio, assumed constant
-R = 287.0486821  # Gas constant
+R = 287.05287  # Gas constant (ESDU 77022 value)
 Cp = gamma/(gamma-1.) * R
 flhv = 42.798e6  # fuel lower heating value, 18400. btu.ln-1, in J.kg-1, for Jet-A1 (kerosene)
 
@@ -82,16 +83,17 @@ class ExergeticEngine(object):
 
         # Ambient conditions (sea level, ISA+15degK, Mn 0.25)
         self.Ts0 = 288.15
-        self.Ps0 = 101325.
+        self.Ps0 = 102325.
         self.Mach = 0.25
 
         # derived parameters
         self.Tt0 = (1 + self.Mach*self.Mach*(gamma - 1.)/2.) * self.Ts0
         self.Pt0 = (1 + self.Mach*self.Mach*(gamma - 1.)/2.)**(gamma/(gamma-1.)) * self.Ps0
-        self.V0 = np.sqrt(gamma * R * self.Ts0) * self.Mach
+        self.V0 = math.sqrt(gamma * R * self.Ts0) * self.Mach
         self.Hs0 = Cp * self.Ts0
         self.Ht0 = Cp * self.Tt0
         self.Ex0 = self.Ht0 - self.Hs0
+        self.dp_flight = [self.Tt0, self.Pt0]
 
     def get_Pt(self, Ht, Ex):
         """
@@ -104,14 +106,14 @@ class ExergeticEngine(object):
 
         :param Ht: Specific total enthalpy, J/kg
         :param Ex: Specific exergy, J/kg
-        :type H: float
+        :type Ht: float
         :type Ex: float
         :return: Total pressure (Pa), total temperature (K), specific referred mass flow (no dim)
         :rtype: (float, float, float)
         """
         Tt = Ht / Cp
-        Pt = self.Pt0 * ((Ht / self.Ht0) * np.exp((Ex - self.Ex0 - Ht + self.Ht0) / self.Hs0))**(gamma / (gamma - 1.))
-        return Pt, Tt, np.sqrt(Tt / 288.15) / (Pt / 101325.)
+        Pt = self.Pt0 * ((Ht / self.Ht0) * math.exp((Ex - self.Ex0 - Ht + self.Ht0) / self.Hs0))**(gamma / (gamma - 1.))
+        return Pt, Tt, math.sqrt(Tt / 288.15) / (Pt / 101325.)
 
     def get_speed(self, Ht, Ex):
         """
@@ -120,11 +122,11 @@ class ExergeticEngine(object):
 
         :param Ht: enthalpy (J.kg-1)
         :param Ex: exergy (J.kg-1)
-        :type H: float
+        :type Ht: float
         :type Ex: float
         :return: V, the speed (e.g. specific thrust) in m/s, and A, the specific flow area in m2.s.kg-1,
             total pressure (Pa) and temperature (K)
-        :rtype: (float, float, float, float))
+        :rtype: (float, float, float, float)
         """
         # get the total conditions
         Pt, Tt, Wr = self.get_Pt(Ht, Ex)
@@ -134,9 +136,9 @@ class ExergeticEngine(object):
         # static temperature. The test is done on the temperatures as this is what is involved in the computations.
         if Tt > Ts:
             # Mach number
-            Mach = np.sqrt(2. / (gamma - 1.) * (Tt / Ts - 1.))
+            Mach = math.sqrt(2. / (gamma - 1.) * (Tt / Ts - 1.))
             # Speed resulting from isentropic expension to Ps0
-            Vis = np.sqrt(gamma * R * Ts) * Mach
+            Vis = math.sqrt(gamma * R * Ts) * Mach
             # V is the effective speed in the exhaust section throat.
             # At first, we assume no chock, so V = Vis.
             V = Vis
@@ -144,10 +146,10 @@ class ExergeticEngine(object):
             # If the isentropic Mach is higher than 1., then the exhaust is chocked
             # we compute the new static conditions just after the chock
             if Mach > 1.:
-                Mach = 1.
+                # Mach = 1.
                 Ts = Tt / (1. + (gamma-1.)/2.)
                 Ps = Pt / (1. + (gamma-1.)/2.)**(gamma/(gamma-1.))
-                V = np.sqrt(gamma * R * Ts)
+                V = math.sqrt(gamma * R * Ts)
             # Air density
             rho = Ps / (R * Ts)
             # Specific throat area, i.e area for 1 kg.s-1
@@ -155,6 +157,33 @@ class ExergeticEngine(object):
             return Vis, A, Pt, Tt
         else:
             return 0., np.inf, Pt, Tt
+
+    def get_statics(self, Ht, Ex, Mach):
+        """
+        Knowing the flow state and a Mach number, get the static state.
+
+        :param Ht: Specific total enthalpy, J/kg
+        :type Ht: float
+        :param Ex: Specific exergy, J/kg
+        :type Ex: float
+        :param Mach: Mach number
+        :type Mach: float
+        :return: air speed (m.s-1), specific area (m2.s.kg-1), static pressure (Pa), static temperature (Pa)
+        :rtype: (float, float, float, float)
+        """
+        # get the total conditions
+        Pt, Tt, Wr = self.get_Pt(Ht, Ex)
+        # Get the static temperature
+        Ts = Tt / (1. + 0.5 * (gamma-1.) * Mach**2)
+        # Get the static pressure
+        Ps = Pt / (1. + 0.5 * (gamma-1.) * Mach**2)**(gamma/(gamma-1.))
+        # Get the static air density
+        rho = Ps / (R * Ts)
+        # Get the air speed from the Mach number
+        V = math.sqrt(gamma * R * Ts) * Mach
+        # Get the specific area, i.e. area for 1 kg.s-1
+        A = 1. / (rho * V)
+        return V, A, Ps, Ts
 
     def from_PR_to_tau_pol(self, PR, eta_pol):
         """
@@ -187,7 +216,7 @@ class ExergeticEngine(object):
             # Expansion
             tau = tau_is**eta_pol
             Ex_loss = 1. / eta_pol - 1.
-        # Ex_loss = 1. - (gamma - 1.) / gamma * np.log(PR) / np.log(tau)
+        # Ex_loss = 1. - (gamma - 1.) / gamma * math.log(PR) / math.log(tau)
 
         return tau, Ex_loss
 
@@ -216,11 +245,11 @@ class ExergeticEngine(object):
         if PR > 1.:
             # Compression
             tau = (tau_is - 1.) / eta_is + 1.
-            Ex_loss = 1. - (gamma - 1.) / gamma * np.log(PR) / np.log(tau)
+            Ex_loss = 1. - (gamma - 1.) / gamma * math.log(PR) / math.log(tau)
         else:
             # Expansion
             tau = eta_is * (tau_is - 1.) + 1.
-            Ex_loss = (gamma - 1.) / gamma * np.log(PR) / np.log(tau) - 1.
+            Ex_loss = (gamma - 1.) / gamma * math.log(PR) / math.log(tau) - 1.
 
         return tau, Ex_loss
 
@@ -239,7 +268,7 @@ class ExergeticEngine(object):
         :return: Exergy loss
         :rtype: float
         """
-        return -(gamma - 1.) / gamma * np.log(PR)
+        return -(gamma - 1.) / gamma * math.log(PR)
 
     def set_flight(self, Ts0, Ps0, Mach):
         """
@@ -260,7 +289,7 @@ class ExergeticEngine(object):
         self.Mach = Mach
         self.Tt0 = (1 + self.Mach * self.Mach * (gamma - 1.) / 2.) * self.Ts0
         self.Pt0 = (1 + self.Mach * self.Mach * (gamma - 1.) / 2.)**(gamma/(gamma-1.)) * self.Ps0
-        self.V0 = np.sqrt(gamma * R * self.Ts0) * self.Mach
+        self.V0 = math.sqrt(gamma * R * self.Ts0) * self.Mach
         self.Hs0 = Cp * self.Ts0
         self.Ht0 = Cp * self.Tt0
         self.Ex0 = self.Ht0 - self.Hs0
@@ -282,9 +311,9 @@ class ExergeticEngine(object):
         Ht = self.Ht0
         Ex = self.Ex0
         V0, A, Pt, Tt = self.get_speed(Ht, Ex)
-        Wr = np.sqrt(Tt / 288.15) / (Pt / 101325.)
+        Wr = math.sqrt(Tt / 288.15) / (Pt / 101325.)
         station = {"Ht": Ht, "Ex": Ex, "Pt": Pt, "Tt": Tt, "w": w, "F": - w * V0, "A": A * w, "V0": V0, "Hs": self.Hs0,
-                   'Wr': w * Wr, 'Nk': 1. / np.sqrt(Tt), "Pu": - 0.5 * w * V0**2,
+                   'Wr': w * Wr, 'Nk': 1. / math.sqrt(Tt), "Pu": - 0.5 * w * V0**2,
                    'PEx': - w * Ex, "losses": {}}
         return station
 
@@ -323,16 +352,16 @@ class ExergeticEngine(object):
                 # power.
                 f = wd * self.V0 * (1 - 8. / 9. * ((w / wd)**(1. / 8.)))
                 pu = 0.5 * wd * self.V0**2 * (1 - 8. / 10. * ((w / wd)**(2. / 8.)))
-            # The exergy loss os approximated to the kinetic power loss.
+            # The exergy loss is approximated to the kinetic power loss.
             Ex = Exi - pu / w
         else:
             f = 0.
             pu = 0.
             Ex = Exi
         Pt, Tt, Wr = self.get_Pt(Ht, Ex)
-        # The parameter stroed here will act as a correction to the total performance to include wake ingestiion.
+        # The parameter stored here will act as a correction to the total performance to include wake ingestion.
         # There is a correction on the ram drag, on the kinetic power, and on the exergy (and consequently Pt).
-        output_flow = {'Ht': Ht, 'Ex': Ex, 'Pt': Pt, 'Tt': Tt, 'Wr': w * Wr, 'w': w, 'Nk': 1. / np.sqrt(Tt),
+        output_flow = {'Ht': Ht, 'Ex': Ex, 'Pt': Pt, 'Tt': Tt, 'Wr': w * Wr, 'w': w, 'Nk': 1. / math.sqrt(Tt),
                        "F": f, "Pu": pu, "gain": {name: w * (Exi - Ex)},
                        "losses": {}}
         return output_flow
@@ -358,7 +387,7 @@ class ExergeticEngine(object):
         Ex = input_flow['Ex'] - loss_coefficient * self.Hs0
         w = input_flow['w']
         Pt, Tt, Wr = self.get_Pt(Ht, Ex)
-        output_flow = {'Ht': Ht, 'Ex': Ex, 'Pt': Pt, 'Tt': Tt, 'Wr': w * Wr, 'w': w, 'Nk': 1. / np.sqrt(Tt),
+        output_flow = {'Ht': Ht, 'Ex': Ex, 'Pt': Pt, 'Tt': Tt, 'Wr': w * Wr, 'w': w, 'Nk': 1. / math.sqrt(Tt),
                        "losses": {name: w * loss_coefficient * self.Hs0}}
         return output_flow
 
@@ -370,7 +399,7 @@ class ExergeticEngine(object):
 
         The variation of exergy is :math:`\\Delta \\varepsilon = H_{t2}-H_{t1}-\\text{loss}.H_{s0}.ln(\\tau)`
 
-        :param loss_coefficient: the compressor efficiency
+        :param loss_coefficient: the compressor efficiency ( :math:`1-\\eta_{pol}` )
         :param input_flow: the state of the incoming flow
         :param tau: the total temperature ratio (defines the amount of compression)
         :param name: The name of the component, such as 'HPC'
@@ -385,12 +414,12 @@ class ExergeticEngine(object):
         dH = input_flow['Ht'] * (tau - 1.)
         Ht = input_flow['Ht'] + dH
         # Exergy is augmented by the work input, minus the losses
-        Ex = input_flow['Ex'] + dH - np.log(tau) * loss_coefficient * self.Hs0
+        Ex = input_flow['Ex'] + dH - math.log(tau) * loss_coefficient * self.Hs0
         Pt, Tt, Wr = self.get_Pt(Ht, Ex)
         w = input_flow['w']
         output_flow = {'Ht': Ht, 'Ex': Ex, 'Pt': Pt, 'Tt': Tt, 'Wr': w * Wr, 'w': w,
-                       'PR': Pt/input_flow['Pt'], 'Nk': 1. / np.sqrt(Tt),
-                       "losses": {name: w * np.log(tau) * loss_coefficient * self.Hs0}}
+                       'PR': Pt/input_flow['Pt'], 'Nk': 1. / math.sqrt(Tt),
+                       "losses": {name: w * math.log(tau) * loss_coefficient * self.Hs0}}
         return output_flow
 
     def expand(self, loss_coefficient, input_flow, dH, name):
@@ -418,11 +447,11 @@ class ExergeticEngine(object):
         w = input_flow['w']
         Ht = input_flow['Ht'] + dH / w
         tau = Ht / input_flow['Ht']
-        Ex = input_flow['Ex'] + dH / w + np.log(tau) * loss_coefficient * self.Hs0
+        Ex = input_flow['Ex'] + dH / w + math.log(tau) * loss_coefficient * self.Hs0
         Pt, Tt, Wr = self.get_Pt(Ht, Ex)
         output_flow = {'Ht': Ht, 'Ex': Ex, 'Pt': Pt, 'Tt': Tt, 'Wr': w * Wr, 'w': input_flow['w'],
-                       'PR': Pt/input_flow['Pt'], 'Nk': 1. / np.sqrt(Tt),
-                       "losses": {name: - w * np.log(tau) * loss_coefficient * self.Hs0}}
+                       'PR': Pt/input_flow['Pt'], 'Nk': 1. / math.sqrt(Tt),
+                       "losses": {name: - w * math.log(tau) * loss_coefficient * self.Hs0}}
         return output_flow
 
     def exhaust(self, loss_coefficient, input_flow, name):
@@ -449,7 +478,7 @@ class ExergeticEngine(object):
         Ex = input_flow['Ex'] - loss_coefficient * self.Hs0
         w = input_flow['w']
         F, A, Pt, Tt = self.get_speed(Ht, Ex)
-        Wr = np.sqrt(Tt / 288.15) / (Pt / 101325.)
+        Wr = math.sqrt(Tt / 288.15) / (Pt / 101325.)
         output_flow = {"Ht": Ht, "Ex": Ex, "Pt": Pt, "Tt": Tt, 'Wr': w * Wr, 'w': w, "F": w * F, "A": w * A,
                        "P": w * (F - self.V0) * self.V0, "Pu": 0.5 * w * F**2, 'PEx': w * Ex,
                        "losses": {name: w * loss_coefficient * self.Hs0,
@@ -465,30 +494,37 @@ class ExergeticEngine(object):
         If both are given, dH is used.
 
         The burner has two loss mechanisms:
-            * One associated to the pressure loss across the component :math:`\\text{loss}.H_{s0}`
+            * One associated to the pressure loss across the component :math:`\\text{loss}.H_{s0}` , see :meth:`loose_pressure`
             * One associated to the temperature rise :math:`H_{s0}.\\ln(\\tau)`
 
-        :param loss_coefficient: loss in the exhaust (total pressure loss)
+        :param loss_coefficient: exergy loss due to total pressure loss in the combustor
         :param input_flow: the state of the incoming flow
         :param name: The name of the component, such as 'Combustor'
         :param dH: the fuel power, in Watts
         :param Ttm: the exit total temperature, before HP turbine stator cooling introduction
+        :type loss_coefficient: float
+        :type input_flow: dict
+        :type name: str
+        :type dH: float
+        :type Ttm: float
         :return: the output station flow state description
         :rtype: dict
         """
         w = input_flow['w']
         if dH is None:
             dHF = Cp * max(Ttm - input_flow['Tt'], 0.) * (1. - self.cooling_flow)
+            Tmax = Ttm
         else:
             dHF = dH / w
+            Tmax = dHF / Cp / (1. - self.cooling_flow) + input_flow['Tt']
         Ht = input_flow['Ht'] + dHF
         tau = Ht / input_flow['Ht']
-        Ex = input_flow['Ex'] + dHF - (np.log(tau) + loss_coefficient) * self.Hs0
+        Ex = input_flow['Ex'] + dHF - (math.log(tau) + loss_coefficient) * self.Hs0
         Pt, Tt, Wr = self.get_Pt(Ht, Ex)
         output_flow = {'Ht': Ht, 'Ex': Ex, 'Pt': Pt, 'Tt': Tt, 'Wr': w * Wr, 'w': input_flow['w'],
-                       'Nk': 1. / np.sqrt(Tt), 'Pth': w * dHF,
+                       'Nk': 1. / math.sqrt(Tt), 'Pth': w * dHF, 'Tmax': Tmax,
                        "losses": {name: w * loss_coefficient * self.Hs0,
-                                  name + " Thermal": w * np.log(tau) * self.Hs0}}
+                                  name + " Thermal": w * math.log(tau) * self.Hs0}}
         return output_flow
 
     def global_performances(self, stations):
@@ -625,14 +661,14 @@ class ExergeticEngine(object):
 
         :param args: cycle parameters
         :param kwargs: optional cycle parameters
-        :type args: tuple
-        :type kwargs: dict
+        :type args: (float)
+        :type kwargs: dict(str, float)
         :return: 3 dictionaries with the state of the machine
         :rtype: (dict, dict, dict)
         """
-        dHf = kwargs.get('dHf')
-        Ttmax = kwargs.get('Ttmax')
-        w, tau = args
+        dHf = kwargs.get('dHf')  # float
+        Ttmax = kwargs.get('Ttmax')  # float
+        w, tau = args  # float, float
         # Station 0: free stream
         components = {"HPC": {"tau": tau}}
         stations = {"0": self.free_stream(w)}
@@ -677,7 +713,7 @@ class ExergeticEngine(object):
         compression temperature, estimated using the method :meth:`from_PR_to_tau_pol`
 
         :param args: the performance values sought
-        :type param: tuple
+        :type args: tuple(float)
         :return: a guess for the cycle parameters
         :rtype: np.array
         """
@@ -695,14 +731,14 @@ class ExergeticEngine(object):
         the compressor pressure ratio.
 
         :param x: the cycle parameters
-        :param args: a tuple with two items: the performance value sought and the keyed arguments for the cycle
+        :param args: a tuple with two items: the performance value sought and a dictionary of keyed arguments for the cycle
         :type x: tuple
-        :type args: tuple
+        :type args: tuple(tuple(float), dict)
         :return: a vector to be nullified
         :rtype: np.array
         """
-        v = args[0]
-        other_kwargs = args[1]
+        v = args[0]  # tuple(float)
+        other_kwargs = args[1]  # dict
         s, c, p = self.cycle(*x, **other_kwargs)
         y = [p['Fnet'] / v[0] - 1., c['HPC']['PR'] / v[1] - 1.]
         return np.array(y)
@@ -722,8 +758,8 @@ class ExergeticEngine(object):
 
         :param args: performance parameters, dependant on the current implementation
         :param kwargs: various keyed arguments
-        :type args: tuple
-        :type kwargs: dict
+        :type args: tuple(float)
+        :type kwargs: dict(str, float)
         :return: the machine state in three dictionaries: the flow state s, the component state c, and the performances
             p.
         :rtype: (dict, dict, dict)
@@ -732,22 +768,20 @@ class ExergeticEngine(object):
         # other keyed argument will be forwarded to the cycle method
         other_kwargs = {k: kwargs[k] for k in kwargs.keys() if k not in ['guess']}
         if guess is None:
-            print(*args)
             guess = self.design_guess(*args)
 
         # find out the cycle parameters that provide the performance required
-        output_dict = fsolve(self.design_equations, x0=guess, args=(args, other_kwargs), factor=0.1, full_output=True)
-
-        res = output_dict[0]
+        res = root(self.design_equations, guess, args=(args, other_kwargs))
 
         # get back the solution found
         # recompute the obtained engine
-        s, c, p = self.cycle(*res, **other_kwargs)
+        s, c, p = self.cycle(*res.x, **other_kwargs)
         # keep a copy of the design state for off-design computations
         self.design_state = copy.deepcopy(s)
         self.comp_state = copy.deepcopy(c)
         # keep the design cycle solution as a seed for off-design
-        self.dp = copy.deepcopy(res)
+        self.dp = np.append(res.x, p['wfe'])
+        self.dp_flight = [self.Tt0, self.Pt0]
         return s, c, p
 
     def off_design_equations(self, x, *args):
@@ -768,11 +802,18 @@ class ExergeticEngine(object):
             parameters
         :type x: np.array
         :param args: a tuple with one dictionary: the additional cycle parameters
+        :type args: (dict,)
         :return: a vector of same size as x, to be nullified
         :rtype: np.array
         """
         xx = x * self.dp
-        r, c, p = self.cycle(*xx, **args[0])
+        coeff = math.sqrt(self.dp_flight[0]/self.Tt0)/(self.dp_flight[1]/self.Pt0)
+        xx[0] = xx[0] * coeff
+        xx[-1] = xx[-1] * coeff
+        other_kwargs = {k: args[0][k] for k in args[0].keys() if k not in ['Ttmax', 'wfe', 'Fnet', 'N1', 'dHf']}
+        other_kwargs['dHf'] = xx[-1] * flhv
+        xxx = xx[:-1]
+        r, c, p = self.cycle(*xxx, **other_kwargs)
         # Get the shaft speed compatible with the corrected flow, as a fraction of the design speed
         shaft_speed = {i: ((self.slope[i] * (c[i]['WR'] / self.comp_state[i]['WR'] - 1.) + 1.) *
                            self.comp_state[i]['Nk'] / c[i]['Nk']) for i in self.slope.keys()}
@@ -780,16 +821,10 @@ class ExergeticEngine(object):
         # [0]: hot exhaust area shall match the design one
         # [1]: HPC and HPT are linked together: same physical shaft speed ratio than design point
         y = [r['9']['A'] / self.design_state['9']['A'] - 1., shaft_speed['HPT'] / shaft_speed['HPC'] - 1.]
+        targets = {"wfe": p['wfe'], "Fnet" : p['Fnet'], 'N1': shaft_speed['HPC'], 'Ttmax': r['4']['Tmax']}
+        y.append([targets[k]-args[0][k] for k in sorted(targets.keys()) if k in args[0].keys()][0])
         # print(x, y)
         return y
-
-    def magic_guess(self):
-        """
-        Provide a starting point for off-design computation which revealed to be very robust to flying conditions,
-        but nothing is guaranty
-        """
-        guess = [0.8, 0.9]
-        return guess
 
     def off_design(self, **kwargs):
         """
@@ -805,18 +840,15 @@ class ExergeticEngine(object):
                 A vector of ones is the design point.
             * plus any other keyed parameters that will be forwarded to :meth:`cycle`
 
-        :param kwargs: keyed arguments are guess, and wfe or Ttmax. guess is used as an initial guess for the solver.
+        :param kwargs: keyed arguments are guess, and wfe or Ttmax or Fnet or N1. guess is used as an initial guess for the solver.
             wfe is the fuel flow, Ttmax the burner exit temperature. either of them defines the throttle.
-        :type kwargs: dict
+        :type kwargs: dict(str, float)
         :return: the machine state in three dictionaries: the flow state s, the component state c, and the performances p
         :rtype: (dict, dict, dict)
         """
         guess = kwargs.get('guess')
-        wfe = kwargs.get('wfe')
         # other keyed argument will be forwarded to the cycle method
-        other_kwargs = {k: kwargs[k] for k in kwargs.keys() if k not in ['guess', 'wfe']}
-        if wfe is not None:
-            other_kwargs['dHf'] = wfe * flhv
+        other_kwargs = {k: kwargs[k] for k in kwargs.keys() if k not in ['guess']}
 
         # use a list made of as many ones as there are cycle parameters to be guessed.
         if guess is None:
@@ -825,22 +857,21 @@ class ExergeticEngine(object):
             x0 = guess
 
         # Solve
-        output_dict = fsolve(self.off_design_equations, x0=x0, args=other_kwargs, factor=0.1, full_output=True)
-
-        res = output_dict[0]
-        ier = output_dict[2]
-        msg = output_dict[3]
+        res = root(self.off_design_equations, x0, args=other_kwargs)
 
         # In case of successful solving, report the result
-        if ier==1:
-            xx = res * self.dp
-            s, c, p = self.cycle(*xx, **other_kwargs)
-            p['success'] = True
-            p['sol'] = copy.deepcopy(res)
+        if res.success:
+            xx = res.x * self.dp
+            other_kwargs = {k: kwargs[k] for k in kwargs.keys() if k not in ['guess', 'Ttmax', 'wfe', 'Fnet', 'N1']}
+            other_kwargs['dHf'] = xx[-1] * flhv
+            xxx = xx[:-1]
+            s, c, p = self.cycle(*xxx, **other_kwargs)
+            p['success'] = res.success
+            p['sol'] = copy.deepcopy(res.x)
             return s, c, p
         else:
-            print(msg)
-            p = {'success': False}
+            print(res.message)
+            p = {'success': res.success}
             return None, None, p
 
     def draw_sankey(self, s, c, p, ax):
@@ -945,17 +976,6 @@ class ExergeticEngine(object):
                                                                         for i in ["w", "Tt", "Pt", "Ht", "Ex", "F",
                                                                                   "A", "P", "Pu"])))
 
-    def print_csv(self, s):
-        txt_list = []
-        txt_list.append(["Station","Mass flow","Total Temperature","Total Pressure","Spec. Total enthalpy",
-                         "Spec. Exergy","Thrust","Area","Propulsive Power","Useful Pwr"])
-        txt_list.append(["","kg/s","K","Pa","J/kg","J/kg","N","m2","W","W"])
-        for st in sorted(s.keys()):
-            txt_line = [st]+[s[st].get(i, "") for i in ["w","Tt","Pt","Ht","Ex","F","A","P","Pu"]]
-            txt_list.append(txt_line)
-        np.savetxt("test.csv",txt_list,delimiter=";",fmt='%20s')
-
-
     def print_perfos(self, p, indent=""):
         """
         Print the performance dictionary in a pretty and useful manner.
@@ -988,8 +1008,8 @@ class ExergeticEngine(object):
         It can be used with any dictionary.
         Future implementation may be more specific.
 
-        :param p: the dictionary to print
-        :type p: dict
+        :param c: the dictionary to print
+        :type c: dict
         :return: nothing
         """
         self.print_perfos(c)
@@ -1051,8 +1071,8 @@ class Turbofan(ExergeticEngine):
 
         :param args: cycle parameters
         :param kwargs: optional cycle parameters
-        :type args: tuple
-        :type kwargs: dict
+        :type args: (float)
+        :type kwargs: dict(str, float)
         :return: 3 dictionaries with the state of the machine
         :rtype: (dict, dict, dict)
         """
@@ -1073,7 +1093,7 @@ class Turbofan(ExergeticEngine):
         stations["21"] = {k: stations['1'][k] for k in ['Ht', 'Ex', 'Pt', 'Tt', 'Nk']}
         stations["21"]['losses'] = {}
         stations["21"]['w'] = w
-        stations["21"]['Wr'] = w * np.sqrt(stations["21"]['Tt']/288.15)/(stations["21"]['Pt']/101325.)
+        stations["21"]['Wr'] = w * math.sqrt(stations["21"]['Tt']/288.15)/(stations["21"]['Pt']/101325.)
         components["LPC"]["WR"] = stations["21"]['Wr']
         components["LPC"]["Nk"] = stations["21"]['Nk']
 
@@ -1146,7 +1166,7 @@ class Turbofan(ExergeticEngine):
         :meth:`ExergeticEngine.from_PR_to_tau_pol`
 
         :param args: the performance values sought
-        :type param: tuple
+        :type args: tuple(float)
         :return: a guess for the cycle parameters
         :rtype: np.array
         """
@@ -1167,7 +1187,7 @@ class Turbofan(ExergeticEngine):
         :param x: the cycle parameters
         :param args: a tuple with 2 items: the performance value sought and the keyed arguments for the cycle
         :type x: tuple
-        :type args: tuple
+        :type args: tuple(tuple(float), dict)
         :return: a vector to be nullified
         :rtype: np.array
         """
@@ -1197,11 +1217,18 @@ class Turbofan(ExergeticEngine):
             parameters
         :type x: np.array
         :param args: a tuple with one dictionary: the additional cycle parameters
+        :type args: (dict)
         :return: a vector of same size as x, to be nullified
         :rtype: np.array
         """
         xx = x * self.dp
-        r, c, p = self.cycle(*xx, **args[0])
+        coeff = math.sqrt(self.dp_flight[0]/self.Tt0)/(self.dp_flight[1]/self.Pt0)
+        xx[0] = xx[0] * coeff
+        xx[-1] = xx[-1] * coeff
+        other_kwargs = {k: args[0][k] for k in args[0].keys() if k not in ['Ttmax', 'wfe', 'Fnet', 'N1', 'Pth']}
+        other_kwargs['dHf'] = xx[-1] * flhv
+        xxx = xx[:-1]
+        r, c, p = self.cycle(*xxx, **other_kwargs)
         # Get the shaft speed compatible with the corrected flow, as a fraction of the design speed
         shaft_speed = {i: ((self.slope[i] * (c[i]['WR'] / self.comp_state[i]['WR'] - 1.) + 1.) *
                            self.comp_state[i]['Nk'] / c[i]['Nk']) for i in self.slope.keys()}
@@ -1214,16 +1241,10 @@ class Turbofan(ExergeticEngine):
         y = [r['9']['A'] / self.design_state['9']['A'] - 1., r['19']['A'] / self.design_state['19']['A'] - 1.,
              shaft_speed['Fan'] / shaft_speed['LPC'] - 1., shaft_speed['HPT'] / shaft_speed['HPC'] - 1.,
              shaft_speed['LPT'] / shaft_speed['LPC'] - 1.]
+        targets = {"wfe": p['wfe'], "Fnet" : p['Fnet'], 'N1': shaft_speed['Fan'], 'Ttmax': r['4']['Tmax'], 'Pth': p['Pth']}
+        y.append([targets[k]-args[0][k] for k in sorted(targets.keys()) if k in args[0].keys()][0])
         # print(x, y)
         return y
-
-    def magic_guess(self):
-        """
-        Provide a starting point for off-design computation which revealed to be very robust to flying conditions,
-        but nothing is guaranty
-        """
-        guess = [0.7, 0.9, 0.9, 0.9, 0.9]
-        return guess
 
     def draw_sankey(self, s, c, p, ax):
         """
@@ -1396,8 +1417,8 @@ class Turboprop(ExergeticEngine):
 
         :param args: cycle parameters
         :param kwargs: optional cycle parameters
-        :type args: tuple
-        :type kwargs: dict
+        :type args: (float)
+        :type kwargs: dict(str, float)
         :return: 3 dictionaries with the state of the machine
         :rtype: (dict, dict, dict)
         """
@@ -1478,7 +1499,7 @@ class Turboprop(ExergeticEngine):
         ratios, estimated using the method :meth:`ExergeticEngine.from_PR_to_tau_pol`
 
         :param args: the performance values sought
-        :type param: tuple
+        :type args: tuple(float)
         :return: a guess for the cycle parameters
         :rtype: np.array
         """
@@ -1500,7 +1521,7 @@ class Turboprop(ExergeticEngine):
         :param x: the cycle parameters
         :param args: a tuple with 2 items: the performance value sought and the keyed arguments for the cycle
         :type x: tuple
-        :type args: tuple
+        :type args: tuple(tuple(float), dict)
         :return: a vector to be nullified
         :rtype: np.array
         """
@@ -1529,6 +1550,7 @@ class Turboprop(ExergeticEngine):
             parameters
         :type x: np.array
         :param args: a tuple with one dictionary: the additional cycle parameters
+        :type args: (dict)
         :return: a vector of same size as x, to be nullified
         :rtype: np.array
         """
@@ -1710,13 +1732,13 @@ class ElectricFan(ExergeticEngine):
 
         :param args: cycle parameters
         :param kwargs: optional cycle parameters
-        :type args: tuple
-        :type kwargs: dict
+        :type args: (float)
+        :type kwargs: dict(str, float)
         :return: 3 dictionaries with the state of the machine
         :rtype: (dict, dict, dict)
         """
-        w, tau_f = args
-        d_bli = kwargs.get('d_bli')
+        w, tau_f = args  # float, float
+        d_bli = kwargs.get('d_bli')  # float
 
         # Station 0: free stream
         components = {"Fan": {"tau": tau_f}}
@@ -1754,7 +1776,7 @@ class ElectricFan(ExergeticEngine):
         and the fan temperature ratio, estimated using the method :meth:`ExergeticEngine.from_PR_to_tau_pol`
 
         :param args: the performance values sought
-        :type param: tuple
+        :type args: tuple(float)
         :return: a guess for the cycle parameters
         :rtype: np.array
         """
@@ -1773,12 +1795,20 @@ class ElectricFan(ExergeticEngine):
         :param x: the cycle parameters
         :param args: a tuple with 2 items: the performance value sought and the keyed arguments for the cycle
         :type x: tuple
-        :type args: tuple
+        :type args: tuple(tuple(float), dict)
         :return: a vector to be nullified
         :rtype: np.array
         """
-        thrust, fpr = args[0]
-        other_kwargs = args[1]
+        thrust, fpr = args[0]  # float, float
+        # The following is a semi-empirical estimation of the Fan efficiency thanks to
+        # "User manual for updated computer code for axial-flow compressor conceptual design",
+        # by A.J. Glassman, July 1992, NASA CR-189171
+        # The 0.773098044 coefficient is to represent 2030 level of efficiency
+        if fpr <= 2.:
+            self.ex_loss['Fan'] = 1 - 0.773098044 *((0.047322 * fpr - 0.21668) * fpr + 1.1241)
+        else:
+            self.ex_loss['Fan'] = 1 - 0.773098044 * (-0.027392 * fpr + 0.93478)
+        other_kwargs = args[1]  # dict
         s, c, p = self.cycle(*x, **other_kwargs)
         y = [p['Fnet'] / thrust - 1., c['Fan']['PR'] / fpr - 1.]
         return np.array(y)
@@ -1895,8 +1925,8 @@ if __name__ == '__main__':
 
     # Design for a given thrust (Newton), BPR, FPR, LPC PR, HPC PR, T41 (Kelvin)
     Ttm = 1750.
-    rd, c, p = TF.cycle(24., tau_h, Ttmax=Ttm)
-    print(p['Fnet'])
+    rd0, c0, p0 = TF.cycle(24., tau_h, Ttmax=Ttm)
+    print(p0['Fnet'])
     rd, c, p = TF.design(21400., 20., Ttmax=Ttm, guess=x0)
     # show the results
     TF.print_stations(rd)

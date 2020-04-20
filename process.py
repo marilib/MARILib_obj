@@ -23,6 +23,12 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from aircraft.tool import unit
 
 
+def eval_this(aircraft,var):
+    res = []
+    for str in var:
+        res.append(eval(str))
+    return res
+
 def mda(aircraft):
     """Perform Multidsciplinary_Design_Analysis
     All coupling constraints are solved
@@ -39,11 +45,11 @@ def mda(aircraft):
 
     aircraft.aerodynamics.aerodynamic_analysis()
 
-    aircraft.power_system.thrust_analysis()
-
     aircraft.economics.operating_cost_analysis()
 
     aircraft.environment.fuel_efficiency_metric()
+
+    aircraft.power_system.thrust_analysis()
 
 
 
@@ -119,7 +125,9 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
     return res
 
 
-def explore_design_space(aircraft, res, step, data, file):
+def explore_design_space(aircraft, var, step, data, file):
+
+    res = eval_this(aircraft,var)
 
     slst_list = [res[0]*(1-1.5*step[0]), res[0]*(1-0.5*step[0]), res[0]*(1+0.5*step[0]), res[0]*(1+1.5*step[0])]
     area_list = [res[1]*(1-1.5*step[1]), res[1]*(1-0.5*step[1]), res[1]*(1+0.5*step[1]), res[1]*(1+1.5*step[1])]
@@ -138,8 +146,10 @@ def explore_design_space(aircraft, res, step, data, file):
     for area in area_list:
         for thrust in slst_list:
 
-            aircraft.airframe.nacelle.reference_thrust = thrust
-            aircraft.airframe.wing.area = area
+            exec(var[0]+" = thrust")
+            exec(var[1]+" = area")
+            # aircraft.airframe.nacelle.reference_thrust = thrust
+            # aircraft.airframe.wing.area = area
 
             print("-----------------------------------------------------------------------")
             print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
@@ -150,11 +160,13 @@ def explore_design_space(aircraft, res, step, data, file):
             res_list = []
             for j in range(len(data)):
                 res_list.append([str(eval(val[j]))])
-            res = np.array(res_list)
+            res_array = np.array(res_list)
 
-            txt = np.hstack([txt,res])
+            txt = np.hstack([txt,res_array])
 
     np.savetxt(file,txt,delimiter=";",fmt='%14s')
+
+    return res
 
 
 def draw_design_space(file, mark, field, const, color, limit, bound):
