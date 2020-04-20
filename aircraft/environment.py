@@ -28,7 +28,9 @@ class Economics():
         self.engine_price = None
         self.gear_price = None
         self.frame_price = None
-        self.fuel_price = 2./unit.liter_usgal(1)   # 2 $/USgal
+        self.fuel_price = 2./unit.m3_usgal(1.)     # 2 $/USgal
+        self.energy_price = 0.10/unit.J_kWh(1.)    # $/J
+        self.battery_price = 20.                   # $/kg
 
         self.frame_cost = None
         self.engine_cost = None
@@ -60,6 +62,7 @@ class Economics():
         gear_price = 720. * landing_gear_mass
         return gear_price
 
+# TODO   electrofan price
 
     def one_engine_price(self):
         """Regression on catalog prices
@@ -68,6 +71,7 @@ class Economics():
         engine_price = ((2.115e-4*reference_thrust + 78.85)*reference_thrust)
         return engine_price
 
+# TODO  battery price
 
     def one_airframe_price(self):
         """Regression on catalog prices corrected with engine prices
@@ -93,18 +97,21 @@ class Economics():
         mwe = self.aircraft.weight_cg.mwe
 
         cost_range = self.aircraft.performance.mission.cost.range
-        fuel_block = self.aircraft.performance.mission.cost.fuel_block
         time_block = self.aircraft.performance.mission.cost.time_block
-
-        fuel_density = earth.fuel_density(energy_source)
 
         # Cash Operating Cost
         #-----------------------------------------------------------------------------------------------------------------------------------------------
-        self.fuel_cost =   (fuel_block*(self.fuel_price*1.e3)/fuel_density)
-#        eco.elec_cost =  cost_mission.req_battery_mass * propulsion.battery_energy_density * eco.elec_price
+        if (self.aircraft.arrangement.energy_source=="battery"):
+            enrg_block = self.aircraft.performance.mission.cost.enrg_block
+            self.fuel_cost = enrg_block*self.energy_price
+        else:
+            fuel_density = earth.fuel_density(energy_source)
+            fuel_block = self.aircraft.performance.mission.cost.fuel_block
+            self.fuel_cost = fuel_block*self.fuel_price/fuel_density
 
         b_h = time_block/3600.
         t_t = b_h + 0.25
+
         w_f = (10000. + mwe - nacelle_mass)*1.e-5
 
         labor_frame = ((1.26+1.774*w_f-0.1071*w_f**2)*t_t + (1.614+0.7227*w_f+0.1204*w_f**2))*self.labor_cost
@@ -160,76 +167,80 @@ class Environment(Flight):
         super(Environment, self).__init__(aircraft)
         self.aircraft = aircraft
 
+        energy_source = self.aircraft.arrangement.energy_source
+
         self.CO2_metric = None
-        self.CO2_index = earth.emission_index("CO2"),
-        self.H2O_index = earth.emission_index("H2O"),
-        self.SO2_index = earth.emission_index("SO2"),
-        self.NOx_index = earth.emission_index("NOx"),
-        self.CO_index = earth.emission_index("CO"),
-        self.HC_index = earth.emission_index("HC"),
-        self.sulfuric_acid_index = earth.emission_index("sulfuric_acid"),
-        self.nitrous_acid_index = earth.emission_index("nitrous_acid"),
-        self.nitric_acid_index = earth.emission_index("nitric_acid"),
-        self.soot_index = earth.emission_index("soot")
+        self.CO2_index = earth.emission_index(energy_source,"CO2"),
+        self.H2O_index = earth.emission_index(energy_source,"H2O"),
+        self.SO2_index = earth.emission_index(energy_source,"SO2"),
+        self.NOx_index = earth.emission_index(energy_source,"NOx"),
+        self.CO_index = earth.emission_index(energy_source,"CO"),
+        self.HC_index = earth.emission_index(energy_source,"HC"),
+        self.sulfuric_acid_index = earth.emission_index(energy_source,"sulfuric_acid"),
+        self.nitrous_acid_index = earth.emission_index(energy_source,"nitrous_acid"),
+        self.nitric_acid_index = earth.emission_index(energy_source,"nitric_acid"),
+        self.soot_index = earth.emission_index(energy_source,"soot")
 
     def fuel_efficiency_metric(self):
+        """Fuel efficiency metric (CO2 metric) valid for kerosene aircraft only
         """
-        Fuel efficiency metric (CO2 metric)
-        """
-        mtow = self.aircraft.weight_cg.mtow
-        rgf = self.aircraft.airframe.cabin.projected_area      # Reference Geometric Factor (Pressurized floor area)
-        disa = self.aircraft.requirement.cruise_disa
-        mach = self.aircraft.requirement.cruise_mach    # take cruise mach instead of Maxi Range because SFC is constant
+        if (self.aircraft.arrangement.energy_source=="kerosene"):
+            mtow = self.aircraft.weight_cg.mtow
+            rgf = self.aircraft.airframe.cabin.projected_area      # Reference Geometric Factor (Pressurized floor area)
+            disa = self.aircraft.requirement.cruise_disa
+            mach = self.aircraft.requirement.cruise_mach    # take cruise mach instead of Maxi Range because SFC is constant
 
-        high_weight = 0.92*mtow
-        low_weight = 0.45*mtow + 0.63*mtow**0.924
-        medium_weight = 0.5*(high_weight+low_weight)
+            high_weight = 0.92*mtow
+            low_weight = 0.45*mtow + 0.63*mtow**0.924
+            medium_weight = 0.5*(high_weight+low_weight)
 
-        # WARNING : Maximum SAR altitude or speed may be lowered by propulsion ceilings
-        #-----------------------------------------------------------------------------------------------------------
-        dict = self.eval_max_sar(high_weight,mach,disa)
-        altp_sar_max_hw = dict["altp"]
-        altp_sar_max_hw,hw_ceiling = self.check_ceiling(high_weight,altp_sar_max_hw,mach,disa)
-        if(hw_ceiling<0.):
-            lower_mach = mach - 0.03
-            dict = self.eval_max_sar(high_weight,lower_mach,disa)
+            # WARNING : Maximum SAR altitude or speed may be lowered by propulsion ceilings
+            #-----------------------------------------------------------------------------------------------------------
+            dict = self.eval_max_sar(high_weight,mach,disa)
             altp_sar_max_hw = dict["altp"]
-            altp_sar_max_hw,hw_ceiling = self.check_ceiling(high_weight,altp_sar_max_hw,lower_mach,disa)
-            dict = self.eval_sar(altp_sar_max_hw,high_weight,lower_mach,disa)
-            sar_max_hw = dict["sar"]
-        else:
-            dict = self.eval_sar(altp_sar_max_hw,high_weight,mach,disa)
-            sar_max_hw = dict["sar"]
+            altp_sar_max_hw,hw_ceiling = self.check_ceiling(high_weight,altp_sar_max_hw,mach,disa)
+            if(hw_ceiling<0.):
+                lower_mach = mach - 0.03
+                dict = self.eval_max_sar(high_weight,lower_mach,disa)
+                altp_sar_max_hw = dict["altp"]
+                altp_sar_max_hw,hw_ceiling = self.check_ceiling(high_weight,altp_sar_max_hw,lower_mach,disa)
+                dict = self.eval_sar(altp_sar_max_hw,high_weight,lower_mach,disa)
+                sar_max_hw = dict["sar"]
+            else:
+                dict = self.eval_sar(altp_sar_max_hw,high_weight,mach,disa)
+                sar_max_hw = dict["sar"]
 
-        dict = self.eval_max_sar(medium_weight,mach,disa)
-        altp_sar_max_mw = dict["altp"]
-        altp_sar_max_mw,mw_ceiling = self.check_ceiling(medium_weight,altp_sar_max_mw,mach,disa)
-        if(mw_ceiling<0.):
-            lower_mach = mach - 0.03
-            dict = self.eval_max_sar(medium_weight,lower_mach,disa)
+            dict = self.eval_max_sar(medium_weight,mach,disa)
             altp_sar_max_mw = dict["altp"]
-            altp_sar_max_mw,mw_ceiling = self.check_ceiling(medium_weight,altp_sar_max_mw,lower_mach,disa)
-            dict = self.eval_sar(altp_sar_max_mw,medium_weight,lower_mach,disa)
-            sar_max_mw = dict["sar"]
-        else:
-            dict = self.eval_sar(altp_sar_max_mw,medium_weight,mach,disa)
-            sar_max_mw = dict["sar"]
+            altp_sar_max_mw,mw_ceiling = self.check_ceiling(medium_weight,altp_sar_max_mw,mach,disa)
+            if(mw_ceiling<0.):
+                lower_mach = mach - 0.03
+                dict = self.eval_max_sar(medium_weight,lower_mach,disa)
+                altp_sar_max_mw = dict["altp"]
+                altp_sar_max_mw,mw_ceiling = self.check_ceiling(medium_weight,altp_sar_max_mw,lower_mach,disa)
+                dict = self.eval_sar(altp_sar_max_mw,medium_weight,lower_mach,disa)
+                sar_max_mw = dict["sar"]
+            else:
+                dict = self.eval_sar(altp_sar_max_mw,medium_weight,mach,disa)
+                sar_max_mw = dict["sar"]
 
-        dict = self.eval_max_sar(low_weight,mach,disa)
-        altp_sar_max_lw = dict["altp"]
-        altp_sar_max_lw,lw_ceiling = self.check_ceiling(low_weight,altp_sar_max_lw,mach,disa)
-        if(lw_ceiling<0.):
-            lower_mach = mach - 0.03
-            dict = self.eval_max_sar(low_weight,lower_mach,disa)
+            dict = self.eval_max_sar(low_weight,mach,disa)
             altp_sar_max_lw = dict["altp"]
-            altp_sar_max_lw,lw_ceiling = self.check_ceiling(low_weight,altp_sar_max_lw,lower_mach,disa)
-            dict = self.eval_sar(altp_sar_max_lw,low_weight,lower_mach,disa)
-            sar_max_lw = dict["sar"]
-        else:
-            dict = self.eval_sar(altp_sar_max_lw,low_weight,mach,disa)
-            sar_max_lw = dict["sar"]
+            altp_sar_max_lw,lw_ceiling = self.check_ceiling(low_weight,altp_sar_max_lw,mach,disa)
+            if(lw_ceiling<0.):
+                lower_mach = mach - 0.03
+                dict = self.eval_max_sar(low_weight,lower_mach,disa)
+                altp_sar_max_lw = dict["altp"]
+                altp_sar_max_lw,lw_ceiling = self.check_ceiling(low_weight,altp_sar_max_lw,lower_mach,disa)
+                dict = self.eval_sar(altp_sar_max_lw,low_weight,lower_mach,disa)
+                sar_max_lw = dict["sar"]
+            else:
+                dict = self.eval_sar(altp_sar_max_lw,low_weight,mach,disa)
+                sar_max_lw = dict["sar"]
 
-        self.CO2_metric = (1./rgf**0.24)*(1./sar_max_hw + 1./sar_max_mw + 1./sar_max_lw)/3.        # kg/m/m2
+            self.CO2_metric = (1./rgf**0.24)*(1./sar_max_hw + 1./sar_max_mw + 1./sar_max_lw)/3.        # kg/m/m2
+        else:
+            self.CO2_metric = None
         return
 
 

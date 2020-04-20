@@ -463,7 +463,7 @@ def fuel_heat(fuel_type):
     """
     if (fuel_type=="kerosene"):
         fuel_heat = 43.1e6 # J/kg, kerosene
-    elif (fuel_type=="liquid_h2" or fuel_type=="700bar_h2"):
+    elif (fuel_type in ["liquid_h2", "700bar_h2"]):
         fuel_heat = 121.0e6 # J/kg, hydrogene
     elif (fuel_type=="methane"):
         fuel_heat = 50.3e6 # J/kg, Liquid methane
@@ -472,17 +472,42 @@ def fuel_heat(fuel_type):
     return fuel_heat
 
 #===========================================================================================================
-def emission_index(compound):
-    index = {"CO2" : 3140./1000.,
-             "H2O" : 1290./1000.,
-             "SO2" : 0.8/1000.,
-             "NOx" : 14./1000.,
-             "CO" : 3./1000.,
-             "HC" : 0.4/1000.,
-             "sulfuric_acid" : 0.04/1000.,
-             "nitrous_acid" : 0.4/1000.,
-             "nitric_acid" : 0.2/1000.,
-             "soot" : 2.5e12}
-    return index[compound]
+def emission_index(energy_source,compound):
+    if (energy_source in ["kerosene"]):
+        index = {"CO2" : 3140./1000.,
+                 "H2O" : 1290./1000.,
+                 "SO2" : 0.8/1000.,
+                 "NOx" : 14./1000.,
+                 "CO" : 3./1000.,
+                 "HC" : 0.4/1000.,
+                 "sulfuric_acid" : 0.04/1000.,
+                 "nitrous_acid" : 0.4/1000.,
+                 "nitric_acid" : 0.2/1000.,
+                 "soot" : 2.5e12}
+        return index.get(compound)
+    elif (energy_source in ["liquid_h2", "700bar_h2"]):
+        index = {"CO2" : 0.,
+                 "H2O" : 18000./1000.,
+                 "SO2" : 0.,
+                 "NOx" : 14./1000.,
+                 "CO" : 0.,
+                 "HC" : 0.,
+                 "sulfuric_acid" : 0.,
+                 "nitrous_acid" : 0.4/1000.,
+                 "nitric_acid" : 0.2/1000.,
+                 "soot" : 2.0e12}
+        return index.get(compound)
+    elif (energy_source in ["battery"]):
+        index = {"CO2" : 0.,
+                 "H2O" : 0.,
+                 "SO2" : 0.,
+                 "NOx" : 0.,
+                 "CO" : 0.,
+                 "HC" : 0.,
+                 "sulfuric_acid" : 0.,
+                 "nitrous_acid" : 0.,
+                 "nitric_acid" : 0.,
+                 "soot" : 0.}
+        return index.get(compound)
 
 

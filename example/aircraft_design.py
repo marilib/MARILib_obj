@@ -29,7 +29,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    power_architecture = "efb",       # "tf", "extf", "efb", "tp", "pte1", "ef1", "ep1",
                    energy_source = "battery")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
 
-reqs = Requirement(n_pax_ref = 150.,
+reqs = Requirement(n_pax_ref = 40.,
                    design_range = unit.m_NM(100.),
                    cruise_mach = 0.76,
                    cruise_altp = unit.m_ft(25000.),
@@ -84,8 +84,8 @@ crt = "aircraft.performance.mission.cost.fuel_block"
 #process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
 
-#ac.draw.payload_range("This_plot")
-#ac.draw.view_3d("This_plot")
+ac.draw.payload_range("This_plot")
+ac.draw.view_3d("This_plane")
 
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_test')

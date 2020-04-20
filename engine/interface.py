@@ -14,10 +14,11 @@ import earth
 
 from engine.ExergeticEngine import ExergeticEngine, Turbofan
 
-from aircraft.airframe.component import Component,\
-                                        Inboard_wing_mounted_nacelle,\
-                                        Outboard_wing_mounted_nacelle,\
-                                        Rear_fuselage_mounted_nacelle
+from aircraft.airframe.component import Component
+
+from aircraft.airframe.power_and_system import Inboard_wing_mounted_nacelle,\
+                                               Outboard_wing_mounted_nacelle,\
+                                               Rear_fuselage_mounted_nacelle
 
 
 class Exergetic_tf_nacelle(Component):

@@ -43,6 +43,10 @@ def liter_usgal(usgal): return usgal*3.7853982   # Translate US gallons into lit
 
 def usgal_liter(liter): return liter/3.7853982   # Translate liters into US gallons
 
+def m3_usgal(usgal): return usgal*0.0037853982   # Translate US gallons into m3
+
+def usgal_m3(m3): return m3/0.0037853982   # Translate m3 into US gallons
+
 def rad_deg(deg): return deg*numpy.pi/180.   # Translate degrees into radians
 
 def deg_rad(rad): return rad*180./numpy.pi   # Translate radians into degrees
