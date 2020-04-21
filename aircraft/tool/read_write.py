@@ -11,7 +11,7 @@ import json as json
 import pickle as pickle
 import re
 
-from aircraft.tool import unit
+from aircraft.tool.unit import convert_to
 
 STANDARD_FORMAT = 6
 
@@ -49,7 +49,7 @@ data_dict = {
     "max_fwd_mass": {"unit":"kg", "mag":1e4, "txt":"Mass corresponding to maximum forward position of the payload"},
     "max_bwd_req_cg": {"unit":"m", "mag":1e1, "txt":"Maximum backward position of the payload"},
     "max_bwd_mass": {"unit":"kg", "mag":1e4, "txt":"Mass corresponding to maximum backward position of the payload"},
-    "n_pax_ref": {"unit":"", "mag":1e2, "txt":"Reference number of passenger for design"},
+    "n_pax_ref": {"unit":"int", "mag":1e2, "txt":"Reference number of passenger for design"},
     "n_pax_front": {"unit":"int", "mag":1e2, "txt":"Number of front seats in economy class"},
     "n_aisle": {"unit":"int", "mag":1e0, "txt":"Number of aisle in economy class"},
     "m_pax_nominal": {"unit":"int", "mag":1e2, "txt":"Reference mass allowance per passenger for design"},
@@ -347,7 +347,11 @@ class MarilibIO():
             if key in data_dict.keys():  # if entry found in data_dict, add units and docstring
                 unit = data_dict[key]['unit']
                 text = data_dict[key]['txt']
-                json_dict[key] = [value, f"({unit}) {text}"]
+                try:
+                    json_dict[key] = [convert_to(unit,value), f"({unit}) {text}"] # TODO: set number of digits and correct units
+                except KeyError:
+                    json_dict[key] = [value, f"WARNING: conversion to ({unit}) failed. {text}"]
+                    print("WARNING : unknwon unit "+str(unit))
             else:
                 pass
 

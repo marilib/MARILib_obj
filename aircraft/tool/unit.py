@@ -187,10 +187,15 @@ UNIT["kg/N/s"] = 1.
 UNIT["kg/daN/h"] = 2.77778e-05
 UNIT["lb/lbf/h"] = 0.000028327
 
+# dim = "CruiseSpecificPowerAirRange"
+UNIT["m/W"] = 1.
+UNIT["NM/kW"] = 1.852
+
 # dim = "SpecificEnergyConsumption"
 UNIT["J/N/s"] = 1.
 UNIT["kJ/daN/h"] = 1.e3
 UNIT["MJ/lbf/h"] = 1.e6
+UNIT["kW/daN"] = 100
 
 # dim = "SpecificConsumptionvsPower"
 UNIT["kg/W/s"] = 1.
