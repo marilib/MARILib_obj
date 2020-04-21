@@ -16,7 +16,7 @@ from aircraft.requirement import Requirement
 import process
 import earth
 
-from aircraft.tool.dictionary import MarilibIO
+from aircraft.tool.read_write import MarilibIO
 
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
