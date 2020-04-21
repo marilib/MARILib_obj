@@ -200,79 +200,67 @@ class Weight_cg(object):
 
 
 #--------------------------------------------------------------------------------------------------------------------------------
+class Thrust_data(object):
+    def __init__(self, nei=0):
+        self.disa = None
+        self.altp = None
+        self.mach = None
+        self.nei = nei
+        self.kfn_opt = None
+
+
 class Power_system(object):
 
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
         self.fuel_density = self.__fuel_density__()
-        self.data = [
-                     {"rating": "MTO",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  1,
-                      "kfn_opt": None},
-                     {"rating": "MCN",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  1,
-                      "kfn_opt": None},
-                     {"rating": "MCL",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  0,
-                      "kfn_opt": None},
-                     {"rating": "MCR",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  0,
-                      "kfn_opt": None}
-                     ]
+        mto = Thrust_data(nei=1)
+        mcn = Thrust_data(nei=1)
+        mcl = Thrust_data(nei=0)
+        mcr = Thrust_data(nei=0)
+        self.data = {"MTO":mto, "MCN":mcn, "MCL":mcl, "MCR":mcr}
 
     def __fuel_density__(self):
         energy_source = self.aircraft.arrangement.energy_source
         return earth.fuel_density(energy_source)
 
     def thrust_requirement(self):
-        self.data[0]["disa"] = self.aircraft.performance.take_off.disa
-        self.data[0]["altp"] = self.aircraft.performance.take_off.altp
-        self.data[0]["mach"] = self.aircraft.performance.take_off.mach2
+        self.data["MTO"].disa = self.aircraft.performance.take_off.disa
+        self.data["MTO"].altp = self.aircraft.performance.take_off.altp
+        self.data["MTO"].mach = self.aircraft.performance.take_off.mach2
 
         fct = self.aircraft.performance.take_off.thrust_opt
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        self.data[0]["kfn_opt"] = output_dict[0][0]
+        self.data["MTO"].kfn_opt = output_dict[0][0]
 
-        self.data[1]["disa"] = self.aircraft.performance.oei_ceiling.disa
-        self.data[1]["altp"] = self.aircraft.performance.oei_ceiling.altp
-        self.data[1]["mach"] = self.aircraft.performance.oei_ceiling.mach_opt
+        self.data["MCN"].disa = self.aircraft.performance.oei_ceiling.disa
+        self.data["MCN"].altp = self.aircraft.performance.oei_ceiling.altp
+        self.data["MCN"].mach = self.aircraft.performance.oei_ceiling.mach_opt
 
         fct = self.aircraft.performance.oei_ceiling.thrust_opt
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        self.data[1]["kfn_opt"] = output_dict[0][0]
+        self.data["MCN"].kfn_opt = output_dict[0][0]
 
-        self.data[2]["disa"] = self.aircraft.performance.mcl_ceiling.disa
-        self.data[2]["altp"] = self.aircraft.performance.mcl_ceiling.altp
-        self.data[2]["mach"] = self.aircraft.performance.mcl_ceiling.mach
+        self.data["MCL"].disa = self.aircraft.performance.mcl_ceiling.disa
+        self.data["MCL"].altp = self.aircraft.performance.mcl_ceiling.altp
+        self.data["MCL"].mach = self.aircraft.performance.mcl_ceiling.mach
 
         fct = self.aircraft.performance.mcl_ceiling.thrust_opt
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        self.data[2]["kfn_opt"] = output_dict[0][0]
+        self.data["MCL"].kfn_opt = output_dict[0][0]
 
-        self.data[3]["disa"] = self.aircraft.performance.mcr_ceiling.disa
-        self.data[3]["altp"] = self.aircraft.performance.mcr_ceiling.altp
-        self.data[3]["mach"] = self.aircraft.performance.mcr_ceiling.mach
+        self.data["MCR"].disa = self.aircraft.performance.mcr_ceiling.disa
+        self.data["MCR"].altp = self.aircraft.performance.mcr_ceiling.altp
+        self.data["MCR"].mach = self.aircraft.performance.mcr_ceiling.mach
 
         fct = self.aircraft.performance.mcr_ceiling.thrust_opt
         output_dict = fsolve(fct, x0=1., args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        self.data[3]["kfn_opt"] = output_dict[0][0]
+        self.data["MCR"].kfn_opt = output_dict[0][0]
 
     def thrust_analysis(self):
         raise NotImplementedError
@@ -293,74 +281,42 @@ class Power_system(object):
         raise NotImplementedError
 
 
+class Thrust_data_tf(Thrust_data):
+    def __init__(self, nei):
+        super(Thrust_data_tf, self).__init__(nei)
+        self.thrust_opt = None
+        self.thrust = None
+        self.fuel_flow = None
+        self.sfc = None
+        self.T41 = None
+
+
 class Turbofan(Power_system, Flight):
 
     def __init__(self, aircraft):
         super(Turbofan, self).__init__(aircraft)
 
-        self.data = [
-                     {"rating": "MTO",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  1,
-                      "kfn_opt": None,
-                      "thrust_opt": None,
-                      "thrust": None,
-                      "fuel_flow": None,
-                      "sfc": None,
-                      "T41": None},
-                     {"rating": "MCN",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  1,
-                      "kfn_opt": None,
-                      "thrust_opt": None,
-                      "thrust": None,
-                      "fuel_flow": None,
-                      "sfc": None,
-                      "T41": None},
-                     {"rating": "MCL",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  0,
-                      "kfn_opt": None,
-                      "thrust_opt": None,
-                      "thrust": None,
-                      "fuel_flow": None,
-                      "sfc": None,
-                      "T41": None},
-                     {"rating": "MCR",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  0,
-                      "kfn_opt": None,
-                      "thrust_opt": None,
-                      "thrust": None,
-                      "fuel_flow": None,
-                      "sfc": None,
-                      "T41": None}
-                     ]
+        mto = Thrust_data_tf(nei=1)
+        mcn = Thrust_data_tf(nei=1)
+        mcl = Thrust_data_tf(nei=0)
+        mcr = Thrust_data_tf(nei=0)
+        self.data = {"MTO":mto, "MCN":mcn, "MCL":mcl, "MCR":mcr}
 
     def thrust_analysis(self):
         self.thrust_requirement()
-        for j in range(len(self.data)):
-            rating = self.data[j]["rating"]
-            disa = self.data[j]["disa"]
-            altp = self.data[j]["altp"]
-            mach = self.data[j]["mach"]
-            nei = self.data[j]["nei"]
-            kfn = self.data[j]["kfn_opt"]
+        for rating in self.data.keys():
+            disa = self.data[rating].disa
+            altp = self.data[rating].altp
+            mach = self.data[rating].mach
+            nei = self.data[rating].nei
+            kfn = self.data[rating].kfn_opt
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
             dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
-            self.data[j]["thrust_opt"] = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[j]["thrust"] = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[j]["fuel_flow"] = dict["ff"]
-            self.data[j]["sfc"] = dict["sfc"]
-            self.data[j]["T41"] = dict["t4"]
+            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].fuel_flow = dict["ff"]
+            self.data[rating].sfc = dict["sfc"]
+            self.data[rating].T41 = dict["t4"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine
@@ -400,69 +356,40 @@ class Turbofan(Power_system, Flight):
         return 1.
 
 
+class Thrust_data_ef(Thrust_data):
+    def __init__(self, nei):
+        super(Thrust_data_ef, self).__init__(nei)
+        self.thrust_opt = None
+        self.thrust = None
+        self.power = None
+        self.sec = None
+
+
 class Electrofan(Power_system, Flight):
 
     def __init__(self, aircraft):
         super(Electrofan, self).__init__(aircraft)
 
-        self.data = [
-                     {"rating": "MTO",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  1,
-                      "kfn_opt": None,
-                      "thrust_opt": None,
-                      "thrust": None,
-                      "power": None,
-                      "sec": None},
-                     {"rating": "MCN",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  1,
-                      "kfn_opt": None,
-                      "thrust_opt": None,
-                      "thrust": None,
-                      "power": None,
-                      "sec": None},
-                     {"rating": "MCL",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  0,
-                      "kfn_opt": None,
-                      "thrust_opt": None,
-                      "thrust": None,
-                      "power": None,
-                      "sec": None},
-                     {"rating": "MCR",
-                      "disa": None,
-                      "altp": None,
-                      "mach": None,
-                      "nei":  0,
-                      "kfn_opt": None,
-                      "thrust_opt": None,
-                      "thrust": None,
-                      "power": None,
-                      "sec": None}
-                     ]
+        mto = Thrust_data_ef(nei=1)
+        mcn = Thrust_data_ef(nei=1)
+        mcl = Thrust_data_ef(nei=0)
+        mcr = Thrust_data_ef(nei=0)
+        self.data = {"MTO":mto, "MCN":mcn, "MCL":mcl, "MCR":mcr}
 
     def thrust_analysis(self):
         self.thrust_requirement()
-        for j in range(len(self.data)):
-            rating = self.data[j]["rating"]
-            disa = self.data[j]["disa"]
-            altp = self.data[j]["altp"]
-            mach = self.data[j]["mach"]
-            nei = self.data[j]["nei"]
-            kfn = self.data[j]["kfn_opt"]
+        for rating in self.data.keys():
+            disa = self.data[rating].disa
+            altp = self.data[rating].altp
+            mach = self.data[rating].mach
+            nei = self.data[rating].nei
+            kfn = self.data[rating].kfn_opt
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
             dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
-            self.data[j]["thrust_opt"] = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[j]["thrust"] = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[j]["power"] = dict["pw"]
-            self.data[j]["sec"] = dict["sec"]
+            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].power = dict["pw"]
+            self.data[rating].sec = dict["sec"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine

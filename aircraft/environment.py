@@ -170,15 +170,15 @@ class Environment(Flight):
         energy_source = self.aircraft.arrangement.energy_source
 
         self.CO2_metric = None
-        self.CO2_index = earth.emission_index(energy_source,"CO2"),
-        self.H2O_index = earth.emission_index(energy_source,"H2O"),
-        self.SO2_index = earth.emission_index(energy_source,"SO2"),
-        self.NOx_index = earth.emission_index(energy_source,"NOx"),
-        self.CO_index = earth.emission_index(energy_source,"CO"),
-        self.HC_index = earth.emission_index(energy_source,"HC"),
-        self.sulfuric_acid_index = earth.emission_index(energy_source,"sulfuric_acid"),
-        self.nitrous_acid_index = earth.emission_index(energy_source,"nitrous_acid"),
-        self.nitric_acid_index = earth.emission_index(energy_source,"nitric_acid"),
+        self.CO2_index = earth.emission_index(energy_source,"CO2")
+        self.H2O_index = earth.emission_index(energy_source,"H2O")
+        self.SO2_index = earth.emission_index(energy_source,"SO2")
+        self.NOx_index = earth.emission_index(energy_source,"NOx")
+        self.CO_index = earth.emission_index(energy_source,"CO")
+        self.HC_index = earth.emission_index(energy_source,"HC")
+        self.sulfuric_acid_index = earth.emission_index(energy_source,"sulfuric_acid")
+        self.nitrous_acid_index = earth.emission_index(energy_source,"nitrous_acid")
+        self.nitric_acid_index = earth.emission_index(energy_source,"nitric_acid")
         self.soot_index = earth.emission_index(energy_source,"soot")
 
     def fuel_efficiency_metric(self):

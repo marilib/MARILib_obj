@@ -12,50 +12,38 @@ import numpy
 from scipy.optimize import fsolve
 
 
-#===========================================================================================================
 def gravity():
-    """
-    Reference gravity acceleration
+    """Reference gravity acceleration
     """
     g = 9.80665     # Gravity acceleration at sea level
     return g
 
-#===========================================================================================================
 def sea_level_density():
-    """
-    Reference air density at sea level
+    """Reference air density at sea level
     """
     rho0 = 1.225    # (kg/m3) Air density at sea level
     return rho0
 
-#===========================================================================================================
 def sea_level_pressure():
-    """
-    Reference air pressure at sea level
+    """Reference air pressure at sea level
     """
     P0 = 101325.    # Pascals
     return P0
 
-#===========================================================================================================
 def sea_level_temperature():
-    """
-    Reference air temperature at sea level
+    """Reference air temperature at sea level
     """
     T0 = 288.15    # Kelvins
     return T0
 
-#===========================================================================================================
 def sea_level_sound_speed():
-    """
-    Reference sound speed at sea level
+    """Reference sound speed at sea level
     """
     vc0 = 340.29    # m/s
     return vc0
 
-#===========================================================================================================
 def gas_data(gas="air"):
-    """
-    Gas data for a single gas
+    """Gas data for a single gas
     """
     r = {"air" : 287.053 ,
          "argon" : 208. ,
@@ -89,11 +77,9 @@ def gas_data(gas="air"):
     cp = gam*cv
     return r,gam,cp,cv
 
-#===========================================================================================================
 def gas_viscosity(tamb, gas="air"):
-    """
-    Mixed gas dynamic viscosity, Sutherland's formula
-    WARNING : result will not be accurate if gas is mixing components of too different molecular weight
+    """Mixed gas dynamic viscosity, Sutherland's formula
+    WARNING : result will not be accurate if gas is mixing components of too different molecular weights
     """
     data = {"air"             : [1.715e-5, 273.15, 110.4] ,
             "ammonia"         : [0.92e-5, 273.15, 382.9] ,
@@ -124,33 +110,25 @@ def gas_viscosity(tamb, gas="air"):
     mu = (mu0*((T0+S)/(tamb+S))*(tamb/T0)**1.5)
     return mu
 
-#===========================================================================================================
 def reynolds_number_old(pamb,tamb,mach):
-    """
-    Reynolds number
+    """Reynolds number
     """
     fac = ( 1. + 0.126*mach**2 )
     re = 47899*pamb*mach*(fac*tamb + 110.4) / (tamb**2 * fac**2.5)
     return re
 
-#===========================================================================================================
 def reynolds_number(pamb,tamb,mach):
-    """
-    Reynolds number based on Sutherland viscosity model
+    """Reynolds number based on Sutherland viscosity model
     """
     vsnd = sound_speed(tamb)
     rho,sig = air_density(pamb,tamb)
     mu = gas_viscosity(tamb)
-
     re = rho*vsnd*mach/mu
-
     return re
 
 
-#===========================================================================================================
 def atmosphere(altp,disa):
-    """
-    Pressure from pressure altitude from ground to 50 km
+    """Pressure from pressure altitude from ground to 50 km
     """
     g = gravity()
     R,gam,Cp,Cv = gas_data()
@@ -184,25 +162,22 @@ def atmosphere(altp,disa):
     return pamb,tamb,tstd,dtodz[j]
 
 
-#===========================================================================================================
 def altg_from_altp(altp,disa):
-
-    def fct_altg_from_altp(altg,altp,disa):
+    """Geometrical altitude from pressure altitude
+    """
+    def fct(altg,altp,disa):
         pamb,tamb,dtodz = atmosphere_geo(altg,disa)
         zp = pressure_altitude(pamb)
         return altp-zp
 
-    output_dict = fsolve(fct_altg_from_altp, x0=altp, args=(altp,disa), full_output=True)
+    output_dict = fsolve(fct, x0=altp, args=(altp,disa), full_output=True)
 
     altg = output_dict[0][0]
-
     return altg
 
 
-#===========================================================================================================
 def atmosphere_geo(altg,disa):
-    """
-    Pressure from pressure altitude from ground to 50 km
+    """Pressure and temperature from geometrical altitude from ground to 50 km
     """
     g = gravity()
     R,gam,Cp,Cv = gas_data()
@@ -246,10 +221,8 @@ def atmosphere_geo(altg,disa):
     return pamb,tamb,dtodz[j]
 
 
-#===========================================================================================================
 def pressure_altitude(pamb):
-    """
-    Pressure altitude from ground to 50 km
+    """Pressure altitude from ground to 50 km
     """
     g = gravity()
     R,gam,Cp,Cv = gas_data()
@@ -284,10 +257,8 @@ def pressure_altitude(pamb):
     return altp
 
 
-#===========================================================================================================
 def pressure(altp):
-    """
-    Pressure from pressure altitude from ground to 50 km
+    """Pressure from pressure altitude from ground to 50 km
     """
     g = gravity()
     R,gam,Cp,Cv = gas_data()
@@ -318,10 +289,9 @@ def pressure(altp):
 
     return pamb
 
-#===========================================================================================================
+
 def air_density(pamb,tamb):
-    """
-    Ideal gas density
+    """Ideal gas density
     """
     r,gam,Cp,Cv = gas_data()
     rho0 = sea_level_density()
@@ -329,47 +299,38 @@ def air_density(pamb,tamb):
     sig = rho / rho0
     return rho, sig
 
-#===========================================================================================================
+
 def sound_speed(tamb):
-    """
-    Sound speed for ideal gas
+    """Sound speed for ideal gas
     """
     r,gam,Cp,Cv = gas_data()
     vsnd = numpy.sqrt( gam * r * tamb )
     return vsnd
 
-#===========================================================================================================
 def total_temperature(tamb,mach):
-    """
-    Stagnation temperature
+    """Stagnation temperature
     """
     r,gam,Cp,Cv = gas_data()
     ttot = tamb*(1.+((gam-1.)/2.)*mach**2)
     return ttot
 
-#===========================================================================================================
 def total_pressure(pamb,mach):
-    """
-    Stagnation pressure
+    """Stagnation pressure
     """
     r,gam,Cp,Cv = gas_data()
     ptot = pamb*(1+((gam-1.)/2.)*mach**2)**(gam/(gam-1.))
     return ptot
 
-#===========================================================================================================
 def vtas_from_mach(altp,disa,mach):
-    """
-    True air speed from Mach number, subsonic only
+    """True air speed from Mach number, subsonic only
     """
     pamb,tamb,tstd,dtodz = atmosphere(altp,disa)
     vsnd = sound_speed(tamb)
     vtas = vsnd*mach
     return vtas
 
-#===========================================================================================================
 def mach_from_vcas(pamb,Vcas):
-    """
-    Mach number from calibrated air speed, subsonic only
+    """Mach number from calibrated air speed, subsonic only
     """
     r,gam,Cp,Cv = gas_data()
     P0 = sea_level_pressure()
@@ -378,10 +339,8 @@ def mach_from_vcas(pamb,Vcas):
     mach = numpy.sqrt(((((((gam-1.)/2.)*(Vcas/vc0)**2+1)**fac-1.)*P0/pamb+1.)**(1./fac)-1.)*(2./(gam-1.)))
     return mach
 
-#===========================================================================================================
 def vcas_from_mach(pamb,mach):
-    """
-    Calibrated air speed from Mach number, subsonic only
+    """Calibrated air speed from Mach number, subsonic only
     """
     r,gam,Cp,Cv = gas_data()
     P0 = sea_level_pressure()
@@ -390,10 +349,8 @@ def vcas_from_mach(pamb,mach):
     vcas = vc0*numpy.sqrt(5.*((((pamb/P0)*((1.+((gam-1.)/2.)*mach**2)**fac-1.))+1.)**(1./fac)-1.))
     return vcas
 
-#===========================================================================================================
 def vtas_from_vcas(altp,disa,vcas):
-    """
-    True air speed from calibrated air speed, subsonic only
+    """True air speed from calibrated air speed, subsonic only
     """
     pamb,tamb,tstd,dtodz = atmosphere(altp,disa)
     mach = mach_from_vcas(pamb,vcas)
@@ -401,10 +358,8 @@ def vtas_from_vcas(altp,disa,vcas):
     vtas = vsnd*mach
     return vtas
 
-#===========================================================================================================
 def cross_over_altp(Vcas,mach):
-    """
-    Altitude where constant calibrated air speed meets constant Mach number, subsonic only
+    """Altitude where constant calibrated air speed meets constant Mach number, subsonic only
     """
     r,gam,Cp,Cv = gas_data()
     P0 = sea_level_pressure()
@@ -414,14 +369,11 @@ def cross_over_altp(Vcas,mach):
     pamb = ((1.+((gam-1.)/2.)*(Vcas/vc0)**2)**fac-1.)*P0/((1.+((gam-1.)/2.)*mach**2)**fac-1.)
 
     altp = pressure_altitude(pamb)
-
     return altp
 
-#===========================================================================================================
-def climb_mode(speed_mode,dtodz,tstd,disa,mach):
-    """
-    Acceleration factor depending on speed driver (1: constant CAS, 2: constant Mach)
-    WARNING : input is mach number whatever SpeedMode
+def climb_mode(speed_mode,mach,dtodz,tstd,disa):
+    """Acceleration factor depending on speed driver ('cas': constant CAS, 'mach': constant Mach)
+    WARNING : input is mach number whatever speed_mode
     """
     g = gravity()
     r,gam,Cp,Cv = gas_data()
@@ -433,14 +385,12 @@ def climb_mode(speed_mode,dtodz,tstd,disa,mach):
     elif (speed_mode=="mach"):
         acc_factor = 1. + ((gam*r)/(2.*g))*(mach**2)*(tstd/(tstd+disa))*dtodz
     else:
-        raise Exception("climb_mode index is out of range")
+        raise Exception("climb_mode key is unknown")
 
     return acc_factor
 
-#===========================================================================================================
 def fuel_density(fuel_type):
-    """
-    Reference fuel density
+    """Reference fuel density
     """
     if (fuel_type=="kerosene"):
         fuel_density = 803. # Kerosene : between 775-840 kg/m3
@@ -456,10 +406,8 @@ def fuel_density(fuel_type):
         raise Exception("fuel_type index is unknown")
     return fuel_density
 
-#===========================================================================================================
 def fuel_heat(fuel_type):
-    """
-    Reference fuel lower heating value or battery energy density
+    """Reference fuel lower heating value or battery energy density
     """
     if (fuel_type=="kerosene"):
         fuel_heat = 43.1e6 # J/kg, kerosene
@@ -471,8 +419,9 @@ def fuel_heat(fuel_type):
         raise Exception("fuel_type index is out of range")
     return fuel_heat
 
-#===========================================================================================================
 def emission_index(energy_source,compound):
+    """Various emitted compound depending on energy source
+    """
     if (energy_source in ["kerosene"]):
         index = {"CO2" : 3140./1000.,
                  "H2O" : 1290./1000.,

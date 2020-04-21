@@ -198,7 +198,6 @@ class Flight(object):
             sar = (vsnd*mach*lod)/(mass*g*sec)
             return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sec":sec}
 
-
     def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating,kfn):
         """Retrieve air path in various conditions
         """
@@ -216,7 +215,7 @@ class Flight(object):
             cx = cx + dcx*nei
             lod = cz/cx
 
-        acc_factor = earth.climb_mode(speed_mode,dtodz,tstd,disa,mach)
+        acc_factor = earth.climb_mode(speed_mode,mach,dtodz,tstd,disa)
         slope = ( fn/(mass*g) - 1./lod ) / acc_factor
         vz = slope*mach*earth.sound_speed(tamb)
         return slope,vz
