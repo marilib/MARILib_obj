@@ -224,10 +224,10 @@ class Rear_fuselage_mounted_nacelle(Component):
     def __locate_nacelle__(self):
         body_width = self.aircraft.airframe.body.width
         body_height = self.aircraft.airframe.body.height
-        vtp_root_loc = self.aircraft.airframe.vertical_stab.root_loc
+        body_length = self.aircraft.airframe.body.length
 
         y_int = 0.5 * body_width + 0.6 * self.width      # statistical regression
-        x_int = vtp_root_loc[0] - 0.5*self.length
+        x_int = 0.80 * body_length - self.length
         z_int = body_height
 
         return np.array([x_int, y_int, z_int])
