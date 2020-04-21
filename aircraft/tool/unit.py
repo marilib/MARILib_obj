@@ -61,7 +61,7 @@ def MWh_J(J): return J/3.6e9   # Translate J into MWh
 
 def daN_N(N): return N/10.   # Translate N into daN
 
-def N_daN(N): return daN*10.   # Translate daN into N
+def N_daN(daN): return daN*10.   # Translate daN into N
 
 def N_kN(kN): return kN*1000.   # Translate kN into N
 

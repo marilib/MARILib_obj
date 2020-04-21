@@ -30,6 +30,8 @@ class Airframe(object):
         return iter(component_list)
 
     def geometry_analysis(self):
+        """Crude geometry analysis of each component independantly by calling component.eval_geometry()
+        """
         stab_architecture = self.aircraft.arrangement.stab_architecture
 
         self.aircraft.airframe.cabin.eval_geometry()

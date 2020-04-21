@@ -347,20 +347,17 @@ class MarilibIO():
             if key in data_dict.keys():  # if entry found in data_dict, add units and docstring
                 unit = data_dict[key]['unit']
                 text = data_dict[key]['txt']
-                if isinstance(value,float):
-                    json_dict[key] = [PrettyFloat(value), f"({unit}) {text}"]
-                else:
-                    json_dict[key] = [value, f"({unit}) {text}"]
+                json_dict[key] = [value, f"({unit}) {text}"]
             else:
                 pass
 
         return json_dict
 
     def to_string(self,marilib_object):
-        """Customized Json pretty string of the object
+        """Customized Json-like print of the object
         It uses marilib_encoding() to parse objects into dict.
         .. warning::
-            Numpy arrays and list of numbers are rewritten on one line only, which is not JSON standard
+            Numpy arrays and lists are rewritten on one line only, which is not JSON standard
         :param marilib_object: the object to print
         :return: a customized JSON-like formatted string
         """
@@ -426,12 +423,3 @@ class MarilibIO():
             obj = pickle.load(f)
 
         return obj
-
-class PrettyFloat(float):
-    """Subclass of Float for pretty printing in text files
-    """
-    def __repr__(self):  # overwright the default representation method
-        return "%d" % self
-
-
-
