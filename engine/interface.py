@@ -12,7 +12,7 @@ from scipy.optimize import fsolve
 from aircraft.tool import unit
 import earth
 
-from engine.ExergeticEngine import Turbofan
+from engine.ExergeticEngine import Turbofan, ElectricFan
 
 from aircraft.airframe.component import Component
 
@@ -33,7 +33,7 @@ class Exergetic_tf_nacelle(Component):
 
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
         self.cruise_thrust = self.__cruise_thrust__()
-        self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        self.reference_thrust = None
         self.reference_offtake = 0.
         self.reference_wBleed = 0.
         # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
@@ -208,4 +208,161 @@ class Inboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Inboard_wing_mounte
 class Rear_fuselage_mounted_extf_nacelle(Exergetic_tf_nacelle,Rear_fuselage_mounted_nacelle):
     def __init__(self, aircraft):
         super(Rear_fuselage_mounted_extf_nacelle, self).__init__(aircraft)
+
+
+
+class Exergetic_ef_nacelle(Component):
+
+    def __init__(self, aircraft):
+        super(Exergetic_tf_nacelle, self).__init__(aircraft)
+
+        ne = self.aircraft.arrangement.number_of_engine
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        design_range = self.aircraft.requirement.design_range
+
+        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+        self.cruise_thrust = self.__cruise_thrust__()
+        self.reference_thrust = None
+        self.reference_power = None
+        self.reference_offtake = 0.
+        self.reference_wBleed = 0.
+        # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
+        self.rating_factor = Rating_factor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
+        self.engine_fpr = 1.45
+        self.drag_bli = 0.
+
+        self.EF_model = ElectricFan()
+
+        self.fan_width = None
+        self.nozzle_width = None
+        self.nozzle_area = None
+        self.width = None
+        self.length = None
+
+        self.frame_origin = np.full(3,None)
+
+        # Set the losses for all components
+        self.EF_model.ex_loss["inlet"] = self.EF_model.from_PR_loss_to_Ex_loss(0.997)
+        tau_f, self.EF_model.ex_loss["Fan"] = self.EF_model.from_PR_to_tau_pol(1.32, 0.94)
+        self.EF_model.ex_loss["PE"] = self.EF_model.from_PR_loss_to_Ex_loss(0.985)
+
+    def __cruise_thrust__(self):
+        g = earth.gravity()
+        mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
+        lod = 16.
+        fn = 1.6*(mass*g/lod)/self.n_engine
+        return fn
+
+    def eval_geometry(self):
+
+        disa = self.aircraft.requirement.cruise_disa
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+
+        # Set the flight conditions as static temperature, static pressure and Mach number
+        self.EF_model.set_flight(tamb,pamb,mach)
+
+        # Design for a given cruise thrust (Newton), FPR, d_bli
+        s, c, p = self.EF_model.design(self.cruise_thrust,
+                                       self.engine_fpr,
+                                       d_bli=self.drag_bli)
+
+        # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
+        disa = 15.
+        altp = 0.
+        mach = 0.25
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+
+        # Off design at take off
+        self.EF_model.set_flight(tamb, pamb, mach)
+
+        throttle = self.rating_factor.MTO
+        s, c, p = self.EF_model.off_design(throttle=throttle, d_bli=0.)
+
+        self.reference_thrust = p['Fnet']
+        self.reference_power = p['Pth']
+
+        # Get the fan size: Mach 0.6 is typical for the fan face
+        mach_fan = min(0.6, mach)
+        V1, A1, Ps1, Ts1 = self.EF_model.get_statics(s["2"]['Ht'], s["2"]['Ex'], mach_fan)
+
+        fan_area = A1 * s["2"]["w"]  # in m2
+        # get the fan diameter, using a typical value for the hub to tip ratio: 0.28
+        self.fan_width = np.sqrt(4. * fan_area / np.pi / (1 - 0.28**2))  # in m
+        self.nozzle_area = s['9']['A']  # in m2
+        self.nozzle_width = np.sqrt(4. * s['9']['A'] / np.pi / (1 - 0.28**2))  # in m
+
+        self.width = 1.20*self.fan_width      # Surrounding structure
+        self.length = 1.50*self.width
+
+        knac = np.pi * self.width * self.length
+        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*self.n_engine       # statistical regression, all engines
+        self.net_wet_area = self.gross_wet_area
+        self.aero_length = self.length
+        self.form_factor = 1.15
+
+        self.frame_origin = self.__locate_nacelle__()
+
+    def eval_mass(self):
+        engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
+        pylon_mass = 0.0031*self.reference_thrust*self.n_engine
+        self.mass = engine_mass + pylon_mass
+        self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
+
+    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
+        """Unitary thrust of a pure turbofan engine (semi-empirical model)
+        Thrust is defined by flying conditions and rating, throttle can be used only with rating="VAR"
+        If rating =="VAR" 0<=throttle<=1 drives the N1, throttle has no influence if rating is diffrent from "VAR"
+        WARNING : throttle must not exceed 1.
+        """
+        self.EF_model.set_flight(tamb, pamb, mach)
+
+        thtl = getattr(self.rating_factor,rating)*throttle
+        s, c, p = self.EF_model.off_design(throttle=thtl, d_bli=0.)
+
+        total_thrust = p['Fnet']
+        power = p['Pth']
+        return {"fn":total_thrust, "pw":power, "thtl":thtl}
+
+    def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
+        """Unitary thrust of a pure turbofan engine (semi-empirical model)
+        Consumption is driven by flying conditions and thrust, rating is their to provide a reference of T4 to compute throttle
+        """
+        self.EF_model.set_flight(tamb, pamb, mach)
+
+        # print(self.cruise_thrust)
+        # print(tamb,pamb,mach,rating,thrust)
+
+        def fct(x):
+            s, c, p = self.EF_model.off_design(throttle=x, d_bli=0.)
+            return thrust - p["Fnet"]
+
+        output_dict = fsolve(fct, x0=0.95, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        thtl = output_dict[0][0]
+
+        s, c, p = self.EF_model.off_design(throttle=thtl, d_bli=0.)
+        sec = p['Pth']/p['Fnet']
+
+        throttle = thtl / getattr(self.rating_factor,rating)
+
+        return {"sfc":sec, "thtl":throttle}
+
+
+class Outboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,Outboard_wing_mounted_nacelle):
+    def __init__(self, aircraft):
+        super(Outboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
+
+
+class Inboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,Inboard_wing_mounted_nacelle):
+    def __init__(self, aircraft):
+        super(Inboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
+
+
+class Rear_fuselage_mounted_exef_nacelle(Exergetic_ef_nacelle,Rear_fuselage_mounted_nacelle):
+    def __init__(self, aircraft):
+        super(Rear_fuselage_mounted_exef_nacelle, self).__init__(aircraft)
 
