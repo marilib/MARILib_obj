@@ -12,11 +12,12 @@ from scipy.optimize import fsolve
 from aircraft.tool import unit
 import earth
 
-from engine.ExergeticEngine import ExergeticEngine, Turbofan
+from engine.ExergeticEngine import Turbofan
 
 from aircraft.airframe.component import Component
 
-from aircraft.airframe.propulsion import Inboard_wing_mounted_nacelle,\
+from aircraft.airframe.propulsion import Rating_factor, \
+                                         Inboard_wing_mounted_nacelle,\
                                          Outboard_wing_mounted_nacelle,\
                                          Rear_fuselage_mounted_nacelle
 
@@ -36,7 +37,7 @@ class Exergetic_tf_nacelle(Component):
         self.reference_offtake = 0.
         self.reference_wBleed = 0.
         # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
-        self.rating_factor = {"MTO":1.00, "MCN":0.95, "MCL":0.85, "MCR":0.78, "FID":0.55, "VAR":1.}
+        self.rating_factor = Rating_factor(MTO=1.00, MCN=0.95, MCL=0.85, MCR=0.78, FID=0.55)
         self.engine_bpr = 14.
         self.engine_fpr = 1.15
         self.engine_lpc_pr = 3.0
@@ -107,7 +108,7 @@ class Exergetic_tf_nacelle(Component):
 
         # Off design at take off
         self.TF_model.set_flight(tamb, pamb, mach)
-        Ttmax = self.engine_T4max * self.rating_factor["MTO"]
+        Ttmax = self.engine_T4max * self.rating_factor.MTO
 
         s, c, p = self.TF_model.off_design(Ttmax=Ttmax)
 
@@ -138,12 +139,12 @@ class Exergetic_tf_nacelle(Component):
         """
         self.TF_model.set_flight(tamb, pamb, mach)
 
-        if (rating!="VAR"):
-            t41 = self.engine_T4max * self.rating_factor[rating]
-            s, c, p = self.TF_model.off_design(Ttmax=t41, HPX=pw_offtake)
-        else:
+        if (rating=="VAR"):
             s, c, p = self.TF_model.off_design(N1=throttle, HPX=pw_offtake)
             t41 = s["4"]["Tt"]
+        else:
+            t41 = self.engine_T4max * getattr(self.rating_factor,rating)
+            s, c, p = self.TF_model.off_design(Ttmax=t41, HPX=pw_offtake)
 
         total_thrust = p['Fnet']
         fuel_flow = p['wfe']
@@ -170,7 +171,7 @@ class Exergetic_tf_nacelle(Component):
         sfc = p['wfe']/p['Fnet']
 
         t41 = s["4"]["Tt"]
-        T4max = self.engine_T4max * self.rating_factor[rating]
+        T4max = self.engine_T4max * getattr(self.rating_factor,rating)
 
         return {"sfc":sfc, "thtl":throttle, "t4":t41}
 
@@ -188,7 +189,7 @@ class Exergetic_tf_nacelle(Component):
         sfc = p['wfe']/p['Fnet']
 
         T4 = s["4"]["Tt"]
-        T4max = self.engine_T4max * self.rating_factor[rating]
+        T4max = self.engine_T4max * getattr(self.rating_factor,rating)
         kT4 = T4/T4max
 
         return sfc, kT4

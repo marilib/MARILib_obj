@@ -191,7 +191,7 @@ class Aircraft(object):
 
         self.performance = Performance(self)
 
-        if (self.arrangement.power_architecture=="tf"):
+        if (self.arrangement.power_architecture in ["tf","extf"]):
             self.performance.mission = Mission(self)
         elif (self.arrangement.power_architecture=="efb"):
             self.performance.mission = E_mission(self)

@@ -3,9 +3,8 @@
 
 """
 import numpy as np
-from matplotlib import pyplot as plt
-
 from engine.ExergeticEngine import Turboprop
+from matplotlib import pyplot as plt
 
 
 # instantiate the 3-shafts turboprop object
@@ -54,15 +53,15 @@ ax1 = fig.add_subplot(1, 1, 1, xticks=[], yticks=[])
 TP.draw_sankey(s, c, p, ax1)
 
 # create a pie chart of all the losses
-#ax2 = fig.add_subplot(2, 1, 2, xticks=[], yticks=[])
-#TP.draw_pie(s, ax2)
+# ax2 = fig.add_subplot(2, 1, 2, xticks=[], yticks=[])
+# TP.draw_pie(s, ax2)
 
 # show the two graphs in a window
 plt.show()
 
 # recompute the design point in off-design mode
 # You may either set the fuel flow or the T41 (Ttmax)
-s, c, p = TP.off_design(wfe=p['wfe'])
+s0, c, p = TP.off_design(wfe=p['wfe'])
 guess = p["sol"]
 # now for a cruise loop
 # first we go up, step by step
@@ -73,7 +72,7 @@ Tm = [1.06, 1.04, 1.02, 1.00, 0.98, 0.96, 0.94, 0.92, 0.91, 0.90, 0.89, 0.88, 0.
       0.61]
 # going up
 for T in Tm1:
-    s, c, p = TP.off_design(guess=guess, Ttmax=T * Ttm)
+    s1, c, p = TP.off_design(guess=guess, Ttmax=T * Ttm)
     if p['success']:
         guess = p['sol']
 # going down, memorizing the thrust and sfc
@@ -81,7 +80,7 @@ Fn = []
 sfc = []
 Tms = []
 for T in Tm:
-    s, c, p = TP.off_design(guess=guess, Ttmax=T * Ttm)
+    s2, c, p = TP.off_design(guess=guess, Ttmax=T * Ttm)
     print("done")
     if p['success']:
         guess = p['sol']
@@ -102,9 +101,9 @@ plt.show()
 # now for a take-off point
 TP.set_flight(288.15, 101325., 0.25)
 TP.propeller_speed = 1.2
-x0 = np.ones_like(TP.dp)
-x0[0] = 1.34
-x0[1] = 0.91
-s, c, p = TP.off_design(Ttmax=Ttm, guess=x0)
+# x0 = np.ones_like(TP.dp)
+# x0[0] = 1.34
+# x0[1] = 0.91
+s, c0, p = TP.off_design(Ttmax=Ttm)
 if p['success']:
     TP.print_stations(s)

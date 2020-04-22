@@ -25,14 +25,14 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
-                   nacelle_attachment = "rear",     # "wing", "rear" or "pods"
-                   power_architecture = "efb",       # "tf", "extf", "efb", "tp", "pte1", "ef1", "ep1",
-                   energy_source = "battery")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
+                   nacelle_attachment = "wing",     # "wing", "rear" or "pods"
+                   power_architecture = "tf",       # "tf", "extf", "efb", "tp", "pte1", "ef1", "ep1",
+                   energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
 
-reqs = Requirement(n_pax_ref = 40.,
-                   design_range = unit.m_NM(100.),
-                   cruise_mach = 0.70,
-                   cruise_altp = unit.m_ft(25000.),
+reqs = Requirement(n_pax_ref = 150.,
+                   design_range = unit.m_NM(3000.),
+                   cruise_mach = 0.78,
+                   cruise_altp = unit.m_ft(35000.),
                    arrangement = agmt)
 
 
@@ -52,17 +52,17 @@ ac.requirement.take_off.tofl_req = 2500.
 process.mda(ac)
 
 
-# var = ["aircraft.airframe.nacelle.reference_thrust",
-#        "aircraft.airframe.wing.area"]
-#
-# var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],
-#            [100., 200.]]
-
-var = ["aircraft.airframe.nacelle.cruise_thrust",
+var = ["aircraft.airframe.nacelle.reference_thrust",
        "aircraft.airframe.wing.area"]
 
-var_bnd = [[unit.N_kN(15.), unit.N_kN(35.)],
+var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],
            [100., 200.]]
+
+# var = ["aircraft.airframe.nacelle.cruise_thrust",
+#        "aircraft.airframe.wing.area"]
+#
+# var_bnd = [[unit.N_kN(15.), unit.N_kN(35.)],
+#            [100., 200.]]
 
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
        "aircraft.performance.approach.app_speed_req - aircraft.performance.approach.app_speed_eff",
@@ -78,8 +78,8 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
            "aircraft.performance.oei_ceiling.path_req",
            "aircraft.performance.time_to_climb.ttc_req"]
 
-#crt = "aircraft.weight_cg.mtow"
-crt = "aircraft.performance.mission.cost.fuel_block"
+crt = "aircraft.weight_cg.mtow"
+#crt = "aircraft.performance.mission.cost.fuel_block"
 
 #process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 

@@ -16,6 +16,15 @@ import earth
 from aircraft.airframe.component import Component
 
 
+class Rating_factor(object):
+    def __init__(self, MTO=None, MCN=None, MCL=None, MCR=None, FID=None):
+        self.MTO = MTO
+        self.MCN = MCN
+        self.MCL = MCL
+        self.MCR = MCR
+        self.FID = FID
+
+
 class System(Component):
 
     def __init__(self, aircraft):
@@ -55,7 +64,7 @@ class Semi_empiric_tf_nacelle(Component):
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
-        self.rating_factor = {"MTO":1.00, "MCN":0.86, "MCL":0.78, "MCR":0.70, "FID":0.10, "VAR":1.}
+        self.rating_factor = Rating_factor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
         self.fuel_heat = self.__fuel_heat__()
         self.tune_factor = 1.
         self.engine_bpr = self.__turbofan_bpr__()
@@ -138,7 +147,7 @@ class Semi_empiric_tf_nacelle(Component):
         total_thrust0 =   self.reference_thrust \
                         * self.tune_factor \
                         * kth \
-                        * self.rating_factor[rating] \
+                        * getattr(self.rating_factor,rating) \
                         * throttle \
                         * sig**0.75
         core_thrust0 = total_thrust0 * self.core_thrust_ratio        # Core thrust
@@ -310,7 +319,7 @@ class Semi_empiric_ef_nacelle(Component):
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
         self.reference_power = (1./0.8)*(87.26/0.82)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_thrust = self.reference_power*(0.82/87.26)
-        self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.90, "MCR":0.90, "FID":0.10, "VAR":1.}
+        self.rating_factor = Rating_factor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
         self.tune_factor = 1.
         self.efficiency_fan = 0.95
         self.efficiency_prop = 0.82
@@ -337,7 +346,7 @@ class Semi_empiric_ef_nacelle(Component):
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
 
-        shaft_power = self.reference_power*self.rating_factor["MCR"]
+        shaft_power = self.reference_power*self.rating_factor.MCR
 
         self.efan_nacelle_design(pamb,tamb,mach,shaft_power)
 
@@ -438,7 +447,7 @@ class Semi_empiric_ef_nacelle(Component):
             y = q0 - q
             return y
 
-        PwInput = self.reference_power*self.rating_factor[rating]*throttle - pw_offtake
+        PwInput = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
         PwShaft = PwInput*self.motor_efficiency*self.controller_efficiency
 
         Ptot = earth.total_pressure(pamb,mach)        # Total pressure at inlet position
@@ -514,7 +523,7 @@ class Semi_empiric_ef_nacelle(Component):
         CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
         q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
 
-        PwInput = self.reference_power*self.rating_factor[rating] - pw_offtake
+        PwInput = self.reference_power*getattr(self.rating_factor,rating) - pw_offtake
         PWinit = PwInput*self.motor_efficiency*self.controller_efficiency
 
         x_init = [q0init,PWinit]
@@ -531,7 +540,7 @@ class Semi_empiric_ef_nacelle(Component):
         Vjet = np.sqrt(2.*PwInput/q0 + Vinlet**2)
         eFn = q0*(Vjet - Vinlet)
 
-        throttle = (Pw+pw_offtake)/(self.reference_power*self.rating_factor[rating])
+        throttle = (Pw+pw_offtake)/(self.reference_power*getattr(self.rating_factor,rating))
         sec = Pw/eFn
 
         return {"sec":sec, "pw":Pw, "thtl":throttle}

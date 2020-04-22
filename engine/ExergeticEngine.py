@@ -306,7 +306,7 @@ class ExergeticEngine(object):
         :param w: freestream mass flow, in kg.s-1
         :type w: float
         :return: the freestream state
-        :rtype: dict
+        :rtype: dict(float)
         """
         Ht = self.Ht0
         Ex = self.Ex0
@@ -334,7 +334,7 @@ class ExergeticEngine(object):
         :type input_flow: dict
         :type name: basestring
         :return: the station at the inlet entry
-        :rtype: dict
+        :rtype: dict(float)
         """
 
         Ht = input_flow['Ht']
@@ -1093,9 +1093,9 @@ class Turbofan(ExergeticEngine):
         stations["21"] = {k: stations['1'][k] for k in ['Ht', 'Ex', 'Pt', 'Tt', 'Nk']}
         stations["21"]['losses'] = {}
         stations["21"]['w'] = w
-        stations["21"]['Wr'] = w * math.sqrt(stations["21"]['Tt']/288.15)/(stations["21"]['Pt']/101325.)
-        components["LPC"]["WR"] = stations["21"]['Wr']
-        components["LPC"]["Nk"] = stations["21"]['Nk']
+        stations["21"]['Wr'] = w * math.sqrt(stations['21']['Tt']/288.15)/(stations['21']['Pt']/101325.)
+        components["LPC"]["WR"] = stations['21']['Wr']
+        components["LPC"]["Nk"] = stations['21']['Nk']
 
         # station 13: Fan exit
         stations["13"] = self.compress(self.ex_loss["Fan"], stations["1"], tau_f, "Fan")
@@ -1223,8 +1223,8 @@ class Turbofan(ExergeticEngine):
         """
         xx = x * self.dp
         coeff = math.sqrt(self.dp_flight[0]/self.Tt0)/(self.dp_flight[1]/self.Pt0)
-        xx[0] = xx[0] * coeff
-        xx[-1] = xx[-1] * coeff
+        xx[0] = xx[0] * coeff  # mass flow
+        xx[-1] = xx[-1] * coeff  # fuel flow
         other_kwargs = {k: args[0][k] for k in args[0].keys() if k not in ['Ttmax', 'wfe', 'Fnet', 'N1', 'Pth']}
         other_kwargs['dHf'] = xx[-1] * flhv
         xxx = xx[:-1]
@@ -1241,7 +1241,8 @@ class Turbofan(ExergeticEngine):
         y = [r['9']['A'] / self.design_state['9']['A'] - 1., r['19']['A'] / self.design_state['19']['A'] - 1.,
              shaft_speed['Fan'] / shaft_speed['LPC'] - 1., shaft_speed['HPT'] / shaft_speed['HPC'] - 1.,
              shaft_speed['LPT'] / shaft_speed['LPC'] - 1.]
-        targets = {"wfe": p['wfe'], "Fnet" : p['Fnet'], 'N1': shaft_speed['Fan'], 'Ttmax': r['4']['Tmax'], 'Pth': p['Pth']}
+        targets = {"wfe": p['wfe'], "Fnet": p['Fnet'], 'N1': shaft_speed['Fan'], 'Ttmax': r['4']['Tmax'],
+                   'Pth': p['Pth']}
         y.append([targets[k]-args[0][k] for k in sorted(targets.keys()) if k in args[0].keys()][0])
         # print(x, y)
         return y
@@ -1555,7 +1556,14 @@ class Turboprop(ExergeticEngine):
         :rtype: np.array
         """
         xx = x * self.dp
-        r, c, p = self.cycle(*xx, **args[0])
+        coeff = math.sqrt(self.dp_flight[0]/self.Tt0)/(self.dp_flight[1]/self.Pt0)
+        xx[0] = xx[0] * coeff  # mass flow
+        xx[-1] = xx[-1] * coeff  # fuel flow
+        other_kwargs = {k: args[0][k] for k in args[0].keys() if k not in ['Ttmax', 'wfe', 'Fnet', 'Pth']}
+        other_kwargs['dHf'] = xx[-1] * flhv
+        xxx = xx[:-1]
+        r, c, p = self.cycle(*xxx, **other_kwargs)
+
         # Get the shaft speed compatible with the corrected flow, as a fraction of the design speed
         # Get the shaft speed compatible with the corrected flow, as a fraction of the design speed
         shaft_speed = {i: ((self.slope[i] * (c[i]['WR'] / self.comp_state[i]['WR'] - 1.) + 1.) *
@@ -1572,6 +1580,9 @@ class Turboprop(ExergeticEngine):
              shaft_speed['HPT'] / shaft_speed['HPC'] - 1.,
              shaft_speed['LPT'] / shaft_speed['LPC'] - 1.,
              shaft_speed['PWT'] - 1.]
+        targets = {"wfe": p['wfe'], "Fnet": p['Fnet'], 'Ttmax': r['4']['Tmax'],
+                   'Pth': p['Pth']}
+        y.append([targets[k]-args[0][k] for k in sorted(targets.keys()) if k in args[0].keys()][0])
         return y
 
     def draw_sankey(self, s, c, p, ax):
@@ -1832,16 +1843,23 @@ class ElectricFan(ExergeticEngine):
         :return: a vector of same size as x, to be nullified
         :rtype: np.array
         """
-        xx = x * self.dp
-        throttle = args[0]['throttle']
-        r, c, p = self.cycle(*xx, **args[0])
+        xx = x * self.dp  # mass flow, tau_f, shaft power divided by flhv
+        coeff = math.sqrt(self.dp_flight[0]/self.Tt0)/(self.dp_flight[1]/self.Pt0)
+        xx[0] = xx[0] * coeff  # mass flow
+        xx[-1] = xx[-1] * coeff  # shaft power divided by flhv
+        other_kwargs = {k: args[0][k] for k in args[0].keys() if k not in ['wfe', 'Fnet', 'N1', 'Pth', 'throttle']}
+        xxx = xx[:-1]
+        r, c, p = self.cycle(*xxx, **other_kwargs)
         # Get the shaft speed compatible with the corrected flow, as a fraction of the design speed
         shaft_speed = {i: ((self.slope[i] * (c[i]['WR'] / self.comp_state[i]['WR'] - 1.) + 1.) *
                            self.comp_state[i]['Nk'] / c[i]['Nk']) for i in self.slope.keys()}
         # vector to be nullified:
         # [0]: exhaust area shall match the design one
         # [1]: fan shaft physical speed shall match the prescribed one
-        y = [r['9']['A'] / self.design_state['9']['A'] - 1., shaft_speed['Fan'] / throttle - 1.]
+        y = [r['9']['A'] / self.design_state['9']['A'] - 1., p['wfe'] - xx[-1]]
+        targets = {"wfe": p['wfe'], "Fnet" : p['Fnet'], 'N1': shaft_speed['Fan'], 'Pth': p['Pth'],
+                   'throttle': shaft_speed['Fan']}
+        y.append([targets[k]-args[0][k] for k in sorted(targets.keys()) if k in args[0].keys()][0])
         # print(x, y)
         return y
 
@@ -1921,13 +1939,13 @@ if __name__ == '__main__':
     aut_h, TF.ex_loss["HPT"] = TF.from_PR_to_tau_pol(0.289451726, 0.90)
     TF.ex_loss["PE"] = TF.from_PR_loss_to_Ex_loss(0.99)
     print(TF.ex_loss)
-    x0 = np.array([24., tau_h])
+    # x0 = np.array([24., tau_h])
 
     # Design for a given thrust (Newton), BPR, FPR, LPC PR, HPC PR, T41 (Kelvin)
     Ttm = 1750.
     rd0, c0, p0 = TF.cycle(24., tau_h, Ttmax=Ttm)
     print(p0['Fnet'])
-    rd, c, p = TF.design(21400., 20., Ttmax=Ttm, guess=x0)
+    rd, c, p = TF.design(21400., 20., Ttmax=Ttm)
     # show the results
     TF.print_stations(rd)
     TF.print_perfos(p)
@@ -1970,7 +1988,6 @@ if __name__ == '__main__':
     plt.show()
     # now for a take-off point
     TF.set_flight(288.15, 101325., 0.25)
-    x0 = np.array([10., 1.])
-    rd = TF.off_design(Ttmax=Ttm, guess=x0)
+    rd = TF.off_design(Ttmax=Ttm)
 
     # show_dict(rd)
