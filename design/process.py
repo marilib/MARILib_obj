@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
-from aircraft.tool import unit
+from context import unit
 
 
 def eval_this(aircraft,var):
@@ -198,8 +198,8 @@ def draw_design_space(file, mark, field, const, color, limit, bound):
        uni[name[j]] = uni_[j]
 
     res = []
-    res.append(unit.convert_to(uni_[0],mark[0]))
-    res.append(unit.convert_to(uni_[1],mark[1]))
+    res.append(unit.convert_to(uni_[0], mark[0]))
+    res.append(unit.convert_to(uni_[1], mark[1]))
 
     mpl.rcParams['hatch.linewidth'] = 0.3
 

@@ -10,8 +10,7 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy.optimize import fsolve
 
-from aircraft.tool import unit
-import earth
+from context import earth, unit
 
 from aircraft.airframe.component import Component
 
@@ -87,8 +86,8 @@ class Semi_empiric_tf_nacelle(Component):
         disa = 15.
         altp = 0.
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-        vair = mach*earth.sound_speed(tamb)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        vair = mach * earth.sound_speed(tamb)
 
         # tune_factor allows that output of unitary_thrust matches the definition of the reference thrust
         self.tune_factor = 1.
@@ -141,8 +140,8 @@ class Semi_empiric_tf_nacelle(Component):
              - 0.283*mach*self.engine_bpr/10. \
              - 0.633*mach - 0.081*self.engine_bpr/10. + 1.192
 
-        rho,sig = earth.air_density(pamb,tamb)
-        vair = mach*earth.sound_speed(tamb)
+        rho,sig = earth.air_density(pamb, tamb)
+        vair = mach * earth.sound_speed(tamb)
 
         total_thrust0 =   self.reference_thrust \
                         * self.tune_factor \
@@ -246,11 +245,9 @@ class Outboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Outboard_wing_mou
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
 
-
 class Inboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Inboard_wing_mounted_nacelle):
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
-
 
 class Rear_fuselage_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Rear_fuselage_mounted_nacelle):
     def __init__(self, aircraft):
@@ -317,7 +314,7 @@ class Semi_empiric_ef_nacelle(Component):
         design_range = self.aircraft.requirement.design_range
 
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        self.reference_power = (1./0.8)*(87.26/0.82)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        self.reference_power = 0.5*(1./0.8)*(87.26/0.82)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_thrust = self.reference_power*(0.82/87.26)
         self.rating_factor = Rating_factor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
         self.tune_factor = 1.
@@ -344,7 +341,7 @@ class Semi_empiric_ef_nacelle(Component):
         altp = self.aircraft.requirement.cruise_altp
         mach = self.aircraft.requirement.cruise_mach
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
 
         shaft_power = self.reference_power*self.rating_factor.MCR
 
@@ -360,7 +357,7 @@ class Semi_empiric_ef_nacelle(Component):
         disa = 15.
         altp = 0.
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
 
         dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
         self.reference_thrust = dict["fn"] / 0.80
@@ -378,7 +375,7 @@ class Semi_empiric_ef_nacelle(Component):
         """Electrofan nacelle design
         """
         r,gam,Cp,Cv = earth.gas_data()
-        Vair = Mach*earth.sound_speed(Tamb)
+        Vair = Mach * earth.sound_speed(Tamb)
 
         # Electrical nacelle geometry : e-nacelle diameter is size by cruise conditions
         deltaV = 2.*Vair*(self.efficiency_fan/self.efficiency_prop - 1.)      # speed variation produced by the fan
@@ -390,8 +387,8 @@ class Semi_empiric_ef_nacelle(Component):
         q1 = 2.*PwInput / (Vjet**2 - Vinlet**2)
 
         MachInlet = Mach     # The inlet is in free stream
-        Ptot = earth.total_pressure(Pamb,MachInlet)        # Stagnation pressure at inlet position
-        Ttot = earth.total_temperature(Tamb,MachInlet)     # Stagnation temperature at inlet position
+        Ptot = earth.total_pressure(Pamb, MachInlet)        # Stagnation pressure at inlet position
+        Ttot = earth.total_temperature(Tamb, MachInlet)     # Stagnation temperature at inlet position
 
         MachFan = 0.5       # required Mach number at fan position
         CQoA1 = self.corrected_air_flow(Ptot,Ttot,MachFan)        # Corrected air flow per area at fan position
@@ -404,7 +401,7 @@ class Semi_empiric_ef_nacelle(Component):
 
         VsndJet = np.sqrt(gam*r*Tstat) # Sound velocity at nozzle exhaust
         MachJet = Vjet/VsndJet # Mach number at nozzle output
-        PtotJet = earth.total_pressure(Pamb,MachJet)       # total pressure at nozzle exhaust (P = Pamb)
+        PtotJet = earth.total_pressure(Pamb, MachJet)       # total pressure at nozzle exhaust (P = Pamb)
 
         CQoA2 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)     # Corrected air flow per area at nozzle output
         nozzle_area = q1/CQoA2        # Fan area around the hub
@@ -441,7 +438,7 @@ class Semi_empiric_ef_nacelle(Component):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output
-            PtotJet = earth.total_pressure(pamb,MachJet)    # total pressure at nozzle exhaust (P = pamb)
+            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
             q0 = CQoA1*self.nozzle_area
             y = q0 - q
@@ -450,10 +447,10 @@ class Semi_empiric_ef_nacelle(Component):
         PwInput = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
         PwShaft = PwInput*self.motor_efficiency*self.controller_efficiency
 
-        Ptot = earth.total_pressure(pamb,mach)        # Total pressure at inlet position
-        Ttot = earth.total_temperature(tamb,mach)     # Total temperature at inlet position
+        Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
+        Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
 
-        Vair = mach*earth.sound_speed(tamb)
+        Vair = mach * earth.sound_speed(tamb)
 
         fct_arg = (PwShaft,pamb,Ttot,Vair)
 
@@ -507,16 +504,16 @@ class Semi_empiric_ef_nacelle(Component):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output
-            PtotJet = earth.total_pressure(pamb,MachJet)    # total pressure at nozzle exhaust (P = pamb)
+            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
             q0 = CQoA1*self.nozzle_area
             eFn = q*(Vjet - Vinlet)
             return [q0-q, thrust-eFn]
 
-        Ptot = earth.total_pressure(pamb,mach)        # Total pressure at inlet position
-        Ttot = earth.total_temperature(tamb,mach)     # Total temperature at inlet position
+        Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
+        Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
 
-        Vair = mach*earth.sound_speed(tamb)
+        Vair = mach * earth.sound_speed(tamb)
 
         fct_arg = (thrust,pamb,Ttot,Vair)
 
@@ -550,11 +547,9 @@ class Outboard_wing_mounted_ef_nacelle(Semi_empiric_ef_nacelle,Outboard_wing_mou
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_ef_nacelle, self).__init__(aircraft)
 
-
 class Inboard_wing_mounted_ef_nacelle(Semi_empiric_ef_nacelle,Inboard_wing_mounted_nacelle):
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_ef_nacelle, self).__init__(aircraft)
-
 
 class Rear_fuselage_mounted_ef_nacelle(Semi_empiric_ef_nacelle,Rear_fuselage_mounted_nacelle):
     def __init__(self, aircraft):

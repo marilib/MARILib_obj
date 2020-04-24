@@ -9,8 +9,7 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy.optimize import fsolve
 
-from aircraft.tool import unit
-import earth
+from context import earth
 
 from engine.ExergeticEngine import Turbofan, ElectricFan
 
@@ -84,7 +83,7 @@ class Exergetic_tf_nacelle(Component):
         altp = self.aircraft.requirement.cruise_altp
         mach = self.aircraft.requirement.cruise_mach
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
 
         # Set the flight conditions as static temperature, static pressure and Mach number
         self.TF_model.set_flight(tamb,pamb,mach)
@@ -104,7 +103,7 @@ class Exergetic_tf_nacelle(Component):
         altp = 0.
         mach = 0.25
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
 
         # Off design at take off
         self.TF_model.set_flight(tamb, pamb, mach)
@@ -199,11 +198,9 @@ class Outboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Outboard_wing_moun
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
 
-
 class Inboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Inboard_wing_mounted_nacelle):
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
-
 
 class Rear_fuselage_mounted_extf_nacelle(Exergetic_tf_nacelle,Rear_fuselage_mounted_nacelle):
     def __init__(self, aircraft):
@@ -214,7 +211,7 @@ class Rear_fuselage_mounted_extf_nacelle(Exergetic_tf_nacelle,Rear_fuselage_moun
 class Exergetic_ef_nacelle(Component):
 
     def __init__(self, aircraft):
-        super(Exergetic_tf_nacelle, self).__init__(aircraft)
+        super(Exergetic_ef_nacelle, self).__init__(aircraft)
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -224,12 +221,15 @@ class Exergetic_ef_nacelle(Component):
         self.cruise_thrust = self.__cruise_thrust__()
         self.reference_thrust = None
         self.reference_power = None
-        self.reference_offtake = 0.
-        self.reference_wBleed = 0.
         # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
         self.rating_factor = Rating_factor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
         self.engine_fpr = 1.45
         self.drag_bli = 0.
+        self.motor_efficiency = 0.95
+        self.controller_efficiency = 0.99
+        self.controller_pw_density = 20.e3    # W/kg
+        self.nacelle_pw_density = 5.e3    # W/kg
+        self.motor_pw_density = 10.e3    # W/kg
 
         self.EF_model = ElectricFan()
 
@@ -259,7 +259,7 @@ class Exergetic_ef_nacelle(Component):
         altp = self.aircraft.requirement.cruise_altp
         mach = self.aircraft.requirement.cruise_mach
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
 
         # Set the flight conditions as static temperature, static pressure and Mach number
         self.EF_model.set_flight(tamb,pamb,mach)
@@ -274,7 +274,7 @@ class Exergetic_ef_nacelle(Component):
         altp = 0.
         mach = 0.25
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
 
         # Off design at take off
         self.EF_model.set_flight(tamb, pamb, mach)
@@ -286,7 +286,7 @@ class Exergetic_ef_nacelle(Component):
         self.reference_power = p['Pth']
 
         # Get the fan size: Mach 0.6 is typical for the fan face
-        mach_fan = min(0.6, mach)
+        mach_fan = min(0.5, mach)
         V1, A1, Ps1, Ts1 = self.EF_model.get_statics(s["2"]['Ht'], s["2"]['Ex'], mach_fan)
 
         fan_area = A1 * s["2"]["w"]  # in m2
@@ -307,7 +307,10 @@ class Exergetic_ef_nacelle(Component):
         self.frame_origin = self.__locate_nacelle__()
 
     def eval_mass(self):
-        engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
+        shaft_power_max = self.aircraft.airframe.nacelle.reference_power
+        engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
+                       + 1./self.nacelle_pw_density
+                      ) * shaft_power_max * self.n_engine
         pylon_mass = 0.0031*self.reference_thrust*self.n_engine
         self.mass = engine_mass + pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
@@ -324,7 +327,7 @@ class Exergetic_ef_nacelle(Component):
         s, c, p = self.EF_model.off_design(throttle=thtl, d_bli=0.)
 
         total_thrust = p['Fnet']
-        power = p['Pth']
+        power = p['Pth'] / self.motor_efficiency / self.controller_efficiency
         return {"fn":total_thrust, "pw":power, "thtl":thtl}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
@@ -349,18 +352,16 @@ class Exergetic_ef_nacelle(Component):
 
         throttle = thtl / getattr(self.rating_factor,rating)
 
-        return {"sfc":sec, "thtl":throttle}
+        return {"sec":sec, "thtl":throttle}
 
 
 class Outboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,Outboard_wing_mounted_nacelle):
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
 
-
 class Inboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,Inboard_wing_mounted_nacelle):
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
-
 
 class Rear_fuselage_mounted_exef_nacelle(Exergetic_ef_nacelle,Rear_fuselage_mounted_nacelle):
     def __init__(self, aircraft):

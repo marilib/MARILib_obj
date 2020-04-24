@@ -6,7 +6,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 """
 
-from aircraft.tool import unit
+from context import unit
 
 
 class Requirement(object):
@@ -155,7 +155,8 @@ class Climb_req(object):
         self.kmtow = 0.97
 
     def __top_of_climb__(self, arrangement, requirement):
-        if (arrangement.power_architecture in ["tf","extf","efb"]): altp = unit.m_ft(35000.)
+        if (arrangement.power_architecture in ["tf","extf"]): altp = unit.m_ft(35000.)
+        elif (arrangement.power_architecture in ["efb","exefb"]): altp = unit.m_ft(35000.)
         elif (arrangement.power_architecture=="tp"): altp = unit.m_ft(16000.)
         elif (arrangement.power_architecture=="pte1"): altp = unit.m_ft(31000.)
         elif (arrangement.power_architecture=="ef1"): altp = unit.m_ft(21000.)

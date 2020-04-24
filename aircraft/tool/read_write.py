@@ -11,7 +11,7 @@ import json as json
 import pickle as pickle
 import re
 
-from aircraft.tool.unit import convert_to
+from context.unit import convert_to
 
 STANDARD_FORMAT = 6
 
@@ -85,7 +85,9 @@ data_dict = {
     "mac_loc": {"unit":"m", "mag":1e1, "txt":"Position of the mean aerodynamic chord of the lifting surface"},
     "mac": {"unit":"m", "mag":1e1, "txt":"Mean aerodynamic chord length of the lifting surface"},
     "toc": {"unit":"no_dim", "mag":1e0, "txt":"Thickness to chord ratio of the lifting surface"},
-    "volume_factor": {"unit":"no_dim", "mag":1e0, "txt":"Volume coefficient of the stabilization surface"},
+    "volume_factor": {"unit":"no_dim", "mag":1e0, "txt":"Volume coefficient of the horizontal stabilizer"},
+    "thrust_volume_factor": {"unit":"no_dim", "mag":1e0, "txt":"Volume coefficient of the vertical stabilizer according to engine failure"},
+    "wing_volume_factor": {"unit":"no_dim", "mag":1e0, "txt":"Volume coefficient of the vertical stabilizer according to wing"},
     "anchor_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Relative position of the reference point of the stabilization surface"},
     "lever_arm": {"unit":"m", "mag":1e1, "txt":"Lever arm of the stabilization surface, 25%cma wing to 25% cma surface"},
     "fuel_density": {"unit":"kg/m3", "mag":1e3, "txt":"Density of the used storage medium"},

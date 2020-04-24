@@ -7,9 +7,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
-import earth
-
-from aircraft.tool import unit
+from context import earth, unit
 
 from aircraft.performance import Flight
 
@@ -28,8 +26,8 @@ class Economics():
         self.engine_price = None
         self.gear_price = None
         self.frame_price = None
-        self.fuel_price = 2./unit.m3_usgal(1.)     # 2 $/USgal
-        self.energy_price = 0.10/unit.J_kWh(1.)    # $/J
+        self.fuel_price = 2. / unit.m3_usgal(1.)     # 2 $/USgal
+        self.energy_price = 0.10 / unit.J_kWh(1.)    # $/J
         self.battery_price = 20.                   # $/kg
 
         self.frame_cost = None
@@ -170,16 +168,16 @@ class Environment(Flight):
         energy_source = self.aircraft.arrangement.energy_source
 
         self.CO2_metric = None
-        self.CO2_index = earth.emission_index(energy_source,"CO2")
-        self.H2O_index = earth.emission_index(energy_source,"H2O")
-        self.SO2_index = earth.emission_index(energy_source,"SO2")
-        self.NOx_index = earth.emission_index(energy_source,"NOx")
-        self.CO_index = earth.emission_index(energy_source,"CO")
-        self.HC_index = earth.emission_index(energy_source,"HC")
-        self.sulfuric_acid_index = earth.emission_index(energy_source,"sulfuric_acid")
-        self.nitrous_acid_index = earth.emission_index(energy_source,"nitrous_acid")
-        self.nitric_acid_index = earth.emission_index(energy_source,"nitric_acid")
-        self.soot_index = earth.emission_index(energy_source,"soot")
+        self.CO2_index = earth.emission_index(energy_source, "CO2")
+        self.H2O_index = earth.emission_index(energy_source, "H2O")
+        self.SO2_index = earth.emission_index(energy_source, "SO2")
+        self.NOx_index = earth.emission_index(energy_source, "NOx")
+        self.CO_index = earth.emission_index(energy_source, "CO")
+        self.HC_index = earth.emission_index(energy_source, "HC")
+        self.sulfuric_acid_index = earth.emission_index(energy_source, "sulfuric_acid")
+        self.nitrous_acid_index = earth.emission_index(energy_source, "nitrous_acid")
+        self.nitric_acid_index = earth.emission_index(energy_source, "nitric_acid")
+        self.soot_index = earth.emission_index(energy_source, "soot")
 
     def fuel_efficiency_metric(self):
         """Fuel efficiency metric (CO2 metric) valid for kerosene aircraft only

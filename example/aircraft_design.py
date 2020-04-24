@@ -5,16 +5,14 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-import copy
 import numpy as np
 
-from aircraft.tool import unit
+from context import unit
 from aircraft.aircraft_root import Arrangement
 from aircraft.aircraft_root import Aircraft
 from aircraft.requirement import Requirement
 
-import process
-import earth
+from design import process
 
 from aircraft.tool.read_write import MarilibIO
 
@@ -25,12 +23,12 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
-                   nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "tf",       # "tf", "extf", "efb", "tp", "pte1", "ef1", "ep1",
-                   energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
+                   nacelle_attachment = "rear",     # "wing", "rear" or "pods"
+                   power_architecture = "exefb",       # "tf", "extf", "efb", "exefb",
+                   energy_source = "battery")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
 
-reqs = Requirement(n_pax_ref = 150.,
-                   design_range = unit.m_NM(3000.),
+reqs = Requirement(n_pax_ref = 40.,
+                   design_range = unit.m_NM(100.),
                    cruise_mach = 0.78,
                    cruise_altp = unit.m_ft(35000.),
                    arrangement = agmt)

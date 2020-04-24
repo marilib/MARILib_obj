@@ -5,8 +5,7 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-from aircraft.tool import unit
-import earth
+from context import earth, unit
 
 import numpy as np
 from scipy.optimize import fsolve
@@ -96,7 +95,7 @@ class E_mission(Basic_mission):
         self.mach = self.aircraft.requirement.cruise_mach
         self.mass = self.aircraft.weight_cg.mtow
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
 
         lf_dict = self.level_flight(pamb,tamb,self.mach,self.mass)
         sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
@@ -203,8 +202,8 @@ class E_mission_batt_from_range_and_tow(Flight):
         """
         g = earth.gravity()
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-        tas = mach*earth.sound_speed(tamb)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        tas = mach * earth.sound_speed(tamb)
 
         dict = self.level_flight(pamb,tamb,mach,tow)
         enrg = tow*g*range*dict["sec"] / (tas*dict["lod"])
@@ -253,7 +252,7 @@ class E_mission_batt_from_range_and_tow(Flight):
         #-----------------------------------------------------------------------------------------------------------
         altp_holding = unit.m_ft(1500.)
         mach_holding = 0.65 * mach
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding, disa)
         dict = self.level_flight(pamb,tamb,mach_holding,tow)
         enrg_holding = dict["sec"]*(tow*g/dict["lod"])*self.holding_time
 
@@ -418,7 +417,7 @@ class Mission(Basic_mission):
         self.mach = self.aircraft.requirement.cruise_mach
         self.mass = self.ktow*self.aircraft.weight_cg.mtow
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
 
         lf_dict = self.level_flight(pamb,tamb,self.mach,self.mass)
         sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
@@ -524,8 +523,8 @@ class Mission_fuel_from_range_and_tow(Flight):
         """
         g = earth.gravity()
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-        tas = mach*earth.sound_speed(tamb)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        tas = mach * earth.sound_speed(tamb)
 
         mass = self.aircraft.performance.mission.ktow*tow
 
@@ -579,7 +578,7 @@ class Mission_fuel_from_range_and_tow(Flight):
         #-----------------------------------------------------------------------------------------------------------
         altp_holding = unit.m_ft(1500.)
         mach_holding = 0.65 * mach
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding, disa)
         dict = self.level_flight(pamb,tamb,mach_holding,mass)
         fuel_holding = dict["sfc"]*(mass*g/dict["lod"])*self.holding_time
 

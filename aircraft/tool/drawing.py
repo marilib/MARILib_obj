@@ -10,16 +10,9 @@ Created on Thu Jan 24 23:22:21 2019
 
 import numpy as np
 
-from scipy import interpolate
-
-import pandas
-import six
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
-from aircraft.tool import unit
+from context import unit
 
 
 class Drawing(object):

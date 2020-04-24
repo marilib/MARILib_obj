@@ -8,10 +8,8 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
-from scipy.optimize import fsolve
 
-from aircraft.tool import unit
-import earth
+from context import earth, unit
 
 
 class Component(object):
@@ -360,7 +358,7 @@ class Wing(Component):
         mach = self.aircraft.requirement.cruise_mach
         mass = 0.95*self.aircraft.weight_cg.mtow
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(rca,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(rca, disa)
 
         cza_wing = self.cza(mach)
 
@@ -456,7 +454,8 @@ class VTP_classic(Component):
         self.taper_ratio = 0.40     # Design rule
         self.toc = 0.10             # Design rule
         self.sweep25 = None
-        self.volume_factor = 0.4           # Design rule
+        self.thrust_volume_factor = 0.4    # Design rule
+        self.wing_volume_factor = 0.07    # Design rule
         self.anchor_ratio = None
         self.lever_arm = None
 
@@ -519,7 +518,11 @@ class VTP_classic(Component):
     def eval_area(self):
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
         nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
-        self.area = self.volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
+        wing_area = self.aircraft.airframe.wing.area
+        wing_span = self.aircraft.airframe.wing.span
+        area_1 = self.thrust_volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
+        area_2 = self.wing_volume_factor*(wing_area*wing_span)/self.lever_arm
+        self.area = max(area_1,area_2)
 
 
 class VTP_T(Component):
@@ -535,7 +538,8 @@ class VTP_T(Component):
         self.taper_ratio = 0.80     # Design rule
         self.toc = 0.10             # Design rule
         self.sweep25 = None
-        self.volume_factor = 0.4           # Design rule
+        self.thrust_volume_factor = 0.4    # Design rule
+        self.wing_volume_factor = 0.07    # Design rule
         self.anchor_ratio = None
         self.lever_arm = None
 
@@ -598,8 +602,11 @@ class VTP_T(Component):
     def eval_area(self):
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
         nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
-
-        self.area = self.volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
+        wing_area = self.aircraft.airframe.wing.area
+        wing_span = self.aircraft.airframe.wing.span
+        area_1 = self.thrust_volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
+        area_2 = self.wing_volume_factor*(wing_area*wing_span)/self.lever_arm
+        self.area = max(area_1,area_2)
 
 
 class VTP_H(Component):
@@ -615,7 +622,8 @@ class VTP_H(Component):
         self.taper_ratio = 0.40     # Design rule
         self.toc = 0.10             # Design rule
         self.sweep25 = None
-        self.volume_factor = 0.4           # Design rule
+        self.thrust_volume_factor = 0.4    # Design rule
+        self.wing_volume_factor = 0.07    # Design rule
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -674,8 +682,11 @@ class VTP_H(Component):
     def eval_area(self):
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
         nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
-
-        self.area = self.volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
+        wing_area = self.aircraft.airframe.wing.area
+        wing_span = self.aircraft.airframe.wing.span
+        area_1 = self.thrust_volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
+        area_2 = self.wing_volume_factor*(wing_area*wing_span)/self.lever_arm
+        self.area = max(area_1,area_2)
 
 
 class HTP_classic(Component):

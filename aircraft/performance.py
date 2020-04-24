@@ -5,14 +5,12 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-from aircraft.tool import unit
-import earth
+from context import earth, unit
 
 import numpy as np
 from scipy.optimize import fsolve
 
 from aircraft.tool.math import vander3, trinome, maximize_1d
-import aircraft.requirement as requirement
 
 
 class Performance(object):
@@ -147,16 +145,16 @@ class Flight(object):
     def get_speed(self,pamb,speed_mode,mach):
         """retrieve CAS or Mach from mach depending on speed_mode
         """
-        speed = {"cas" : earth.vcas_from_mach(pamb,mach),   # CAS required
-                 "mach" : mach                               # mach required
+        speed = {"cas" : earth.vcas_from_mach(pamb, mach),  # CAS required
+                 "mach" : mach  # mach required
                  }.get(speed_mode, "Erreur: select speed_mode equal to cas or mach")
         return speed
 
     def get_mach(self,pamb,speed_mode,speed):
         """Retrieve Mach from CAS or mach depending on speed_mode
         """
-        mach = {"cas" : earth.mach_from_vcas(pamb,speed),   # Input is CAS
-                "mach" : speed                               # Input is mach
+        mach = {"cas" : earth.mach_from_vcas(pamb, speed),  # Input is CAS
+                "mach" : speed  # Input is mach
                 }.get(speed_mode, "Erreur: select speed_mode equal to cas or mach")
         return mach
 
@@ -202,7 +200,7 @@ class Flight(object):
         """Retrieve air path in various conditions
         """
         g = earth.gravity()
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
         mach = self.get_mach(pamb,speed_mode,speed)
 
         dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating)
@@ -215,16 +213,16 @@ class Flight(object):
             cx = cx + dcx*nei
             lod = cz/cx
 
-        acc_factor = earth.climb_mode(speed_mode,mach,dtodz,tstd,disa)
+        acc_factor = earth.climb_mode(speed_mode, mach, dtodz, tstd, disa)
         slope = ( fn/(mass*g) - 1./lod ) / acc_factor
-        vz = slope*mach*earth.sound_speed(tamb)
+        vz = slope * mach * earth.sound_speed(tamb)
         return slope,vz
 
     def max_air_path(self,nei,altp,disa,speed_mode,mass,rating,kfn):
         """Optimize the speed of the aircraft to maximize the air path
         """
         def fct(cz):
-            pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+            pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
             mach = self.speed_from_lift(pamb,tamb,cz,mass)
             speed = self.get_speed(pamb,speed_mode,mach)
             slope,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
@@ -263,7 +261,7 @@ class Flight(object):
         """Evaluate Specific Air Range
         """
         g = earth.gravity()
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
         vsnd = earth.sound_speed(tamb)
 
         cz = self.lift_from_speed(pamb,tamb,mach,mass)
@@ -307,7 +305,7 @@ class Flight(object):
         """
         r,gam,Cp,Cv = earth.gas_data()
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
         mach = self.get_mach(pamb,speed_mode,speed)
 
         dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,throttle=throttle,nei=nei)
@@ -391,8 +389,8 @@ class Take_off(Flight):
         """
         czmax,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-        rho,sig = earth.air_density(pamb,tamb)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        rho,sig = earth.air_density(pamb, tamb)
 
         cz_to = czmax / kvs1g**2
         mach = self.speed_from_lift(pamb,tamb,cz_to,mass)
@@ -433,8 +431,8 @@ class Approach():
         """
         g = earth.gravity()
         czmax,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-        rho,sig = earth.air_density(pamb,tamb)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        rho,sig = earth.air_density(pamb, tamb)
         vapp = np.sqrt((mass*g) / (0.5*rho*self.aircraft.airframe.wing.area*(czmax / kvs1g**2)))
         return {"vapp":vapp}
 
@@ -458,7 +456,7 @@ class MCL_ceiling(Flight):
     def thrust_opt(self,kfn):
         mass = self.kmtow*self.aircraft.weight_cg.mtow
         nei = 0
-        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
         speed = self.get_speed(pamb,self.speed_mode,self.mach)
         slope,vz = self.air_path(nei,self.altp,self.disa,self.speed_mode,speed,mass,self.rating,kfn)
         return vz - self.vz_req
@@ -467,7 +465,7 @@ class MCL_ceiling(Flight):
         """Residual climb speed in MCL rating
         """
         nei = 0
-        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
         speed = self.get_speed(pamb,self.speed_mode,self.mach)
         slope,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
         return {"vz":vz, "slope":slope}
@@ -492,7 +490,7 @@ class MCR_ceiling(Flight):
     def thrust_opt(self,kfn):
         mass = self.kmtow*self.aircraft.weight_cg.mtow
         nei = 0
-        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
         speed = self.get_speed(pamb,self.speed_mode,self.mach)
         slope,vz = self.air_path(nei,self.altp,self.disa,self.speed_mode,speed,mass,self.rating,kfn)
         return vz - self.vz_req
@@ -501,7 +499,7 @@ class MCR_ceiling(Flight):
         """Residual climb speed in MCR rating
         """
         nei = 0
-        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
         speed = self.get_speed(pamb,self.speed_mode,self.mach)
         slope,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
         return {"vz":vz, "slope":slope}
@@ -526,7 +524,7 @@ class OEI_ceiling(Flight):
     def thrust_opt(self,kfn):
         mass = self.kmtow*self.aircraft.weight_cg.mtow
         nei = 1.
-        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp,self.disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
         speed = self.get_speed(pamb,self.speed_mode,self.mach_opt)
         path,vz = self.air_path(nei,self.altp,self.disa,self.speed_mode,speed,mass,self.rating,kfn)
         return path - self.path_req
@@ -569,15 +567,15 @@ class Time_to_Climb(Flight):
         Time to climb to initial cruise altitude
         For simplicity reasons, airplane mass is supposed constant
         """
-        if(vcas1>unit.mps_kt(250.)):
-            print("vcas1 = ",unit.kt_mps(vcas1))
+        if(vcas1> unit.mps_kt(250.)):
+            print("vcas1 = ", unit.kt_mps(vcas1))
             print("vcas1 must be lower than or equal to 250kt")
         if(vcas1>vcas2):
-            print("vcas1 = ",unit.kt_mps(vcas1))
-            print("vcas2 = ",unit.kt_mps(vcas2))
+            print("vcas1 = ", unit.kt_mps(vcas1))
+            print("vcas2 = ", unit.kt_mps(vcas2))
             print("vcas1 must be lower than or equal to vcas2")
 
-        cross_over_altp = earth.cross_over_altp(vcas2,mach)
+        cross_over_altp = earth.cross_over_altp(vcas2, mach)
 
         if(cross_over_altp<altp1):
             print("Cross over altitude is too low")

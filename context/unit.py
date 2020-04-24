@@ -11,6 +11,12 @@ import numpy
 from copy import deepcopy
 
       
+def km2_m2(m2): return m2*1.e-6
+def m2_km2(km2): return km2*1.e6
+
+def MW_W(W): return W*1.e-6
+def W_MW(MW): return MW*1.e6
+
 def s_min(min): return min*60.   # Translate minutes into seconds
 
 def min_s(s): return s/60.   # Translate seconds into minutes
@@ -53,11 +59,15 @@ def deg_rad(rad): return rad*180./numpy.pi   # Translate radians into degrees
 
 def J_kWh(kWh): return kWh*3.6e6   # Translate kWh into J
 
-def J_MWh(MWh): return MWh*3.6e9   # Translate MWh into J
-
 def kWh_J(J): return J/3.6e6   # Translate J into kWh
 
+def J_MWh(MWh): return MWh*3.6e9   # Translate MWh into J
+
 def MWh_J(J): return J/3.6e9   # Translate J into MWh
+
+def J_GWh(GWh): return GWh*3.6e12   # Translate MWh into J
+
+def GWh_J(J): return J/3.6e12   # Translate J into MWh
 
 def daN_N(N): return N/10.   # Translate N into daN
 

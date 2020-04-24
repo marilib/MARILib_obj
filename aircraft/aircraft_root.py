@@ -69,9 +69,8 @@ class Aircraft(object):
         self.requirement = requirement
         self.arrangement = arrangement
 
-        if (self.arrangement.power_architecture=="efb"):
+        if (self.arrangement.power_architecture in ["efb","exefb"]):
             if(self.arrangement.energy_source!="battery"):
-
                 raise Exception("Power architecture electro_fan (ef) requires energy source battery or fuel_cell")
 
         # plug a cabin component
@@ -112,7 +111,7 @@ class Aircraft(object):
 
         self.airframe.landing_gear = component.Landing_gear(self)
 
-        if (self.arrangement.power_architecture=="efb"):
+        if (self.arrangement.power_architecture in ["efb","exefb"]):
             self.airframe.system = propulsion.System_efb(self)
         else:
             self.airframe.system = propulsion.System(self)
@@ -171,6 +170,24 @@ class Aircraft(object):
                 raise Exception("Type of nacelle attachment is unknown")
             self.power_system = model.Electrofan(self)
 
+        elif (self.arrangement.power_architecture=="exefb"):
+            if (self.arrangement.nacelle_attachment=="wing"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = interface.Inboard_wing_mounted_exef_nacelle(self)
+                elif (self.arrangement.number_of_engine=="quadri"):
+                    self.airframe.nacelle = interface.Outboard_wing_mounted_exef_nacelle(self)
+                    self.airframe.internal_nacelle = interface.Inboard_wing_mounted_exef_nacelle(self)
+                else:
+                    raise Exception("Number of engines not allowed")
+            elif (self.arrangement.nacelle_attachment=="rear"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = interface.Rear_fuselage_mounted_exef_nacelle(self)
+                else:
+                    raise Exception("Number of engines not allowed")
+            else:
+                raise Exception("Type of nacelle attachment is unknown")
+            self.power_system = model.Electrofan(self)
+
         else:
             raise Exception("Type of power architecture is unknown")
 
@@ -193,7 +210,7 @@ class Aircraft(object):
 
         if (self.arrangement.power_architecture in ["tf","extf"]):
             self.performance.mission = Mission(self)
-        elif (self.arrangement.power_architecture=="efb"):
+        elif (self.arrangement.power_architecture in ["efb","exefb"]):
             self.performance.mission = E_mission(self)
         else:
             raise Exception("Type of power architecture is unknown")

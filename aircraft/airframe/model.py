@@ -8,8 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy.optimize import fsolve
 
-import aircraft.tool.unit as unit
-import earth
+from context import earth
 
 from aircraft.performance import Flight
 
@@ -38,7 +37,7 @@ class Aerodynamics(object):
         mach = self.aircraft.requirement.cruise_mach
         altp = self.aircraft.requirement.cruise_altp
         disa = 0.
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
 
         self.cruise_lodmax, self.cz_cruise_lodmax = self.lod_max(pamb,tamb,mach)
         self.czmax_conf_clean,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_clean)
@@ -50,7 +49,7 @@ class Aerodynamics(object):
         """
         # Form & friction drag
         #-----------------------------------------------------------------------------------------------------------
-        re = earth.reynolds_number(pamb,tamb,mach)
+        re = earth.reynolds_number(pamb, tamb, mach)
 
         fac = ( 1. + 0.126*mach**2 )
 
@@ -310,7 +309,7 @@ class Turbofan(Power_system, Flight):
             mach = self.data[rating].mach
             nei = self.data[rating].nei
             kfn = self.data[rating].kfn_opt
-            pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+            pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
             dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
             self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
@@ -384,7 +383,7 @@ class Electrofan(Power_system, Flight):
             mach = self.data[rating].mach
             nei = self.data[rating].nei
             kfn = self.data[rating].kfn_opt
-            pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+            pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
             dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
             self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
