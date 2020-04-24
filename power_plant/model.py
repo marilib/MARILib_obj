@@ -33,7 +33,7 @@ data_dict = {
 one_year = 3600. * 24. * 365.
 
 
-class PV_power_plant(object):
+class PvPowerPlant(object):
 
     def __init__(self, n_panel, ref_sun_pw):
         self.n_panel = n_panel
@@ -47,6 +47,23 @@ class PV_power_plant(object):
         self.ref_yearly_sun_power = ref_sun_pw
         self.load_factor = 0.13
 
+        self.total_panel_area = None
+        self.total_foot_print = None
+
+        self.net_power_efficiency = None
+
+        self.nominal_peak_power = None
+        self.nominal_gross_power = None
+        self.nominal_net_power = None
+
+        self.gross_yearly_enrg = None
+        self.net_yearly_enrg = None
+
+        self.total_grey_enrg = None
+
+        self.update()
+
+    def update(self):
         self.total_panel_area = self.panel_area * self.n_panel
         self.total_foot_print = self.total_panel_area * self.ground_ratio
 
@@ -61,23 +78,14 @@ class PV_power_plant(object):
 
         self.total_grey_enrg = self.grey_energy_ratio * self.gross_yearly_enrg * self.life_time
 
-    def update(self, ):
-        self.net_power_efficiency = self.gross_power_efficiency * (1.-self.grey_energy_ratio)
-        self.total_panel_area = self.panel_area * self.n_panel
-        self.total_foot_print = self.total_panel_area * self.ground_ratio
-        self.nominal_gross_power = self.ref_yearly_sun_power * self.load_factor * self.total_panel_area * self.gross_power_efficiency
-        self.nominal_net_power = self.ref_yearly_sun_power * self.load_factor * self.total_panel_area * self.net_power_efficiency
-        self.gross_yearly_enrg = self.nominal_gross_power * (3600.*24.*365.)
-        self.net_yearly_enrg = self.nominal_net_power * (3600.*24.*365.)
-        self.total_grey_enrg = self.grey_energy_ratio * self.gross_yearly_enrg * self.life_time
 
 
-
-pv1 = PV_power_plant(1e6, 1e3)
+pv1 = PvPowerPlant(1e6, 1e3)
 
 print("Nominal peak power = ", "%8.1f" % unit.MW_W(pv1.nominal_peak_power), " MW")
 print("Nominal mean power = ", "%8.1f" % unit.MW_W(pv1.nominal_gross_power), " MW")
-print("Yearly production = ", "%8.1f" % unit.GWh_J(pv1.gross_yearly_enrg), " GWh")
+print("Yearly gross production = ", "%8.1f" % unit.GWh_J(pv1.gross_yearly_enrg), " GWh")
+print("Yearly net production = ", "%8.1f" % unit.GWh_J(pv1.net_yearly_enrg), " GWh")
 print("Total grey energy = ", "%8.1f" % unit.GWh_J(pv1.total_grey_enrg), " GWh")
 print("Total footprint = ", "%8.1f" % unit.km2_m2(pv1.total_foot_print), " km2")
 
@@ -85,7 +93,7 @@ print("Total footprint = ", "%8.1f" % unit.km2_m2(pv1.total_foot_print), " km2")
 
 
 
-class EOL_power_plant(object):
+class EolPowerPlant(object):
 
     def __init__(self, n_rotor, location):
         self.location = location
@@ -94,6 +102,24 @@ class EOL_power_plant(object):
         self.rotor_peak_power = 10.e6
         self.life_time = 20.
 
+        self.rotor_area = None
+        self.load_factor = None
+        self.rotor_footprint = None
+        self.total_foot_print = None
+
+        self.rotor_grey_enrg = None
+        self.total_grey_enrg = None
+
+        self.nominal_peak_power = None
+        self.nominal_gross_power = None
+        self.gross_yearly_enrg = None
+
+        self.net_yearly_enrg = None
+        self.nominal_net_power = None
+
+        self.update()
+
+    def update(self):
         self.load_factor = {"onshore":0.30,
                             "offshore":0.40
                             }.get(self.location, "Error, location is unknown")
@@ -117,30 +143,64 @@ class EOL_power_plant(object):
         self.net_yearly_enrg = (self.gross_yearly_enrg * self.life_time - self.total_grey_enrg) / self.life_time
         self.nominal_net_power = self.net_yearly_enrg / one_year
 
-    def update(self, ):
-        self.load_factor = {"onshore":0.30,
-                            "offshore":0.40
-                            }.get(self.location, "Error, location is unknown")
-        self.rotor_footprint = 0.25e6*(self.rotor_width/90.)
-        self.rotor_area = 0.25*np.pi*self.rotor_width**2
-        self.rotor_grey_enrg = {"onshore": unit.J_GWh(1.27) * (self.rotor_area / 6362.),
-                                "offshore": unit.J_GWh(2.28) * (self.rotor_area / 6362.)
-                                }.get(self.location, "Error, location is unknown")
-        self.total_foot_print = self.rotor_footprint * self.n_rotor
-        self.total_grey_enrg = self.rotor_grey_energy * self.n_rotor
-        self.nominal_peak_power = self.rotor_peak_power * self.n_rotor
-        self.nominal_gross_power = self.nominal_peak_power * self.load_factor
-        self.gross_yearly_enrg = self.nominal_gross_power * one_year
-        self.net_yearly_enrg = (self.gross_yearly_enrg * self.life_time - self.total_grey_enrg) / self.life_time
-        self.nominal_net_power = self.net_yearly_enrg / one_year
 
 
-
-eol1 = EOL_power_plant(25, "onshore")
+eol1 = EolPowerPlant(25, "onshore")
 
 print("")
 print("Nominal peak power = ", "%8.1f" % unit.MW_W(eol1.nominal_peak_power), " MW")
 print("Nominal mean power = ", "%8.1f" % unit.MW_W(eol1.nominal_gross_power), " MW")
-print("Yearly production = ", "%8.1f" % unit.GWh_J(eol1.gross_yearly_enrg), " GWh")
+print("Yearly gross production = ", "%8.1f" % unit.GWh_J(eol1.gross_yearly_enrg), " GWh")
+print("Yearly net production = ", "%8.1f" % unit.GWh_J(eol1.net_yearly_enrg), " GWh")
 print("Total grey energy = ", "%8.1f" % unit.GWh_J(eol1.total_grey_enrg), " GWh")
 print("Total footprint = ", "%8.1f" % unit.km2_m2(eol1.total_foot_print), " km2")
+
+
+
+
+
+
+class NuclearPowerPlant(object):
+
+    def __init__(self, n_core):
+        self.n_core = n_core
+
+        self.core_peak_power = 1.0e9
+        self.load_factor = 0.7
+        self.life_time = 50.
+
+        self.grey_energy_ratio = 0.2
+        self.total_foot_print = 1.e6
+
+        self.total_grey_enrg = None
+
+        self.nominal_peak_power = None
+        self.nominal_gross_power = None
+        self.gross_yearly_enrg = None
+
+        self.net_yearly_enrg = None
+        self.nominal_net_power = None
+
+        self.update()
+
+    def update(self):
+        self.nominal_peak_power = self.core_peak_power * self.n_core
+        self.nominal_gross_power = self.nominal_peak_power * self.load_factor
+        self.gross_yearly_enrg = self.nominal_gross_power * one_year
+
+        self.total_grey_enrg = self.gross_yearly_enrg * self.life_time * self.grey_energy_ratio
+
+        self.net_yearly_enrg = self.gross_yearly_enrg * self.life_time * (1. - self.grey_energy_ratio) / self.life_time
+        self.nominal_net_power = self.net_yearly_enrg / one_year
+
+
+
+atom1 = NuclearPowerPlant(4)
+
+print("")
+print("Nominal peak power = ", "%8.1f" % unit.GW_W(atom1.nominal_peak_power), " GW")
+print("Nominal mean power = ", "%8.1f" % unit.GW_W(atom1.nominal_gross_power), " GW")
+print("Yearly gross production = ", "%8.1f" % unit.TWh_J(atom1.gross_yearly_enrg), " TWh")
+print("Yearly net production = ", "%8.1f" % unit.TWh_J(atom1.net_yearly_enrg), " TWh")
+print("Total grey energy = ", "%8.1f" % unit.TWh_J(atom1.total_grey_enrg), " TWh")
+print("Total footprint = ", "%8.1f" % unit.km2_m2(atom1.total_foot_print), " km2")

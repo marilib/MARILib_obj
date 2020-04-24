@@ -17,66 +17,57 @@ def m2_km2(km2): return km2*1.e6
 def MW_W(W): return W*1.e-6
 def W_MW(MW): return MW*1.e6
 
-def s_min(min): return min*60.   # Translate minutes into seconds
+def GW_W(W): return W*1.e-9
+def W_GW(GW): return GW*1.e9
 
+def s_min(min): return min*60.   # Translate minutes into seconds
 def min_s(s): return s/60.   # Translate seconds into minutes
 
 def s_h(h): return h*3600.   # Translate hours into seconds
-
 def h_s(s): return s/3600.   # Translate seconds into hours
 
 def m_ft(ft): return ft*0.3048   # Translate feet into metres
-
 def ft_m(m): return m/0.3048   # Translate metres into feet
 
 def m_NM(NM): return NM*1852.   # Translate nautical miles into metres
-
 def NM_m(m): return m/1852.   # Translate metres into nautical miles
 
 def mps_kmph(kmph): return kmph*1000./3600.   # Translate knots into meters per second
-
 def kmph_mps(mps): return mps*3600./1000.   # Translate knots into meters per second
 
 def mps_kt(kt): return kt*1852/3600   # Translate knots into meters per second
-
 def kt_mps(mps): return mps*3600./1852.   # Translate meters per second into knots
 
 def mps_ftpmin(ftpmin): return ftpmin*0.3048/60.   # Translate feet per minutes into meters per second
-
 def ftpmin_mps(mps): return mps/0.3048*60.   # Translate meters per second into feet per minutes
 
 def liter_usgal(usgal): return usgal*3.7853982   # Translate US gallons into liters
-
 def usgal_liter(liter): return liter/3.7853982   # Translate liters into US gallons
 
 def m3_usgal(usgal): return usgal*0.0037853982   # Translate US gallons into m3
-
 def usgal_m3(m3): return m3/0.0037853982   # Translate m3 into US gallons
 
 def rad_deg(deg): return deg*numpy.pi/180.   # Translate degrees into radians
-
 def deg_rad(rad): return rad*180./numpy.pi   # Translate radians into degrees
 
 def J_kWh(kWh): return kWh*3.6e6   # Translate kWh into J
-
 def kWh_J(J): return J/3.6e6   # Translate J into kWh
 
 def J_MWh(MWh): return MWh*3.6e9   # Translate MWh into J
-
 def MWh_J(J): return J/3.6e9   # Translate J into MWh
 
 def J_GWh(GWh): return GWh*3.6e12   # Translate MWh into J
-
 def GWh_J(J): return J/3.6e12   # Translate J into MWh
 
+def J_TWh(TWh): return TWh*3.6e15   # Translate MWh into J
+
+def TWh_J(J): return J/3.6e15   # Translate J into MWh
 def daN_N(N): return N/10.   # Translate N into daN
 
 def N_daN(daN): return daN*10.   # Translate daN into N
-
 def N_kN(kN): return kN*1000.   # Translate kN into N
 
 def pc_no_dim(no_dim): return no_dim*100.   # Translate no dimension value into percentile
-
 def no_dim_pc(no_dim): return no_dim/100.   # Translate percentile into no dimension value
 
 
