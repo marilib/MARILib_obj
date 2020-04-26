@@ -34,25 +34,25 @@ one_day = one_hour * 24.
 one_year = one_day * 365.
 
 
-class StPowerPlant(object):
 
-    def __init__(self, n_mirror, ref_sun_pw, reg_factor):
-        self.type = "Cylindroparabolic mirror"
-        self.regulation_factor = reg_factor
-        self.n_mirror = n_mirror
-        self.mirror_area = 68.
-        self.ground_ratio = 4.0
-        self.life_time = 25.
+class Material(object):
 
-        self.gross_power_efficiency = 0.39
-        self.storage_efficiency = 0.99
-        self.grey_energy_ratio = 0.11
+    def __init__(self):
+        self.concrete = None
+        self.steel = None
+        self.aluminium = None
+        self.copper = None
+        self.lead = None
+        self.plastic = None
+        self.quartz_sand = None
 
-        self.ref_yearly_sun_power = ref_sun_pw
-        self.load_factor = 0.38
 
-        self.total_mirror_area = None
-        self.total_foot_print = None
+
+class PowerPlant(object):
+
+    def __init__(self):
+        self.total_footprint = None
+        self.total_grey_enrg = None
 
         self.nominal_peak_power = None
         self.nominal_mean_power = None
@@ -64,18 +64,77 @@ class StPowerPlant(object):
         self.storage_capacity = None
         self.regulation_power_efficiency = None
 
-        self.net_power_efficiency = None
-
         self.gross_yearly_enrg = None
         self.net_yearly_enrg = None
 
-        self.total_grey_enrg = None
+        self.marginal_efficiency = None
+        self.net_power_efficiency = None
+
+        self.material = Material()
+
+    def update(self):
+        raise NotImplementedError
+
+    def print(self, *kwargs):
+        print("")
+        if len(kwargs)>0: print("Info = "+kwargs[0])
+        print("Power plant type = ",self.type)
+        print("--------------------------------------------------")
+        print("Nominal peak power = ", "%8.1f" % unit.MW_W(self.nominal_peak_power), " MW")
+        print("Nominal mean power = ", "%8.1f" % unit.MW_W(self.nominal_mean_power), " MW")
+        print("Regulated power = ", "%8.1f" % unit.MW_W(self.regulated_power), " MW")
+        print("Regulation time = ", "%8.1f" % unit.h_s(self.regulation_time), " h")
+        print("Retrieval time = ", "%8.1f" % unit.h_s(self.retrieval_time), " h")
+        print("Storage capacity = ", "%8.1f" % unit.MWh_J(self.storage_capacity), " MWh")
+        print("Yearly gross production = ", "%8.1f" % unit.GWh_J(self.gross_yearly_enrg), " GWh")
+        print("Yearly net production = ", "%8.1f" % unit.GWh_J(self.net_yearly_enrg), " GWh")
+        print("Marginal efficiency = ", "%8.3f" % self.marginal_efficiency)
+        print("Net power efficiency = ", "%8.3f" % self.net_power_efficiency)
+        print("Total grey energy = ", "%8.1f" % unit.GWh_J(self.total_grey_enrg), " GWh")
+        print("Total footprint = ", "%8.1f" % unit.km2_m2(self.total_footprint), " km2")
+        print("   Concrete = ", "%8.0f" % (self.material.concrete*1.e-3), " t")
+        print("      Steel = ", "%8.0f" % (self.material.steel*1.e-3), " t")
+        print("  Aluminium = ", "%8.0f" % (self.material.aluminium*1.e-3), " t")
+        print("     Copper = ", "%8.0f" % (self.material.copper*1.e-3), " t")
+        print("       Lead = ", "%8.0f" % (self.material.lead*1.e-3), " t")
+        print("    Plastic = ", "%8.0f" % (self.material.plastic*1.e-3), " t")
+        print("Quartz sand = ", "%8.0f" % (self.material.quartz_sand*1.e-3), " t")
+
+
+class StPowerPlant(PowerPlant):
+
+    def __init__(self, n_mirror, ref_sun_pw,
+                 reg_factor = 0.,
+                 mirror_area = 68.,
+                 ground_ratio = 4.,
+                 life_time = 25.,
+                 gross_power_efficiency = 0.39,
+                 storage_efficiency = 0.99,
+                 grey_energy_ratio = 0.11,
+                 load_factor = 0.38):
+        super(StPowerPlant, self).__init__()
+
+        self.type = "Cylindroparabolic mirror"
+        self.regulation_factor = reg_factor
+        self.n_mirror = n_mirror
+        self.mirror_area = mirror_area
+        self.ground_ratio = ground_ratio
+        self.life_time = life_time
+
+        self.gross_power_efficiency = gross_power_efficiency
+        self.storage_efficiency = storage_efficiency
+        self.grey_energy_ratio = grey_energy_ratio
+
+        self.ref_yearly_sun_power = ref_sun_pw
+        self.load_factor = load_factor
+
+        self.total_mirror_area = None
 
         self.update()
 
     def update(self):
         self.total_mirror_area = self.mirror_area * self.n_mirror
-        self.total_foot_print = self.total_mirror_area * self.ground_ratio
+        self.total_footprint = self.total_mirror_area * self.ground_ratio
 
         self.nominal_peak_power = self.ref_yearly_sun_power * self.total_mirror_area * self.gross_power_efficiency
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
@@ -87,75 +146,57 @@ class StPowerPlant(object):
         self.storage_capacity = (self.nominal_peak_power - self.regulated_power) * self.load_factor * self.storage_efficiency * one_day
         self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_dayly_energy
 
-        self.net_power_efficiency = self.gross_power_efficiency * self.regulation_power_efficiency * (1.-self.grey_energy_ratio)
+        self.marginal_efficiency = self.regulation_power_efficiency * (1.-self.grey_energy_ratio)
+        self.net_power_efficiency = self.gross_power_efficiency * self.marginal_efficiency
 
         self.gross_yearly_enrg = self.regulated_power * self.regulation_time * 365.
         self.net_yearly_enrg = self.gross_yearly_enrg - self.gross_yearly_enrg * self.grey_energy_ratio
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
 
-
-st1 = StPowerPlant(7500., 250., 0.51)
-
-print("")
-print("Power plant type = ",st1.type)
-print("--------------------------------------------------")
-print("Nominal peak power = ", "%8.1f" % unit.MW_W(st1.nominal_peak_power), " MW")
-print("Nominal mean power = ", "%8.1f" % unit.MW_W(st1.nominal_mean_power), " MW")
-print("Regulated power = ", "%8.1f" % unit.MW_W(st1.regulated_power), " MW")
-print("Regulation time = ", "%8.1f" % unit.h_s(st1.regulation_time), " h")
-print("Retrieval time = ", "%8.1f" % unit.h_s(st1.retrieval_time), " h")
-print("Storage capacity = ", "%8.1f" % unit.MWh_J(st1.storage_capacity), " MWh")
-print("Yearly gross production = ", "%8.1f" % unit.GWh_J(st1.gross_yearly_enrg), " GWh")
-print("Yearly net production = ", "%8.1f" % unit.GWh_J(st1.net_yearly_enrg), " GWh")
-print("Net power efficiency = ", "%8.3f" % st1.net_power_efficiency)
-print("Total grey energy = ", "%8.1f" % unit.GWh_J(st1.total_grey_enrg), " GWh")
-print("Total footprint = ", "%8.1f" % unit.km2_m2(st1.total_foot_print), " km2")
+        self.material.concrete = np.nan
+        self.material.steel = np.nan
+        self.material.aluminium = np.nan
+        self.material.copper = np.nan
+        self.material.lead = np.nan
+        self.material.plastic = np.nan
+        self.material.quartz_sand = np.nan
 
 
+class PvPowerPlant(PowerPlant):
 
-class PvPowerPlant(object):
+    def __init__(self, n_panel, ref_sun_pw,
+                 reg_factor = 0.,
+                 panel_area = 8.,
+                 ground_ratio = 2.6,
+                 life_time = 25.,
+                 gross_power_efficiency = 0.15,
+                 storage_efficiency = 0.80,
+                 grey_energy_ratio = 0.11,
+                 load_factor = 0.14):
+        super(PvPowerPlant, self).__init__()
 
-    def __init__(self, n_panel, ref_sun_pw, reg_factor):
         self.type = "Photovoltaïc panel"
         self.regulation_factor = reg_factor
         self.n_panel = n_panel
-        self.panel_area = 8.
-        self.ground_ratio = 2.6
-        self.life_time = 25.
+        self.panel_area = panel_area
+        self.ground_ratio = ground_ratio
+        self.life_time = life_time
 
-        self.gross_power_efficiency = 0.15
-        self.storage_efficiency = 0.80
-        self.grey_energy_ratio = 0.11
+        self.gross_power_efficiency = gross_power_efficiency
+        self.storage_efficiency = storage_efficiency
+        self.grey_energy_ratio = grey_energy_ratio
 
         self.ref_yearly_sun_power = ref_sun_pw
-        self.load_factor = 0.14
+        self.load_factor = load_factor
 
         self.total_panel_area = None
-        self.total_foot_print = None
-
-        self.nominal_peak_power = None
-        self.nominal_mean_power = None
-        self.mean_dayly_energy = None
-
-        self.regulation_time = None
-        self.retrieval_time = None
-        self.regulated_power = None
-        self.storage_capacity = None
-        self.regulation_power_efficiency = None
-
-        self.net_power_efficiency = None
-
-        self.gross_yearly_enrg = None
-        self.net_yearly_enrg = None
-
-        self.total_grey_enrg = None
 
         self.update()
 
     def update(self):
         self.total_panel_area = self.panel_area * self.n_panel
-        self.total_foot_print = self.total_panel_area * self.ground_ratio
+        self.total_footprint = self.total_panel_area * self.ground_ratio
 
         self.nominal_peak_power = self.ref_yearly_sun_power * self.total_panel_area * self.gross_power_efficiency
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
@@ -167,150 +208,161 @@ class PvPowerPlant(object):
         self.storage_capacity = (self.nominal_peak_power - self.regulated_power) * self.load_factor * self.storage_efficiency * one_day
         self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_dayly_energy
 
-        self.net_power_efficiency = self.gross_power_efficiency * self.regulation_power_efficiency * (1.-self.grey_energy_ratio)
+        self.marginal_efficiency = self.regulation_power_efficiency * (1.-self.grey_energy_ratio)
+        self.net_power_efficiency = self.gross_power_efficiency * self.marginal_efficiency
 
         self.gross_yearly_enrg = self.regulated_power * self.regulation_time * 365.
-        self.net_yearly_enrg = self.gross_yearly_enrg - self.gross_yearly_enrg * self.grey_energy_ratio
+        self.net_yearly_enrg = self.gross_yearly_enrg * (1. - self.grey_energy_ratio)
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
 
-
-
-pv1 = PvPowerPlant(1e6, 250., 0.)
-
-print("")
-print("Power plant type = ",pv1.type)
-print("--------------------------------------------------")
-print("Nominal peak power = ", "%8.1f" % unit.MW_W(pv1.nominal_peak_power), " MW")
-print("Nominal mean power = ", "%8.1f" % unit.MW_W(pv1.nominal_mean_power), " MW")
-print("Regulated power = ", "%8.1f" % unit.MW_W(pv1.regulated_power), " MW")
-print("Regulation time = ", "%8.1f" % unit.h_s(pv1.regulation_time), " h")
-print("Retrieval time = ", "%8.1f" % unit.h_s(pv1.retrieval_time), " h")
-print("Storage capacity = ", "%8.1f" % unit.MWh_J(pv1.storage_capacity), " MWh")
-print("Yearly gross production = ", "%8.1f" % unit.GWh_J(pv1.gross_yearly_enrg), " GWh")
-print("Yearly net production = ", "%8.1f" % unit.GWh_J(pv1.net_yearly_enrg), " GWh")
-print("Net power efficiency = ", "%8.3f" % pv1.net_power_efficiency)
-print("Total grey energy = ", "%8.1f" % unit.GWh_J(pv1.total_grey_enrg), " GWh")
-print("Total footprint = ", "%8.1f" % unit.km2_m2(pv1.total_foot_print), " km2")
+        self.material.concrete = np.nan
+        self.material.steel = np.nan
+        self.material.aluminium = np.nan
+        self.material.copper = np.nan
+        self.material.lead = np.nan
+        self.material.plastic = np.nan
+        self.material.quartz_sand = np.nan
 
 
 
+class EolPowerPlant(PowerPlant):
 
+    def __init__(self, n_rotor, location,
+                 reg_factor = 0.,
+                 rotor_width = 100.,
+                 rotor_peak_power = 2.5e6,
+                 load_factor = None,
+                 storage_efficiency = 0.8,
+                 life_time = 25.):
+        super(EolPowerPlant, self).__init__()
 
-class EolPowerPlant(object):
-
-    def __init__(self, n_rotor, location):
-        self.type = "Wind turbine"
+        self.type = "Wind turbine " + location
         self.location = location
+        self.regulation_factor = reg_factor
         self.n_rotor = n_rotor
-        self.rotor_width = 90.
-        self.rotor_peak_power = 10.e6
-        self.life_time = 20.
+        self.rotor_width = rotor_width
+        self.rotor_peak_power = rotor_peak_power
+        self.load_factor = load_factor
+        self.storage_efficiency = storage_efficiency
+        self.life_time = life_time
 
         self.rotor_area = None
-        self.load_factor = None
         self.rotor_footprint = None
-        self.total_foot_print = None
-
         self.rotor_grey_enrg = None
-        self.total_grey_enrg = None
-
-        self.nominal_peak_power = None
-        self.nominal_gross_power = None
-        self.gross_yearly_enrg = None
-
-        self.net_yearly_enrg = None
-        self.nominal_net_power = None
 
         self.update()
 
     def update(self):
-        self.load_factor = {"onshore":0.30,
-                            "offshore":0.40
-                            }.get(self.location, "Error, location is unknown")
-
-        self.rotor_footprint = 0.25e6*(self.rotor_width/90.)
-
         self.rotor_area = 0.25*np.pi*self.rotor_width**2
+
+        self.rotor_footprint = {"onshore":0.40e6*(self.rotor_width/90.),
+                                "offshore":1.00e6*(self.rotor_width/90.)
+                                }.get(self.location, "Error, location is unknown")
+
+        self.total_footprint = self.rotor_footprint * self.n_rotor
+
+        if (self.load_factor is None):
+            self.load_factor = {"onshore":0.25,
+                                "offshore":0.50
+                                }.get(self.location, "Error, location is unknown")
 
         self.rotor_grey_enrg = {"onshore": unit.J_GWh(1.27) * (self.rotor_area / 6362.),
                                 "offshore": unit.J_GWh(2.28) * (self.rotor_area / 6362.)
                                 }.get(self.location, "Error, location is unknown")
 
-        self.total_foot_print = self.rotor_footprint * self.n_rotor
-
         self.total_grey_enrg = self.rotor_grey_enrg * self.n_rotor
 
         self.nominal_peak_power = self.rotor_peak_power * self.n_rotor
-        self.nominal_gross_power = self.nominal_peak_power * self.load_factor
-        self.gross_yearly_enrg = self.nominal_gross_power * one_year
+        self.nominal_mean_power = self.nominal_peak_power * self.load_factor
+        self.mean_dayly_energy = self.nominal_mean_power * one_day
 
-        self.net_yearly_enrg = (self.gross_yearly_enrg * self.life_time - self.total_grey_enrg) / self.life_time
-        self.nominal_net_power = self.net_yearly_enrg / one_year
+        self.regulation_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
+        self.retrieval_time = one_day * (1. - self.load_factor)*self.regulation_factor
+        self.regulated_power = self.nominal_peak_power / (1. + self.regulation_factor*(1.-self.load_factor)/(self.load_factor*self.storage_efficiency))
+        self.storage_capacity = (self.nominal_peak_power - self.regulated_power) * self.load_factor * self.storage_efficiency * one_day
+        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_dayly_energy
+
+        self.gross_yearly_enrg = self.regulated_power * self.regulation_time * 365.
+        self.net_yearly_enrg = self.gross_yearly_enrg - self.total_grey_enrg / self.life_time
+
+        self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
+        self.net_power_efficiency =  np.nan
+
+        self.material.concrete = {"onshore":320000., "offshore":640000.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.steel = {"onshore":61500., "offshore":91500.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.aluminium = {"onshore":1600., "offshore":1600.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.copper = {"onshore":400., "offshore":3400.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.lead = {"onshore":0., "offshore":4000.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.plastic = {"onshore":2200., "offshore":2900.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.quartz_sand = {"onshore":0., "offshore":0.}.get(self.location) * self.nominal_peak_power * 1e-6
 
 
 
-eol1 = EolPowerPlant(25, "onshore")
 
-print("")
-print("Power plant type = ",eol1.type)
-print("--------------------------------------------------")
-print("Nominal peak power = ", "%8.1f" % unit.MW_W(eol1.nominal_peak_power), " MW")
-print("Nominal mean power = ", "%8.1f" % unit.MW_W(eol1.nominal_gross_power), " MW")
-print("Yearly gross production = ", "%8.1f" % unit.GWh_J(eol1.gross_yearly_enrg), " GWh")
-print("Yearly net production = ", "%8.1f" % unit.GWh_J(eol1.net_yearly_enrg), " GWh")
-print("Total grey energy = ", "%8.1f" % unit.GWh_J(eol1.total_grey_enrg), " GWh")
-print("Total footprint = ", "%8.1f" % unit.km2_m2(eol1.total_foot_print), " km2")
+class NuclearPowerPlant(PowerPlant):
 
+    def __init__(self, n_unit,
+                 unit_peak_power = 1.0e9,
+                 load_factor = 0.7,
+                 life_time = 50.,
+                 grey_energy_ratio = 0.2,
+                 unit_footprint = 0.15e6):
+        super(NuclearPowerPlant, self).__init__()
 
-
-
-
-
-class NuclearPowerPlant(object):
-
-    def __init__(self, n_core):
         self.type = "Nuclear reactor"
-        self.n_core = n_core
-
-        self.core_peak_power = 1.0e9
-        self.load_factor = 0.7
-        self.life_time = 50.
-
-        self.grey_energy_ratio = 0.2
-        self.total_foot_print = 1.e6
-
-        self.total_grey_enrg = None
-
-        self.nominal_peak_power = None
-        self.nominal_gross_power = None
-        self.gross_yearly_enrg = None
-
-        self.net_yearly_enrg = None
-        self.nominal_net_power = None
+        self.n_unit = n_unit
+        self.unit_peak_power = unit_peak_power
+        self.load_factor = load_factor
+        self.life_time = life_time
+        self.grey_energy_ratio = grey_energy_ratio
+        self.unit_footprint = unit_footprint
 
         self.update()
 
     def update(self):
-        self.nominal_peak_power = self.core_peak_power * self.n_core
-        self.nominal_gross_power = self.nominal_peak_power * self.load_factor
-        self.gross_yearly_enrg = self.nominal_gross_power * one_year
+        self.nominal_peak_power = self.unit_peak_power * self.n_unit
+        self.nominal_mean_power = self.nominal_peak_power * self.load_factor
+        self.total_footprint = self.unit_footprint * self.n_unit
+
+        self.regulation_time = one_day
+        self.retrieval_time = 0.
+        self.regulated_power = self.nominal_mean_power
+        self.storage_capacity = 0.
+        self.regulation_power_efficiency = 1.0
+
+        self.mean_dayly_energy = self.nominal_mean_power * one_day
+        self.gross_yearly_enrg = self.nominal_mean_power * one_year
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.life_time * self.grey_energy_ratio
-
         self.net_yearly_enrg = self.gross_yearly_enrg * self.life_time * (1. - self.grey_energy_ratio) / self.life_time
-        self.nominal_net_power = self.net_yearly_enrg / one_year
+
+        self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
+        self.net_power_efficiency =  np.nan
+
+        self.material.concrete = np.nan
+        self.material.steel = np.nan
+        self.material.aluminium = np.nan
+        self.material.copper = np.nan
+        self.material.lead = np.nan
+        self.material.plastic = np.nan
+        self.material.quartz_sand = np.nan
 
 
+
+
+
+st1 = StPowerPlant(7500., 250., reg_factor=0.51)
+st1.print("Andasol 3")
+
+pv1 = PvPowerPlant(1e6, 250.)
+pv1.print("Cestas")
+
+eol1 = EolPowerPlant(240., "onshore")
+eol1.print("Fantanele Cogealav")
+
+eol2 = EolPowerPlant(175., "offshore", rotor_width=120., rotor_peak_power=3.5e6, load_factor=0.36)
+eol2.print("London Array")
 
 atom1 = NuclearPowerPlant(4)
-
-print("")
-print("Power plant type = ",atom1.type)
-print("--------------------------------------------------")
-print("Nominal peak power = ", "%8.1f" % unit.GW_W(atom1.nominal_peak_power), " GW")
-print("Nominal mean power = ", "%8.1f" % unit.GW_W(atom1.nominal_gross_power), " GW")
-print("Yearly gross production = ", "%8.1f" % unit.TWh_J(atom1.gross_yearly_enrg), " TWh")
-print("Yearly net production = ", "%8.1f" % unit.TWh_J(atom1.net_yearly_enrg), " TWh")
-print("Total grey energy = ", "%8.1f" % unit.TWh_J(atom1.total_grey_enrg), " TWh")
-print("Total footprint = ", "%8.1f" % unit.km2_m2(atom1.total_foot_print), " km2")
+atom1.print()
