@@ -44,7 +44,8 @@ class Material(object):
         self.copper = None
         self.lead = None
         self.plastic = None
-        self.quartz_sand = None
+        self.silicon = None
+        self.glass = None
 
 
 
@@ -98,12 +99,13 @@ class PowerPlant(object):
         print("     Copper = ", "%8.0f" % (self.material.copper*1.e-3), " t")
         print("       Lead = ", "%8.0f" % (self.material.lead*1.e-3), " t")
         print("    Plastic = ", "%8.0f" % (self.material.plastic*1.e-3), " t")
-        print("Quartz sand = ", "%8.0f" % (self.material.quartz_sand*1.e-3), " t")
+        print("    Silicon = ", "%8.0f" % (self.material.silicon*1.e-3), " t")
+        print("      Glass = ", "%8.0f" % (self.material.glass*1.e-3), " t")
 
 
 class StPowerPlant(PowerPlant):
 
-    def __init__(self, n_mirror, ref_sun_pw,
+    def __init__(self, n_mirror, mean_sun_pw,
                  reg_factor = 0.,
                  mirror_area = 68.,
                  ground_ratio = 4.,
@@ -125,7 +127,7 @@ class StPowerPlant(PowerPlant):
         self.storage_efficiency = storage_efficiency
         self.grey_energy_ratio = grey_energy_ratio
 
-        self.ref_yearly_sun_power = ref_sun_pw
+        self.mean_yearly_sun_power = mean_sun_pw
         self.load_factor = load_factor
 
         self.total_mirror_area = None
@@ -136,7 +138,7 @@ class StPowerPlant(PowerPlant):
         self.total_mirror_area = self.mirror_area * self.n_mirror
         self.total_footprint = self.total_mirror_area * self.ground_ratio
 
-        self.nominal_peak_power = self.ref_yearly_sun_power * self.total_mirror_area * self.gross_power_efficiency
+        self.nominal_peak_power = self.mean_yearly_sun_power * self.total_mirror_area * self.gross_power_efficiency
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
         self.mean_dayly_energy = self.nominal_mean_power * one_day
 
@@ -160,14 +162,16 @@ class StPowerPlant(PowerPlant):
         self.material.copper = np.nan
         self.material.lead = np.nan
         self.material.plastic = np.nan
-        self.material.quartz_sand = np.nan
+        self.material.silicon = np.nan
+        self.material.glass = np.nan
 
 
 class PvPowerPlant(PowerPlant):
 
-    def __init__(self, n_panel, ref_sun_pw,
+    def __init__(self, n_panel, mean_sun_pw,
+                 ref_sun_power = 1000.,
                  reg_factor = 0.,
-                 panel_area = 8.,
+                 panel_area = 2.,
                  ground_ratio = 2.6,
                  life_time = 25.,
                  gross_power_efficiency = 0.15,
@@ -177,6 +181,7 @@ class PvPowerPlant(PowerPlant):
         super(PvPowerPlant, self).__init__()
 
         self.type = "Photovoltaïc panel"
+        self.ref_sun_power = ref_sun_power
         self.regulation_factor = reg_factor
         self.n_panel = n_panel
         self.panel_area = panel_area
@@ -187,7 +192,8 @@ class PvPowerPlant(PowerPlant):
         self.storage_efficiency = storage_efficiency
         self.grey_energy_ratio = grey_energy_ratio
 
-        self.ref_yearly_sun_power = ref_sun_pw
+        self.mean_yearly_sun_power = mean_sun_pw
+        self.ref_yearly_sun_power = self.ref_sun_power * (mean_sun_pw/250.)
         self.load_factor = load_factor
 
         self.total_panel_area = None
@@ -216,13 +222,14 @@ class PvPowerPlant(PowerPlant):
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
 
-        self.material.concrete = np.nan
-        self.material.steel = np.nan
-        self.material.aluminium = np.nan
-        self.material.copper = np.nan
-        self.material.lead = np.nan
-        self.material.plastic = np.nan
-        self.material.quartz_sand = np.nan
+        self.material.concrete = 0.
+        self.material.steel = 16.5 * self.total_panel_area
+        self.material.aluminium = 0.6 * self.total_panel_area
+        self.material.copper = 0.011 * self.total_panel_area
+        self.material.lead = 0.
+        self.material.plastic = 0.12 * self.total_panel_area
+        self.material.silicon = 2.15 * self.total_panel_area
+        self.material.glass = 8.5 * self.total_panel_area
 
 
 
@@ -295,7 +302,8 @@ class EolPowerPlant(PowerPlant):
         self.material.copper = {"onshore":400., "offshore":3400.}.get(self.location) * self.nominal_peak_power * 1e-6
         self.material.lead = {"onshore":0., "offshore":4000.}.get(self.location) * self.nominal_peak_power * 1e-6
         self.material.plastic = {"onshore":2200., "offshore":2900.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.quartz_sand = {"onshore":0., "offshore":0.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.silicon = {"onshore":0., "offshore":0.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.glass = {"onshore":0., "offshore":0.}.get(self.location) * self.nominal_peak_power * 1e-6
 
 
 
@@ -304,7 +312,7 @@ class NuclearPowerPlant(PowerPlant):
 
     def __init__(self, n_unit,
                  unit_peak_power = 1.0e9,
-                 load_factor = 0.7,
+                 load_factor = 0.75,
                  life_time = 50.,
                  grey_energy_ratio = 0.2,
                  unit_footprint = 0.15e6):
@@ -340,13 +348,23 @@ class NuclearPowerPlant(PowerPlant):
         self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
         self.net_power_efficiency =  np.nan
 
-        self.material.concrete = np.nan
-        self.material.steel = np.nan
-        self.material.aluminium = np.nan
-        self.material.copper = np.nan
+        # ref : for waste storage
+        # Life cycle energy and greenhouse gas emissions of nuclear energy:
+        # A review
+        # Manfred Lenzen
+        # *
+        # ISA, Centre for Integrated Sustainability Analysis, The University of Sydney, Physics Building A28, Sydney, NSW 2006, Australia
+        # Received 13 June 2007; accepted 31 January 2008
+        # Available online 8 April 2008
+        self.material.concrete =   320.e3 * self.nominal_peak_power * 1e-6 \
+                                 + (373.e3/177.) * self.mean_dayly_energy * self.life_time * 1e-9   # Power plant + waste storage
+        self.material.steel =  60.e3 * self.nominal_peak_power * 1e-6
+        self.material.aluminium = 0.14e3 * self.nominal_peak_power * 1e-6
+        self.material.copper = 1.51e3 * self.nominal_peak_power * 1e-6
         self.material.lead = np.nan
         self.material.plastic = np.nan
-        self.material.quartz_sand = np.nan
+        self.material.silicon = np.nan
+        self.material.glass = np.nan
 
 
 
