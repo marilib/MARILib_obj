@@ -35,6 +35,7 @@ one_year = one_day * 365.
 
 
 
+
 class Material(object):
 
     def __init__(self):
@@ -368,6 +369,30 @@ class NuclearPowerPlant(PowerPlant):
 
 
 
+def max_solar_input(latt,long,pamb,day,gmt):
+    """Compute max solar radiation input from location and time on Earth
+
+    :param latt: Lattitude in radians
+    :param long: Longitude in radians
+    :param day: Day of the year, from 1 to 365
+    :param gmt: GMT time in the day, from 0. to 24.
+    :return:
+    """
+    delta = unit.rad_deg(23.45 * np.sin(2.*np.pi*(284.+day)/365.))
+    equ = 0. # output of time equation, neglected here
+    solar_time = gmt + (4.*latt/unit.rad_deg(60.)) - equ
+    eta = unit.rad_deg(15.*(12.-solar_time))
+    sin_a = np.sin(latt) * np.sin(delta) + np.cos(latt)*np.cos(delta)*np.cos(eta)
+    r_out = 1367. * (1. + 0.034*np.cos(2.*np.pi*(day/365.)))
+    m0 = np.sqrt(1229. + (614.*sin_a)**2) - 614.*sin_a
+    p0 = 101325.
+    m = m0*(pamb/p0)
+    tau = 0.6
+    r_direct = r_out + tau**m * sin_a
+    r_diffus = r_out * (0.271 - 0.294*tau**m) * sin_a
+    r_total = r_direct + r_diffus
+    return r_total
+
 
 
 st1 = StPowerPlant(7500., 250., reg_factor=0.51)
@@ -384,3 +409,14 @@ eol2.print("London Array")
 
 atom1 = NuclearPowerPlant(4)
 atom1.print()
+
+
+latt = unit.rad_deg(43.668731)
+long = unit.rad_deg(1.497691)
+pamb = 101325.
+day = 182 #31+29+31+28
+gmt = 5.
+
+pw = max_solar_input(latt,long,pamb,day,gmt)
+
+print("Solar power = ",pw)

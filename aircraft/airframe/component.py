@@ -441,10 +441,10 @@ class Wing(Component):
         return czmax, cz0
 
 
-class VTP_classic(Component):
+class VtpClassic(Component):
 
     def __init__(self, aircraft):
-        super(VTP_classic, self).__init__(aircraft)
+        super(VtpClassic, self).__init__(aircraft)
 
         wing_area = aircraft.airframe.wing.area
 
@@ -525,10 +525,10 @@ class VTP_classic(Component):
         self.area = max(area_1,area_2)
 
 
-class VTP_T(Component):
+class VtpTtail(Component):
 
     def __init__(self, aircraft):
-        super(VTP_T, self).__init__(aircraft)
+        super(VtpTtail, self).__init__(aircraft)
 
         wing_area = aircraft.airframe.wing.area
 
@@ -609,10 +609,10 @@ class VTP_T(Component):
         self.area = max(area_1,area_2)
 
 
-class VTP_H(Component):
+class VtpHtail(Component):
 
     def __init__(self, aircraft):
-        super(VTP_H, self).__init__(aircraft)
+        super(VtpHtail, self).__init__(aircraft)
 
         wing_area = aircraft.airframe.wing.area
 
@@ -689,10 +689,10 @@ class VTP_H(Component):
         self.area = max(area_1,area_2)
 
 
-class HTP_classic(Component):
+class HtpClassic(Component):
 
     def __init__(self, aircraft):
-        super(HTP_classic, self).__init__(aircraft)
+        super(HtpClassic, self).__init__(aircraft)
 
         wing_area = aircraft.airframe.wing.area
 
@@ -772,10 +772,10 @@ class HTP_classic(Component):
         self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
 
-class HTP_T(Component):
+class HtpTtail(Component):
 
     def __init__(self, aircraft):
-        super(HTP_T, self).__init__(aircraft)
+        super(HtpTtail, self).__init__(aircraft)
 
         wing_area = aircraft.airframe.wing.area
 
@@ -856,10 +856,10 @@ class HTP_T(Component):
         self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
 
-class HTP_H(Component):
+class HtpHtail(Component):
 
     def __init__(self, aircraft):
-        super(HTP_H, self).__init__(aircraft)
+        super(HtpHtail, self).__init__(aircraft)
 
         wing_area = aircraft.airframe.wing.area
 
@@ -940,10 +940,10 @@ class HTP_H(Component):
         self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
 
-class Tank_wing_box(Component):
+class TankWingBox(Component):
 
     def __init__(self, aircraft):
-        super(Tank_wing_box, self).__init__(aircraft)
+        super(TankWingBox, self).__init__(aircraft)
 
         self.structure_ratio = 0.
         self.fuel_density = None
@@ -1015,10 +1015,10 @@ class Tank_wing_box(Component):
         self.fuel_max_bwd_mass = self.cantilever_volume*self.fuel_density
 
 
-class Tank_wing_pod(Component):
+class TankWingPod(Component):
 
     def __init__(self, aircraft):
-        super(Tank_wing_pod, self).__init__(aircraft)
+        super(TankWingPod, self).__init__(aircraft)
 
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         n_pax_front = self.aircraft.requirement.n_pax_front
@@ -1093,10 +1093,10 @@ class Tank_wing_pod(Component):
         self.fuel_max_bwd_mass = self.volume*self.fuel_density
 
 
-class Tank_piggy_back(Component):
+class TankPiggyBack(Component):
 
     def __init__(self, aircraft):
-        super(Tank_piggy_back, self).__init__(aircraft)
+        super(TankPiggyBack, self).__init__(aircraft)
 
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         n_pax_front = self.aircraft.requirement.n_pax_front
@@ -1160,10 +1160,10 @@ class Tank_piggy_back(Component):
         self.fuel_max_bwd_mass = self.volume*self.fuel_density
 
 
-class Landing_gear(Component):
+class LandingGear(Component):
 
     def __init__(self, aircraft):
-        super(Landing_gear, self).__init__(aircraft)
+        super(LandingGear, self).__init__(aircraft)
 
     def eval_geometry(self):
         wing_root_c = self.aircraft.airframe.wing.root_c

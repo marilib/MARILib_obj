@@ -12,7 +12,7 @@ from aircraft.airframe import model
 from engine import interface
 
 from aircraft.performance import Performance
-from aircraft.mission import Mission, E_mission
+from aircraft.mission import Mission, MissionIsoMass
 from aircraft.environment import Economics
 from aircraft.environment import Environment
 
@@ -89,45 +89,45 @@ class Aircraft(object):
         self.airframe.cargo = component.Cargo(self)
 
         if (self.arrangement.stab_architecture=="classic"):
-            self.airframe.vertical_stab = component.VTP_classic(self)
-            self.airframe.horizontal_stab = component.HTP_classic(self)
+            self.airframe.vertical_stab = component.VtpClassic(self)
+            self.airframe.horizontal_stab = component.HtpClassic(self)
         elif (self.arrangement.stab_architecture=="t_tail"):
-            self.airframe.vertical_stab = component.VTP_T(self)
-            self.airframe.horizontal_stab = component.HTP_T(self)
+            self.airframe.vertical_stab = component.VtpTtail(self)
+            self.airframe.horizontal_stab = component.HtpTtail(self)
         elif (self.arrangement.stab_architecture=="h_tail"):
-            self.airframe.horizontal_stab = component.HTP_H(self)
-            self.airframe.vertical_stab = component.VTP_H(self)
+            self.airframe.horizontal_stab = component.HtpHtail(self)
+            self.airframe.vertical_stab = component.VtpHtail(self)
         else:
             raise Exception("stab_architecture is unknown")
 
         if (self.arrangement.tank_architecture=="wing_box"):
-            self.airframe.tank = component.Tank_wing_box(self)
+            self.airframe.tank = component.TankWingBox(self)
         elif (self.arrangement.tank_architecture=="piggy_back"):
-            self.airframe.tank = component.Tank_piggy_back(self)
+            self.airframe.tank = component.TankPiggyBack(self)
         elif (self.arrangement.tank_architecture=="pods"):
-            self.airframe.tank = component.Tank_wing_pod(self)
+            self.airframe.tank = component.TankWingPod(self)
         else:
             raise Exception("Type of tank is unknown")
 
-        self.airframe.landing_gear = component.Landing_gear(self)
+        self.airframe.landing_gear = component.LandingGear(self)
 
         if (self.arrangement.power_architecture in ["efb","exefb"]):
-            self.airframe.system = propulsion.System_efb(self)
+            self.airframe.system = propulsion.SystemElectrofanBattery(self)
         else:
             self.airframe.system = propulsion.System(self)
 
         if (self.arrangement.power_architecture=="tf"):
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.Inboard_wing_mounted_tf_nacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self)
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.Outboard_wing_mounted_tf_nacelle(self)
-                    self.airframe.internal_nacelle = propulsion.Inboard_wing_mounted_tf_nacelle(self)
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self)
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.Rear_fuselage_mounted_tf_nacelle(self)
+                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self)
                 else:
                     raise Exception("Number of engines not allowed")
             else:
@@ -155,15 +155,15 @@ class Aircraft(object):
         elif (self.arrangement.power_architecture=="efb"):
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.Inboard_wing_mounted_ef_nacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedEfNacelle(self)
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.Outboard_wing_mounted_ef_nacelle(self)
-                    self.airframe.internal_nacelle = propulsion.Inboard_wing_mounted_ef_nacelle(self)
+                    self.airframe.nacelle = propulsion.OutboardWingMountedEfNacelle(self)
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEfNacelle(self)
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.Rear_fuselage_mounted_ef_nacelle(self)
+                    self.airframe.nacelle = propulsion.RearFuselageMountedEfNacelle(self)
                 else:
                     raise Exception("Number of engines not allowed")
             else:
@@ -204,14 +204,14 @@ class Aircraft(object):
 
         self.aerodynamics = model.Aerodynamics(self)
 
-        self.weight_cg = model.Weight_cg(self)
+        self.weight_cg = model.WeightCg(self)
 
         self.performance = Performance(self)
 
         if (self.arrangement.power_architecture in ["tf","extf"]):
             self.performance.mission = Mission(self)
         elif (self.arrangement.power_architecture in ["efb","exefb"]):
-            self.performance.mission = E_mission(self)
+            self.performance.mission = MissionIsoMass(self)
         else:
             raise Exception("Type of power architecture is unknown")
 

@@ -526,10 +526,8 @@ class Drawing(object):
 
 
 def get_shape():
+    """Total aircraft drag with the assumption that the wing takes all the lift
     """
-    Total aircraft drag with the assumption that the wing takes all the lift
-    """
-
     nose1 = np.array([[ 0.0000 , 0.4453 , 0.4453 , 0.0000 ,  0.0000 ] ,
                       [ 0.0050 , 0.4733 , 0.4112 , 0.0335 , -0.0335 ] ,
                       [ 0.0191 , 0.5098 , 0.3833 , 0.0646 , -0.0646 ] ,

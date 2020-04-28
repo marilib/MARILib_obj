@@ -15,7 +15,7 @@ from context import earth, unit
 from aircraft.airframe.component import Component
 
 
-class Rating_factor(object):
+class RatingFactor(object):
     def __init__(self, MTO=None, MCN=None, MCL=None, MCR=None, FID=None):
         self.MTO = MTO
         self.MCN = MCN
@@ -51,10 +51,10 @@ class System(Component):
                   + 0.10*nacelle_cg
 
 
-class Semi_empiric_tf_nacelle(Component):
+class SemiEmpiricTfNacelle(Component):
 
     def __init__(self, aircraft):
-        super(Semi_empiric_tf_nacelle, self).__init__(aircraft)
+        super(SemiEmpiricTfNacelle, self).__init__(aircraft)
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -63,7 +63,7 @@ class Semi_empiric_tf_nacelle(Component):
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
-        self.rating_factor = Rating_factor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
         self.fuel_heat = self.__fuel_heat__()
         self.tune_factor = 1.
         self.engine_bpr = self.__turbofan_bpr__()
@@ -176,10 +176,10 @@ class Semi_empiric_tf_nacelle(Component):
         return {"sfc":sfc, "thtl":throttle, "t4":t41}
 
 
-class Inboard_wing_mounted_nacelle(Component):
+class InboradWingMountedNacelle(Component):
 
     def __init__(self, aircraft):
-        super(Inboard_wing_mounted_nacelle, self).__init__(aircraft)
+        super(InboradWingMountedNacelle, self).__init__(aircraft)
 
     def __locate_nacelle__(self):
         body_width = self.aircraft.airframe.body.width
@@ -200,10 +200,10 @@ class Inboard_wing_mounted_nacelle(Component):
         return np.array([x_int, y_int, z_int])
 
 
-class Outboard_wing_mounted_nacelle(Component):
+class OutboradWingMountedNacelle(Component):
 
     def __init__(self, aircraft):
-        super(Outboard_wing_mounted_nacelle, self).__init__(aircraft)
+        super(OutboradWingMountedNacelle, self).__init__(aircraft)
 
     def __locate_nacelle__(self):
         body_width = self.aircraft.airframe.body.width
@@ -224,10 +224,10 @@ class Outboard_wing_mounted_nacelle(Component):
         return np.array([x_ext, y_ext, z_ext])
 
 
-class Rear_fuselage_mounted_nacelle(Component):
+class RearFuselageMountedNacelle(Component):
 
     def __init__(self, aircraft):
-        super(Rear_fuselage_mounted_nacelle, self).__init__(aircraft)
+        super(RearFuselageMountedNacelle, self).__init__(aircraft)
 
     def __locate_nacelle__(self):
         body_width = self.aircraft.airframe.body.width
@@ -241,23 +241,23 @@ class Rear_fuselage_mounted_nacelle(Component):
         return np.array([x_int, y_int, z_int])
 
 
-class Outboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Outboard_wing_mounted_nacelle):
+class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboradWingMountedNacelle):
     def __init__(self, aircraft):
-        super(Outboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
+        super(OutboardWingMountedTfNacelle, self).__init__(aircraft)
 
-class Inboard_wing_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Inboard_wing_mounted_nacelle):
+class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboradWingMountedNacelle):
     def __init__(self, aircraft):
-        super(Inboard_wing_mounted_tf_nacelle, self).__init__(aircraft)
+        super(InboardWingMountedTfNacelle, self).__init__(aircraft)
 
-class Rear_fuselage_mounted_tf_nacelle(Semi_empiric_tf_nacelle,Rear_fuselage_mounted_nacelle):
+class RearFuselageMountedTfNacelle(SemiEmpiricTfNacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
-        super(Rear_fuselage_mounted_tf_nacelle, self).__init__(aircraft)
+        super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
 
 
-class System_efb(Component):
+class SystemElectrofanBattery(Component):
 
     def __init__(self, aircraft):
-        super(System_efb, self).__init__(aircraft)
+        super(SystemElectrofanBattery, self).__init__(aircraft)
 
         self.wiring_efficiency = 0.995
         self.wiring_pw_density = 20.e3      # W/kg, Wiring
@@ -304,10 +304,10 @@ class System_efb(Component):
                   + 0.10*power_elec_cg
 
 
-class Semi_empiric_ef_nacelle(Component):
+class SemiEmpiricEfNacelle(Component):
 
     def __init__(self, aircraft):
-        super(Semi_empiric_ef_nacelle, self).__init__(aircraft)
+        super(SemiEmpiricEfNacelle, self).__init__(aircraft)
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -316,7 +316,7 @@ class Semi_empiric_ef_nacelle(Component):
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
         self.reference_power = 0.5*(1./0.8)*(87.26/0.82)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_thrust = self.reference_power*(0.82/87.26)
-        self.rating_factor = Rating_factor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
         self.tune_factor = 1.
         self.efficiency_fan = 0.95
         self.efficiency_prop = 0.82
@@ -543,23 +543,23 @@ class Semi_empiric_ef_nacelle(Component):
         return {"sec":sec, "pw":Pw, "thtl":throttle}
 
 
-class Outboard_wing_mounted_ef_nacelle(Semi_empiric_ef_nacelle,Outboard_wing_mounted_nacelle):
+class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboradWingMountedNacelle):
     def __init__(self, aircraft):
-        super(Outboard_wing_mounted_ef_nacelle, self).__init__(aircraft)
+        super(OutboardWingMountedEfNacelle, self).__init__(aircraft)
 
-class Inboard_wing_mounted_ef_nacelle(Semi_empiric_ef_nacelle,Inboard_wing_mounted_nacelle):
+class InboardWingMountedEfNacelle(SemiEmpiricEfNacelle,InboradWingMountedNacelle):
     def __init__(self, aircraft):
-        super(Inboard_wing_mounted_ef_nacelle, self).__init__(aircraft)
+        super(InboardWingMountedEfNacelle, self).__init__(aircraft)
 
-class Rear_fuselage_mounted_ef_nacelle(Semi_empiric_ef_nacelle,Rear_fuselage_mounted_nacelle):
+class RearFuselageMountedEfNacelle(SemiEmpiricEfNacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
-        super(Rear_fuselage_mounted_ef_nacelle, self).__init__(aircraft)
+        super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
 
 
-class System_pte(Component):
+class SystemPartialTurboelectric(Component):
 
     def __init__(self, aircraft):
-        super(System_efb, self).__init__(aircraft)
+        super(SystemElectrofanBattery, self).__init__(aircraft)
 
         self.generator_efficiency = 0.95
         self.generator_pw_density = 10.e3   # W/kg, Electric generator

@@ -30,12 +30,12 @@ class Requirement(object):
         self.m_pax_nominal = self.__m_pax_nominal__()
         self.m_pax_max = self.__m_pax_max__()
 
-        self.take_off = Take_off_req(arrangement, self)
-        self.approach = Approach_req(arrangement, self)
-        self.oei_ceiling = OEI_ceiling_req(arrangement, self)
-        self.mcl_ceiling = Vz_mcl_req(arrangement, self)
-        self.mcr_ceiling = Vz_mcr_req(arrangement, self)
-        self.time_to_climb = TTC_req(arrangement, self)
+        self.take_off = TakeOffReq(arrangement, self)
+        self.approach = ApproachReq(arrangement, self)
+        self.oei_ceiling = OeiCeilingReq(arrangement, self)
+        self.mcl_ceiling = MclCeilingReq(arrangement, self)
+        self.mcr_ceiling = McrCeilingReq(arrangement, self)
+        self.time_to_climb = TtcReq(arrangement, self)
 
     def __n_pax_front__(self):
         if  (self.n_pax_ref<=8):   n_pax_front = 2
@@ -79,7 +79,7 @@ class Requirement(object):
         return cost_mission_range
 
 
-class Take_off_req(object):
+class TakeOffReq(object):
     """Initialize take off requirements
     """
     def __init__(self, arrangement, requirement):
@@ -107,7 +107,7 @@ class Take_off_req(object):
         return tofl_req
 
 
-class Approach_req(object):
+class ApproachReq(object):
     """Initialize approach requirements
     """
     def __init__(self, arrangement, requirement):
@@ -124,7 +124,7 @@ class Approach_req(object):
         return app_speed_req
 
 
-class OEI_ceiling_req(object):
+class OeiCeilingReq(object):
     """Initialize one engine inoperative ceiling requirements
     """
     def __init__(self, arrangement, requirement):
@@ -145,7 +145,7 @@ class OEI_ceiling_req(object):
         return oei_min_path
 
 
-class Climb_req(object):
+class ClimbReq(object):
     """Initialize climb speed requirements
     """
     def __init__(self, arrangement, requirement):
@@ -166,31 +166,31 @@ class Climb_req(object):
         return top_of_climb
 
 
-class Vz_mcl_req(Climb_req):
+class MclCeilingReq(ClimbReq):
     """Initialize climb speed requirements in MCL rating
     """
     def __init__(self, arrangement, requirement):
-        super(Vz_mcl_req, self).__init__(arrangement, requirement)
+        super(MclCeilingReq, self).__init__(arrangement, requirement)
         self.rating = "MCL"
         self.speed_mode = "cas"
         self.vz_req = unit.mps_ftpmin(300.)
 
 
-class Vz_mcr_req(Climb_req):
+class McrCeilingReq(ClimbReq):
     """Initialize climb speed requirements in MCR rating
     """
     def __init__(self, arrangement, requirement):
-        super(Vz_mcr_req, self).__init__(arrangement, requirement)
+        super(McrCeilingReq, self).__init__(arrangement, requirement)
         self.rating = "MCR"
         self.speed_mode = "mach"
         self.vz_req = unit.mps_ftpmin(0.)
 
 
-class TTC_req(Climb_req):
+class TtcReq(ClimbReq):
     """Initialize time to climb requirements
     """
     def __init__(self, arrangement, requirement):
-        super(TTC_req, self).__init__(arrangement, requirement)
+        super(TtcReq, self).__init__(arrangement, requirement)
         self.cas1 = self.__ttc_cas1__(requirement)
         self.altp1 = unit.m_ft(1500.)
         self.cas2 = self.__ttc_cas2__(requirement)

@@ -21,12 +21,12 @@ class Performance(object):
         self.aircraft = aircraft
 
         self.mission = None
-        self.take_off = Take_off(aircraft)
+        self.take_off = TakeOff(aircraft)
         self.approach = Approach(aircraft)
-        self.mcr_ceiling = MCR_ceiling(aircraft)
-        self.mcl_ceiling = MCL_ceiling(aircraft)
-        self.oei_ceiling = OEI_ceiling(aircraft)
-        self.time_to_climb = Time_to_Climb(aircraft)
+        self.mcr_ceiling = McrCeiling(aircraft)
+        self.mcl_ceiling = MclCeiling(aircraft)
+        self.oei_ceiling = OeiCeiling(aircraft)
+        self.time_to_climb = TimeToClimb(aircraft)
 
     def analysis(self):
         """Evaluate general performances of the airplane
@@ -321,11 +321,11 @@ class Flight(object):
         return acc
 
 
-class Take_off(Flight):
+class TakeOff(Flight):
     """Take Off Field Length
     """
     def __init__(self, aircraft):
-        super(Take_off, self).__init__(aircraft)
+        super(TakeOff, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.disa = None
@@ -437,11 +437,11 @@ class Approach():
         return {"vapp":vapp}
 
 
-class MCL_ceiling(Flight):
+class MclCeiling(Flight):
     """Propulsion ceiling in MCL rating
     """
     def __init__(self, aircraft):
-        super(MCL_ceiling, self).__init__(aircraft)
+        super(MclCeiling, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.disa = None
@@ -471,11 +471,11 @@ class MCL_ceiling(Flight):
         return {"vz":vz, "slope":slope}
 
 
-class MCR_ceiling(Flight):
+class McrCeiling(Flight):
     """Propulsion ceiling in MCR rating
     """
     def __init__(self, aircraft):
-        super(MCR_ceiling, self).__init__(aircraft)
+        super(McrCeiling, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.disa = None
@@ -505,11 +505,11 @@ class MCR_ceiling(Flight):
         return {"vz":vz, "slope":slope}
 
 
-class OEI_ceiling(Flight):
+class OeiCeiling(Flight):
     """Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(OEI_ceiling, self).__init__(aircraft)
+        super(OeiCeiling, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.disa = None
@@ -537,12 +537,12 @@ class OEI_ceiling(Flight):
         return {"path":path, "vz":vz, "mach":mach, "cz":cz}
 
 
-class Time_to_Climb(Flight):
+class TimeToClimb(Flight):
     """
     Definition of all mission types
     """
     def __init__(self, aircraft):
-        super(Time_to_Climb, self).__init__(aircraft)
+        super(TimeToClimb, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.disa = None

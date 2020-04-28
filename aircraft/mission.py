@@ -12,11 +12,11 @@ from scipy.optimize import fsolve
 
 from aircraft.performance import Flight
 
-class Basic_mission(Flight):
+class MissionBasic(Flight):
     """Definition of all mission types for fuel powered airplanes
     """
     def __init__(self, aircraft):
-        super(Basic_mission, self).__init__(aircraft)
+        super(MissionBasic, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.max_payload = None
@@ -59,18 +59,18 @@ class Basic_mission(Flight):
         self.cost.eval(range,payload,owe,altp,mach,disa)
 
 
-class E_mission(Basic_mission):
+class MissionIsoMass(MissionBasic):
     """Definition of all mission types for battery powered airplanes
     """
     def __init__(self, aircraft):
-        super(E_mission, self).__init__(aircraft)
+        super(MissionIsoMass, self).__init__(aircraft)
         self.aircraft = aircraft
 
-        self.max_payload = E_mission_range_from_payload_and_tow(aircraft)
-        self.nominal = E_mission_batt_from_range_and_tow(aircraft)
-        self.max_fuel = E_mission_range_from_batt_and_tow(aircraft)
-        self.zero_payload = E_mission_range_from_batt_and_payload(aircraft)
-        self.cost = E_mission_batt_from_range_and_payload(aircraft)
+        self.max_payload = MissionIsoMassRangeFromPayloadAndTow(aircraft)
+        self.nominal = MissionIsoMassBatteryFromRangeAndTow(aircraft)
+        self.max_fuel = MissionIsoMassRangeFromBatteryAndTow(aircraft)
+        self.zero_payload = MissionIsoMassRangeFromBatteryAndPayload(aircraft)
+        self.cost = MissionIsoMassBatteryFromRangeAndPayload(aircraft)
 
         self.crz_esar = None
         self.crz_cz = None
@@ -142,11 +142,11 @@ class E_mission(Basic_mission):
         self.aircraft.performance.mission.payload_range()
 
 
-class E_mission_batt_from_range_and_tow(Flight):
+class MissionIsoMassBatteryFromRangeAndTow(Flight):
     """Define common features for all mission types.
     """
     def __init__(self, aircraft):
-        super(E_mission_batt_from_range_and_tow, self).__init__(aircraft)
+        super(MissionIsoMassBatteryFromRangeAndTow, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.disa = None    # Mean cruise temperature shift
@@ -266,14 +266,14 @@ class E_mission_batt_from_range_and_tow(Flight):
         return
 
 
-class E_mission_range_from_payload_and_tow(E_mission_batt_from_range_and_tow):
+class MissionIsoMassRangeFromPayloadAndTow(MissionIsoMassBatteryFromRangeAndTow):
     """Specific mission evaluation from payload and take off weight
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and total_fuel from payload and tow
     """
     def __init__(self, aircraft):
-        super(E_mission_range_from_payload_and_tow, self).__init__(aircraft)
+        super(MissionIsoMassRangeFromPayloadAndTow, self).__init__(aircraft)
 
     def eval(self,payload,tow,owe,altp,mach,disa):
         self.disa = disa    # Mean cruise temperature shift
@@ -294,14 +294,14 @@ class E_mission_range_from_payload_and_tow(E_mission_batt_from_range_and_tow):
         self.eval_breguet(self.range,tow,altp,mach,disa)
 
 
-class E_mission_range_from_batt_and_tow(E_mission_batt_from_range_and_tow):
+class MissionIsoMassRangeFromBatteryAndTow(MissionIsoMassBatteryFromRangeAndTow):
     """Specific mission evaluation from total fuel and take off weight
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and payload from total_fuel and tow
     """
     def __init__(self, aircraft):
-        super(E_mission_range_from_batt_and_tow, self).__init__(aircraft)
+        super(MissionIsoMassRangeFromBatteryAndTow, self).__init__(aircraft)
 
     def eval(self,battery_mass,tow,owe,altp,mach,disa):
         self.disa = disa    # Mean cruise temperature shift
@@ -322,14 +322,14 @@ class E_mission_range_from_batt_and_tow(E_mission_batt_from_range_and_tow):
         self.eval_breguet(self.range,tow,altp,mach,disa)
 
 
-class E_mission_range_from_batt_and_payload(E_mission_batt_from_range_and_tow):
+class MissionIsoMassRangeFromBatteryAndPayload(MissionIsoMassBatteryFromRangeAndTow):
     """Specific mission evaluation from payload and total fuel
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and tow from total_fuel and payload
     """
     def __init__(self, aircraft):
-        super(E_mission_range_from_batt_and_payload, self).__init__(aircraft)
+        super(MissionIsoMassRangeFromBatteryAndPayload, self).__init__(aircraft)
 
     def eval(self,battery_mass,payload,owe,altp,mach,disa):
         self.disa = disa    # Mean cruise temperature shift
@@ -350,14 +350,14 @@ class E_mission_range_from_batt_and_payload(E_mission_batt_from_range_and_tow):
         self.eval_breguet(self.range,self.tow,altp,mach,disa)
 
 
-class E_mission_batt_from_range_and_payload(E_mission_batt_from_range_and_tow):
+class MissionIsoMassBatteryFromRangeAndPayload(MissionIsoMassBatteryFromRangeAndTow):
     """Specific mission evaluation from range and payload
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes total_fuel and tow from range and payload
     """
     def __init__(self, aircraft):
-        super(E_mission_batt_from_range_and_payload, self).__init__(aircraft)
+        super(MissionIsoMassBatteryFromRangeAndPayload, self).__init__(aircraft)
 
     def eval(self,range,payload,owe,altp,mach,disa):
         self.range = range     # Take Off Weight
@@ -378,19 +378,19 @@ class E_mission_batt_from_range_and_payload(E_mission_batt_from_range_and_tow):
         self.eval_breguet(self.range,self.tow,altp,mach,disa)
 
 
-class Mission(Basic_mission):
+class Mission(MissionBasic):
     """Definition of all mission types for fuel powered airplanes
     """
     def __init__(self, aircraft):
         super(Mission, self).__init__(aircraft)
         self.aircraft = aircraft
 
-        self.max_payload = Mission_range_from_payload_and_tow(aircraft)
+        self.max_payload = MissionRangeFromPayloadAndTow(aircraft)
         #self.max_payload2 = Mission_generic(aircraft)
-        self.nominal = Mission_fuel_from_range_and_tow(aircraft)
-        self.max_fuel = Mission_range_from_fuel_and_tow(aircraft)
-        self.zero_payload = Mission_range_from_fuel_and_payload(aircraft)
-        self.cost = Mission_fuel_from_range_and_payload(aircraft)
+        self.nominal = MissionFuelFromRangeAndTow(aircraft)
+        self.max_fuel = MissionRangeFromFuelAndTow(aircraft)
+        self.zero_payload = MissionRangeFromFuelAndPayload(aircraft)
+        self.cost = MissionFuelFromRangeAndPayload(aircraft)
 
         self.ktow = 0.90    # TOW ratio at which cruise mean consumption is computed for fueled airplanes only
 
@@ -464,11 +464,11 @@ class Mission(Basic_mission):
         self.aircraft.performance.mission.payload_range()
 
 
-class Mission_fuel_from_range_and_tow(Flight):
+class MissionFuelFromRangeAndTow(Flight):
     """Define common features for all mission types.
     """
     def __init__(self, aircraft):
-        super(Mission_fuel_from_range_and_tow, self).__init__(aircraft)
+        super(MissionFuelFromRangeAndTow, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.disa = None    # Mean cruise temperature shift
@@ -591,14 +591,14 @@ class Mission_fuel_from_range_and_tow(Flight):
         return
 
 
-class Mission_range_from_payload_and_tow(Mission_fuel_from_range_and_tow):
+class MissionRangeFromPayloadAndTow(MissionFuelFromRangeAndTow):
     """Specific mission evaluation from payload and take off weight
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and total_fuel from payload and tow
     """
     def __init__(self, aircraft):
-        super(Mission_range_from_payload_and_tow, self).__init__(aircraft)
+        super(MissionRangeFromPayloadAndTow, self).__init__(aircraft)
 
     def eval(self,payload,tow,owe,altp,mach,disa):
         self.disa = disa    # Mean cruise temperature shift
@@ -619,14 +619,14 @@ class Mission_range_from_payload_and_tow(Mission_fuel_from_range_and_tow):
         self.eval_breguet(self.range,tow,altp,mach,disa)
 
 
-class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
+class MissionRangeFromFuelAndTow(MissionFuelFromRangeAndTow):
     """Specific mission evaluation from total fuel and take off weight
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and payload from total_fuel and tow
     """
     def __init__(self, aircraft):
-        super(Mission_range_from_fuel_and_tow, self).__init__(aircraft)
+        super(MissionRangeFromFuelAndTow, self).__init__(aircraft)
 
     def eval(self,fuel_total,tow,owe,altp,mach,disa):
         self.disa = disa    # Mean cruise temperature shift
@@ -647,14 +647,14 @@ class Mission_range_from_fuel_and_tow(Mission_fuel_from_range_and_tow):
         self.eval_breguet(self.range,tow,altp,mach,disa)
 
 
-class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
+class MissionRangeFromFuelAndPayload(MissionFuelFromRangeAndTow):
     """Specific mission evaluation from payload and total fuel
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and tow from total_fuel and payload
     """
     def __init__(self, aircraft):
-        super(Mission_range_from_fuel_and_payload, self).__init__(aircraft)
+        super(MissionRangeFromFuelAndPayload, self).__init__(aircraft)
 
     def eval(self,fuel_total,payload,owe,altp,mach,disa):
         self.disa = disa    # Mean cruise temperature shift
@@ -675,14 +675,14 @@ class Mission_range_from_fuel_and_payload(Mission_fuel_from_range_and_tow):
         self.eval_breguet(self.range,self.tow,altp,mach,disa)
 
 
-class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
+class MissionFuelFromRangeAndPayload(MissionFuelFromRangeAndTow):
     """Specific mission evaluation from range and payload
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes total_fuel and tow from range and payload
     """
     def __init__(self, aircraft):
-        super(Mission_fuel_from_range_and_payload, self).__init__(aircraft)
+        super(MissionFuelFromRangeAndPayload, self).__init__(aircraft)
 
     def eval(self,range,payload,owe,altp,mach,disa):
         self.range = range     # Take Off Weight
@@ -711,14 +711,14 @@ class Mission_fuel_from_range_and_payload(Mission_fuel_from_range_and_tow):
 
 # TODO
 
-class Mission_generic(Mission_fuel_from_range_and_tow):
+class MissionGeneric(MissionFuelFromRangeAndTow):
     """Specific mission evaluation from payload and take off weight
     Four variables are driving mission computation : total_fuel, tow, payload & range
     Two of them are necessary to compute the two others
     This version computes range and total_fuel from payload and tow
     """
     def __init__(self, aircraft):
-        super(Mission_generic, self).__init__(aircraft)
+        super(MissionGeneric, self).__init__(aircraft)
 
     def eval(self,owe,altp,mach,disa,**kwargs):
         """Generic mission solver
@@ -758,7 +758,7 @@ class Mission_generic(Mission_fuel_from_range_and_tow):
         self.eval_breguet(range,tow,altp,mach,disa)
 
 
-class Mission_def(object):
+class MissionDef(object):
     """Defines a mission evaluation for a fuel based propulsion system (kerozen, H2 ...etc)"""
     def __init__(self,aircraft):
         # Inputs

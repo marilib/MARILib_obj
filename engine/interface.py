@@ -15,10 +15,10 @@ from engine.ExergeticEngine import Turbofan, ElectricFan
 
 from aircraft.airframe.component import Component
 
-from aircraft.airframe.propulsion import Rating_factor, \
-                                         Inboard_wing_mounted_nacelle,\
-                                         Outboard_wing_mounted_nacelle,\
-                                         Rear_fuselage_mounted_nacelle
+from aircraft.airframe.propulsion import RatingFactor, \
+                                         InboradWingMountedNacelle,\
+                                         OutboradWingMountedNacelle,\
+                                         RearFuselageMountedNacelle
 
 
 class Exergetic_tf_nacelle(Component):
@@ -36,7 +36,7 @@ class Exergetic_tf_nacelle(Component):
         self.reference_offtake = 0.
         self.reference_wBleed = 0.
         # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
-        self.rating_factor = Rating_factor(MTO=1.00, MCN=0.95, MCL=0.85, MCR=0.78, FID=0.55)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.95, MCL=0.85, MCR=0.78, FID=0.55)
         self.engine_bpr = 14.
         self.engine_fpr = 1.15
         self.engine_lpc_pr = 3.0
@@ -94,7 +94,7 @@ class Exergetic_tf_nacelle(Component):
                                        self.engine_fpr,
                                        self.engine_lpc_pr,
                                        self.engine_hpc_pr,
-                                       Ttmax = self.engine_T4max * self.rating_factor["MCR"],
+                                       Ttmax = self.engine_T4max * self.rating_factor.MCR,
                                        HPX = self.reference_offtake,
                                        wBleed = self.reference_wBleed)
 
@@ -194,15 +194,15 @@ class Exergetic_tf_nacelle(Component):
         return sfc, kT4
 
 
-class Outboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Outboard_wing_mounted_nacelle):
+class Outboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,OutboradWingMountedNacelle):
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
 
-class Inboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,Inboard_wing_mounted_nacelle):
+class Inboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,InboradWingMountedNacelle):
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
 
-class Rear_fuselage_mounted_extf_nacelle(Exergetic_tf_nacelle,Rear_fuselage_mounted_nacelle):
+class Rear_fuselage_mounted_extf_nacelle(Exergetic_tf_nacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
         super(Rear_fuselage_mounted_extf_nacelle, self).__init__(aircraft)
 
@@ -222,7 +222,7 @@ class Exergetic_ef_nacelle(Component):
         self.reference_thrust = None
         self.reference_power = None
         # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
-        self.rating_factor = Rating_factor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
         self.engine_fpr = 1.45
         self.drag_bli = 0.
         self.motor_efficiency = 0.95
@@ -355,15 +355,15 @@ class Exergetic_ef_nacelle(Component):
         return {"sec":sec, "thtl":throttle}
 
 
-class Outboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,Outboard_wing_mounted_nacelle):
+class Outboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,OutboradWingMountedNacelle):
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
 
-class Inboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,Inboard_wing_mounted_nacelle):
+class Inboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,InboradWingMountedNacelle):
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
 
-class Rear_fuselage_mounted_exef_nacelle(Exergetic_ef_nacelle,Rear_fuselage_mounted_nacelle):
+class Rear_fuselage_mounted_exef_nacelle(Exergetic_ef_nacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
         super(Rear_fuselage_mounted_exef_nacelle, self).__init__(aircraft)
 

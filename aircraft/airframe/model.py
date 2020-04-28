@@ -118,7 +118,7 @@ class Aerodynamics(object):
         return lodmax,cz_lodmax
 
 
-class Weight_cg(object):
+class WeightCg(object):
 
     def __init__(self, aircraft):
         self.aircraft = aircraft
@@ -199,7 +199,7 @@ class Weight_cg(object):
 
 
 #--------------------------------------------------------------------------------------------------------------------------------
-class Thrust_data(object):
+class ThrustData(object):
     def __init__(self, nei=0):
         self.disa = None
         self.altp = None
@@ -208,16 +208,16 @@ class Thrust_data(object):
         self.kfn_opt = None
 
 
-class Power_system(object):
+class PowerSystem(object):
 
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
         self.fuel_density = self.__fuel_density__()
-        mto = Thrust_data(nei=1)
-        mcn = Thrust_data(nei=1)
-        mcl = Thrust_data(nei=0)
-        mcr = Thrust_data(nei=0)
+        mto = ThrustData(nei=1)
+        mcn = ThrustData(nei=1)
+        mcl = ThrustData(nei=0)
+        mcr = ThrustData(nei=0)
         self.data = {"MTO":mto, "MCN":mcn, "MCL":mcl, "MCR":mcr}
 
     def __fuel_density__(self):
@@ -280,9 +280,9 @@ class Power_system(object):
         raise NotImplementedError
 
 
-class Thrust_data_tf(Thrust_data):
+class ThrustDataTf(ThrustData):
     def __init__(self, nei):
-        super(Thrust_data_tf, self).__init__(nei)
+        super(ThrustDataTf, self).__init__(nei)
         self.thrust_opt = None
         self.thrust = None
         self.fuel_flow = None
@@ -290,15 +290,15 @@ class Thrust_data_tf(Thrust_data):
         self.T41 = None
 
 
-class Turbofan(Power_system, Flight):
+class Turbofan(PowerSystem, Flight):
 
     def __init__(self, aircraft):
         super(Turbofan, self).__init__(aircraft)
 
-        mto = Thrust_data_tf(nei=1)
-        mcn = Thrust_data_tf(nei=1)
-        mcl = Thrust_data_tf(nei=0)
-        mcr = Thrust_data_tf(nei=0)
+        mto = ThrustDataTf(nei=1)
+        mcn = ThrustDataTf(nei=1)
+        mcl = ThrustDataTf(nei=0)
+        mcr = ThrustDataTf(nei=0)
         self.data = {"MTO":mto, "MCN":mcn, "MCL":mcl, "MCR":mcr}
 
     def thrust_analysis(self):
@@ -355,24 +355,24 @@ class Turbofan(Power_system, Flight):
         return 1.
 
 
-class Thrust_data_ef(Thrust_data):
+class ThrustDataEf(ThrustData):
     def __init__(self, nei):
-        super(Thrust_data_ef, self).__init__(nei)
+        super(ThrustDataEf, self).__init__(nei)
         self.thrust_opt = None
         self.thrust = None
         self.power = None
         self.sec = None
 
 
-class Electrofan(Power_system, Flight):
+class Electrofan(PowerSystem, Flight):
 
     def __init__(self, aircraft):
         super(Electrofan, self).__init__(aircraft)
 
-        mto = Thrust_data_ef(nei=1)
-        mcn = Thrust_data_ef(nei=1)
-        mcl = Thrust_data_ef(nei=0)
-        mcr = Thrust_data_ef(nei=0)
+        mto = ThrustDataEf(nei=1)
+        mcn = ThrustDataEf(nei=1)
+        mcl = ThrustDataEf(nei=0)
+        mcr = ThrustDataEf(nei=0)
         self.data = {"MTO":mto, "MCN":mcn, "MCL":mcl, "MCR":mcr}
 
     def thrust_analysis(self):
