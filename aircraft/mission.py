@@ -702,14 +702,7 @@ class MissionFuelFromRangeAndPayload(MissionFuelFromRangeAndTow):
         self.tow = output_dict[0][0]
         self.eval_breguet(self.range,self.tow,altp,mach,disa)
 
-
-
-
-
-
-
-
-# TODO
+# TODO Clean the following class :
 
 class MissionGeneric(MissionFuelFromRangeAndTow):
     """Specific mission evaluation from payload and take off weight
@@ -758,7 +751,7 @@ class MissionGeneric(MissionFuelFromRangeAndTow):
         self.eval_breguet(range,tow,altp,mach,disa)
 
 
-class MissionDef(object):
+class Mission_def(object):
     """Defines a mission evaluation for a fuel based propulsion system (kerozen, H2 ...etc)"""
     def __init__(self,aircraft):
         # Inputs
@@ -780,10 +773,10 @@ class MissionDef(object):
         self.reserve_fuel_ratio = self.__reserve_fuel_ratio__()  # Ratio of mission fuel to account into reserve
         self.diversion_range = self.__diversion_range__()  # Diversion leg
 
-    def set_mission_parameters(self,mach=None, altp=None, disa=None, owe=None):
+    def set_parameters(self,mach=None, altp=None, disa=None, owe=None):
         """Set the flight condition of the mission:
-            1) reset to default aircraft requirements value if no value is specified
-            2) Change only one attribut if a value is specified
+            1) if one or more value is specified : set the corresponding mission attributes
+            2) if no value is specified : reset mission parameters to default aircraft requirements
 
         :param mach: cruise Mach number
         :param altp: cruise altitude
@@ -809,15 +802,7 @@ class MissionDef(object):
     def eval(self, inputs={'range':None,'tow':None}, **kwargs):
         """Solve mission equations for given inputs.
         During a mission at given cruise mach, altitude, temperature shift (disa) and Operating Weight Empty (owe)
-        the four following parameters are linked
-            * tow : Take-Off Weight
-            * payload : weight of Payload
-            * range : mission range
-            * fuel_total : weight of fuel taking into account safety margins
-        by two equations :
-            1) fSolve mission constraint for given inputs.
-        During a mission at given cruise mach, altitude, temperature shift (disa) and Operating Weight Empty (owe)
-        the four following variables are linked
+        the four following parameters are linked together
             * tow : Take-Off Weight
             * payload : weight of Payload
             * range : mission range
@@ -829,7 +814,8 @@ class MissionDef(object):
 
         :param inputs: a dictionary of two fixed parameters. Default is {'range','tow'}
         :param kwargs: optional named parameters for set_mission_parameters(**kwargs)
-        :return: a dictionary of the two remaining unknown parameter. By default {'range':value, 'fuel_total':value}
+        :return: a dictionary of the two remaining unknown parameter. By default {'range', 'fuel_total'}
+        Throws error if fsolve does not converge.
         """
         # range,tow,altp,mach,disa
         # payload,tow,owe,altp,mach,disa
@@ -839,29 +825,71 @@ class MissionDef(object):
         # range, tow, altp, mach, disa, payload, owe, fuel_total
 
         if len(kwargs)>0:
-            self.set_mission_parameters(**kwargs)
-
-        # Read the 2 inputs and store values in attributs
-        for key,val in inputs:
-            self.__dict__[key] = val
+            self.set_parameters(**kwargs)
 
         # Build the unknown dict
         all_variables = ['range','tow','payload','fuel_total']
         unknowns = []
-        for name in all_variables:
+        for name in sorted(all_variables):
             if name not in inputs.keys():
-                unknowns.append(name)
-        unknowns = dict.fromkeys(unknowns) # Build an empty dict
+                unknowns.append(name) # add a new unknown
+            else:
+                self.__dict__[name] = inputs[name] # set the input value in the mission attribute
 
-        # TODO: implement the solve function
+        # TODO: check the implementation with Thierry
+        x0 = self.__init_unknowns(unknowns)
+        x = fsolve(self.__mission_equations_to_solve(), x0, args=({'inputs': inputs.keys(), 'unknowns': unknowns}))
 
-        self.bob
-        self.range = range  # Mission distance
-        self.tow = tow  # Take Off Weight
-        self.eval_breguet(range, tow, altp, mach, disa)
-        self.eval_payload(owe)
+        for k,solution in enumerate(x): # store the solutions
+            self.__dict__[unknowns[k]] = solution # set the value in the mission attribute
 
-    def __reserve_fuel_ratio__(self):
+        return x
+
+
+    def __init_unknowns(self,unknowns):
+        """Initialize the value of the unknowns before calling fsolve
+        :param unknowns: a list of two variable names in ['range', 'tow', 'payload', 'fuel_total']
+        :return: two init values
+        """
+        x0 = []
+        for k,unknown in enumerate(unknowns):
+            if (unknown == "fuel_total"):
+                x0[k] = 0.25 * self.owe
+            elif (unknown == "payload"):
+                x0[k] = 0.25 * self.owe
+            elif (unknown == "range"):
+                x0[k] = self.aircraft.requirement.design_range
+            elif (unknown == "tow"):
+                x0[k] = self.aircraft.weight_cg.mtow
+        return x0
+
+    def __mission_equations_to_solve(self, unknowns, *args):
+        """The set of two equations to solve to determine the two unknowns:
+            1) `fuel_total - eval_Breguet(range,tow, altp, mach, disa) = 0`
+            2) `tow - payload - fuel_total - owe = 0`
+        :param unknowns: a list of two guess values for the unknowns
+        :param args: a tuple containing a dict of inputs and unknowns names in ['range', 'tow', 'payload', 'fuel_total']
+        :return: the values of the two equations
+        """
+        inputs = args[0]['inputs']
+        unknowns = args[0]['unknowns']
+
+        xx = {'range':None, 'tow':None, 'payload':None, 'fuel_total':None}
+
+        k = 0
+        for name in sorted(xx.keys()):
+            if name in inputs:
+                xx[name] = self.__dict__[name]
+            elif name in unknowns:
+                xx[name] = unknowns[k]
+                k += 1
+
+        eq1 = xx['fuel_total'] - self.eval_breguet(xx['range'], xx['tow'], xx['atlp'], xx['mach'], xx['disa'])
+        eq2 = xx['tow'] - xx['fuel_total'] - xx['owe'] - xx['payload']
+
+        return eq1,eq2
+
+    def __reserve_fuel_ratio(self):
         design_range = self.aircraft.requirement.design_range
         if (design_range > unit.m_NM(6500.)):
             reserve_fuel_ratio = 0.03
@@ -869,7 +897,7 @@ class MissionDef(object):
             reserve_fuel_ratio = 0.05
         return reserve_fuel_ratio
 
-    def __diversion_range__(self):
+    def __diversion_range(self):
         design_range = self.aircraft.requirement.design_range
         if (design_range > unit.m_NM(200.)):
             diversion_range = unit.m_NM(200.)
@@ -883,10 +911,6 @@ class MissionDef(object):
         """
         self.payload = self.tow - self.fuel_total - owe
 
-    def __mass_equation_to_solve__(self,unknowns,**kargs): # TODO
-        all_variables = ['range','tow','payload','fuel_total']
-
-        return kwargs['tow'] - kwargs['fuel_total'] - kwargs['owe'] - kwargs['payload']
 
     def eval_breguet(self, range, tow, altp, mach, disa):
         """
