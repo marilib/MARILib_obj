@@ -702,7 +702,6 @@ class MissionFuelFromRangeAndPayload(MissionFuelFromRangeAndTow):
         self.tow = output_dict[0][0]
         self.eval_breguet(self.range,self.tow,altp,mach,disa)
 
-# TODO Clean the following class :
 
 class MissionGeneric(MissionFuelFromRangeAndTow):
     """Specific mission evaluation from payload and take off weight
@@ -751,7 +750,7 @@ class MissionGeneric(MissionFuelFromRangeAndTow):
         self.eval_breguet(range,tow,altp,mach,disa)
 
 
-class Mission_def(object):
+class MissionDef(Flight):
     """Defines a mission evaluation for a fuel based propulsion system (kerozen, H2 ...etc)"""
     def __init__(self,aircraft):
         # Inputs
@@ -770,8 +769,8 @@ class Mission_def(object):
         self.fuel_total = None  # Mission total fuel
 
         self.holding_time = unit.s_min(30)  # Holding duration
-        self.reserve_fuel_ratio = self.__reserve_fuel_ratio__()  # Ratio of mission fuel to account into reserve
-        self.diversion_range = self.__diversion_range__()  # Diversion leg
+        self.reserve_fuel_ratio = self.__reserve_fuel_ratio()  # Ratio of mission fuel to account into reserve
+        self.diversion_range = self.__diversion_range()  # Diversion leg
 
     def set_parameters(self,mach=None, altp=None, disa=None, owe=None):
         """Set the flight condition of the mission:
@@ -838,12 +837,14 @@ class Mission_def(object):
 
         # TODO: check the implementation with Thierry
         x0 = self.__init_unknowns(unknowns)
-        x = fsolve(self.__mission_equations_to_solve(), x0, args=({'inputs': inputs.keys(), 'unknowns': unknowns}))
+        x = fsolve(self.__mission_equations_to_solve, x0, args=({'inputs': inputs.keys(), 'unknowns': unknowns}))
 
+        output = {}
         for k,solution in enumerate(x): # store the solutions
             self.__dict__[unknowns[k]] = solution # set the value in the mission attribute
+            output[unknowns[k]] = solution
 
-        return x
+        return output
 
 
     def __init_unknowns(self,unknowns):
@@ -851,7 +852,7 @@ class Mission_def(object):
         :param unknowns: a list of two variable names in ['range', 'tow', 'payload', 'fuel_total']
         :return: two init values
         """
-        x0 = []
+        x0 = [None,None]
         for k,unknown in enumerate(unknowns):
             if (unknown == "fuel_total"):
                 x0[k] = 0.25 * self.owe
@@ -877,14 +878,14 @@ class Mission_def(object):
         xx = {'range':None, 'tow':None, 'payload':None, 'fuel_total':None}
 
         k = 0
-        for name in sorted(xx.keys()):
+        for name in sorted(xx.keys()): # iterate over the list
             if name in inputs:
-                xx[name] = self.__dict__[name]
+                xx[name] = self.__dict__[name]  # read the value  of the attribute
             elif name in unknowns:
-                xx[name] = unknowns[k]
+                xx[name] = unknowns[k]  # read the value in the unknown list : the order matters -> sorted()
                 k += 1
 
-        eq1 = xx['fuel_total'] - self.eval_breguet(xx['range'], xx['tow'], xx['atlp'], xx['mach'], xx['disa'])
+        eq1 = xx['fuel_total'] - self.eval_breguet(xx['range'], xx['tow'], self.altp, self.mach, self.disa)
         eq2 = xx['tow'] - xx['fuel_total'] - xx['owe'] - xx['payload']
 
         return eq1,eq2
@@ -911,14 +912,25 @@ class Mission_def(object):
         """
         self.payload = self.tow - self.fuel_total - owe
 
+    def breguet_range(self,range,tow,altp,mach,disa):
+        """Breguet range equation is dependant from power source : fuel or battery
+        """
+        g = earth.gravity()
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        tas = mach * earth.sound_speed(tamb)
+
+        dict = self.level_flight(pamb,tamb,mach,tow)
+        enrg = tow*g*range*dict["sec"] / (tas*dict["lod"])
+        time = 1.09*(range/tas)
+
+        return enrg,time
 
     def eval_breguet(self, range, tow, altp, mach, disa):
         """
         Mission computation using breguet equation, fixed L/D and fixed sfc
         """
-
         g = earth.gravity()
-        fhv = self.aircraft.power_system.fuel_heat
         n_engine = self.aircraft.airframe.nacelle.n_engine
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
         engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
@@ -933,9 +945,9 @@ class Mission_def(object):
 
         # Mission leg
         # -----------------------------------------------------------------------------------------------------------
-        fuel_mission, time_mission = self.aircraft.power_system.breguet_range(range, tow, altp, mach, disa)
+        fuel_mission, time_mission = self.breguet_range(range, tow, altp, mach, disa)
 
-        mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)
+        mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)  # mass is not landing weight
 
         # Arrival ground phases
         # -----------------------------------------------------------------------------------------------------------
@@ -947,25 +959,25 @@ class Mission_def(object):
 
         # Block fuel and time
         # -----------------------------------------------------------------------------------------------------------
-        self.block_fuel = fuel_taxi_out + fuel_take_off + fuel_mission + fuel_landing + fuel_taxi_in
+        self.fuel_block = fuel_taxi_out + fuel_take_off + fuel_mission + fuel_landing + fuel_taxi_in
         self.time_block = time_taxi_out + time_take_off + time_mission + time_landing + time_taxi_in
 
         # Diversion fuel
         # -----------------------------------------------------------------------------------------------------------
-        fuel_diversion, t = self.aircraft.power_system.breguet_range(self.diversion_range, tow, altp, mach, disa)
+        fuel_diversion, t = self.breguet_range(self.diversion_range, tow, altp, mach, disa)
 
         # Holding fuel
         # -----------------------------------------------------------------------------------------------------------
         altp_holding = unit.m_ft(1500.)
-        mach_holding = 0.50 * mach
+        mach_holding = 0.65 * mach
         pamb, tamb, tstd, dtodz = earth.atmosphere(altp_holding, disa)
-        dict = self.aircraft.performance.level_flight(pamb, tamb, mach_holding, mass)
+        dict = self.level_flight(pamb, tamb, mach_holding, mass)
         fuel_holding = dict["sfc"] * (mass * g / dict["lod"]) * self.holding_time
 
         # Total
         # -----------------------------------------------------------------------------------------------------------
         self.fuel_reserve = fuel_mission * self.reserve_fuel_ratio + fuel_diversion + fuel_holding
-        self.fuel_total = self.block_fuel + self.fuel_reserve
+        self.fuel_total = self.fuel_block + self.fuel_reserve
 
         # -----------------------------------------------------------------------------------------------------------
         return
