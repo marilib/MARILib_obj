@@ -8,6 +8,15 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from context import unit
 
+# TODO : comlete dictionnary
+# TODO : add data for heat and elec storage
+
+
+one_hour = 3600.
+one_day = one_hour * 24.
+one_year = one_day * 365.
+
+
 data_dict = {
     "n_panel": {"unit":"int", "mag":1e4, "txt":"Number of individual panels"},
     "panel_area": {"unit":"m2", "mag":1e1, "txt":"Panel area"},
@@ -29,24 +38,25 @@ data_dict = {
     "total_grey_enrg": {"unit":"GWh", "mag":1e3, "txt":"Total required grey energy over life time"},
 }
 
-one_hour = 3600.
-one_day = one_hour * 24.
-one_year = one_day * 365.
-
-
 
 
 class Material(object):
 
     def __init__(self):
-        self.concrete = None
-        self.steel = None
-        self.aluminium = None
-        self.copper = None
-        self.lead = None
-        self.plastic = None
-        self.silicon = None
-        self.glass = None
+        self.concrete = 0.
+        self.iron = 0.
+        self.steel = 0.
+        self.aluminium = 0.
+        self.copper = 0.
+        self.lead = 0.
+        self.silicon = 0.
+        self.plastic = 0.
+        self.polyethylene = 0.
+        self.fiber_glass = 0.
+        self.glass = 0.
+        self.oil = 0.
+        self.NaCO3 = 0.
+        self.KNO3 = 0.
 
 
 
@@ -94,17 +104,87 @@ class PowerPlant(object):
         print("Net power efficiency = ", "%8.3f" % self.net_power_efficiency)
         print("Total grey energy = ", "%8.1f" % unit.GWh_J(self.total_grey_enrg), " GWh")
         print("Total footprint = ", "%8.1f" % unit.km2_m2(self.total_footprint), " km2")
-        print("   Concrete = ", "%8.0f" % (self.material.concrete*1.e-3), " t")
-        print("      Steel = ", "%8.0f" % (self.material.steel*1.e-3), " t")
-        print("  Aluminium = ", "%8.0f" % (self.material.aluminium*1.e-3), " t")
-        print("     Copper = ", "%8.0f" % (self.material.copper*1.e-3), " t")
-        print("       Lead = ", "%8.0f" % (self.material.lead*1.e-3), " t")
-        print("    Plastic = ", "%8.0f" % (self.material.plastic*1.e-3), " t")
-        print("    Silicon = ", "%8.0f" % (self.material.silicon*1.e-3), " t")
-        print("      Glass = ", "%8.0f" % (self.material.glass*1.e-3), " t")
+        if (self.material.concrete > 0.):     print("    Concrete = ", "%8.0f" % (self.material.concrete*1.e-3), " t")
+        if (self.material.iron > 0.):         print("        Iron = ", "%8.0f" % (self.material.iron*1.e-3), " t")
+        if (self.material.steel > 0.):        print("       Steel = ", "%8.0f" % (self.material.steel*1.e-3), " t")
+        if (self.material.aluminium > 0.):    print("   Aluminium = ", "%8.0f" % (self.material.aluminium*1.e-3), " t")
+        if (self.material.copper > 0.):       print("      Copper = ", "%8.0f" % (self.material.copper*1.e-3), " t")
+        if (self.material.lead > 0.):         print("        Lead = ", "%8.0f" % (self.material.lead*1.e-3), " t")
+        if (self.material.silicon > 0.):      print("     Silicon = ", "%8.0f" % (self.material.silicon*1.e-3), " t")
+        if (self.material.plastic > 0.):      print("     Plastic = ", "%8.0f" % (self.material.plastic*1.e-3), " t")
+        if (self.material.polyethylene > 0.): print("Polyethylene = ", "%8.0f" % (self.material.polyethylene*1.e-3), " t")
+        if (self.material.fiber_glass > 0.):  print(" Fiber_glass = ", "%8.0f" % (self.material.fiber_glass*1.e-3), " t")
+        if (self.material.glass > 0.):        print("       Glass = ", "%8.0f" % (self.material.glass*1.e-3), " t")
+        if (self.material.oil > 0.):          print("         Oil = ", "%8.0f" % (self.material.oil*1.e-3), " t")
+        if (self.material.NaCO3 > 0.):        print("       NaCO3 = ", "%8.0f" % (self.material.NaCO3*1.e-3), " t")
+        if (self.material.KNO3 > 0.):         print("        KNO3 = ", "%8.0f" % (self.material.KNO3*1.e-3), " t")
 
 
-class StPowerPlant(PowerPlant):
+
+def elec_storage(storage_type, *kwargs):
+    """Provide storage efficiency or add materials required for heat storage
+
+    :param storage_type: "electrolysis", "flow_battery"
+    :param energy_capacity:
+    :param material:
+    :return:
+    """
+    if (storage_type=="electrolysis"):
+        storage_efficiency = 0.70
+    elif (storage_type=="flow_battery"):
+        storage_efficiency = 0.80
+    else:
+        raise Exception("Type of electricity storage is unknown")
+
+    if (len(kwargs)==0):
+        return storage_efficiency
+    else:
+        energy_capacity = kwargs[0]
+        material = kwargs[1]
+
+    if (storage_type=="electrolysis"):
+        pass
+    elif (storage_type=="flow_battery"):
+        pass
+
+
+
+
+def heat_storage(storage_type, *kwargs):
+    """Provide storage efficiency or add materials required for heat storage
+
+    :param storage_type: "molten_salt", "concrete"
+    :param energy_capacity:
+    :param material:
+    :return:
+    """
+    if (storage_type=="molten_salt"):
+        storage_efficiency = 0.99
+    elif (storage_type=="concrete"):
+        storage_efficiency = 0.99
+    else:
+        raise Exception("Type of heat storage is unknown")
+
+    if (len(kwargs)==0):
+        return storage_efficiency
+    else:
+        energy_capacity = kwargs[0]
+        material = kwargs[1]
+
+    if (storage_type=="molten_salt"):
+        material.NaCO3 += 45.6e3 * energy_capacity*1e-6
+        material.KNO3 += 30.4e3 * energy_capacity*1e-6
+        material.concrete += 10.1e3 * energy_capacity*1e-6
+        material.steel += 4.6e3 * energy_capacity*1e-6
+        material.fiber_glass += 0.16e3 * energy_capacity*1e-6
+    elif (storage_type=="concrete"):
+        pass
+    elif (storage_type=="flow_battery"):
+        pass
+
+
+
+class CspPowerPlant(PowerPlant):
 
     def __init__(self, n_mirror, mean_sun_pw,
                  reg_factor = 0.,
@@ -112,10 +192,10 @@ class StPowerPlant(PowerPlant):
                  ground_ratio = 4.,
                  life_time = 25.,
                  gross_power_efficiency = 0.39,
-                 storage_efficiency = 0.99,
+                 storage_medium = "molten_salt",
                  grey_energy_ratio = 0.11,
                  load_factor = 0.38):
-        super(StPowerPlant, self).__init__()
+        super(CspPowerPlant, self).__init__()
 
         self.type = "Cylindroparabolic mirror"
         self.regulation_factor = reg_factor
@@ -125,7 +205,8 @@ class StPowerPlant(PowerPlant):
         self.life_time = life_time
 
         self.gross_power_efficiency = gross_power_efficiency
-        self.storage_efficiency = storage_efficiency
+        self.storage_medium = storage_medium
+        self.storage_efficiency = heat_storage(storage_medium)
         self.grey_energy_ratio = grey_energy_ratio
 
         self.mean_yearly_sun_power = mean_sun_pw
@@ -157,14 +238,18 @@ class StPowerPlant(PowerPlant):
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
 
-        self.material.concrete = np.nan
-        self.material.steel = np.nan
-        self.material.aluminium = np.nan
-        self.material.copper = np.nan
-        self.material.lead = np.nan
-        self.material.plastic = np.nan
-        self.material.silicon = np.nan
-        self.material.glass = np.nan
+        self.material.concrete = 760.e3 * self.nominal_peak_power*1e-6
+        self.material.steel = 186.e3 * self.nominal_peak_power*1e-6
+        self.material.iron = 4.5e3 * self.nominal_peak_power*1e-6
+        self.material.copper = 2.72e3 * self.nominal_peak_power*1e-6
+        self.material.plastic = 1.04e3 * self.nominal_peak_power*1e-6
+        self.material.polyethylene = 2.26e3 * self.nominal_peak_power*1e-6
+        self.material.fiber_glass = 0.03e3 * self.nominal_peak_power*1e-6
+        self.material.glass = 112.e3 * self.nominal_peak_power*1e-6
+        self.material.oil = 2.82e3 * self.nominal_peak_power*1e-6
+
+        heat_storage(self.storage_medium, self.storage_capacity, self.material)
+
 
 
 class PvPowerPlant(PowerPlant):
@@ -176,7 +261,7 @@ class PvPowerPlant(PowerPlant):
                  ground_ratio = 2.6,
                  life_time = 25.,
                  gross_power_efficiency = 0.15,
-                 storage_efficiency = 0.80,
+                 storage_medium = "flow_battery",
                  grey_energy_ratio = 0.11,
                  load_factor = 0.14):
         super(PvPowerPlant, self).__init__()
@@ -190,7 +275,8 @@ class PvPowerPlant(PowerPlant):
         self.life_time = life_time
 
         self.gross_power_efficiency = gross_power_efficiency
-        self.storage_efficiency = storage_efficiency
+        self.storage_medium = storage_medium
+        self.storage_efficiency = elec_storage(storage_medium)
         self.grey_energy_ratio = grey_energy_ratio
 
         self.mean_yearly_sun_power = mean_sun_pw
@@ -223,14 +309,14 @@ class PvPowerPlant(PowerPlant):
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
 
-        self.material.concrete = 0.
         self.material.steel = 16.5 * self.total_panel_area
         self.material.aluminium = 0.6 * self.total_panel_area
         self.material.copper = 0.011 * self.total_panel_area
-        self.material.lead = 0.
         self.material.plastic = 0.12 * self.total_panel_area
         self.material.silicon = 2.15 * self.total_panel_area
         self.material.glass = 8.5 * self.total_panel_area
+
+        elec_storage(self.storage_medium, self.storage_capacity, self.material)
 
 
 
@@ -241,7 +327,7 @@ class EolPowerPlant(PowerPlant):
                  rotor_width = 100.,
                  rotor_peak_power = 2.5e6,
                  load_factor = None,
-                 storage_efficiency = 0.8,
+                 storage_medium = "flow_battery",
                  life_time = 25.):
         super(EolPowerPlant, self).__init__()
 
@@ -252,7 +338,8 @@ class EolPowerPlant(PowerPlant):
         self.rotor_width = rotor_width
         self.rotor_peak_power = rotor_peak_power
         self.load_factor = load_factor
-        self.storage_efficiency = storage_efficiency
+        self.storage_medium = storage_medium
+        self.storage_efficiency = elec_storage(storage_medium)
         self.life_time = life_time
 
         self.rotor_area = None
@@ -306,6 +393,7 @@ class EolPowerPlant(PowerPlant):
         self.material.silicon = {"onshore":0., "offshore":0.}.get(self.location) * self.nominal_peak_power * 1e-6
         self.material.glass = {"onshore":0., "offshore":0.}.get(self.location) * self.nominal_peak_power * 1e-6
 
+        elec_storage(self.storage_medium, self.storage_capacity, self.material)
 
 
 
@@ -363,14 +451,11 @@ class NuclearPowerPlant(PowerPlant):
         self.material.aluminium = 0.14e3 * self.nominal_peak_power * 1e-6
         self.material.copper = 1.51e3 * self.nominal_peak_power * 1e-6
         self.material.lead = np.nan
-        self.material.plastic = np.nan
-        self.material.silicon = np.nan
-        self.material.glass = np.nan
 
 
 
-def max_solar_input(latt,long,pamb,day,gmt):
-    """Compute max solar radiation input from location and time on Earth
+def max_solar_power(latt,long,pamb,day,gmt):
+    """Compute max solar radiative power from location and time on Earth
 
     :param latt: Lattitude in radians
     :param long: Longitude in radians
@@ -378,24 +463,29 @@ def max_solar_input(latt,long,pamb,day,gmt):
     :param gmt: GMT time in the day, from 0. to 24.
     :return:
     """
-    delta = unit.rad_deg(23.45 * np.sin(2.*np.pi*(284.+day)/365.))
+    delta = unit.rad_deg(23.45 * np.sin(unit.rad_deg((284.+day)*(360./365.))))
     equ = 0. # output of time equation, neglected here
-    solar_time = gmt + (4.*latt/unit.rad_deg(60.)) - equ
-    eta = unit.rad_deg(15.*(12.-solar_time))
+    solar_time = gmt + (unit.deg_rad(long)*(4./60.)) - equ
+    eta = unit.rad_deg((360./24.)*(solar_time - 12.))
     sin_a = np.sin(latt) * np.sin(delta) + np.cos(latt)*np.cos(delta)*np.cos(eta)
-    r_out = 1367. * (1. + 0.034*np.cos(2.*np.pi*(day/365.)))
-    m0 = np.sqrt(1229. + (614.*sin_a)**2) - 614.*sin_a
-    p0 = 101325.
-    m = m0*(pamb/p0)
-    tau = 0.6
-    r_direct = r_out + tau**m * sin_a
-    r_diffus = r_out * (0.271 - 0.294*tau**m) * sin_a
-    r_total = r_direct + r_diffus
-    return r_total
+    alpha = np.arcsin(sin_a)    # Sun elevation
+    ref_solar_pw = 1367.        # Reference solar power
+    pw_out = ref_solar_pw * (1. + 0.034*np.cos(unit.rad_deg(day*(360./365.))))
+    m0 = np.sqrt(1229. + (614.*sin_a)**2) - 614.*sin_a      # Absorbtion coefficient
+    p0 = 101325.                # Sea level reference pressure
+    m = m0*(pamb/p0)            # Influence of altitude on the absorbtion coefficient
+    tau = 0.6                   # Transmission coefficient
+    pw_direct = pw_out * tau**m * sin_a
+    pw_diffus = pw_out * (0.271 - 0.294*tau**m) * sin_a
+    if (alpha>unit.rad_deg(3.)):
+        pw_total = pw_direct + pw_diffus
+    else:
+        pw_total = 0.
+    return pw_total
 
 
 
-st1 = StPowerPlant(7500., 250., reg_factor=0.51)
+st1 = CspPowerPlant(7500., 250., reg_factor=0.51)
 st1.print("Andasol 3")
 
 pv1 = PvPowerPlant(1e6, 250.)
@@ -414,9 +504,10 @@ atom1.print()
 latt = unit.rad_deg(43.668731)
 long = unit.rad_deg(1.497691)
 pamb = 101325.
-day = 182 #31+29+31+28
-gmt = 5.
+day = 31+29+31+28
+gmt = 17.
 
-pw = max_solar_input(latt,long,pamb,day,gmt)
+pw = max_solar_power(latt,long,pamb,day,gmt)
 
+print("")
 print("Solar power = ",pw)

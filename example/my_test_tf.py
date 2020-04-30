@@ -40,7 +40,7 @@ ac = Aircraft("This_plane")
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
 
-ac.requirement.take_off.tofl_req = 2200.
+ac.requirement.take_off.tofl_req = 2500.
 
 
 
