@@ -36,6 +36,44 @@ data_dict = {
     "gross_yearly_enrg": {"unit":"GWh", "mag":1e2, "txt":"Mean yearly energy production"},
     "net_yearly_enrg": {"unit":"GWh", "mag":1e2, "txt":"Mean yearly energy production including grey energy spread over life time"},
     "total_grey_enrg": {"unit":"GWh", "mag":1e3, "txt":"Total required grey energy over life time"},
+    "total_footprint": {"unit":"km2", "mag":1e1, "txt":"Plant total footprint"},
+    "total_grey_enrg": {"unit":"TWh", "mag":1e0, "txt":"Plant total embodied energy"},
+    "nominal_peak_power": {"unit":"MW", "mag":1e2, "txt":"Plant peak power"},
+    "nominal_mean_power": {"unit":"MW", "mag":1e2, "txt":"Mean gross power during one day"},
+    "mean_dayly_energy": {"unit":"GWh", "mag":1e2, "txt":"Mean gross energy pruduced in one year"},
+    "regulation_time": {"unit":"h", "mag":1e1, "txt":"Regulated period (period during which regulated power can be maintained)"},
+    "retrieval_time": {"unit":"h", "mag":1e1, "txt":"Retrieving period (power is coming from stored energy)"},
+    "regulated_power": {"unit":"MW", "mag":1e2, "txt":"Mean regulated output power during regulated period"},
+    "storage_capacity": {"unit":"GWh", "mag":1e2, "txt":"Retrievable stored energy"},
+    "regulation_power_efficiency": {"unit":"", "mag":1e3, "txt":"Efficiency of regulated power (including storage losses)"},
+    "gross_yearly_enrg": {"unit":"TWh", "mag":1e2, "txt":"Mean gross energy produced in one year"},
+    "net_yearly_enrg": {"unit":"TWh", "mag":1e2, "txt":"Mean net energy produced in one year : gross minus grey"},
+    "marginal_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"efficiency which includes grey energy and storage if any"},
+    "net_power_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"overall efficiency : captation, transformation and marginal"},
+    "type": {"unit":"string", "mag":32, "txt":"Power plant technology"},
+    "regulation_factor": {"unit":"no_dim", "mag":1e0, "txt":"Regulation factor, 0.:no storage, 1.:regulation period is 24h"},
+    "n_mirror": {"unit":"", "mag":1e3, "txt":"Number of mirror unit"},
+    "n_panel": {"unit":"int", "mag":1e6, "txt":"Number of photovoltaïc panel unit"},
+    "n_rotor": {"unit":"int", "mag":1e2, "txt":"Number of rotor"},
+    "n_core": {"unit":"int", "mag":1e0, "txt":"Number of nuclear core"},
+    "n_unit": {"unit":"int", "mag":1e3, "txt":"Number of production unit"},
+    "mirror_area": {"unit":"m2", "mag":1e0, "txt":"Area of a mirror unit"},
+    "panel_area": {"unit":"m2", "mag":1e0, "txt":"Area of photovoltaïc panel unit"},
+    "total_mirror_area": {"unit":"m2", "mag":1e5, "txt":"Total mirror area of the plant"},
+    "total_panel_area": {"unit":"m2", "mag":1e5, "txt":"Total panel area of the plant"},
+    "ground_ratio": {"unit":"", "mag":1e3, "txt":"Required footprint area per unit area"},
+    "life_time": {"unit":"year", "mag":1e1, "txt":"Plant life time"},
+    "gross_power_efficiency": {"unit":"", "mag":1e3, "txt":"Gross output power over available input power"},
+    "storage_medium": {"unit":"string", "mag":32, "txt":"Type of storage medium depending on plant technology"},
+    "grey_energy_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Required embodied energy over gros output energy"},
+    "mean_yearly_sun_power": {"unit":"W/m2", "mag":1e2, "txt":"Mean input sun radiative power over a year"},
+    "load_factor": {"unit":"", "mag":1e0, "txt":"Yearl mean output power over device peak power"},
+    "ref_sun_power": {"unit":"", "mag":1e3, "txt":"Position free reference input radiative sun power, generally 1000W/m2"},
+    "mean_sun_power": {"unit":"", "mag":1e2, "txt":"Effective mean input radiative sun power"},
+    "rotor_width": {"unit":"m", "mag":1e2, "txt":"Rotor diameter"},
+    "rotor_area": {"unit":"m2", "mag":1e4, "txt":"Rotor disk area"},
+    "rotor_footprint": {"unit":"km2", "mag":1e3, "txt":"Required footprint for one rotor"},
+    "rotor_grey_enrg": {"unit":"GWh", "mag":1e2, "txt":"Embodied energy for one rotor"}
 }
 
 
@@ -59,27 +97,27 @@ class Material(object):
 
 
 
-class GreyEnergy(Material):
+class GreyEnergy(object):
     """Embodied energy of materials  (in J/kg)
     Source:
     G.P.Hammond and C.I.Jones (2006) Embodied energy and carbon footprint database, Department of Mechanical Engineering, University of Bath, United Kingdom
     Embodied energy in thermal energy storage (TES) systems for high temperature applications
     """
     def __init__(self):
-        super(GreyEnergy, self).__init__()
-        self.concrete = 1.11e6
-        self.iron = 25.0e6
-        self.steel = 20.1e6
-        self.aluminium = 155.0e6
-        self.copper = 42.0e6
-        self.lead = 25.2e6
-        self.silicon = 15.0e6
-        self.plastic = 75.0e6
-        self.fiber_glass = 28.0e6
-        self.glass = 15.0e6
-        self.oil = 50.0e6
-        self.Na2CO3 = 16.0e6
-        self.KNO3 = 16.0e6
+        self.concrete_ge = 1.11e6
+        self.iron_ge = 25.0e6
+        self.steel_ge = 20.1e6
+        self.aluminium_ge = 155.0e6
+        self.copper_ge = 42.0e6
+        self.lead_ge = 25.2e6
+        self.silicon_ge = 15.0e6
+        self.plastic_ge = 75.0e6
+        self.fiber_glass_ge = 28.0e6
+        self.glass_ge = 15.0e6
+        self.oil_ge = 50.0e6
+        self.Na2CO3_ge = 16.0e6
+        self.KNO3_ge = 16.0e6
+
 
 
 class Scarcity(object):
@@ -90,9 +128,6 @@ class Scarcity(object):
         self.iron = 87.e12      # ref Wikipedia
         self.aluminium = 28.e12 # ref: Wikipedia
         self.copper = 630.e9    # ref: Wikipedia
-
-
-
 
 
 
@@ -494,7 +529,8 @@ class MixEnergetic(object):
     def __init__(self, sun_pw=250., mix={}):
         self.total_footprint = 0.
         self.total_grey_energy = 0.
-        self_total_material_factor = None
+        self_total_material_index = None
+        self_total_material_grey_energy = None
 
         self.pv_unit = 1.e6     # reference number of pv panels
         self.pv = PvPowerPlant(self.pv_unit, sun_pw, reg_factor=0.)
@@ -555,21 +591,21 @@ class MixEnergetic(object):
 
     def print(self):
         print("Number of PV plant = ",int(np.round(self.pv_plant)))
-        print("Footprint of one PV plant = ","%8.1f" % (self.pv.total_footprint*1e-6)," km2")
+        print("Footprint of ALL PV plant = ","%8.1f" % (self.pv.total_footprint*1e-6)," km2")
         print("")
         print("Number of CSP plant = ",int(np.round(self.csp_cp_plant)))
-        print("Footprint of one CSP plant = ","%8.1f" % (self.csp_cp.total_footprint*1e-6)," km2")
+        print("Footprint of ALL CSP plant = ","%8.1f" % (self.csp_cp.total_footprint*1e-6)," km2")
         print("")
         print("Number of WTP onshore = ",int(np.round(self.eol_onsh_plant)))
-        print("Footprint of one WTP onshore = ","%8.1f" % (self.eol_onsh.total_footprint*1e-6)," km2")
+        print("Footprint of ALL WTP onshore = ","%8.1f" % (self.eol_onsh.total_footprint*1e-6)," km2")
         print("")
         print("Number of WTP offshore = ",int(np.round(self.eol_offsh_plant)))
-        print("Footprint of one WTP offshore = ","%8.1f" % (self.eol_offsh.total_footprint*1e-6)," km2")
+        print("Footprint of ALL WTP offshore = ","%8.1f" % (self.eol_offsh.total_footprint*1e-6)," km2")
         print("")
         print("Number of nuclear plant = ",int(np.round(self.nuclear_plant)))
-        print("Footprint of one nuclear plant = ","%8.0f" % (self.nuclear.total_footprint*1e-6)," km2")
+        print("Footprint of ALL nuclear plant = ","%8.0f" % (self.nuclear.total_footprint*1e-6)," km2")
         print("")
-        print("Total footprint = ","%8.0f" % (self.total_footprint*1e-6)," km2")
+        print("Total footprint of the mix = ","%8.0f" % (self.total_footprint*1e-6)," km2")
         print("Total grey energy = ","%8.3f" % (self.total_grey_energy*1e-18)," EWh (1e18 Wh)")
 
 
