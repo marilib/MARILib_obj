@@ -51,12 +51,48 @@ class Material(object):
         self.lead = 0.
         self.silicon = 0.
         self.plastic = 0.
-        self.polyethylene = 0.
         self.fiber_glass = 0.
         self.glass = 0.
         self.oil = 0.
-        self.NaCO3 = 0.
+        self.Na2CO3 = 0.
         self.KNO3 = 0.
+
+
+
+class GreyEnergy(Material):
+    """Embodied energy of materials  (in J/kg)
+    Source:
+    G.P.Hammond and C.I.Jones (2006) Embodied energy and carbon footprint database, Department of Mechanical Engineering, University of Bath, United Kingdom
+    Embodied energy in thermal energy storage (TES) systems for high temperature applications
+    """
+    def __init__(self):
+        super(GreyEnergy, self).__init__()
+        self.concrete = 1.11e6
+        self.iron = 25.0e6
+        self.steel = 20.1e6
+        self.aluminium = 155.0e6
+        self.copper = 42.0e6
+        self.lead = 25.2e6
+        self.silicon = 15.0e6
+        self.plastic = 75.0e6
+        self.fiber_glass = 28.0e6
+        self.glass = 15.0e6
+        self.oil = 50.0e6
+        self.Na2CO3 = 16.0e6
+        self.KNO3 = 16.0e6
+
+
+class Scarcity(object):
+    """World wide stocks of some minerals (in kg)
+    """
+    def __init__(self):
+        self.sand = 192.e18     # ref: Wikipedia
+        self.iron = 87.e12      # ref Wikipedia
+        self.aluminium = 28.e12 # ref: Wikipedia
+        self.copper = 630.e9    # ref: Wikipedia
+
+
+
 
 
 
@@ -112,11 +148,10 @@ class PowerPlant(object):
         if (self.material.lead > 0.):         print("        Lead = ", "%8.0f" % (self.material.lead*1.e-3), " t")
         if (self.material.silicon > 0.):      print("     Silicon = ", "%8.0f" % (self.material.silicon*1.e-3), " t")
         if (self.material.plastic > 0.):      print("     Plastic = ", "%8.0f" % (self.material.plastic*1.e-3), " t")
-        if (self.material.polyethylene > 0.): print("Polyethylene = ", "%8.0f" % (self.material.polyethylene*1.e-3), " t")
         if (self.material.fiber_glass > 0.):  print(" Fiber_glass = ", "%8.0f" % (self.material.fiber_glass*1.e-3), " t")
         if (self.material.glass > 0.):        print("       Glass = ", "%8.0f" % (self.material.glass*1.e-3), " t")
         if (self.material.oil > 0.):          print("         Oil = ", "%8.0f" % (self.material.oil*1.e-3), " t")
-        if (self.material.NaCO3 > 0.):        print("       NaCO3 = ", "%8.0f" % (self.material.NaCO3*1.e-3), " t")
+        if (self.material.Na2CO3 > 0.):        print("       Na2CO3 = ", "%8.0f" % (self.material.Na2CO3*1.e-3), " t")
         if (self.material.KNO3 > 0.):         print("        KNO3 = ", "%8.0f" % (self.material.KNO3*1.e-3), " t")
 
 
@@ -172,14 +207,12 @@ def heat_storage(storage_type, *kwargs):
         material = kwargs[1]
 
     if (storage_type=="molten_salt"):
-        material.NaCO3 += 45.6e3 * energy_capacity*1e-6
+        material.Na2CO3 += 45.6e3 * energy_capacity*1e-6
         material.KNO3 += 30.4e3 * energy_capacity*1e-6
         material.concrete += 10.1e3 * energy_capacity*1e-6
         material.steel += 4.6e3 * energy_capacity*1e-6
         material.fiber_glass += 0.16e3 * energy_capacity*1e-6
     elif (storage_type=="concrete"):
-        pass
-    elif (storage_type=="flow_battery"):
         pass
 
 
@@ -206,7 +239,6 @@ class CspPowerPlant(PowerPlant):
 
         self.gross_power_efficiency = gross_power_efficiency
         self.storage_medium = storage_medium
-        self.storage_efficiency = heat_storage(storage_medium)
         self.grey_energy_ratio = grey_energy_ratio
 
         self.mean_yearly_sun_power = mean_sun_pw
@@ -217,6 +249,8 @@ class CspPowerPlant(PowerPlant):
         self.update()
 
     def update(self):
+        self.storage_efficiency = heat_storage(self.storage_medium)
+
         self.total_mirror_area = self.mirror_area * self.n_mirror
         self.total_footprint = self.total_mirror_area * self.ground_ratio
 
@@ -242,8 +276,7 @@ class CspPowerPlant(PowerPlant):
         self.material.steel = 186.e3 * self.nominal_peak_power*1e-6
         self.material.iron = 4.5e3 * self.nominal_peak_power*1e-6
         self.material.copper = 2.72e3 * self.nominal_peak_power*1e-6
-        self.material.plastic = 1.04e3 * self.nominal_peak_power*1e-6
-        self.material.polyethylene = 2.26e3 * self.nominal_peak_power*1e-6
+        self.material.plastic = 3.3e3 * self.nominal_peak_power*1e-6
         self.material.fiber_glass = 0.03e3 * self.nominal_peak_power*1e-6
         self.material.glass = 112.e3 * self.nominal_peak_power*1e-6
         self.material.oil = 2.82e3 * self.nominal_peak_power*1e-6
@@ -276,11 +309,9 @@ class PvPowerPlant(PowerPlant):
 
         self.gross_power_efficiency = gross_power_efficiency
         self.storage_medium = storage_medium
-        self.storage_efficiency = elec_storage(storage_medium)
         self.grey_energy_ratio = grey_energy_ratio
 
         self.mean_yearly_sun_power = mean_sun_pw
-        self.ref_yearly_sun_power = self.ref_sun_power * (mean_sun_pw/250.)
         self.load_factor = load_factor
 
         self.total_panel_area = None
@@ -288,6 +319,10 @@ class PvPowerPlant(PowerPlant):
         self.update()
 
     def update(self):
+        self.ref_yearly_sun_power = self.ref_sun_power * (self.mean_yearly_sun_power/250.)
+
+        self.storage_efficiency = elec_storage(self.storage_medium)
+
         self.total_panel_area = self.panel_area * self.n_panel
         self.total_footprint = self.total_panel_area * self.ground_ratio
 
@@ -386,8 +421,8 @@ class EolPowerPlant(PowerPlant):
 
         self.material.concrete = {"onshore":320000., "offshore":640000.}.get(self.location) * self.nominal_peak_power * 1e-6
         self.material.steel = {"onshore":61500., "offshore":91500.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.aluminium = {"onshore":1600., "offshore":1600.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.copper = {"onshore":400., "offshore":3400.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.aluminium = {"onshore":1600., "offshore":2500.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.copper = {"onshore":400., "offshore":400.}.get(self.location) * self.nominal_peak_power * 1e-6
         self.material.lead = {"onshore":0., "offshore":4000.}.get(self.location) * self.nominal_peak_power * 1e-6
         self.material.plastic = {"onshore":2200., "offshore":2900.}.get(self.location) * self.nominal_peak_power * 1e-6
         self.material.silicon = {"onshore":0., "offshore":0.}.get(self.location) * self.nominal_peak_power * 1e-6
@@ -404,7 +439,7 @@ class NuclearPowerPlant(PowerPlant):
                  load_factor = 0.75,
                  life_time = 50.,
                  grey_energy_ratio = 0.2,
-                 unit_footprint = 0.15e6):
+                 unit_footprint = 0.25e6):
         super(NuclearPowerPlant, self).__init__()
 
         self.type = "Nuclear reactor"
@@ -451,6 +486,92 @@ class NuclearPowerPlant(PowerPlant):
         self.material.aluminium = 0.14e3 * self.nominal_peak_power * 1e-6
         self.material.copper = 1.51e3 * self.nominal_peak_power * 1e-6
         self.material.lead = np.nan
+
+
+
+class MixEnergetic(object):
+
+    def __init__(self, sun_pw=250., mix={}):
+        self.total_footprint = 0.
+        self.total_grey_energy = 0.
+        self_total_material_factor = None
+
+        self.pv_unit = 1.e6     # reference number of pv panels
+        self.pv = PvPowerPlant(self.pv_unit, sun_pw, reg_factor=0.)
+        self.pv_power = self.pv.nominal_peak_power    # reference peak power of one plant
+
+        self.csp_cp_unit = 1.e3     # reference number of mirror lines per plant
+        self.csp_cp = CspPowerPlant(self.csp_cp_unit, sun_pw, reg_factor=0.)
+        self.csp_cp_power = self.csp_cp.nominal_peak_power    # reference peak power of one plant
+
+        rppw = 2.5e6    # peak power of each rotor
+        loadf = 0.25    # load factor
+        self.eol_onsh_unit = 20.     # reference number of rotors per farm
+        self.eol_onsh = EolPowerPlant(self.eol_onsh_unit, "onshore", rotor_peak_power=rppw, load_factor=loadf)
+        self.eol_onsh_power = self.eol_onsh.nominal_peak_power    # reference peak power of one plant
+
+        rppw = 3.5e6    # peak power of each rotor
+        loadf = 0.50    # load factor
+        self.eol_offsh_unit = 2.e2     # reference number of rotors per farm
+        self.eol_offsh = EolPowerPlant(self.eol_offsh_unit, "offshore", rotor_peak_power=rppw, load_factor=loadf)
+        self.eol_offsh_power = self.eol_offsh.nominal_peak_power    # reference peak power of one plant
+
+        uppw = 1.0e9    # peak power of each core
+        loadf = 0.75    # load factor
+        self.nuclear_unit = 4.     # reference number of cores per plant
+        self.nuclear = NuclearPowerPlant(self.nuclear_unit, unit_peak_power = uppw, load_factor=loadf)
+        self.nuclear_power = self.nuclear.nominal_peak_power    # reference peak power of one plant
+
+        self.update(mix)
+
+    def __iter__(self):
+        public = [value for value in self.__dict__.values() if issubclass(type(value),PowerPlant)]
+        return iter(public)
+
+    def update(self, mix):
+        self.pv_plant = mix["pv"] / self.pv_power
+        self.pv.n_panel = mix["pv"] / (self.pv.nominal_peak_power/self.pv.n_panel)
+        self.pv.update()
+
+        self.csp_cp_plant = mix["csp_cp"] / self.csp_cp_power
+        self.csp_cp.n_mirror = mix["csp_cp"] / (self.csp_cp.nominal_peak_power/self.csp_cp.n_mirror)
+        self.csp_cp.update()
+
+        self.eol_onsh_plant = mix["eol_onsh"] / self.eol_onsh_power
+        self.eol_onsh.n_rotor = mix["eol_onsh"] / (self.eol_onsh.nominal_peak_power/self.eol_onsh.n_rotor)
+        self.eol_onsh.update()
+
+        self.eol_offsh_plant = mix["eol_offsh"] / self.eol_offsh_power
+        self.eol_offsh.n_rotor = mix["eol_offsh"] / (self.eol_offsh.nominal_peak_power/self.eol_offsh.n_rotor)
+        self.eol_offsh.update()
+
+        self.nuclear_plant = mix["nuclear"] / self.nuclear_power
+        self.nuclear.n_unit = mix["nuclear"] / (self.nuclear.nominal_peak_power/self.nuclear.n_unit)
+        self.nuclear.update()
+
+        for plant in self:
+            self.total_footprint += plant.total_footprint
+            self.total_grey_energy += plant.total_grey_enrg
+
+    def print(self):
+        print("Number of PV plant = ",int(np.round(self.pv_plant)))
+        print("Footprint of one PV plant = ","%8.1f" % (self.pv.total_footprint*1e-6)," km2")
+        print("")
+        print("Number of CSP plant = ",int(np.round(self.csp_cp_plant)))
+        print("Footprint of one CSP plant = ","%8.1f" % (self.csp_cp.total_footprint*1e-6)," km2")
+        print("")
+        print("Number of WTP onshore = ",int(np.round(self.eol_onsh_plant)))
+        print("Footprint of one WTP onshore = ","%8.1f" % (self.eol_onsh.total_footprint*1e-6)," km2")
+        print("")
+        print("Number of WTP offshore = ",int(np.round(self.eol_offsh_plant)))
+        print("Footprint of one WTP offshore = ","%8.1f" % (self.eol_offsh.total_footprint*1e-6)," km2")
+        print("")
+        print("Number of nuclear plant = ",int(np.round(self.nuclear_plant)))
+        print("Footprint of one nuclear plant = ","%8.0f" % (self.nuclear.total_footprint*1e-6)," km2")
+        print("")
+        print("Total footprint = ","%8.0f" % (self.total_footprint*1e-6)," km2")
+        print("Total grey energy = ","%8.3f" % (self.total_grey_energy*1e-18)," EWh (1e18 Wh)")
+
 
 
 
@@ -511,3 +632,11 @@ pw = max_solar_power(latt,long,pamb,day,gmt)
 
 print("")
 print("Solar power = ",pw)
+
+
+mix = {"pv":5.e9, "csp_cp":5.e9, "eol_onsh":20.e9, "eol_offsh":30.e9, "nuclear":40.e9}
+
+mix = MixEnergetic(sun_pw=250., mix=mix)
+
+print("")
+mix.print()
