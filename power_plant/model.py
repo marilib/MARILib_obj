@@ -73,7 +73,8 @@ data_dict = {
     "rotor_width": {"unit":"m", "mag":1e2, "txt":"Rotor diameter"},
     "rotor_area": {"unit":"m2", "mag":1e4, "txt":"Rotor disk area"},
     "rotor_footprint": {"unit":"km2", "mag":1e3, "txt":"Required footprint for one rotor"},
-    "rotor_grey_enrg": {"unit":"GWh", "mag":1e2, "txt":"Embodied energy for one rotor"}
+    "rotor_grey_enrg": {"unit":"GWh", "mag":1e2, "txt":"Embodied energy for one rotor"},
+    "er_o_ei": {"unit":"no_dim", "mag":1e0, "txt":"Energy Returned over Energy Invested (ERoEI)"}
 }
 
 
@@ -94,29 +95,34 @@ class Material(object):
         self.oil = 0.
         self.Na2CO3 = 0.
         self.KNO3 = 0.
+        self.quinone = 0.
 
-
-
-class GreyEnergy(object):
-    """Embodied energy of materials  (in J/kg)
-    Source:
-    G.P.Hammond and C.I.Jones (2006) Embodied energy and carbon footprint database, Department of Mechanical Engineering, University of Bath, United Kingdom
-    Embodied energy in thermal energy storage (TES) systems for high temperature applications
-    """
-    def __init__(self):
-        self.concrete_ge = 1.11e6
-        self.iron_ge = 25.0e6
-        self.steel_ge = 20.1e6
-        self.aluminium_ge = 155.0e6
-        self.copper_ge = 42.0e6
-        self.lead_ge = 25.2e6
-        self.silicon_ge = 15.0e6
-        self.plastic_ge = 75.0e6
-        self.fiber_glass_ge = 28.0e6
-        self.glass_ge = 15.0e6
-        self.oil_ge = 50.0e6
-        self.Na2CO3_ge = 16.0e6
-        self.KNO3_ge = 16.0e6
+    def grey_energy(self):
+        """Embodied energy of materials  (in J/kg)
+        Source:
+        G.P.Hammond and C.I.Jones (2006) Embodied energy and carbon footprint database, Department of Mechanical Engineering, University of Bath, United Kingdom
+        Embodied energy in thermal energy storage (TES) systems for high temperature applications
+        Given data are in standard units (J/kg)
+        """
+        data = {"concrete":1.11e6,
+                "iron":25.0e6,
+                "steel":20.1e6,
+                "aluminium":155.0e6,
+                "copper":42.0e6,
+                "lead":25.2e6,
+                "silicon":15.0e6,
+                "plastic":75.0e6,
+                "fiber_glass":28.0e6,
+                "glass":15.0e6,
+                "oil":50.0e6,
+                "Na2CO3":16.0e6,
+                "KNO3":16.0e6,
+                "quinone":10.0e6
+                }
+        grey_energy = 0.
+        for m in data.keys():
+            grey_energy += data[m] * getattr(self, m, 0.)
+        return grey_energy
 
 
 
@@ -152,8 +158,10 @@ class PowerPlant(object):
 
         self.marginal_efficiency = None
         self.net_power_efficiency = None
+        self.er_o_ei = None
 
         self.material = Material()
+        self.material_grey_enrg = None
 
     def update(self):
         raise NotImplementedError
@@ -175,6 +183,8 @@ class PowerPlant(object):
         print("Net power efficiency = ", "%8.3f" % self.net_power_efficiency)
         print("Total grey energy = ", "%8.1f" % unit.GWh_J(self.total_grey_enrg), " GWh")
         print("Total footprint = ", "%8.1f" % unit.km2_m2(self.total_footprint), " km2")
+        print("Energy returned over energy invested = ", "%8.1f" % self.er_o_ei)
+        print("Total material embodied energy = ", "%8.1f" % unit.GWh_J(self.material_grey_enrg), " GWh")
         if (self.material.concrete > 0.):     print("    Concrete = ", "%8.0f" % (self.material.concrete*1.e-3), " t")
         if (self.material.iron > 0.):         print("        Iron = ", "%8.0f" % (self.material.iron*1.e-3), " t")
         if (self.material.steel > 0.):        print("       Steel = ", "%8.0f" % (self.material.steel*1.e-3), " t")
@@ -188,6 +198,7 @@ class PowerPlant(object):
         if (self.material.oil > 0.):          print("         Oil = ", "%8.0f" % (self.material.oil*1.e-3), " t")
         if (self.material.Na2CO3 > 0.):        print("       Na2CO3 = ", "%8.0f" % (self.material.Na2CO3*1.e-3), " t")
         if (self.material.KNO3 > 0.):         print("        KNO3 = ", "%8.0f" % (self.material.KNO3*1.e-3), " t")
+        if (self.material.quinone > 0.):      print("     quinone = ", "%8.0f" % (self.material.quinone*1.e-3), " t")
 
 
 
@@ -202,7 +213,7 @@ def elec_storage(storage_type, *kwargs):
     if (storage_type=="electrolysis"):
         storage_efficiency = 0.70
     elif (storage_type=="flow_battery"):
-        storage_efficiency = 0.80
+        storage_efficiency = 0.85
     else:
         raise Exception("Type of electricity storage is unknown")
 
@@ -213,9 +224,13 @@ def elec_storage(storage_type, *kwargs):
         material = kwargs[1]
 
     if (storage_type=="electrolysis"):
-        pass
+        print("Electric energy storage using electrolysis not implemented")
     elif (storage_type=="flow_battery"):
-        pass
+        material.quinone = energy_capacity / unit.J_Wh(50.)   # 50 Wh/kg
+
+        material.concrete += 0.15 * material.quinone
+        material.steel += 0.01 * material.quinone
+        material.fiber_glass += 0.01 * material.quinone
 
 
 
@@ -242,13 +257,14 @@ def heat_storage(storage_type, *kwargs):
         material = kwargs[1]
 
     if (storage_type=="molten_salt"):
-        material.Na2CO3 += 45.6e3 * energy_capacity*1e-6
-        material.KNO3 += 30.4e3 * energy_capacity*1e-6
-        material.concrete += 10.1e3 * energy_capacity*1e-6
-        material.steel += 4.6e3 * energy_capacity*1e-6
-        material.fiber_glass += 0.16e3 * energy_capacity*1e-6
+        material.Na2CO3 = 45.6e3 * unit.MWh_J(energy_capacity)
+        material.KNO3 = 30.4e3 * unit.MWh_J(energy_capacity)
+
+        material.concrete += 10.1e3 * unit.MWh_J(energy_capacity)
+        material.steel += 4.6e3 * unit.MWh_J(energy_capacity)
+        material.fiber_glass += 0.16e3 * unit.MWh_J(energy_capacity)
     elif (storage_type=="concrete"):
-        pass
+        print("Thermal energy storage using concrete not implemented")
 
 
 
@@ -306,17 +322,20 @@ class CspPowerPlant(PowerPlant):
         self.net_yearly_enrg = self.gross_yearly_enrg - self.gross_yearly_enrg * self.grey_energy_ratio
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
+        self.er_o_ei = self.net_yearly_enrg / (self.gross_yearly_enrg * self.grey_energy_ratio)
 
-        self.material.concrete = 760.e3 * self.nominal_peak_power*1e-6
-        self.material.steel = 186.e3 * self.nominal_peak_power*1e-6
-        self.material.iron = 4.5e3 * self.nominal_peak_power*1e-6
-        self.material.copper = 2.72e3 * self.nominal_peak_power*1e-6
-        self.material.plastic = 3.3e3 * self.nominal_peak_power*1e-6
-        self.material.fiber_glass = 0.03e3 * self.nominal_peak_power*1e-6
-        self.material.glass = 112.e3 * self.nominal_peak_power*1e-6
-        self.material.oil = 2.82e3 * self.nominal_peak_power*1e-6
+        self.material.concrete = 760.e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.steel = 186.e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.iron = 4.5e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.copper = 2.72e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.plastic = 3.3e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.fiber_glass = 0.03e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.glass = 112.e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.oil = 2.82e3 * unit.MW_W(self.nominal_peak_power)
 
         heat_storage(self.storage_medium, self.storage_capacity, self.material)
+
+        self.material_grey_enrg = self.material.grey_energy()
 
 
 
@@ -378,6 +397,7 @@ class PvPowerPlant(PowerPlant):
         self.net_yearly_enrg = self.gross_yearly_enrg * (1. - self.grey_energy_ratio)
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
+        self.er_o_ei = self.net_yearly_enrg / (self.gross_yearly_enrg * self.grey_energy_ratio)
 
         self.material.steel = 16.5 * self.total_panel_area
         self.material.aluminium = 0.6 * self.total_panel_area
@@ -387,6 +407,8 @@ class PvPowerPlant(PowerPlant):
         self.material.glass = 8.5 * self.total_panel_area
 
         elec_storage(self.storage_medium, self.storage_capacity, self.material)
+
+        self.material_grey_enrg = self.material.grey_energy()
 
 
 
@@ -450,20 +472,23 @@ class EolPowerPlant(PowerPlant):
 
         self.gross_yearly_enrg = self.regulated_power * self.regulation_time * 365.
         self.net_yearly_enrg = self.gross_yearly_enrg - self.total_grey_enrg / self.life_time
+        self.er_o_ei = self.net_yearly_enrg / (self.total_grey_enrg/self.life_time)
 
         self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
         self.net_power_efficiency =  np.nan
 
-        self.material.concrete = {"onshore":320000., "offshore":640000.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.steel = {"onshore":61500., "offshore":91500.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.aluminium = {"onshore":1600., "offshore":2500.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.copper = {"onshore":400., "offshore":400.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.lead = {"onshore":0., "offshore":4000.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.plastic = {"onshore":2200., "offshore":2900.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.silicon = {"onshore":0., "offshore":0.}.get(self.location) * self.nominal_peak_power * 1e-6
-        self.material.glass = {"onshore":0., "offshore":0.}.get(self.location) * self.nominal_peak_power * 1e-6
+        self.material.concrete = {"onshore":320000., "offshore":640000.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
+        self.material.steel = {"onshore":61500., "offshore":91500.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
+        self.material.aluminium = {"onshore":1600., "offshore":2500.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
+        self.material.copper = {"onshore":400., "offshore":400.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
+        self.material.lead = {"onshore":0., "offshore":4000.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
+        self.material.plastic = {"onshore":2200., "offshore":2900.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
+        self.material.silicon = {"onshore":0., "offshore":0.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
+        self.material.glass = {"onshore":0., "offshore":0.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
 
         elec_storage(self.storage_medium, self.storage_capacity, self.material)
+
+        self.material_grey_enrg = self.material.grey_energy()
 
 
 
@@ -503,6 +528,7 @@ class NuclearPowerPlant(PowerPlant):
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.life_time * self.grey_energy_ratio
         self.net_yearly_enrg = self.gross_yearly_enrg * self.life_time * (1. - self.grey_energy_ratio) / self.life_time
+        self.er_o_ei = self.net_yearly_enrg / (self.gross_yearly_enrg * self.grey_energy_ratio)
 
         self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
         self.net_power_efficiency =  np.nan
@@ -515,22 +541,25 @@ class NuclearPowerPlant(PowerPlant):
         # ISA, Centre for Integrated Sustainability Analysis, The University of Sydney, Physics Building A28, Sydney, NSW 2006, Australia
         # Received 13 June 2007; accepted 31 January 2008
         # Available online 8 April 2008
-        self.material.concrete =   320.e3 * self.nominal_peak_power * 1e-6 \
-                                 + (373.e3/177.) * self.mean_dayly_energy * self.life_time * 1e-9   # Power plant + waste storage
-        self.material.steel =  60.e3 * self.nominal_peak_power * 1e-6
-        self.material.aluminium = 0.14e3 * self.nominal_peak_power * 1e-6
-        self.material.copper = 1.51e3 * self.nominal_peak_power * 1e-6
-        self.material.lead = np.nan
+        self.material.concrete =   320.e3 * unit.MW_W(self.nominal_peak_power) \
+                                 + (373.e3/177.) * unit.GWh_J(self.mean_dayly_energy * self.life_time)   # Power plant + waste storage
+        self.material.steel =  60.e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.aluminium = 0.14e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.copper = 1.51e3 * unit.MW_W(self.nominal_peak_power)
+# TODO        self.material.lead = np.nan
+
+        self.material_grey_enrg = self.material.grey_energy()
 
 
 
 class MixEnergetic(object):
 
     def __init__(self, sun_pw=250., mix={}):
-        self.total_footprint = 0.
-        self.total_grey_energy = 0.
-        self_total_material_index = None
-        self_total_material_grey_energy = None
+        self.mix_peak_power = 0.
+        self.mix_er_o_ei = 0.
+        self.mix_footprint = 0.
+        self.mix_grey_energy = 0.
+        self.mix_material_grey_energy = 0.
 
         self.pv_unit = 1.e6     # reference number of pv panels
         self.pv = PvPowerPlant(self.pv_unit, sun_pw, reg_factor=0.)
@@ -586,8 +615,13 @@ class MixEnergetic(object):
         self.nuclear.update()
 
         for plant in self:
-            self.total_footprint += plant.total_footprint
-            self.total_grey_energy += plant.total_grey_enrg
+            self.mix_peak_power += plant.nominal_peak_power
+            self.mix_er_o_ei += plant.er_o_ei * plant.nominal_peak_power
+            self.mix_footprint += plant.total_footprint
+            self.mix_grey_energy += plant.total_grey_enrg
+            self.mix_material_grey_energy += plant.material_grey_enrg
+
+        self.mix_er_o_ei = self.mix_er_o_ei / self.mix_peak_power
 
     def print(self):
         print("Number of PV plant = ",int(np.round(self.pv_plant)))
@@ -605,8 +639,11 @@ class MixEnergetic(object):
         print("Number of nuclear plant = ",int(np.round(self.nuclear_plant)))
         print("Footprint of ALL nuclear plant = ","%8.0f" % (self.nuclear.total_footprint*1e-6)," km2")
         print("")
-        print("Total footprint of the mix = ","%8.0f" % (self.total_footprint*1e-6)," km2")
-        print("Total grey energy = ","%8.3f" % (self.total_grey_energy*1e-18)," EWh (1e18 Wh)")
+        print("Total peak power = ","%8.2f" % (self.mix_peak_power*1e-9)," GW")
+        print("Total ERoEI = ","%8.2f" % (self.mix_er_o_ei))
+        print("Total footprint = ","%8.0f" % (self.mix_footprint*1e-6)," km2")
+        print("Total grey energy = ","%8.3f" % (self.mix_grey_energy*1e-18)," EWh (1e18 Wh)")
+        print("Total material grey energy = ","%8.3f" % (self.mix_material_grey_energy*1e-18)," EWh (1e18 Wh)")
 
 
 
@@ -645,7 +682,7 @@ def max_solar_power(latt,long,pamb,day,gmt):
 st1 = CspPowerPlant(7500., 250., reg_factor=0.51)
 st1.print("Andasol 3")
 
-pv1 = PvPowerPlant(1e6, 250.)
+pv1 = PvPowerPlant(1e6, 250., reg_factor=0.0)
 pv1.print("Cestas")
 
 eol1 = EolPowerPlant(240., "onshore")
@@ -665,9 +702,27 @@ day = 31+29+31+28
 gmt = 17.
 
 pw = max_solar_power(latt,long,pamb,day,gmt)
-
 print("")
-print("Solar power = ",pw)
+print("Solar power = ","%8.1f" % pw)
+
+md_pw = 0.
+period = 24*60
+for t in range(period):
+    md_pw += max_solar_power(latt,long,pamb,day,float(t)/60.)/period
+print("")
+print("Mean dayly solar power = ","%8.1f" % md_pw)
+
+# my_pw = 0.
+# year = 365
+# period = 24*60
+# for y in range(year):
+#     for t in range(period):
+#         my_pw += max_solar_power(latt,long,pamb,y+1,float(t)/60.)/period/year
+# print("")
+# print("Mean yearly solar power = ","%8.1f" % my_pw)
+
+
+
 
 
 mix = {"pv":5.e9, "csp_cp":5.e9, "eol_onsh":20.e9, "eol_offsh":30.e9, "nuclear":40.e9}
