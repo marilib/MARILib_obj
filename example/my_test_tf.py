@@ -69,7 +69,7 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 
 crt = "aircraft.weight_cg.mtow"
 
-process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+#process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
 
 ac.draw.payload_range("This_plot")
@@ -110,7 +110,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
 file = "explore_design.txt"
 
 #res = process.eval_this(ac,var)
-res = process.explore_design_space(ac, var, step, data, file)
+#res = process.explore_design_space(ac, var, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']
@@ -123,7 +123,7 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req)]       # Limit values
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub"])                 # ub: upper bound, lb: lower bound
 
-process.draw_design_space(file, res, field, const, color, limit, bound)
+#process.draw_design_space(file, res, field, const, color, limit, bound)
 
 
 

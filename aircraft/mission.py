@@ -42,8 +42,7 @@ class MissionBasic(Flight):
         altp = self.aircraft.requirement.cruise_altp
         mach = self.aircraft.requirement.cruise_mach
 
-        self.max_payload.eval(payload_max,mtow,owe,altp,mach,disa)
-        #self.max_payload2.eval(owe,altp,mach,disa, payload=payload_max,tow=mtow)
+        self.max_payload.eval(owe,altp,mach,disa, payload=payload_max, tow=mtow)
 
         range = self.aircraft.requirement.design_range
         self.nominal.eval(range,mtow,owe,altp,mach,disa)
@@ -386,7 +385,7 @@ class Mission(MissionBasic):
         self.aircraft = aircraft
 
         self.max_payload = MissionRangeFromPayloadAndTow(aircraft)
-        #self.max_payload2 = Mission_generic(aircraft)
+        self.max_payload = MissionGeneric(aircraft)
         self.nominal = MissionFuelFromRangeAndTow(aircraft)
         self.max_fuel = MissionRangeFromFuelAndTow(aircraft)
         self.zero_payload = MissionRangeFromFuelAndPayload(aircraft)
@@ -717,24 +716,26 @@ class MissionGeneric(MissionFuelFromRangeAndTow):
         kwargs must contain affectations to the parameters that are fixed
         among the following list : range, tow, payload, fuel_total
         """
-        range = 0.
-        tow = 0.
-        payload = 0.
-        fuel_total = 0.
+        self.disa = disa    # Mean cruise temperature shift
+        self.altp = altp    # Mean cruise altitude
+        self.mach = mach    # Cruise mach number
+
+        range = [0.]
+        tow = [0.]
+        payload = [0.]
+        fuel_total = [0.]
+
+        for key,val in kwargs.items():      # load parameter values, this quantities will not be modified
+            exec(key+"[0] = val")
 
         vars = list(set(["range","tow","payload","fuel_total"])-set(kwargs.keys())) # extract variable names
-        for key,val in kwargs.items():      # load parameter values, this quantities will not be modified
-            exec(key+" = val")
-            print(key,eval(key))
-        print(payload,tow)
-        raise Exception()
 
         def fct(x_in):
             for k,key in enumerate(vars):      # load variable values
-                exec(key+" = x_in[k]")
-            self.eval_breguet(range,tow,altp,mach,disa)         # eval Breguet equation, fuel_total is updated in the object
-            return  [self.fuel_total - fuel_total,
-                     self.tow - (owe+payload+self.fuel_total)]  # constraints residuals are sent back
+                exec(key+"[0] = x_in[k]")
+            self.eval_breguet(range[0],tow[0],altp,mach,disa)         # eval Breguet equation, fuel_total is updated in the object
+            return  [self.fuel_total - fuel_total[0],
+                     tow[0] - (owe+payload[0]+self.fuel_total)]  # constraints residuals are sent back
 
         x_ini = np.zeros(2)
         for k,key in enumerate(vars):              # load init values from object
@@ -746,8 +747,11 @@ class MissionGeneric(MissionFuelFromRangeAndTow):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         for k,key in enumerate(vars):              # get solution
-            exec(key+" = output_dict[0][k]")
-        self.eval_breguet(range,tow,altp,mach,disa)
+            exec(key+"[0] = output_dict[0][k]")
+        self.eval_breguet(range[0],tow[0],altp,mach,disa)
+        self.range = range[0]
+        self.tow = tow[0]
+        self.payload = payload[0]
 
 
 class MissionDef(Flight):
