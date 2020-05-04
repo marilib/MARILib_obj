@@ -425,8 +425,9 @@ class EolPowerPlant(PowerPlant):
         self.net_yearly_enrg = self.gross_yearly_enrg - self.total_grey_enrg / self.life_time
         self.er_o_ei = self.net_yearly_enrg / (self.total_grey_enrg/self.life_time)
 
+        self.gross_power_efficiency = 0.35
         self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
-        self.net_power_efficiency =  np.nan
+        self.net_power_efficiency =  self.gross_power_efficiency * self.marginal_efficiency
 
         self.material.concrete = {"onshore":320000., "offshore":640000.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
         self.material.steel = {"onshore":61500., "offshore":91500.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
@@ -482,8 +483,9 @@ class NuclearPowerPlant(PowerPlant):
         self.net_yearly_enrg = self.gross_yearly_enrg * self.life_time * (1. - self.grey_energy_ratio) / self.life_time
         self.er_o_ei = self.net_yearly_enrg / (self.gross_yearly_enrg * self.grey_energy_ratio)
 
+        self.gross_power_efficiency = 0.70
         self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
-        self.net_power_efficiency =  np.nan
+        self.net_power_efficiency =  self.gross_power_efficiency * self.marginal_efficiency
 
         # ref : for waste storage
         # Life cycle energy and greenhouse gas emissions of nuclear energy:

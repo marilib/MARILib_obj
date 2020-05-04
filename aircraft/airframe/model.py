@@ -12,7 +12,7 @@ from context import earth
 
 from aircraft.performance import Flight
 
-from aircraft.tool.math import lin_interp_1d, maximize_1d
+from context.math import lin_interp_1d, maximize_1d
 
 
 class Aerodynamics(object):

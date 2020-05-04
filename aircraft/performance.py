@@ -10,7 +10,7 @@ from context import earth, unit
 import numpy as np
 from scipy.optimize import fsolve
 
-from aircraft.tool.math import vander3, trinome, maximize_1d
+from context.math import vander3, trinome, maximize_1d
 
 
 class Performance(object):
