@@ -5,7 +5,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on March 22 22:09:20 2020
-@author: Thierry Druot, Weichang LYU
+@author: Thierry Druot
 """
 
 import numpy as np

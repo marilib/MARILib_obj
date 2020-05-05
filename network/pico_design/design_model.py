@@ -87,7 +87,7 @@ class Aircraft(object):
         if (dict[2] != 1): raise Exception("Convergence problem")
         tow = dict[0][0]
         fuel_mission = dict[0][1]
-        return tow,fuel_mission
+        return fuel_mission,tow
 
     def eval_design(self, X):
         """Evaluation function for design_plane
