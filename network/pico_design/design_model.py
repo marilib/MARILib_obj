@@ -27,27 +27,32 @@ class Aircraft(object):
                  npax=150.,
                  range=unit.m_NM(3000.),
                  mach=0.78):
-        self.npax = npax  # Npax
-        self.range = range  # Range
-        self.range_pl_max = None
-        self.range_fuel_max = None
-        self.range_no_pl = None
-        self.cruise_mach = mach  # Speed
-        self.cruise_altp = unit.m_ft(35000.)
-        self.mpax = 130.    # weight per passenger
-        self.payload = None
-        self.payload_max = None
-        self.payload_fuel_max = None
-        self.mtow = None  # MTOW
-        self.fuel_mission = None
-        self.fuel_reserve = None
-        self.ldw = None
-        self.owe = None  # OWE
-        self.lod = 20.                                   # Techno assumption
-        self.sfc = unit.convert_from("kg/daN/h", 0.54)   # Techno assumption
-        self.eff_ratio = self.lod / self.sfc
-        self.owe_coef = [-1.478e-07, 5.459e-01, 8.40e+02]               # Techno assumption
-        self.kr = 0.03      # fraction of mission fuel for reserve
+        self.cruise_altp = unit.m_ft(35000.)    # Reference cruise altitude
+        self.cruise_mach = mach     # Speed
+        self.range = range          # Range
+        self.npax = npax            # Npax
+        self.mpax = 130.            # Weight per passenger
+        self.payload = None         # Design mission payload
+        self.mtow = None            # Design mission Maximum Take Off Weight
+        self.owe = None             # Design mission Operating Empty Weight
+        self.ldw = None             # Design mission Landing Weight
+        self.fuel_mission = None    # Design mission fuel
+        self.fuel_reserve = None    # Design mission reserve fuel
+        self.kr = 0.03              # fraction of mission fuel for reserve
+
+        self.payload_max = None     # Maximum payload
+        self.range_pl_max = None    # Range for maximum payload mission
+
+        self.payload_fuel_max = None    # Payload for max fuel mission
+        self.range_fuel_max = None      # Range for max fuel mission
+
+        self.range_no_pl = None     # Range for zero payload mission
+
+        self.lod = 20.                                  # Techno assumption
+        self.sfc = unit.convert_from("kg/daN/h", 0.54)  # Techno assumption
+
+        self.eff_ratio = self.lod / self.sfc            # Efficiency ratio for specific air range
+        self.owe_coef = [-1.478e-07, 5.459e-01, 8.40e+02]   # "Structural model"
 
         self.design_aircraft()
 
