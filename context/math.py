@@ -85,11 +85,9 @@ def maximize_1d(xini,dx,*fct):
 
     X0 = xini
     Y0 = fct[0][0](X0,*fct[0][1:n])
-    print("Y0 = ",Y0)
 
     X1 = X0+dx
     Y1 = fct[0][0](X1,*fct[0][1:n])
-    print("Y1 = ",Y1)
 
     if Y0>Y1:
         dx = -dx
@@ -97,7 +95,6 @@ def maximize_1d(xini,dx,*fct):
 
     X2 = X1+dx
     Y2 = fct[0][0](X2,*fct[0][1:n])
-    print("Y2 = ",Y2)
 
     while Y1<Y2:
         X0 = X1
@@ -105,9 +102,7 @@ def maximize_1d(xini,dx,*fct):
         X2 = X2+dx
         Y0 = Y1
         Y1 = Y2
-        print(X2)
         Y2 = fct[0][0](X2,*fct[0][1:n])
-        print("Y2 = ",Y2)
 
     X = np.array([X0,X1,X2])
     Y = np.array([Y0,Y1,Y2])
