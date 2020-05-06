@@ -73,7 +73,7 @@ class Aircraft(object):
         range = range_factor*np.log(mtow/(mtow-fuel_mission))       # Breguet equation
         return range
 
-    def operation(self, range, n_pax):
+    def operation(self, n_pax, range):
         """Operational mission
 
         :param range: Distance to fly
@@ -211,6 +211,34 @@ class Aircraft(object):
 
 
 
+class Fleet(object):
+    """Fleet object
+    """
+    def __init__(self, ac_list):
+        self.aircraft = ac_list    # List of the airplanes of the fleet
 
+    def fleet_fuel(self, data_matrix):
+        cstep = data_matrix["capacity_step"]
+        rstep = data_matrix["range_step"]
+        array = data_matrix["matrix"]
 
+        mtow_list = [ac.mtow for ac in self.aircraft]
+        index = np.argsort(mtow_list)
+        nc,nr = array.shape
 
+        total_fuel = 0.
+        for c in range(nc):
+            for r in range(nr):
+                capa = cstep*(c+0.5)
+                dist = rstep*(c+0.5)
+                nflight = array[c,r]
+                flag = False
+                for i in index:
+                    if self.aircraft[i].is_in_plr(capa,dist):
+                        fuel,tow = self.aircraft[i].operation(capa,dist)
+                        total_fuel += fuel*nflight
+                        flag = True
+                        break
+                if not flag: print("Mission not fly-able : npax = ",capa," range = ",dist)
+
+        return total_fuel

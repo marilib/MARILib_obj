@@ -19,12 +19,12 @@ d = {}
 new_d = {}
 
 
-def analyse_data_base(data_base_file_name, range_intervals, capacity_intervals):
+def analyse_data_base(data_base_file_name, range_interval, capacity_interval):
     """Analyse traffic data base and store results into various format
 
     :param data_base_file_name: .csv file with the traffic description
-    :param range_intervals: Range interval to do the analysis, ex : 200 NM
-    :param capacity_intervals: Capacity interval to do the analysis, ex 20 pax
+    :param range_interval: Range interval to do the analysis, ex : 200 NM
+    :param capacity_interval: Capacity interval to do the analysis, ex 20 pax
     :return:
     """
     data_frame = pd.read_csv(data_base_file_name, delimiter=",", header=None)
@@ -37,22 +37,22 @@ def analyse_data_base(data_base_file_name, range_intervals, capacity_intervals):
     data_frame1[12] = data_frame1[12].astype(int)  # change to int
 
     maxDis = max(data_frame1[8])  # maximun distance
-    n_column = maxDis//range_intervals + 1  # the number of column
+    n_column = maxDis//range_interval + 1  # the number of column
     y = []
     for i in range(n_column):
-        data_frame2 = data_frame1[(i*range_intervals <= data_frame1[8]) & (data_frame1[8] < (i+1)*range_intervals)]
+        data_frame2 = data_frame1[(i*range_interval <= data_frame1[8]) & (data_frame1[8] < (i+1)*range_interval)]
         if len(data_frame2):
-            n_cap = max(data_frame2[12])//capacity_intervals + 1
+            n_cap = max(data_frame2[12])//capacity_interval + 1
             y.append(len(data_frame2))
             d1 = {}
             for k in range(n_cap):
-                data_frame3 = data_frame2[(k*capacity_intervals <= data_frame2[12]) & (data_frame2[12] < (k+1)*capacity_intervals)]
+                data_frame3 = data_frame2[(k*capacity_interval <= data_frame2[12]) & (data_frame2[12] < (k+1)*capacity_interval)]
 
                 if len(data_frame3):
                     list1 = [len(data_frame3), list(set(data_frame3[10]))]
-                    d1[(k+1)*capacity_intervals] = list1
+                    d1[(k+1)*capacity_interval] = list1
 
-            d[(i+1)*range_intervals] = [len(data_frame2), d1]
+            d[(i+1)*range_interval] = [len(data_frame2), d1]
 
     for key in d:
         value = {}
@@ -65,38 +65,39 @@ def analyse_data_base(data_base_file_name, range_intervals, capacity_intervals):
     df = df.fillna(0)
 
     max_columns = max(df.columns)
-    for i in range(range_intervals, max_columns+range_intervals, range_intervals):
+    for i in range(range_interval, max_columns+range_interval, range_interval):
         if i not in df.columns:
             df[i] = 0.0
 
     max_index = max(df.index)
-    for i in range(capacity_intervals, max_index+capacity_intervals, capacity_intervals):
+    for i in range(capacity_interval, max_index+capacity_interval, capacity_interval):
         if i not in df.index:
             df.loc[i] = 0.0
 
-    df = df.sort_index()
-    df = df.sort_index(axis=1)
-    df = df.sort_index(ascending=True)
     df = df.astype('int')
     matrix = df.values
-    return d, matrix, df, range_intervals, capacity_intervals, data_frame1
+    array = np.array(matrix)
+    return d, array, df, range_interval, capacity_interval, data_frame1
 
 
-def store_dict_to_file(dictionnary_file_name, data_dictionnary):
+def store_dict_to_file(dictionnary_file_name, data_dictionnary, range_interval, capacity_interval):
+    data_dict = {"range_step":range_interval, "capacity_step":capacity_interval, "data_dict":data_dictionnary}
     with open(dictionnary_file_name, 'wb') as f:
-        pickle.dump(data_dictionnary, f)
+        pickle.dump(data_dict, f)
         return
 
 
-def store_matrix_to_file(matrix_file_name, data_matrix):
+def store_matrix_to_file(matrix_file_name, data_matrix, range_interval, capacity_interval):
+    matrix = {"range_step":range_interval, "capacity_step":capacity_interval, "matrix":data_matrix}
     with open(matrix_file_name, 'wb') as f:
-        pickle.dump(data_matrix, f)
+        pickle.dump(matrix, f)
         return
 
 
-def store_dataframe_to_file(data_frame_file_name, data_frame):
+def store_dataframe_to_file(data_frame_file_name, data_frame, range_interval, capacity_interval):
+    dframe = {"range_step":range_interval, "capacity_step":capacity_interval, "data_frame":data_frame}
     with open(data_frame_file_name, 'wb') as f:
-        pickle.dump(data_frame, f)
+        pickle.dump(dframe, f)
         return
 
 
@@ -118,15 +119,15 @@ def load_dataframe1_from_file(matrix_file_name):
     return data_frame1
 
 
-def draw_matrix(file_name, data_matrix, range_intervals, capacity_intervals):
+def draw_matrix(file_name, data_matrix, range_interval, capacity_interval):
     matrix = data_matrix  # open numpy
-    data = matrix[::-1]+1
+    data = matrix[::-1] + 1
     sns.set_context({"figure.figsize": (15, 15)})
     log_norm = LogNorm(vmin=data.min(), vmax=data.max())
     cbar_ticks = [math.pow(10, i) for i in range(math.floor(
         math.log10(data.min())), math.ceil(math.log10(data.max())))]
-    y_axis_labels = list(range(matrix.shape[0] * capacity_intervals, 0, -capacity_intervals))
-    x_axis_labels = list(range(range_intervals, (matrix.shape[1] + 1) * range_intervals, range_intervals))
+    y_axis_labels = list(range(matrix.shape[0] * capacity_interval, 0, -capacity_interval))
+    x_axis_labels = list(range(range_interval, (matrix.shape[1] + 1) * range_interval, range_interval))
 
     heatmap1 = sns.heatmap(data, square=True, cmap="RdBu_r", linewidths=0.3, linecolor="grey", xticklabels=x_axis_labels,
                            yticklabels=y_axis_labels, norm=log_norm, cbar_kws={"ticks": cbar_ticks, "orientation": "horizontal"})
@@ -158,11 +159,11 @@ def get_data_types(data_frame1, range_interval, capacity_interval):
 # ------------------------------------------------------------------------------------------------------
 file="../input_data/2019_All_JobId1448413.csv"
 # file="2019_All_JobId1448413_extract.csv"
-dict, matrix, df, range_intervals, capacity_intervals, data_frame1=analyse_data_base(file, 200, 20)
+dict, matrix, df, range_interval, capacity_interval, data_frame1=analyse_data_base(file, 200, 20)
 
-store_dict_to_file('all_flights_2019_dictionary.bin', dict)
-store_matrix_to_file('all_flights_2019_matrix.bin', matrix)
-store_dataframe_to_file('all_flights_2019_dataframe.bin', data_frame1)
+store_dict_to_file('all_flights_2019_dictionary.bin', dict, range_interval, capacity_interval)
+store_matrix_to_file('all_flights_2019_matrix.bin', matrix, range_interval, capacity_interval)
+store_dataframe_to_file('all_flights_2019_dataframe.bin', data_frame1, range_interval, capacity_interval)
 
 # data_dictionnary = load_dictionnary_from_file('dictionary.bin')
 # matrix = load_matrix_from_file('matrix.bin')
