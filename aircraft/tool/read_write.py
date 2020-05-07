@@ -15,7 +15,7 @@ from context.unit import convert_to
 
 STANDARD_FORMAT = 6
 
-data_dict = {
+DATA_DICT = {
     "body_type": {"unit":"string", "mag":8, "txt":"Type of main body, 'fuselage' or 'blended'"},
     "wing_type": {"unit":"string", "mag":6, "txt":"Type of lifting body, 'classic' or 'blended'"},
     "wing_attachment": {"unit":"string", "mag":4, "txt":"Position of wing attachment, 'low' or 'high'"},
@@ -327,11 +327,13 @@ class MarilibIO():
     """A collection of Input and Ouput functions for MARILib objects.
     1) Human readable format uses a *JSON-like* encoding and decoding functions adapted to MARILib objects.
     """
+    def __init__(self):
+        self.datadict = DATA_DICT # default units and variable description dict
 
-    def marilib_encoding(self, o):
+    def _marilib_encoding(self, o):
         """Default encoding function for MARILIB objects of non primitive types (int,float,list,string,tuple,dict)
-        Raises an `AttributeError` if te object has no __dict__ attribute.
-        Skips 'aircraft' entries to avoid circular reference and converts numpy array to list.
+        Raises an `AttributeError` if te object has no `__dict__` attribute.
+        Skips `self.aircraft` entries to avoid circular reference and converts numpy array to list.
         :param o: the object to encode
         :return: the attribute dict
         """
@@ -345,11 +347,11 @@ class MarilibIO():
             pass  # There was no aircraft entry => nothing to do
 
         for key,value in json_dict.items():
-            if key in data_dict.keys():  # if entry found in data_dict, add units and docstring
-                unit = data_dict[key]['unit']
-                text = data_dict[key]['txt']
+            if key in self.datadict.keys():  # if entry found in DATA_DICT, add units and docstring
+                unit = self.datadict[key]['unit']
+                text = self.datadict[key]['txt']
                 try:
-                    json_dict[key] = [convert_to(unit,value), f"({unit}) {text}"] # TODO: set number of digits and correct units
+                    json_dict[key] = [convert_to(unit,value), f"({unit}) {text}"]
                 except KeyError:
                     json_dict[key] = [value, f"WARNING: conversion to ({unit}) failed. {text}"]
                     print("WARNING : unknwon unit "+str(unit))
@@ -358,15 +360,23 @@ class MarilibIO():
 
         return json_dict
 
-    def to_string(self,marilib_object):
+    def to_string(self,marilib_object,datadict=None):
         """Customized Json-like print of the object
-        It uses marilib_encoding() to parse objects into dict.
+        It uses _marilib_encoding() to parse objects into dict.
         .. warning::
-            Numpy arrays and lists are rewritten on one line only, which is not JSON standard
+            Numpy arrays and lists are rewritten on one line only, which is not the default JSON standard
         :param marilib_object: the object to print
+        :param datadict: a dictionary that give the unit and a description of each variable. Example ::
+            datadict = { "MTO": {"unit":"no_dim", "mag":1e0, "txt":"Max Takeoff rating factor"},
+                         "cg": {"unit":"m", "mag":1e1, "txt":"Position of the center of gravity in the assembly"},}
+        by default it uses the value given during the last call. If no previous call, the default value is DATA_DICT.
         :return: a customized JSON-like formatted string
         """
-        json_string = json.dumps(marilib_object, indent=4, default=self.marilib_encoding)
+        # Set the new data dict if one is provided
+        if (datadict is not None):
+            self.datadict = datadict
+
+        json_string = json.dumps(marilib_object, indent=4, default=self._marilib_encoding)
         output = re.sub(r'\[\s+', '[', json_string)  # remove spaces after an opening bracket
         output = re.sub(r'(?<!\}),\s+(?!\s*".*":)', ', ', output)  # remove spaces after comma not followed by ".*":
         output = re.sub(r'\s+\]', ']', output)  # remove white spaces before a closing bracket
@@ -375,6 +385,7 @@ class MarilibIO():
         floats = (float(f) for f in float_pattern.findall(output))  # detect all floats in the json string
         output_parts = float_pattern.split(output)  # split output around floats
         output = ''  # init output
+        # number_format = "%0."+int(STANDARD_FORMAT)+"g" # TODO: allow format change
         for part,val in zip(output_parts[:-1],floats):  # reconstruct output with proper float format
             output += part + "%0.6g" % float(val)  # reformat with 6 significant digits max
         return output + output_parts[-1]
@@ -386,11 +397,12 @@ class MarilibIO():
         """
         return json.loads(json_string)
 
-    def to_json_file(self,aircraft_object,filename):
+    def to_json_file(self,aircraft_object,filename,datadict=None):
         """Save a MARILib object in a human readable format:
         The object is serialized into a customized JSON-like string.
         :param marilib_object: the object to save
         :param filename: name of the file. Ex: myObjCollection/marilib_obj.json
+        :param datadict: argument for to_string(). The default datadict is DATA_DICT.
         :return: None
         """
         marilib_object = copy.deepcopy(aircraft_object)
@@ -400,7 +412,7 @@ class MarilibIO():
         except ValueError:  # pattern not found
             filename = filename + ".json"
         with open(filename,'w') as f:
-            f.write(self.to_string(marilib_object))
+            f.write(self.to_string(marilib_object,datadict=datadict))
         return None
 
     def to_binary_file(self,obj,filename):
