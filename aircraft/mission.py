@@ -687,7 +687,7 @@ class MissionDef(Flight):
         :return: two init values
         """
         x0 = [None,None]
-        for k,unknown in enumerate(unknowns):
+        for k,unknown in enumerate(sorted(unknowns)):
             if (unknown == "fuel_total"):
                 x0[k] = 0.25 * self.owe
             elif (unknown == "payload"):
