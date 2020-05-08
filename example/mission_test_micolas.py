@@ -39,6 +39,7 @@ reqs = Requirement(n_pax_ref = 150.,
 ac = Aircraft("This_plane")
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
+
 process.mda(ac)
 mymission = MissionDef(ac)
 mymission.set_parameters() # set default requirement parameters
