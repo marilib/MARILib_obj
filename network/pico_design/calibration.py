@@ -116,7 +116,7 @@ for j in range(len(label)):
     data_dict[label[j]] = data[:,j].astype(np.float)
 
 # ======================================================================================================
-# Identifing mission model
+# Identifing design model
 # ------------------------------------------------------------------------------------------------------
 ac = Aircraft()
 
@@ -130,7 +130,7 @@ def model(x_in):
         ac.range = data_dict["Range"][j]*1000.
         ac.cruise_mach = data_dict["Speed"][j]
         #ac.design_aircraft(effr=x_in[0], mpax=x_in[1], kr=x_in[2])
-        ac.design_aircraft(effr=x_in)
+        ac.design_aircraft()
         R.append(ac.mtow)
     return R
 
@@ -142,15 +142,15 @@ def objective(x_in):
 
 x0 = ac.lod / unit.convert_to("kg/daN/h", ac.sfc)
 
-x_out = x0
+# x_out = x0
 
-# x_out, y_out, rc = math.maximize_1d(x0, 0.1, [objective])
+x_out, y_out, rc = math.maximize_1d(x0, 0.1, [objective])
 
 # Main results
 #------------------------------------------------------------------------------------------------------
-print(x_out)
+print("x0 = ",x0,"  x_out = ",x_out)
 
-R = model(x_out)
+R = model(x0)
 
 res = np.sqrt(np.sum((R-B)**2))
 

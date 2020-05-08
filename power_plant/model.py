@@ -506,7 +506,7 @@ class NuclearPowerPlant(PowerPlant):
 
 
 
-class MixEnergetic(object):
+class EnergyMix(object):
 
     def __init__(self, sun_pw=250., mix={}):
         self.mix_peak_power = 0.
@@ -524,7 +524,7 @@ class MixEnergetic(object):
         self.pv = PvPowerPlant(self.pv_unit, sun_pw, reg_factor=0.5)
         self.pv_power = self.pv.nominal_peak_power    # reference peak power of one plant
 
-        self.csp_cp_unit = 1.e3     # reference number of mirror lines per plant
+        self.csp_cp_unit = 1.e4     # reference number of mirror lines per plant
         self.csp_cp = CspPowerPlant(self.csp_cp_unit, sun_pw, reg_factor=0.5)
         self.csp_cp_power = self.csp_cp.nominal_peak_power    # reference peak power of one plant
 
@@ -536,7 +536,7 @@ class MixEnergetic(object):
 
         rppw = 3.5e6    # peak power of each rotor
         loadf = 0.50    # load factor
-        self.eol_offsh_unit = 2.e2     # reference number of rotors per farm
+        self.eol_offsh_unit = 200.     # reference number of rotors per farm
         self.eol_offsh = EolPowerPlant(self.eol_offsh_unit, "offshore", rotor_peak_power=rppw, load_factor=loadf)
         self.eol_offsh_power = self.eol_offsh.nominal_peak_power    # reference peak power of one plant
 

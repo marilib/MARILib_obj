@@ -1,25 +1,18 @@
-#!/usr/bin/env python
-# coding: utf-8
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on May 05 09:53 2020
+@author: Nicolas Peteilh, Thierry Druot
+"""
 
-# # produce dictionary and matrix
-
-# In[1]:
-
-
-import math
-import pandas as pd
 import numpy as np
-from matplotlib.colors import LogNorm
+import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-import seaborn as sns
+import matplotlib.colors as colors
 import pickle
 
-d = {}
-new_d = {}
 
-
-def analyse_data_base(data_base_file_name, range_interval, capacity_interval):
+def analyse_data_base(oag_file_name, range_interval, capacity_interval):
     """Analyse traffic data base and store results into various format
 
     :param data_base_file_name: .csv file with the traffic description
@@ -27,159 +20,103 @@ def analyse_data_base(data_base_file_name, range_interval, capacity_interval):
     :param capacity_interval: Capacity interval to do the analysis, ex 20 pax
     :return:
     """
-    data_frame = pd.read_csv(data_base_file_name, delimiter=",", header=None)
+    oag_df = pd.read_csv(oag_file_name)
 
-    # data = data_frame.iloc[:,:].values             # Extract matrix of data
+    print("Noms des colonnes = ", oag_df.keys())
+    print("Total number of lines = ", len(oag_df))
+    print("Total number of flights = ", sum(oag_df['Frequency']))
 
-    data_frame1 = data_frame.drop(0)  # remove first line
-    data_frame1 = data_frame1[[8,10,12]]
-    data_frame1[8] = data_frame1[8].astype(int)
-    data_frame1[12] = data_frame1[12].astype(int)  # change to int
+    oag_df['Seats_per_flight'] = oag_df['Seats']/oag_df['Frequency']
 
-    maxDis = max(data_frame1[8])  # maximun distance
-    n_column = maxDis//range_interval + 1  # the number of column
-    y = []
-    for i in range(n_column):
-        data_frame2 = data_frame1[(i*range_interval <= data_frame1[8]) & (data_frame1[8] < (i+1)*range_interval)]
-        if len(data_frame2):
-            n_cap = max(data_frame2[12])//capacity_interval + 1
-            y.append(len(data_frame2))
-            d1 = {}
-            for k in range(n_cap):
-                data_frame3 = data_frame2[(k*capacity_interval <= data_frame2[12]) & (data_frame2[12] < (k+1)*capacity_interval)]
+    seats_list = np.arange(0, max(oag_df['Seats_per_flight']), capacity_interval)
+    range_list = np.arange(0, max(oag_df['Distance (KM)']), range_interval)
+    bins_list = [range_list, seats_list]
 
-                if len(data_frame3):
-                    list1 = [len(data_frame3), list(set(data_frame3[10]))]
-                    d1[(k+1)*capacity_interval] = list1
+    # plt.hist is used only to get data (not for plotting)
+    # data[0] contains the histogram values (array of array)
+    # data[1] contains labels for range
+    # data[2] contains labels for seat capacity
+    data = plt.hist2d(oag_df['Distance (KM)'], oag_df['Seats_per_flight'],
+                      weights = oag_df['Frequency'],
+                      bins = bins_list)
 
-            d[(i+1)*range_interval] = [len(data_frame2), d1]
-
-    for key in d:
-        value = {}
-        for key1 in d[key][1]:
-            value[key1] = d[key][1][key1][0]
-        new_d[key] = value
-
-    stocks_dict = new_d
-    df = pd.DataFrame.from_dict(stocks_dict)
-    df = df.fillna(0)
-
-    max_columns = max(df.columns)
-    for i in range(range_interval, max_columns+range_interval, range_interval):
-        if i not in df.columns:
-            df[i] = 0.0
-
-    max_index = max(df.index)
-    for i in range(capacity_interval, max_index+capacity_interval, capacity_interval):
-        if i not in df.index:
-            df.loc[i] = 0.0
-
-    df = df.astype('int')
-    matrix = df.values
-    array = np.array(matrix)
-    return d, array, df, range_interval, capacity_interval, data_frame1
+    data_matrix = {"matrix":np.array(data[0].T), "range_step":range_interval, "npax_step":capacity_interval}
+    oag_data = {"data_frame":oag_df, "range_step":range_interval, "npax_step":capacity_interval}
+    return data_matrix, oag_data
 
 
-def store_dict_to_file(dictionnary_file_name, data_dictionnary, range_interval, capacity_interval):
-    data_dict = {"range_step":range_interval, "capacity_step":capacity_interval, "data_dict":data_dictionnary}
-    with open(dictionnary_file_name, 'wb') as f:
-        pickle.dump(data_dict, f)
-        return
+def draw_matrix(file_name, data_matrix):
+    """Draw the figure of the flight matrix and store it in a file
 
+    :param file_name: file to store the figure
+    :param data_matrix: data source
+    :return:
+    """
 
-def store_matrix_to_file(matrix_file_name, data_matrix, range_interval, capacity_interval):
-    matrix = {"range_step":range_interval, "capacity_step":capacity_interval, "matrix":data_matrix}
-    with open(matrix_file_name, 'wb') as f:
-        pickle.dump(matrix, f)
-        return
+    range_interval = data_matrix["range_step"]
+    capacity_interval = data_matrix["npax_step"]
 
+    nc,nr = data_matrix["matrix"].shape
+    range_list = [int(range_interval*j) for j in range(nr+1)]
+    capa_list = [int(capacity_interval*j) for j in range(nc+1)]
 
-def store_dataframe_to_file(data_frame_file_name, data_frame, range_interval, capacity_interval):
-    dframe = {"range_step":range_interval, "capacity_step":capacity_interval, "data_frame":data_frame}
-    with open(data_frame_file_name, 'wb') as f:
-        pickle.dump(dframe, f)
-        return
+    fig, ax = plt.subplots(figsize=(14, 7))
 
-
-def load_dictionnary_from_file(dictionnary_file_name):
-    with open(dictionnary_file_name, 'rb') as f:
-        data_dictionnary = pickle.load(f)
-    return data_dictionnary
-
-
-def load_matrix_from_file(matrix_file_name):
-    with open(matrix_file_name, 'rb') as f:
-        data_matrix = pickle.load(f)
-    return data_matrix
-
-
-def load_dataframe1_from_file(matrix_file_name):
-    with open(matrix_file_name, 'rb') as f:
-        data_frame1 = pickle.load(f)
-    return data_frame1
-
-
-def draw_matrix(file_name, data_matrix, range_interval, capacity_interval):
-    matrix = data_matrix  # open numpy
-    data = matrix[::-1] + 1
-    sns.set_context({"figure.figsize": (15, 15)})
-    log_norm = LogNorm(vmin=data.min(), vmax=data.max())
-    cbar_ticks = [math.pow(10, i) for i in range(math.floor(
-        math.log10(data.min())), math.ceil(math.log10(data.max())))]
-    y_axis_labels = list(range(matrix.shape[0] * capacity_interval, 0, -capacity_interval))
-    x_axis_labels = list(range(range_interval, (matrix.shape[1] + 1) * range_interval, range_interval))
-
-    heatmap1 = sns.heatmap(data, square=True, cmap="RdBu_r", linewidths=0.3, linecolor="grey", xticklabels=x_axis_labels,
-                           yticklabels=y_axis_labels, norm=log_norm, cbar_kws={"ticks": cbar_ticks, "orientation": "horizontal"})
-    heatmap1.set_xlabel('Range', fontsize=15)
-    heatmap1.set_ylabel('Capacity', fontsize=15)
+    im = ax.pcolormesh(data_matrix["matrix"],
+                       edgecolors='b',
+                       linewidth=0.01,
+                       cmap="rainbow",
+                       norm=colors.LogNorm(vmin=data_matrix["matrix"].min()+0.1, vmax=data_matrix["matrix"].max()))
+    ax = plt.gca()
+    ax.set_aspect('equal')
+    ax.set_xlabel('Ranges (km)',
+                  fontsize=16)
+    ax.set_ylabel('Seat capacity',
+                  fontsize=16)
+    ax.xaxis.set_ticks(range(len(range_list)))
+    ax.xaxis.set_ticklabels(range_list,
+                            fontsize=8,
+                            rotation = 'vertical')
+    ax.yaxis.set_ticks(range(len(capa_list)))
+    ax.yaxis.set_ticklabels(capa_list,
+                            fontsize=8)
+    plt.title('Number of flights per seat capacity and range',
+              fontsize=16)
+    cbar = fig.colorbar(im, ax=ax,
+                        orientation='horizontal',
+                        aspect=40.)
     plt.savefig(file_name, dpi=500, bbox_inches='tight')
-    return
-
-
-def data_analysis(data_frame1, range_interval, capacity_interval):
-    data_frame1 = data_frame1[(range_interval[0] <= data_frame1[8]) & (
-            data_frame1[8] <= range_interval[1])]
-    data_frame1 = data_frame1[(capacity_interval[0] <= data_frame1[12]) & (
-            data_frame1[12] <= capacity_interval[1])]
-    return len(data_frame1)
-
-
-def get_data_types(data_frame1, range_interval, capacity_interval):
-    data_frame1 = data_frame1[(range_interval[0] <= data_frame1[8]) & (
-        data_frame1[8] <= range_interval[1])]
-    data_frame1 = data_frame1[(capacity_interval[0] <= data_frame1[12]) & (
-        data_frame1[12] <= capacity_interval[1])]
-    return list(set(data_frame1[10]))
+    # plt.show()
 
 
 
-# ======================================================================================================
-# Traffic analysis
-# ------------------------------------------------------------------------------------------------------
-file="../input_data/2019_All_JobId1448413.csv"
-# file="2019_All_JobId1448413_extract.csv"
-dict, matrix, df, range_interval, capacity_interval, data_frame1=analyse_data_base(file, 200, 20)
+def store_data_to_file(file_name, data):
+    with open(file_name, 'wb') as f:
+        pickle.dump(data, f)
+        return
 
-store_dict_to_file('all_flights_2019_dictionary.bin', dict, range_interval, capacity_interval)
-store_matrix_to_file('all_flights_2019_matrix.bin', matrix, range_interval, capacity_interval)
-store_dataframe_to_file('all_flights_2019_dataframe.bin', data_frame1, range_interval, capacity_interval)
 
-# data_dictionnary = load_dictionnary_from_file('dictionary.bin')
-# matrix = load_matrix_from_file('matrix.bin')
-# data_frame1 = load_dataframe1_from_file('data_frame1.bin')
-
-draw_matrix('all_flights_2019_heatmap.png', matrix, 200, 20)
-
-# total = data_analysis(data_frame1, [150, 625], [0, 270])
-# print(total)
-#
-# type_flight=get_data_types(data_frame1, [150, 625], [0, 270])
-# print(type_flight)
-#
-# draw_matrix(matrix,200, 20)
+def load_data_from_file(file_name):
+    with open(file_name, 'rb') as f:
+        data = pickle.load(f)
+    return data
 
 
 
+if __name__ == '__main__':
 
+    path_to_oag_file = "../input_data/2016_All_JobId651257.csv"
 
+    range_interval = 200.   # km
+    capacity_interval = 20. # npax
+
+    data_matrix, oag_data = analyse_data_base(path_to_oag_file, range_interval, capacity_interval)
+
+    matrix_file_name = "all_flights_2016_matrix.bin"
+    store_data_to_file(matrix_file_name, data_matrix)
+
+    dframe_file_name = "all_flights_2016_dframe.bin"
+    store_data_to_file(dframe_file_name, oag_data)
+
+    heatmap_file_name = "all_flights_2016_heatmap.png"
+    draw_matrix(heatmap_file_name, data_matrix)
