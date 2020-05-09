@@ -50,7 +50,7 @@ class Aircraft(object):
         self.range_no_pl = None     # Range for zero payload mission
 
         self.lod = self.l_o_d(npax)                                  # Techno assumption
-        self.sfc = unit.convert_from("kg/daN/h", 0.59)  # Techno assumption
+        self.sfc = unit.convert_from("kg/daN/h", 0.60)  # Techno assumption
 
         self.eff_ratio = self.lod / self.sfc            # Efficiency ratio for specific air range
         self.owe_coef = [-1.478e-07, 5.459e-01, 8.40e+02]   # "Structural model"
@@ -61,7 +61,7 @@ class Aircraft(object):
         pax1 = 60.
         lod1 = 15.
         pax2 = 160.
-        lod2 = 19.
+        lod2 = 18.
         lod = lod1 + (lod2-lod1)*(npax-pax1)/(pax2-pax1)
         lod = max(lod1,min(lod,lod2))
         return lod
@@ -81,39 +81,6 @@ class Aircraft(object):
         pamb,tamb,vsnd,g = self.atmosphere(self.cruise_altp)
         range_factor = (self.cruise_mach*vsnd*self.eff_ratio)/g
         range = range_factor*np.log(tow/(tow-fuel_mission))       # Breguet equation
-        return range
-
-    def max_capacity(self, range):
-        """Retrieve the maximum capacity for a given range
-
-        :param range: Distance to fly
-        :return:  capacity
-        """
-        if range<=self.range_pl_max:
-            capacity = np.floor(self.payload_max/self.mpax)
-        elif self.range_pl_max<range and range<=self.range_fuel_max:
-            payload =    self.payload_fuel_max + (self.payload_max-self.payload_fuel_max) * (range-self.range_fuel_max) / (self.range_pl_max-self.range_fuel_max)
-            capacity = np.floor(payload/self.mpax)
-        elif self.range_fuel_max<range and range<=self.range_no_pl:
-            payload =   self.payload_fuel_max*(range-self.range_no_pl) / (self.range_fuel_max-self.range_no_pl)
-            capacity = np.floor(payload/self.mpax)
-        else:
-            capacity = 0.
-        return capacity
-
-    def max_range(self, npax):
-        """Retrieve the maximum range for a given number of passenger
-
-        :param npax: Number of passenger
-        :return:  range
-        """
-        payload = self.mpax*npax
-        if self.payload_max<payload:
-            range = 0.
-        elif self.payload_fuel_max<payload and payload<=self.payload_max:
-            range = self.range_fuel_max + (payload - self.payload_fuel_max) * (self.range_pl_max-self.range_fuel_max) / (self.payload_max-self.payload_fuel_max)
-        else:
-            range = self.range_no_pl + payload * (self.range_fuel_max-self.range_no_pl) / self.payload_fuel_max
         return range
 
     def operation(self, n_pax, range):
@@ -178,7 +145,7 @@ class Aircraft(object):
         fuel = (self.mtow - self.owe - self.payload_max) / (1.+self.kr)
         self.range_pl_max = self.mission(self.mtow, fuel)
 
-        self.payload_fuel_max = self.payload * 0.40
+        self.payload_fuel_max = self.payload * 0.30
         fuel_max = (self.mtow - self.owe - self.payload_fuel_max) / (1.+self.kr)
         self.range_fuel_max = self.mission(self.mtow, fuel_max)
 
@@ -189,16 +156,53 @@ class Aircraft(object):
         """Assess if a mission is possible
         """
         payload = npax * self.mpax
-        out_dict = {"capa":True, "dist":True, "both":True}
+        out_dict = {"capa":True, "dist":True}
         c1 = self.payload_max - payload                                                                 # Max payload limit
         c2 =  (payload-self.payload_fuel_max)*(self.range_pl_max-self.range_fuel_max) \
             - (self.payload_max-self.payload_fuel_max)*(range-self.range_fuel_max)                      # Max Take off weight limit
         c3 = payload*(self.range_fuel_max-self.range_no_pl) - self.payload_max*(range-self.range_no_pl) # Max fuel limit
         c4 = self.range_no_pl - range                                                                   # Max range limit
-        if ((c1<0 or c2<0 or c3<0) and c4>=0): out_dict["capa"] = False   # Out of PLR because of capacity
-        if (c1>=0 and (c2<0 or c3<0 or c4<0)): out_dict["dist"] = False   # Out of PLR because of range
-        if (c1<0 and c4<0): out_dict["both"] = False   # Out of PLR because of both capacity and range
+        if ((c1<0. or c2<0. or c3<0.) and c4>=0.):  # Out of PLR because of capacity
+            out_dict["capa"] = False
+        elif (c1>=0. and c4<0.):                    # Out of PLR because of range
+            out_dict["dist"] = False
+        elif (c1<0. and c4<0.):                     # Out of PLR because of range and capacity
+            out_dict["capa"] = False
+            out_dict["dist"] = False
         return out_dict
+
+    def max_capacity(self, range):
+        """Retrieve the maximum capacity for a given range
+
+        :param range: Distance to fly
+        :return:  capacity
+        """
+        if range<=self.range_pl_max:
+            capacity = np.floor(self.payload_max/self.mpax)
+        elif self.range_pl_max<range and range<=self.range_fuel_max:
+            payload =    self.payload_fuel_max + (self.payload_max-self.payload_fuel_max) * (range-self.range_fuel_max) / (self.range_pl_max-self.range_fuel_max)
+            capacity = np.floor(payload/self.mpax)
+        elif self.range_fuel_max<range and range<=self.range_no_pl:
+            payload =   self.payload_fuel_max*(range-self.range_no_pl) / (self.range_fuel_max-self.range_no_pl)
+            capacity = np.floor(payload/self.mpax)
+        else:
+            capacity = 0.
+        return capacity
+
+    def max_range(self, npax):
+        """Retrieve the maximum range for a given number of passenger
+
+        :param npax: Number of passenger
+        :return:  range
+        """
+        payload = self.mpax*npax
+        if self.payload_max<payload:
+            range = 0.
+        elif self.payload_fuel_max<payload and payload<=self.payload_max:
+            range = self.range_fuel_max + (payload - self.payload_fuel_max) * (self.range_pl_max-self.range_fuel_max) / (self.payload_max-self.payload_fuel_max)
+        else:
+            range = self.range_no_pl + payload * (self.range_fuel_max-self.range_no_pl) / self.payload_fuel_max
+        return range
 
     def atmosphere(self, altp, disa=0.):
         """Ambiant data from pressure altitude from ground to 50 km according to Standard Atmosphere
@@ -289,8 +293,15 @@ class Fleet(object):
         rstep = data_matrix["range_step"]
         array = data_matrix["matrix"]
 
-        mtow_list = [ac.mtow for ac in self.aircraft]   # List of MTOW of fleet airplanes
-        index = np.argsort(mtow_list)                   # increaeing order of MTOWs
+        mtow_list = [ac.mtow for ac in self.aircraft]           # List of MTOW of fleet airplanes
+        mtow_index = np.argsort(mtow_list)                      # increaeing order of MTOWs
+
+        range_list = [ac.range_fuel_max for ac in self.aircraft]    # List of MTOW of fleet airplanes
+        range_index = np.argsort(range_list)                        # increaeing order of range
+
+        capa_list = [ac.payload_max for ac in self.aircraft]    # List of MTOW of fleet airplanes
+        capa_index = np.argsort(capa_list)                      # increaeing order of capacity
+
         nc,nr = array.shape
 
         def fly_it(i,nflight,capa,npax,dist,dist_eff):
@@ -311,28 +322,47 @@ class Fleet(object):
                 dist_eff = dist*self.dist_factor    # Operational distance is longer than great circle
                 nflight = array[c,r]
                 flag = False
-                for i in index:
+                for i in mtow_index:
                     out_dict = self.aircraft[i].is_in_plr(npax,dist_eff)
-                    if out_dict["capa"] and out_dict["dist"] and out_dict["both"]:
+                    if out_dict["capa"] and out_dict["dist"]:  # Mission can be done in one step with a single aircraft
                         capa = self.aircraft[i].max_capacity(dist_eff)
                         fly_it(i,nflight,capa,npax,dist,dist_eff)
                         flag = True
                         break
                 if not flag:
-                    out_dict = self.aircraft[index[-1]].is_in_plr(npax,dist_eff)
-                    if not out_dict["capa"]:
-                        capa = self.aircraft[index[-1]].max_capacity(dist_eff)
-                        print("Flight realized at max capacity: npax = ",npax," capa = ",capa," range = ","%.0f"%unit.NM_m(dist)," NM")
-                        nf = 0
-                        while npax>0.40*capa:
-                            fly_it(index[-1],nflight,capa,capa,dist,dist_eff)
-                            npax -= capa
-                            nf += 1
-                        print(nf," times")
-                    elif not out_dict["dist"]:
-                        print("Mission not fly-able because of range: npax = ",npax," range = ","%.0f"%unit.NM_m(dist)," NM")
-                    else:
-                        print("Mission not fly-able : npax = ",npax," range = ","%.0f"%unit.NM_m(dist)," NM")
+                    for i in range_index:
+                        out_dict = self.aircraft[i].is_in_plr(npax,dist_eff)
+                        if (not out_dict["capa"]) and out_dict["dist"]:    # Mission can be done by spliting the payload into several flights
+                            capa = self.aircraft[i].max_capacity(dist_eff)
+                            if capa>=np.ceil(0.50*npax):
+                                # print("Flight realized at max capacity: npax = ",npax," capa = ",capa," range = ","%.0f"%unit.km_m(dist_eff)," km")
+                                nf = 0
+                                while npax>0.:
+                                    fly_it(i,nflight,capa,capa,dist,dist_eff)
+                                    npax -= capa
+                                    nf += 1
+                                # print(nf," times")
+                                flag = True
+                                break
+                if not flag:
+                    for i in capa_index:
+                        out_dict = self.aircraft[i].is_in_plr(npax,dist_eff)
+                        if out_dict["capa"] or out_dict["dist"]:    # Mission can be done by a single aircraft in several steps
+                            max_dist = self.aircraft[i].max_range(npax)
+                            if max_dist>=(0.50*dist_eff):
+                                capa = self.aircraft[i].max_capacity(max_dist)
+                                # print("Flight realized at max range: npax = ",npax," capa = ",capa," max range = ","%.0f"%unit.km_m(max_dist)," km"," range = ","%.0f"%unit.km_m(dist_eff)," km")
+                                ns = 0
+                                while dist_eff>0.:
+                                    dist = max_dist/self.dist_factor
+                                    fly_it(i,nflight,capa,npax,dist,max_dist)
+                                    dist_eff -= max_dist
+                                    ns += 1
+                                # print(ns," steps")
+                                flag = True
+                                break
+                if not flag:
+                    print("This is embarrassing, this mission could not be flown : npax = ",npax," range = ","%.0f"%unit.km_m(dist_eff)," km")
 
         total_trip = sum(self.fleet_trip)
         total_npax = sum(self.fleet_npax)

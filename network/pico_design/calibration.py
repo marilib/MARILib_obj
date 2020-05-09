@@ -75,7 +75,7 @@ plt.grid(True)
 plt.suptitle('Structure : residual = '+"%.0f"%res, fontsize=14)
 plt.ylabel('Approximations (kg)')
 plt.xlabel('Experiments (kg)')
-plt.savefig("calibration_structure_graph",dpi=500,bbox_inches = 'tight')
+plt.savefig("calibration structure graph",dpi=500,bbox_inches = 'tight')
 plt.show()
 
 # Result
@@ -129,7 +129,6 @@ def model(x_in):
         ac.npax = data_dict["Npax"][j]
         ac.range = data_dict["Range"][j]*1000.
         ac.cruise_mach = data_dict["Speed"][j]
-        #ac.design_aircraft(effr=x_in[0], mpax=x_in[1], kr=x_in[2])
         ac.design_aircraft()
         R.append(ac.mtow)
     return R
@@ -156,6 +155,9 @@ res = np.sqrt(np.sum((R-B)**2))
 
 print("%.0f"%res)
 
+for j in range(n):
+    print("%.0f"%B[j], "   ", "%.0f"%R[j] )
+
 # Graph
 #------------------------------------------------------------------------------------------------------
 plt.plot(B, R, 'o', color="red", markersize=2)
@@ -164,6 +166,36 @@ plt.grid(True)
 plt.suptitle('Design : residual = '+"%.0f"%res, fontsize=14)
 plt.ylabel('Approximations (kg)')
 plt.xlabel('Experiments (kg)')
-plt.savefig("calibration_design_graph",dpi=500,bbox_inches = 'tight')
+plt.savefig("calibration design graph",dpi=500,bbox_inches = 'tight')
 plt.show()
+
+
+
+# ======================================================================================================
+# Identifing design model
+# ------------------------------------------------------------------------------------------------------
+ac = Aircraft()
+
+B = data_dict["MTOW"]
+n = len(B)
+
+def fct(dist):
+    ac.range = dist
+    ac.design_aircraft()
+    res = B[j] - ac.mtow
+    return 1./(1.+res**2)
+
+for j in range(n):
+    ac.npax = data_dict["Npax"][j]
+    ac.range = data_dict["Range"][j]*1000.
+    ac.cruise_mach = data_dict["Speed"][j]
+    ac.design_aircraft()
+
+    x0 = ac.range
+
+    range, y_out, rc = math.maximize_1d(x0, 1.e4, [fct])
+
+    print("j = ",j,"    ","%.0f"%(range/1000.))
+
+
 

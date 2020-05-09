@@ -29,6 +29,9 @@ def h_s(s): return s/3600.   # Translate seconds into hours
 def m_ft(ft): return ft*0.3048   # Translate feet into metres
 def ft_m(m): return m/0.3048   # Translate metres into feet
 
+def m_km(km): return km*1000.   # Translate kilometer into metres
+def km_m(m): return m/1000.   # Translate metres into kilometer
+
 def m_NM(NM): return NM*1852.   # Translate nautical miles into metres
 def NM_m(m): return m/1852.   # Translate metres into nautical miles
 
