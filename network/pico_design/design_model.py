@@ -32,14 +32,14 @@ class Aircraft(object):
         self.cruise_speed = None    # Cruise speed
         self.range = range          # Range
         self.npax = npax            # Npax
-        self.mpax = 130.            # Weight per passenger
+        self.mpax = 120.            # Weight per passenger
         self.payload = None         # Design mission payload
         self.mtow = None            # Design mission Maximum Take Off Weight
         self.owe = None             # Design mission Operating Empty Weight
         self.ldw = None             # Design mission Landing Weight
         self.fuel_mission = None    # Design mission fuel
         self.fuel_reserve = None    # Design mission reserve fuel
-        self.kr = 0.05              # fraction of mission fuel for reserve
+        self.kr = 0.03              # fraction of mission fuel for reserve
 
         self.payload_max = None     # Maximum payload
         self.range_pl_max = None    # Range for maximum payload mission
@@ -50,7 +50,7 @@ class Aircraft(object):
         self.range_no_pl = None     # Range for zero payload mission
 
         self.lod = self.l_o_d(npax)                                  # Techno assumption
-        self.sfc = unit.convert_from("kg/daN/h", 0.54)  # Techno assumption
+        self.sfc = unit.convert_from("kg/daN/h", 0.59)  # Techno assumption
 
         self.eff_ratio = self.lod / self.sfc            # Efficiency ratio for specific air range
         self.owe_coef = [-1.478e-07, 5.459e-01, 8.40e+02]   # "Structural model"
@@ -61,7 +61,7 @@ class Aircraft(object):
         pax1 = 60.
         lod1 = 15.
         pax2 = 160.
-        lod2 = 20.
+        lod2 = 19.
         lod = lod1 + (lod2-lod1)*(npax-pax1)/(pax2-pax1)
         lod = max(lod1,min(lod,lod2))
         return lod
@@ -269,8 +269,9 @@ class Fleet(object):
     """Fleet object
     """
     def __init__(self, ac_list):
-        self.aircraft = ac_list    # List of the airplanes of the fleet
+        self.aircraft = ac_list     # List of the airplanes of the fleet
         self.network = None
+        self.dist_factor = 1.15     # Factor on great circle distance
 
         n = len(ac_list)
 
@@ -292,8 +293,8 @@ class Fleet(object):
         index = np.argsort(mtow_list)                   # increaeing order of MTOWs
         nc,nr = array.shape
 
-        def fly_it(i,nflight,capa,npax,dist):
-            fuel,time,tow = self.aircraft[i].operation(npax,dist)
+        def fly_it(i,nflight,capa,npax,dist,dist_eff):
+            fuel,time,tow = self.aircraft[i].operation(npax,dist_eff)
             self.fleet_trip[i] += nflight
             self.fleet_npax[i] += npax*nflight
             self.fleet_capa[i] += capa*nflight
@@ -306,24 +307,25 @@ class Fleet(object):
         for c in range(nc):
             for r in range(nr):
                 npax = cstep*(1.+c)
-                dist = rstep*1000.*(1.+r) * 1.15   # Operational distance is longer than great circle
+                dist = rstep*1000.*(1.+r)           # Great circle distance
+                dist_eff = dist*self.dist_factor    # Operational distance is longer than great circle
                 nflight = array[c,r]
                 flag = False
                 for i in index:
-                    out_dict = self.aircraft[i].is_in_plr(npax,dist)
+                    out_dict = self.aircraft[i].is_in_plr(npax,dist_eff)
                     if out_dict["capa"] and out_dict["dist"] and out_dict["both"]:
-                        capa = self.aircraft[i].max_capacity(dist)
-                        fly_it(i,nflight,capa,npax,dist)
+                        capa = self.aircraft[i].max_capacity(dist_eff)
+                        fly_it(i,nflight,capa,npax,dist,dist_eff)
                         flag = True
                         break
                 if not flag:
-                    out_dict = self.aircraft[index[-1]].is_in_plr(npax,dist)
+                    out_dict = self.aircraft[index[-1]].is_in_plr(npax,dist_eff)
                     if not out_dict["capa"]:
-                        capa = self.aircraft[index[-1]].max_capacity(dist)
+                        capa = self.aircraft[index[-1]].max_capacity(dist_eff)
                         print("Flight realized at max capacity: npax = ",npax," capa = ",capa," range = ","%.0f"%unit.NM_m(dist)," NM")
                         nf = 0
                         while npax>0.40*capa:
-                            fly_it(index[-1],nflight,capa,capa,dist)
+                            fly_it(index[-1],nflight,capa,capa,dist,dist_eff)
                             npax -= capa
                             nf += 1
                         print(nf," times")

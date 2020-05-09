@@ -21,7 +21,7 @@ from network.pico_design.design_model import Aircraft
 # ======================================================================================================
 # Packaging data for structural relation calibration
 # ------------------------------------------------------------------------------------------------------
-file = "../input_data/Aircraft_general_data.csv"
+file = "../input_data/Aircraft_general_data_v2.csv"
 
 # Loading csv file
 # ------------------------------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ def operating_empty_weight(mtow):
 # ======================================================================================================
 # Packaging data for design relation calibration
 # ------------------------------------------------------------------------------------------------------
-file = "../input_data/Aircraft_general_data.csv"
+file = "../input_data/Aircraft_general_data_v2.csv"
 
 # Loading csv file
 # ------------------------------------------------------------------------------------------------------
@@ -144,11 +144,11 @@ x0 = ac.lod / unit.convert_to("kg/daN/h", ac.sfc)
 
 # x_out = x0
 
-x_out, y_out, rc = math.maximize_1d(x0, 0.1, [objective])
+# x_out, y_out, rc = math.maximize_1d(x0, 0.1, [objective])
 
 # Main results
 #------------------------------------------------------------------------------------------------------
-print("x0 = ",x0,"  x_out = ",x_out)
+print("x0 = ",x0)
 
 R = model(x0)
 
