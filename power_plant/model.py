@@ -116,6 +116,12 @@ class PowerPlant(object):
         self.material = Material()
         self.material_grey_enrg = None
 
+    def get_n_unit(self):
+        raise NotImplementedError
+
+    def set_n_unit(self, n_unit):
+        raise NotImplementedError
+
     def update(self):
         raise NotImplementedError
 
@@ -229,7 +235,7 @@ class CspPowerPlant(PowerPlant):
                  load_factor = 0.38):
         super(CspPowerPlant, self).__init__()
 
-        self.type = "Cylindroparabolic mirror"
+        self.type = "Cylindroparabolic solar concentrated"
         self.regulation_factor = reg_factor
         self.n_mirror = n_mirror
         self.mirror_area = mirror_area
@@ -246,6 +252,12 @@ class CspPowerPlant(PowerPlant):
         self.total_mirror_area = None
 
         self.update()
+
+    def get_n_unit(self):
+        return self.n_mirror
+
+    def set_n_unit(self, n_unit):
+        self.n_mirror = n_unit
 
     def update(self):
         self.storage_efficiency = self.heat_storage(self.storage_medium)
@@ -302,7 +314,7 @@ class PvPowerPlant(PowerPlant):
                  load_factor = 0.14):
         super(PvPowerPlant, self).__init__()
 
-        self.type = "Photovoltaïc panel"
+        self.type = "Photovoltaïc"
         self.ref_sun_power = ref_sun_power
         self.regulation_factor = reg_factor
         self.n_panel = n_panel
@@ -320,6 +332,12 @@ class PvPowerPlant(PowerPlant):
         self.total_panel_area = None
 
         self.update()
+
+    def get_n_unit(self):
+        return self.n_panel
+
+    def set_n_unit(self, n_unit):
+        self.n_panel = n_unit
 
     def update(self):
         self.ref_yearly_sun_power = self.ref_sun_power * (self.mean_yearly_sun_power/250.)
@@ -366,14 +384,14 @@ class EolPowerPlant(PowerPlant):
 
     def __init__(self, n_rotor, location,
                  reg_factor = 0.,
-                 rotor_width = 100.,
+                 rotor_width = None,
                  rotor_peak_power = 2.5e6,
                  load_factor = None,
                  storage_medium = "flow_battery",
                  life_time = 25.):
         super(EolPowerPlant, self).__init__()
 
-        self.type = "Wind turbine " + location
+        self.type = location+" Wind turbine"
         self.location = location
         self.regulation_factor = reg_factor
         self.n_rotor = n_rotor
@@ -390,7 +408,16 @@ class EolPowerPlant(PowerPlant):
 
         self.update()
 
+    def get_n_unit(self):
+        return self.n_rotor
+
+    def set_n_unit(self, n_unit):
+        self.n_rotor = n_unit
+
     def update(self):
+        if (self.rotor_width is None):
+            self.rotor_width = 100. + 12.5*(self.rotor_peak_power*1e-6 - 2.5)
+
         self.rotor_area = 0.25*np.pi*self.rotor_width**2
 
         self.rotor_footprint = {"onshore":0.40e6*(self.rotor_width/90.),
@@ -446,17 +473,17 @@ class EolPowerPlant(PowerPlant):
 
 class NuclearPowerPlant(PowerPlant):
 
-    def __init__(self, n_unit,
-                 unit_peak_power = 1.0e9,
+    def __init__(self, n_core,
+                 core_peak_power = 1.0e9,
                  load_factor = 0.75,
                  life_time = 50.,
                  grey_energy_ratio = 0.2,
                  unit_footprint = 0.25e6):
         super(NuclearPowerPlant, self).__init__()
 
-        self.type = "Nuclear reactor"
-        self.n_unit = n_unit
-        self.unit_peak_power = unit_peak_power
+        self.type = "Nuclear"
+        self.n_core = n_core
+        self.core_peak_power = core_peak_power
         self.load_factor = load_factor
         self.life_time = life_time
         self.grey_energy_ratio = grey_energy_ratio
@@ -464,10 +491,16 @@ class NuclearPowerPlant(PowerPlant):
 
         self.update()
 
+    def get_n_unit(self):
+        return self.n_core
+
+    def set_n_unit(self, n_unit):
+        self.n_core = n_unit
+
     def update(self):
-        self.nominal_peak_power = self.unit_peak_power * self.n_unit
+        self.nominal_peak_power = self.core_peak_power * self.n_core
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
-        self.total_footprint = self.unit_footprint * self.n_unit
+        self.total_footprint = self.unit_footprint * self.n_core
 
         self.regulation_time = one_day
         self.retrieval_time = 0.
@@ -508,7 +541,13 @@ class NuclearPowerPlant(PowerPlant):
 
 class EnergyMix(object):
 
-    def __init__(self, sun_pw=250., mix={}):
+    def __init__(self, tech_mix, power_mix):
+        self.tech_mix = tech_mix
+        self.power_mix = None
+        self.n_unit = [pp.get_n_unit() for pp in self.tech_mix]
+        self.plant_power = [pp.nominal_peak_power for pp in self.tech_mix]
+        self.n_plant = None
+
         self.mix_peak_power = 0.
         self.mix_mean_power = 0.
         self.mix_er_o_ei = 0.
@@ -520,97 +559,46 @@ class EnergyMix(object):
         self.mix_potential_energy_default = 0.
         self.mix_potential_default_ratio = 0.
 
-        self.pv_unit = 1.e6     # reference number of pv panels
-        self.pv = PvPowerPlant(self.pv_unit, sun_pw, reg_factor=0.5)
-        self.pv_power = self.pv.nominal_peak_power    # reference peak power of one plant
+        self.update(power_mix)
 
-        self.csp_cp_unit = 1.e4     # reference number of mirror lines per plant
-        self.csp_cp = CspPowerPlant(self.csp_cp_unit, sun_pw, reg_factor=0.5)
-        self.csp_cp_power = self.csp_cp.nominal_peak_power    # reference peak power of one plant
+    def update(self, power_mix):
+        self.power_mix = power_mix
+        self.n_plant = [np.ceil(tpw/upw) for tpw,upw in zip(power_mix, self.plant_power)]
 
-        rppw = 2.5e6    # peak power of each rotor
-        loadf = 0.25    # load factor
-        self.eol_onsh_unit = 20.     # reference number of rotors per farm
-        self.eol_onsh = EolPowerPlant(self.eol_onsh_unit, "onshore", rotor_peak_power=rppw, load_factor=loadf)
-        self.eol_onsh_power = self.eol_onsh.nominal_peak_power    # reference peak power of one plant
+        for j,pw in enumerate(self.power_mix):
+            plt = self.tech_mix[j]
+            upw = self.plant_power[j] / self.n_unit[j]
+            plt.set_n_unit(pw/upw)
+            plt.update()
 
-        rppw = 3.5e6    # peak power of each rotor
-        loadf = 0.50    # load factor
-        self.eol_offsh_unit = 200.     # reference number of rotors per farm
-        self.eol_offsh = EolPowerPlant(self.eol_offsh_unit, "offshore", rotor_peak_power=rppw, load_factor=loadf)
-        self.eol_offsh_power = self.eol_offsh.nominal_peak_power    # reference peak power of one plant
-
-        uppw = 1.0e9    # peak power of each core
-        loadf = 0.75    # load factor
-        self.nuclear_unit = 4.     # reference number of cores per plant
-        self.nuclear = NuclearPowerPlant(self.nuclear_unit, unit_peak_power = uppw, load_factor=loadf)
-        self.nuclear_power = self.nuclear.nominal_peak_power    # reference peak power of one plant
-
-        self.update(mix)
-
-    def __iter__(self):
-        public = [value for value in self.__dict__.values() if issubclass(type(value),PowerPlant)]
-        return iter(public)
-
-    def update(self, mix):
-        self.pv_plant = mix["pv"] / self.pv_power
-        self.pv.n_panel = mix["pv"] / (self.pv.nominal_peak_power/self.pv.n_panel)
-        self.pv.update()
-
-        self.csp_cp_plant = mix["csp_cp"] / self.csp_cp_power
-        self.csp_cp.n_mirror = mix["csp_cp"] / (self.csp_cp.nominal_peak_power/self.csp_cp.n_mirror)
-        self.csp_cp.update()
-
-        self.eol_onsh_plant = mix["eol_onsh"] / self.eol_onsh_power
-        self.eol_onsh.n_rotor = mix["eol_onsh"] / (self.eol_onsh.nominal_peak_power/self.eol_onsh.n_rotor)
-        self.eol_onsh.update()
-
-        self.eol_offsh_plant = mix["eol_offsh"] / self.eol_offsh_power
-        self.eol_offsh.n_rotor = mix["eol_offsh"] / (self.eol_offsh.nominal_peak_power/self.eol_offsh.n_rotor)
-        self.eol_offsh.update()
-
-        self.nuclear_plant = mix["nuclear"] / self.nuclear_power
-        self.nuclear.n_unit = mix["nuclear"] / (self.nuclear.nominal_peak_power/self.nuclear.n_unit)
-        self.nuclear.update()
-
-        for plant in self:
-            self.mix_peak_power += plant.nominal_peak_power
-            self.mix_mean_power += plant.nominal_mean_power
-            self.mix_er_o_ei += plant.er_o_ei * plant.nominal_peak_power
-            self.mix_footprint += plant.total_footprint
-            self.mix_grey_energy += plant.total_grey_enrg
-            self.mix_material_grey_energy += plant.material_grey_enrg
-            self.mix_mean_dayly_energy += plant.mean_dayly_energy
-            self.mix_potential_energy_default += plant.potential_energy_default
+        self.mix_peak_power = 0.
+        self.mix_mean_power = 0.
+        self.mix_er_o_ei = 0.
+        self.mix_footprint = 0.
+        self.mix_grey_energy = 0.
+        self.mix_material_grey_energy = 0.
+        self.mix_mean_dayly_energy = 0.
+        self.mix_potential_energy_default = 0.
+        for plt in self.tech_mix:
+            self.mix_peak_power += plt.nominal_peak_power
+            self.mix_mean_power += plt.nominal_mean_power
+            self.mix_er_o_ei += plt.er_o_ei * plt.nominal_peak_power
+            self.mix_footprint += plt.total_footprint
+            self.mix_grey_energy += plt.total_grey_enrg
+            self.mix_material_grey_energy += plt.material_grey_enrg
+            self.mix_mean_dayly_energy += plt.mean_dayly_energy
+            self.mix_potential_energy_default += plt.potential_energy_default
 
         self.mix_er_o_ei = self.mix_er_o_ei / self.mix_peak_power
         self.mix_potential_default_ratio = self.mix_potential_energy_default / self.mix_mean_dayly_energy
 
     def print(self):
-        print("Number of PV plant = ",int(np.round(self.pv_plant)))
-        print("Peak power of ALL PV plant = ","%8.3f" % (self.pv.nominal_peak_power*1e-9)," GWh")
-        print("ERoEI of PV plant = ","%8.1f" % self.pv.er_o_ei)
-        print("Footprint of ALL PV plant = ","%8.1f" % (self.pv.total_footprint*1e-6)," km2")
-        print("")
-        print("Number of CSP plant = ",int(np.round(self.csp_cp_plant)))
-        print("Peak power of ALL CSP plant = ","%8.1f" % (self.csp_cp.nominal_peak_power*1e-9)," GWh")
-        print("ERoEI of CSP plant = ","%8.1f" % self.csp_cp.er_o_ei)
-        print("Footprint of ALL CSP plant = ","%8.1f" % (self.csp_cp.total_footprint*1e-6)," km2")
-        print("")
-        print("Number of WTP onshore = ",int(np.round(self.eol_onsh_plant)))
-        print("Peak power of ALL WTP onshore = ","%8.1f" % (self.eol_onsh.nominal_peak_power*1e-9)," GWh")
-        print("ERoEI of WTP onshore = ","%8.1f" % self.eol_onsh.er_o_ei)
-        print("Footprint of ALL WTP onshore = ","%8.1f" % (self.eol_onsh.total_footprint*1e-6)," km2")
-        print("")
-        print("Number of WTP offshore = ",int(np.round(self.eol_offsh_plant)))
-        print("Peak power of ALL WTP offshore = ","%8.1f" % (self.eol_offsh.nominal_peak_power*1e-9)," GWh")
-        print("ERoEI of WTP offshore = ","%8.1f" % self.eol_offsh.er_o_ei)
-        print("Footprint of ALL WTP offshore = ","%8.1f" % (self.eol_offsh.total_footprint*1e-6)," km2")
-        print("")
-        print("Number of nuclear plant = ",int(np.round(self.nuclear_plant)))
-        print("Peak power of ALL nuclear plant = ","%8.0f" % (self.nuclear.nominal_peak_power*1e-9)," GWh")
-        print("ERoEI of nuclear plant = ","%8.1f" % self.nuclear.er_o_ei)
-        print("Footprint of ALL nuclear plant = ","%8.0f" % (self.nuclear.total_footprint*1e-6)," km2")
+        for j,plt in enumerate(self.tech_mix):
+            print("")
+            print("Number of "+plt.type+" plants = ","%5.0f" % self.n_plant[j])
+            print("Footprint of all these plants = ","%8.1f" % (plt.total_footprint*1e-6)," km2")
+            print("Peak power of all these plants = ","%8.3f" % (plt.nominal_peak_power*1e-9)," GWh")
+            print("ERoEI of all these plants = ","%8.1f" % plt.er_o_ei)
         print("")
         print("Total mix peak power = ","%8.2f" % (self.mix_peak_power*1e-9)," GW")
         print("Total mix mean power = ","%8.2f" % (self.mix_mean_power*1e-9)," GW")
@@ -619,9 +607,30 @@ class EnergyMix(object):
         print("Total mix grey energy = ","%8.3f" % (self.mix_grey_energy*1e-18)," EWh (1e18 Wh)")
         print("Total mix potential default ratio = ","%8.3f" % self.mix_potential_default_ratio)
 
+    def param_iso_power(self,param):
+        """Compute a set of of power values which sum is exactly total_power
+
+        :param total_power:The total power of the mix
+        :param param: Set of input parameters, (n_plant-1) values within 0 <= v <= 1
+        :return: aset of power values which sum is exactly total_power
+        """
+        if len(param)!=len(self.power_mix)-1:
+            raise Exception("Number of parameter must be :",len(self.power_mix)-1)
+        pw = []
+        total_power = self.mix_peak_power
+        for i,p in enumerate(param):
+            pw.append(total_power*p)
+            for q in param[0:i]:
+                pw[-1] *= (1.-q)
+        pw.append(total_power)
+        for q in param:
+            pw[-1] *= (1.-q)
+        return pw
 
 
-
+# ======================================================================================================
+# Identify existing plants
+# ------------------------------------------------------------------------------------------------------
 
 st1 = CspPowerPlant(7500., 250., reg_factor=0.51)
 st1.print("Andasol 3")
@@ -629,22 +638,45 @@ st1.print("Andasol 3")
 pv1 = PvPowerPlant(1e6, 250., reg_factor=0.0)
 pv1.print("Cestas")
 
-eol1 = EolPowerPlant(240., "onshore")
+eol1 = EolPowerPlant(240., "onshore", rotor_peak_power=2.5e6, load_factor=0.25)
 eol1.print("Fantanele Cogealav")
 
-eol2 = EolPowerPlant(175., "offshore", rotor_width=120., rotor_peak_power=3.5e6, load_factor=0.36)
+eol2 = EolPowerPlant(175., "offshore", rotor_peak_power=3.5e6, load_factor=0.50)
 eol2.print("London Array")
 
 atom1 = NuclearPowerPlant(4)
 atom1.print()
 
 
-mix_enrg = {"pv":5.e9, "csp_cp":5.e9, "eol_onsh":20.e9, "eol_offsh":30.e9, "nuclear":40.e9}
-mix = MixEnergetic(sun_pw=250., mix=mix_enrg)
+# ======================================================================================================
+# Build a mix
+# ------------------------------------------------------------------------------------------------------
+
+pv1 = PvPowerPlant(1e6, 250., reg_factor=0.50)
+
+st1 = CspPowerPlant(1e4, 250., reg_factor=0.50)
+
+eol1 = EolPowerPlant(20., "onshore")
+
+eol2 = EolPowerPlant(200., "offshore", rotor_peak_power=3.5e6, load_factor=0.50)
+
+atom1 = NuclearPowerPlant(4)
+
+tech_mix =  [atom1,  eol2,  eol1,  st1,  pv1]
+power_mix = [40.e9, 30.e9, 20.e9, 5.e9, 5.e9]
+
+mix = EnergyMix(tech_mix, power_mix)
 
 print("")
 mix.print()
 
+print("")
+pw = mix.param_iso_power([0.4, 0.5, 0.6666, 0.5])
+print([p*1.e-9 for p in pw])
+print(sum(pw)*1.e-9)
 
+print("--------------------------------------------------")
+pw_mix = mix.param_iso_power([0.5, 0.5, 0.5, 0.5])
 
-
+mix.update(pw_mix)
+mix.print()
