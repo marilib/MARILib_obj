@@ -5,7 +5,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on March 22 22:09:20 2020
-@author: Thierry Druot, Weichang LYU
+@author: Thierry Druot, Weichang Lyu
 """
 
 import numpy as np
@@ -14,6 +14,7 @@ from scipy.optimize import fsolve, least_squares
 import matplotlib.pyplot as plt
 
 from context import unit, math
+from context.math import lin_interp_1d
 
 
 
@@ -287,6 +288,18 @@ class Fleet(object):
         self.fleet_time = [0.]*n
         self.fleet_paxkm = [0.]*n
         self.fleet_tonkm = [0.]*n
+        self.fleet_plane = [0.]*n
+
+    def utilization(self, mean_range):
+        """Compute the yearly utilization from the average range
+
+        :param mean_range: Average range
+        :return:
+        """
+        range = unit.convert_from("NM",
+                      [ 100.,  500., 1000., 1500., 2000., 2500., 3000., 3500., 4000.])
+        utilization = [2300., 2300., 1500., 1200.,  900.,  800.,  700.,  600.,  600.]
+        return lin_interp_1d(mean_range, range, utilization)
 
     def fleet_analysis(self, data_matrix):
         cstep = data_matrix["npax_step"]
@@ -364,6 +377,12 @@ class Fleet(object):
                 if not flag:
                     print("This is embarrassing, this mission could not be flown : npax = ",npax," range = ","%.0f"%unit.km_m(dist_eff)," km")
 
+        n = len(self.aircraft)
+        for j in range(n):
+            mean_range = self.fleet_dist[j]/(1+self.fleet_trip[j])
+            utilisation = self.utilization(mean_range)
+            self.fleet_plane[j] = np.ceil(self.fleet_trip[j]/utilisation)
+
         total_trip = sum(self.fleet_trip)
         total_npax = sum(self.fleet_npax)
         total_capa = sum(self.fleet_capa)
@@ -372,4 +391,8 @@ class Fleet(object):
         total_time = sum(self.fleet_time)
         total_paxkm = sum(self.fleet_paxkm)
         total_tonkm = sum(self.fleet_tonkm)
-        return {"trip":total_trip, "npax":total_npax, "capa":total_capa, "dist":total_dist, "fuel":total_fuel, "time":total_time, "tonkm":total_tonkm, "paxkm":total_paxkm}
+
+        out_dict = {"trip":total_trip, "npax":total_npax, "capa":total_capa, "dist":total_dist,
+                    "fuel":total_fuel, "time":total_time, "tonkm":total_tonkm, "paxkm":total_paxkm}
+
+        return out_dict

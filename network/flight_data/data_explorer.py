@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on May 05 09:53 2020
-@author: Nicolas Peteilh, Thierry Druot
+@author: Nicolas Peteilh, Thierry Druot, Weichang Lyu
 """
 
 import numpy as np

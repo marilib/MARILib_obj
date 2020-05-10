@@ -267,13 +267,13 @@ class CspPowerPlant(PowerPlant):
 
         self.nominal_peak_power = self.mean_yearly_sun_power * self.total_mirror_area * self.gross_power_efficiency
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
-        self.mean_dayly_energy = self.nominal_mean_power * one_day
+        self.mean_daily_energy = self.nominal_mean_power * one_day
 
         self.regulation_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
         self.retrieval_time = one_day * (1. - self.load_factor)*self.regulation_factor
         self.regulated_power = self.nominal_peak_power / (1. + self.regulation_factor*(1.-self.load_factor)/(self.load_factor*self.storage_efficiency))
         self.storage_capacity = (self.nominal_peak_power - self.regulated_power) * self.load_factor * self.storage_efficiency * one_day
-        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_dayly_energy
+        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_daily_energy
         self.potential_energy_default = self.nominal_mean_power * (one_day - self.regulation_time)
 
         self.marginal_efficiency = self.regulation_power_efficiency * (1.-self.grey_energy_ratio)
@@ -349,13 +349,13 @@ class PvPowerPlant(PowerPlant):
 
         self.nominal_peak_power = self.ref_yearly_sun_power * self.total_panel_area * self.gross_power_efficiency
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
-        self.mean_dayly_energy = self.nominal_mean_power * one_day
+        self.mean_daily_energy = self.nominal_mean_power * one_day
 
         self.regulation_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
         self.retrieval_time = one_day * (1. - self.load_factor)*self.regulation_factor
         self.regulated_power = self.nominal_peak_power / (1. + self.regulation_factor*(1.-self.load_factor)/(self.load_factor*self.storage_efficiency))
         self.storage_capacity = (self.nominal_peak_power - self.regulated_power) * self.load_factor * self.storage_efficiency * one_day
-        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_dayly_energy
+        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_daily_energy
         self.potential_energy_default = self.nominal_mean_power * (one_day - self.regulation_time)
 
         self.marginal_efficiency = self.regulation_power_efficiency * (1.-self.grey_energy_ratio)
@@ -439,13 +439,13 @@ class EolPowerPlant(PowerPlant):
 
         self.nominal_peak_power = self.rotor_peak_power * self.n_rotor
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
-        self.mean_dayly_energy = self.nominal_mean_power * one_day
+        self.mean_daily_energy = self.nominal_mean_power * one_day
 
         self.regulation_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
         self.retrieval_time = one_day * (1. - self.load_factor)*self.regulation_factor
         self.regulated_power = self.nominal_peak_power / (1. + self.regulation_factor*(1.-self.load_factor)/(self.load_factor*self.storage_efficiency))
         self.storage_capacity = (self.nominal_peak_power - self.regulated_power) * self.load_factor * self.storage_efficiency * one_day
-        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_dayly_energy
+        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_daily_energy
         self.potential_energy_default = self.nominal_mean_power * (one_day - self.regulation_time)
 
         self.gross_yearly_enrg = self.regulated_power * self.regulation_time * 365.
@@ -475,7 +475,7 @@ class NuclearPowerPlant(PowerPlant):
 
     def __init__(self, n_core,
                  core_peak_power = 1.0e9,
-                 load_factor = 0.75,
+                 load_factor = 0.80,
                  life_time = 50.,
                  grey_energy_ratio = 0.2,
                  unit_footprint = 0.25e6):
@@ -509,14 +509,14 @@ class NuclearPowerPlant(PowerPlant):
         self.regulation_power_efficiency = 1.0
         self.potential_energy_default = self.nominal_mean_power * (one_day - self.regulation_time)
 
-        self.mean_dayly_energy = self.nominal_mean_power * one_day
+        self.mean_daily_energy = self.nominal_mean_power * one_day
         self.gross_yearly_enrg = self.nominal_mean_power * one_year
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.life_time * self.grey_energy_ratio
         self.net_yearly_enrg = self.gross_yearly_enrg * self.life_time * (1. - self.grey_energy_ratio) / self.life_time
         self.er_o_ei = self.net_yearly_enrg / (self.gross_yearly_enrg * self.grey_energy_ratio)
 
-        self.gross_power_efficiency = 0.70
+        self.gross_power_efficiency = 0.37
         self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
         self.net_power_efficiency =  self.gross_power_efficiency * self.marginal_efficiency
 
@@ -529,7 +529,7 @@ class NuclearPowerPlant(PowerPlant):
         # Received 13 June 2007; accepted 31 January 2008
         # Available online 8 April 2008
         self.material.concrete =   320.e3 * unit.MW_W(self.nominal_peak_power) \
-                                 + (373.e3/177.) * unit.GWh_J(self.mean_dayly_energy * self.life_time)   # Power plant + waste storage
+                                 + (373.e3/177.) * unit.GWh_J(self.mean_daily_energy * self.life_time)   # Power plant + waste storage
         self.material.steel =  60.e3 * unit.MW_W(self.nominal_peak_power)
         self.material.aluminium = 0.14e3 * unit.MW_W(self.nominal_peak_power)
         self.material.copper = 1.51e3 * unit.MW_W(self.nominal_peak_power)
@@ -555,7 +555,7 @@ class EnergyMix(object):
         self.mix_grey_energy = 0.
         self.mix_material_grey_energy = 0.
 
-        self.mix_mean_dayly_energy = 0.
+        self.mix_mean_daily_energy = 0.
         self.mix_potential_energy_default = 0.
         self.mix_potential_default_ratio = 0.
 
@@ -577,7 +577,7 @@ class EnergyMix(object):
         self.mix_footprint = 0.
         self.mix_grey_energy = 0.
         self.mix_material_grey_energy = 0.
-        self.mix_mean_dayly_energy = 0.
+        self.mix_mean_daily_energy = 0.
         self.mix_potential_energy_default = 0.
         for plt in self.tech_mix:
             self.mix_peak_power += plt.nominal_peak_power
@@ -586,11 +586,11 @@ class EnergyMix(object):
             self.mix_footprint += plt.total_footprint
             self.mix_grey_energy += plt.total_grey_enrg
             self.mix_material_grey_energy += plt.material_grey_enrg
-            self.mix_mean_dayly_energy += plt.mean_dayly_energy
+            self.mix_mean_daily_energy += plt.mean_daily_energy
             self.mix_potential_energy_default += plt.potential_energy_default
 
         self.mix_er_o_ei = self.mix_er_o_ei / self.mix_peak_power
-        self.mix_potential_default_ratio = self.mix_potential_energy_default / self.mix_mean_dayly_energy
+        self.mix_potential_default_ratio = self.mix_potential_energy_default / self.mix_mean_daily_energy
 
     def print(self):
         for j,plt in enumerate(self.tech_mix):
@@ -677,6 +677,5 @@ print(sum(pw)*1.e-9)
 
 print("--------------------------------------------------")
 pw_mix = mix.param_iso_power([0.5, 0.5, 0.5, 0.5])
-
 mix.update(pw_mix)
 mix.print()

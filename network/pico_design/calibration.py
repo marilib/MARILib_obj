@@ -18,38 +18,28 @@ from context import unit, math
 from network.pico_design.design_model import Aircraft
 
 
-# ======================================================================================================
-# Packaging data for structural relation calibration
-# ------------------------------------------------------------------------------------------------------
-file = "../input_data/Aircraft_general_data_v2.csv"
+def get_data(file_name):
+    data_frame = pandas.read_csv(file_name, delimiter = ";", skipinitialspace=True, header=None)
 
-# Loading csv file
-# ------------------------------------------------------------------------------------------------------
-data_frame = pandas.read_csv(file, delimiter = ";", skipinitialspace=True, header=None)
+    label = [el.strip() for el in data_frame.iloc[0,1:].values]     # Variable names
+    unit_ = [el.strip() for el in data_frame.iloc[1,1:].values]     # Figure units
+    name = [el.strip() for el in data_frame.iloc[2:,0].values]      # Aircraft names
+    data = data_frame.iloc[2:,1:].values                            # Data matrix
 
-# Extracting info
-# ------------------------------------------------------------------------------------------------------
-label = [el.strip() for el in data_frame.iloc[0,1:].values]     # Variable names
-unit_ = [el.strip() for el in data_frame.iloc[1,1:].values]     # Figure units
-name = [el.strip() for el in data_frame.iloc[2:,0].values]      # Aircraft names
-data = data_frame.iloc[2:,1:].values                            # Data matrix
+    data_dict = {}
+    for j in range(len(label)):
+        data_dict[label[j]] = unit.convert_from(unit_[j],data[:,j].astype(np.float))
+    return data_dict
 
-# Packaging figures into a dictionary
-# ------------------------------------------------------------------------------------------------------
-data_dict = {}
-
-n = len(name)   # the number of aircraft
-
-# Data matrix is spread over a dictionary column by column
-# Dictionary allows to address each column by the name of the corresponding variable
-# for instance dict["Npax"] retrieves an array with all the realizations of Npax
-for j in range(len(label)):
-    data_dict[label[j]] = data[:,j].astype(np.float)
 
 # ======================================================================================================
-# Identifing structure model
+# Identify structure model
 # ------------------------------------------------------------------------------------------------------
+data_dict = get_data("../input_data/Aircraft_general_data_v2.csv")
+
 param = data_dict["MTOW"]
+
+n = len(param)   # the number of aircraft
 
 A = np.vstack([param**2,param, np.ones(n)]).T                # Need to transpose the stacked matrix
 
@@ -59,6 +49,7 @@ B = data_dict["OWE"]
 
 # Main results
 #------------------------------------------------------------------------------------------------------
+print("")
 print(C)
 
 AC = np.dot(A,C)
@@ -88,35 +79,7 @@ def operating_empty_weight(mtow):
 
 
 # ======================================================================================================
-# Packaging data for design relation calibration
-# ------------------------------------------------------------------------------------------------------
-file = "../input_data/Aircraft_general_data_v2.csv"
-
-# Loading csv file
-# ------------------------------------------------------------------------------------------------------
-data_frame = pandas.read_csv(file, delimiter = ";", skipinitialspace=True, header=None)
-
-# Extracting info
-# ------------------------------------------------------------------------------------------------------
-label = [el.strip() for el in data_frame.iloc[0,1:].values]     # Variable names
-unit_ = [el.strip() for el in data_frame.iloc[1,1:].values]     # Figure units
-name = [el.strip() for el in data_frame.iloc[2:,0].values]      # Aircraft names
-data = data_frame.iloc[2:,1:].values                            # Data matrix
-
-# Packaging figures into a dictionary
-# ------------------------------------------------------------------------------------------------------
-data_dict = {}
-
-n = len(name)   # the number of aircraft
-
-# Data matrix is spread over a dictionary column by column
-# Dictionary allows to address each column by the name of the corresponding variable
-# for instance dict["Npax"] retrieves an array with all the realizations of Npax
-for j in range(len(label)):
-    data_dict[label[j]] = data[:,j].astype(np.float)
-
-# ======================================================================================================
-# Identifing design model
+# Identify design model
 # ------------------------------------------------------------------------------------------------------
 ac = Aircraft()
 
@@ -127,7 +90,7 @@ def model(x_in):
     R = []
     for j in range(n):
         ac.npax = data_dict["Npax"][j]
-        ac.range = data_dict["Range"][j]*1000.
+        ac.range = data_dict["Range"][j]
         ac.cruise_mach = data_dict["Speed"][j]
         ac.design_aircraft()
         R.append(ac.mtow)
@@ -139,24 +102,26 @@ def residual(x_in):
 def objective(x_in):
     return 1.e4/np.sqrt(np.sum(model(x_in)-B)**2)
 
-x0 = ac.lod / unit.convert_to("kg/daN/h", ac.sfc)
+x0 = ac.lod / unit.convert_to("kg/daN/h", ac.sfc)   # Internal value
 
-# x_out = x0
+x_out = x0
 
 # x_out, y_out, rc = math.maximize_1d(x0, 0.1, [objective])
 
 # Main results
 #------------------------------------------------------------------------------------------------------
+print("")
 print("x0 = ",x0)
+print("x_out = ",x_out)
 
-R = model(x0)
+R = model(x_out)
 
 res = np.sqrt(np.sum((R-B)**2))
 
 print("%.0f"%res)
 
-for j in range(n):
-    print("%.0f"%B[j], "   ", "%.0f"%R[j] )
+# for j in range(n):
+#     print("%.0f"%B[j], "   ", "%.0f"%R[j] )
 
 # Graph
 #------------------------------------------------------------------------------------------------------
@@ -172,7 +137,7 @@ plt.show()
 
 
 # ======================================================================================================
-# Identifing design model
+# Identify design range
 # ------------------------------------------------------------------------------------------------------
 ac = Aircraft()
 
@@ -185,9 +150,10 @@ def fct(dist):
     res = B[j] - ac.mtow
     return 1./(1.+res**2)
 
+print("")
 for j in range(n):
     ac.npax = data_dict["Npax"][j]
-    ac.range = data_dict["Range"][j]*1000.
+    ac.range = data_dict["Range"][j]
     ac.cruise_mach = data_dict["Speed"][j]
     ac.design_aircraft()
 
