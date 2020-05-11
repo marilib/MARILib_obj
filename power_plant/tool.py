@@ -110,16 +110,18 @@ def mean_yearly_sun_power(latt):
 
 
 
-# latt = unit.rad_deg(43.668731)
-# long = unit.rad_deg(1.497691)
-# pamb = 101325.
-# day = 31+29+31+28
-# gmt = 17.
-#
-# pw = max_solar_power(latt,long,pamb,day,gmt)
-# print("")
-# print("Solar power = ","%8.1f" % pw)
-#
+latt = unit.rad_deg(43.668731)
+long = unit.rad_deg(1.497691)
+pamb = 101325.
+#     JA FE MA AV MA JU
+day = 31+29+31+30+31+30
+gmt = 12.
+
+pw = max_solar_power(latt,long,pamb,day,gmt)
+print("")
+print("Solar power = ","%8.1f" % pw)
+
+
 #
 # md_pw = 0.
 # period = 24*60

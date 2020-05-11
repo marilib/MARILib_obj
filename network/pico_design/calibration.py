@@ -66,7 +66,7 @@ plt.grid(True)
 plt.suptitle('Structure : residual = '+"%.0f"%res, fontsize=14)
 plt.ylabel('Approximations (kg)')
 plt.xlabel('Experiments (kg)')
-plt.savefig("calibration structure graph",dpi=500,bbox_inches = 'tight')
+plt.savefig("calibration_structure_graph",dpi=500,bbox_inches = 'tight')
 plt.show()
 
 # Result
@@ -74,8 +74,6 @@ plt.show()
 def operating_empty_weight(mtow):
     owe = (-1.478e-07*mtow + 5.459e-01)*mtow + 8.40e+02
     return owe
-
-
 
 
 # ======================================================================================================
@@ -131,7 +129,7 @@ plt.grid(True)
 plt.suptitle('Design : residual = '+"%.0f"%res, fontsize=14)
 plt.ylabel('Approximations (kg)')
 plt.xlabel('Experiments (kg)')
-plt.savefig("calibration design graph",dpi=500,bbox_inches = 'tight')
+plt.savefig("calibration_design_graph",dpi=500,bbox_inches = 'tight')
 plt.show()
 
 

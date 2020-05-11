@@ -213,14 +213,14 @@ class PowerSystem(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.fuel_density = self.__fuel_density__()
+        self.fuel_density = self.__fuel_density()
         mto = ThrustData(nei=1)
         mcn = ThrustData(nei=1)
         mcl = ThrustData(nei=0)
         mcr = ThrustData(nei=0)
         self.data = {"MTO":mto, "MCN":mcn, "MCL":mcl, "MCR":mcr}
 
-    def __fuel_density__(self):
+    def __fuel_density(self):
         energy_source = self.aircraft.arrangement.energy_source
         return earth.fuel_density(energy_source)
 

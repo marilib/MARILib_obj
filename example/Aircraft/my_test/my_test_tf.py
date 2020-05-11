@@ -21,7 +21,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
                    stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "piggy_back",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
                    power_architecture = "tf",       # "tf", "extf", "efb", "exefb",

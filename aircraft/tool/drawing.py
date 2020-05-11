@@ -101,8 +101,8 @@ class Drawing(object):
         wing_toc_t = self.aircraft.airframe.wing.tip_toc
 
         if (self.aircraft.arrangement.tank_architecture in ["piggy_back", "pods"]):
-            body_width = self.aircraft.airframe.tank.pod_width
-            body_length = self.aircraft.airframe.tank.pod_length
+            body_width = self.aircraft.airframe.tank.width
+            body_length = self.aircraft.airframe.tank.length
             body_x_axe = self.aircraft.airframe.tank.frame_origin[0]
             body_y_axe = self.aircraft.airframe.tank.frame_origin[1]
             body_z_axe = self.aircraft.airframe.tank.frame_origin[2]

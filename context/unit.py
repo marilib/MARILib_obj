@@ -73,6 +73,12 @@ def daN_N(N): return N/10.   # Translate N into daN
 def N_daN(daN): return daN*10.   # Translate daN into N
 def N_kN(kN): return kN*1000.   # Translate kN into N
 
+def Pa_bar(bar): return bar*1.e5   # Translate bar into Pascal
+def bar_Pa(Pa): return Pa/1.e5   # Translate Pascal into bar
+
+def Pam3pkg_barLpkg(barLpkg): return barLpkg*1.e2  # Translate bar.L/kg into Pa.m3/kg
+def barLpkg_Pam3pkg(Pam3pkg): return Pam3pkg/1.e2  # Translate Pa.m3/kg into bar.L/kg
+
 def pc_no_dim(no_dim): return no_dim*100.   # Translate no dimension value into percentile
 def no_dim_pc(no_dim): return no_dim/100.   # Translate percentile into no dimension value
 
@@ -490,6 +496,10 @@ UNIT["text_date"] = 1
 UNIT["W/m2/km/year"] = 1.
 UNIT["1e-6.W/m2/km/year"] = 1.e-6
 UNIT["1e-12.W/m2/km/year"] = 1.e-12
+
+# dim = "SpecificMassicEmission"
+UNIT["Pa.m3/kg"] = 1.
+UNIT["bar.l/kg"] = 100.
 
 # dim = "SpecificMassicEmission"
 UNIT["g/seat/m"] = 1.

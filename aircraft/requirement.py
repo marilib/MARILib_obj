@@ -22,13 +22,13 @@ class Requirement(object):
         self.cruise_altp = cruise_altp
         self.cruise_mach = cruise_mach
         self.design_range = design_range
-        self.cost_range = self.__cost_mission_range__()
+        self.cost_range = self.__cost_mission_range()
 
         self.n_pax_ref = n_pax_ref
-        self.n_pax_front = self.__n_pax_front__()
-        self.n_aisle = self.__n_aisle__()
-        self.m_pax_nominal = self.__m_pax_nominal__()
-        self.m_pax_max = self.__m_pax_max__()
+        self.n_pax_front = self.__n_pax_front()
+        self.n_aisle = self.__n_aisle()
+        self.m_pax_nominal = self.__m_pax_nominal()
+        self.m_pax_max = self.__m_pax_max()
 
         self.take_off = TakeOffReq(arrangement, self)
         self.approach = ApproachReq(arrangement, self)
@@ -37,7 +37,7 @@ class Requirement(object):
         self.mcr_ceiling = McrCeilingReq(arrangement, self)
         self.time_to_climb = TtcReq(arrangement, self)
 
-    def __n_pax_front__(self):
+    def __n_pax_front(self):
         if  (self.n_pax_ref<=8):   n_pax_front = 2
         elif(self.n_pax_ref<=16):  n_pax_front = 3
         elif(self.n_pax_ref<=70):  n_pax_front = 4
@@ -48,12 +48,12 @@ class Requirement(object):
         else:                      n_pax_front = 10
         return n_pax_front
 
-    def __n_aisle__(self):
+    def __n_aisle(self):
         if(self.n_pax_front <= 6): n_aisle = 1
         else:                      n_aisle = 2
         return n_aisle
 
-    def __m_pax_nominal__(self):
+    def __m_pax_nominal(self):
         if(self.design_range <= unit.m_NM(500.)): m_pax_nominal = 85.
         elif(self.design_range <= unit.m_NM(1500.)): m_pax_nominal = 95.
         elif(self.design_range <= unit.m_NM(3500.)): m_pax_nominal = 100.
@@ -61,7 +61,7 @@ class Requirement(object):
         else: m_pax_nominal = 110.
         return m_pax_nominal
 
-    def __m_pax_max__(self):
+    def __m_pax_max(self):
         if(self.design_range <= unit.m_NM(500.)): m_pax_max = 95.
         elif(self.design_range <= unit.m_NM(1500.)): m_pax_max = 105.
         elif(self.design_range <= unit.m_NM(3500.)): m_pax_max = 120.
@@ -69,7 +69,7 @@ class Requirement(object):
         else: m_pax_max = 150.
         return m_pax_max
 
-    def __cost_mission_range__(self):
+    def __cost_mission_range(self):
         if(self.design_range < unit.m_NM(400.)): cost_mission_range = unit.m_NM(100.)
         elif(self.design_range < unit.m_NM(1000.)): cost_mission_range = unit.m_NM(200.)
         elif(self.design_range < unit.m_NM(2500.)): cost_mission_range = unit.m_NM(400.)
@@ -87,10 +87,10 @@ class TakeOffReq(object):
         self.altp = unit.m_ft(0.)
         self.kmtow = 1.
         self.kvs1g = 1.13
-        self.s2_min_path = self.__s2_min_path__(arrangement)
-        self.tofl_req = self.__tofl_req__(requirement)
+        self.s2_min_path = self.__s2_min_path(arrangement)
+        self.tofl_req = self.__tofl_req(requirement)
 
-    def __s2_min_path__(self,arrangement):
+    def __s2_min_path(self,arrangement):
         """Regulatory min climb path versus number of engine
         """
         if(arrangement.number_of_engine == "twin"): s2_min_path = 0.024
@@ -99,7 +99,7 @@ class TakeOffReq(object):
         else: raise Exception("number of engine is not permitted")
         return s2_min_path
 
-    def __tofl_req__(self, requirement):
+    def __tofl_req(self, requirement):
         if(requirement.design_range <= unit.m_NM(1500.)): tofl_req = 1500.
         elif(requirement.design_range <= unit.m_NM(3500.)): tofl_req = 2000.
         elif(requirement.design_range <= unit.m_NM(5500.)): tofl_req = 2500.
@@ -115,9 +115,9 @@ class ApproachReq(object):
         self.altp = unit.m_ft(0.)
         self.kmlw = 1.
         self.kvs1g = 1.23
-        self.app_speed_req = self.__app_speed_req__(requirement)
+        self.app_speed_req = self.__app_speed_req(requirement)
 
-    def __app_speed_req__(self, requirement):
+    def __app_speed_req(self, requirement):
         if (requirement.n_pax_ref<=100): app_speed_req = unit.mps_kt(120.)
         elif (requirement.n_pax_ref<=200): app_speed_req = unit.mps_kt(137.)
         else: app_speed_req = unit.mps_kt(140.)
@@ -133,9 +133,9 @@ class OeiCeilingReq(object):
         self.kmtow = 0.95
         self.rating = "MCN"
         self.speed_mode = "cas"
-        self.path_req = self.__oei_min_path__(arrangement)
+        self.path_req = self.__oei_min_path(arrangement)
 
-    def __oei_min_path__(self, arrangement):
+    def __oei_min_path(self, arrangement):
         """Regulatory min climb path depending on the number of engine
         """
         if(arrangement.number_of_engine == "twin"): oei_min_path = 0.011
@@ -150,11 +150,11 @@ class ClimbReq(object):
     """
     def __init__(self, arrangement, requirement):
         self.disa = 15.
-        self.altp = self.__top_of_climb__(arrangement,requirement)
+        self.altp = self.__top_of_climb(arrangement,requirement)
         self.mach = requirement.cruise_mach
         self.kmtow = 0.97
 
-    def __top_of_climb__(self, arrangement, requirement):
+    def __top_of_climb(self, arrangement, requirement):
         if (arrangement.power_architecture in ["tf","extf"]): altp = unit.m_ft(35000.)
         elif (arrangement.power_architecture in ["efb","exefb"]): altp = unit.m_ft(35000.)
         elif (arrangement.power_architecture=="tp"): altp = unit.m_ft(16000.)
@@ -191,20 +191,20 @@ class TtcReq(ClimbReq):
     """
     def __init__(self, arrangement, requirement):
         super(TtcReq, self).__init__(arrangement, requirement)
-        self.cas1 = self.__ttc_cas1__(requirement)
+        self.cas1 = self.__ttc_cas1(requirement)
         self.altp1 = unit.m_ft(1500.)
-        self.cas2 = self.__ttc_cas2__(requirement)
+        self.cas2 = self.__ttc_cas2(requirement)
         self.altp2 = unit.m_ft(10000.)
-        self.altp = self.__top_of_climb__(arrangement,requirement)
+        self.altp = self.__top_of_climb(arrangement,requirement)
         self.ttc_req = unit.s_min(25.)
 
-    def __ttc_cas1__(self, requirement):
+    def __ttc_cas1(self, requirement):
         if (requirement.cruise_mach>=0.6): cas1 = unit.mps_kt(180.)
         elif (requirement.cruise_mach>=0.4): cas1 = unit.mps_kt(130.)
         else: cas1 = unit.mps_kt(70.)
         return cas1
 
-    def __ttc_cas2__(self, requirement):
+    def __ttc_cas2(self, requirement):
         if (requirement.cruise_mach>=0.6): cas2 = unit.mps_kt(250.)
         elif (requirement.cruise_mach>=0.4): cas2 = unit.mps_kt(200.)
         else: cas2 = unit.mps_kt(70.)
