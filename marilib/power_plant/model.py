@@ -6,10 +6,9 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
-from scipy import interpolate
 
-from context import unit
-from power_plant.tool import Material
+from marilib.context import unit
+from marilib.power_plant.tool import Material
 
 # TODO : comlete dictionnary
 # TODO : add data for heat and elec storage
@@ -528,9 +527,9 @@ class NuclearPowerPlant(PowerPlant):
         # ISA, Centre for Integrated Sustainability Analysis, The University of Sydney, Physics Building A28, Sydney, NSW 2006, Australia
         # Received 13 June 2007; accepted 31 January 2008
         # Available online 8 April 2008
-        self.material.concrete =   320.e3 * unit.MW_W(self.nominal_peak_power) \
+        self.material.concrete = 320.e3 * unit.MW_W(self.nominal_peak_power) \
                                  + (373.e3/177.) * unit.GWh_J(self.mean_daily_energy * self.life_time)   # Power plant + waste storage
-        self.material.steel =  60.e3 * unit.MW_W(self.nominal_peak_power)
+        self.material.steel = 60.e3 * unit.MW_W(self.nominal_peak_power)
         self.material.aluminium = 0.14e3 * unit.MW_W(self.nominal_peak_power)
         self.material.copper = 1.51e3 * unit.MW_W(self.nominal_peak_power)
 # TODO        self.material.lead = np.nan

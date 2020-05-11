@@ -7,14 +7,14 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
-from context import unit
-from aircraft.aircraft_root import Arrangement
-from aircraft.aircraft_root import Aircraft
-from aircraft.requirement import Requirement
+from marilib.context import unit
+from marilib.aircraft.aircraft_root import Arrangement
+from marilib.aircraft.aircraft_root import Aircraft
+from marilib.aircraft.requirement import Requirement
 
-from design import process
+from marilib.design import process
 
-from aircraft.tool.read_write import MarilibIO
+from marilib.aircraft.tool.read_write import MarilibIO
 
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"

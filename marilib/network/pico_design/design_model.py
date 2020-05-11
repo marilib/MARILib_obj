@@ -9,12 +9,12 @@ Created on March 22 22:09:20 2020
 """
 
 import numpy as np
-from scipy.optimize import fsolve, least_squares
+from scipy.optimize import fsolve
 
 import matplotlib.pyplot as plt
 
-from context import unit, math
-from context.math import lin_interp_1d
+from marilib.context import unit
+from marilib.context.math import lin_interp_1d
 
 
 
@@ -129,7 +129,7 @@ class Aircraft(object):
         if kr is not None: self.kr = kr
         if mpax is not None: self.mpax = mpax
         if effr is not None:
-            self.eff_ratio = effr /unit.convert_from("kg/daN/h", 1.)
+            self.eff_ratio = effr / unit.convert_from("kg/daN/h", 1.)
         else:
             self.eff_ratio = self.l_o_d(self.npax) / self.sfc
 
@@ -297,7 +297,7 @@ class Fleet(object):
         :return:
         """
         range = unit.convert_from("NM",
-                      [ 100.,  500., 1000., 1500., 2000., 2500., 3000., 3500., 4000.])
+                                  [ 100.,  500., 1000., 1500., 2000., 2500., 3000., 3500., 4000.])
         utilization = [2300., 2300., 1500., 1200.,  900.,  800.,  700.,  600.,  600.]
         return lin_interp_1d(mean_range, range, utilization)
 
@@ -375,7 +375,7 @@ class Fleet(object):
                                 flag = True
                                 break
                 if not flag:
-                    print("This is embarrassing, this mission could not be flown : npax = ",npax," range = ","%.0f"%unit.km_m(dist_eff)," km")
+                    print("This is embarrassing, this mission could not be flown : npax = ", npax," range = ","%.0f" % unit.km_m(dist_eff), " km")
 
         n = len(self.aircraft)
         for j in range(n):

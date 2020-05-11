@@ -10,9 +10,9 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy.optimize import fsolve
 
-from context import earth, unit
+from marilib.context import earth, unit
 
-from aircraft.airframe.component import Component
+from marilib.aircraft.airframe.component import Component
 
 
 class RatingFactor(object):

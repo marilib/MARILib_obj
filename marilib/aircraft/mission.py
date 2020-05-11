@@ -5,12 +5,12 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-from context import earth, unit
+from marilib.context import earth, unit
 
 import numpy as np
 from scipy.optimize import fsolve
 
-from aircraft.performance import Flight
+from marilib.aircraft.performance import Flight
 
 class MissionBasic(Flight):
     """Definition of all mission types for fuel powered airplanes

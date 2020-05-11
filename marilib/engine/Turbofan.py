@@ -2,7 +2,7 @@
 """
 
 """
-from engine.ExergeticEngine import Turbofan
+from marilib.engine.ExergeticEngine import Turbofan
 from matplotlib import pyplot as plt
 
 

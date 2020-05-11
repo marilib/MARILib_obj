@@ -3,7 +3,7 @@
 
 """
 import numpy as np
-from engine.ExergeticEngine import Turboprop
+from marilib.engine.ExergeticEngine import Turboprop
 from matplotlib import pyplot as plt
 
 

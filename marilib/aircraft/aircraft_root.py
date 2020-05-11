@@ -5,18 +5,17 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-from aircraft.airframe.airframe_root import Airframe
-from aircraft.airframe import component, propulsion
-from aircraft.airframe import model
+from marilib.aircraft.airframe.airframe_root import Airframe
+from marilib.aircraft.airframe import propulsion, component, model
 
-from engine import interface
+from marilib.engine import interface
 
-from aircraft.performance import Performance
-from aircraft.mission import Mission, MissionIsoMass
-from aircraft.environment import Economics
-from aircraft.environment import Environment
+from marilib.aircraft.performance import Performance
+from marilib.aircraft.mission import Mission, MissionIsoMass
+from marilib.aircraft.environment import Economics
+from marilib.aircraft.environment import Environment
 
-from aircraft.tool.drawing import Drawing
+from marilib.aircraft.tool.drawing import Drawing
 
 
 class Arrangement(object):

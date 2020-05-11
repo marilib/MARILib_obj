@@ -9,13 +9,13 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy.optimize import fsolve
 
-from context import earth
+from marilib.context import earth
 
-from engine.ExergeticEngine import Turbofan, ElectricFan
+from marilib.engine.ExergeticEngine import Turbofan, ElectricFan
 
-from aircraft.airframe.component import Component
+from marilib.aircraft.airframe.component import Component
 
-from aircraft.airframe.propulsion import RatingFactor, \
+from marilib.aircraft.airframe.propulsion import RatingFactor, \
                                          InboradWingMountedNacelle,\
                                          OutboradWingMountedNacelle,\
                                          RearFuselageMountedNacelle

@@ -9,7 +9,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
-from context import earth, unit
+from marilib.context import earth, unit
 
 
 class Component(object):

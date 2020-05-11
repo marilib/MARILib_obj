@@ -5,19 +5,14 @@ Created on Wed Apr 29 11:11:11 2020
 ..author: DRUOT Thierry, Nicolas Monrolin
 """
 
-import numpy as np
+from marilib.context import unit
+from marilib.aircraft.aircraft_root import Arrangement
+from marilib.aircraft.aircraft_root import Aircraft
+from marilib.aircraft.requirement import Requirement
 
-from context import unit
-from aircraft.aircraft_root import Arrangement
-from aircraft.aircraft_root import Aircraft
-from aircraft.requirement import Requirement
+from marilib.aircraft.mission import MissionDef
 
-from aircraft.mission import MissionDef
-
-from design import process
-
-from aircraft.tool.read_write import MarilibIO
-
+from marilib.design import process
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"

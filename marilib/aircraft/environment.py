@@ -7,9 +7,9 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
-from context import earth, unit
+from marilib.context import earth, unit
 
-from aircraft.performance import Flight
+from marilib.aircraft.performance import Flight
 
 
 class Economics():

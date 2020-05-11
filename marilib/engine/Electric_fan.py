@@ -4,7 +4,7 @@
 """
 import math
 import numpy as np
-from engine.ExergeticEngine import ElectricFan
+from marilib.engine.ExergeticEngine import ElectricFan
 from matplotlib import pyplot as plt
 
 

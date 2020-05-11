@@ -8,19 +8,13 @@ Created on March 22 22:09:20 2020
 @author: Thierry Druot
 """
 
-import numpy as np
-
-from scipy.optimize import fsolve, least_squares
-
-import matplotlib.pyplot as plt
-
 import pickle
 
 #import network.flight_data.data_explorer as data_explorer
 
-from context import unit, math
+from marilib.context import unit
 
-from network.pico_design.design_model import Aircraft, Fleet
+from marilib.network.pico_design.design_model import Aircraft, Fleet
 
 
 

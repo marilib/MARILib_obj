@@ -7,7 +7,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 from scipy.optimize import fsolve
-from aircraft.airframe.component import Component
+from marilib.aircraft.airframe.component import Component
 
 
 #--------------------------------------------------------------------------------------------------------------------------------

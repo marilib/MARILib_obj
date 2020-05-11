@@ -12,7 +12,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from context import unit
+from marilib.context import unit
 
 
 class Drawing(object):

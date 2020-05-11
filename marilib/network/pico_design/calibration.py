@@ -9,13 +9,12 @@ Created on March 22 22:09:20 2020
 """
 
 import numpy as np
-from scipy.optimize import fsolve, least_squares
 
 import pandas
 import matplotlib.pyplot as plt
 
-from context import unit, math
-from network.pico_design.design_model import Aircraft
+from marilib.context import unit, math
+from marilib.network.pico_design.design_model import Aircraft
 
 
 def get_data(file_name):
@@ -28,7 +27,7 @@ def get_data(file_name):
 
     data_dict = {}
     for j in range(len(label)):
-        data_dict[label[j]] = unit.convert_from(unit_[j],data[:,j].astype(np.float))
+        data_dict[label[j]] = unit.convert_from(unit_[j], data[:, j].astype(np.float))
     return data_dict
 
 
