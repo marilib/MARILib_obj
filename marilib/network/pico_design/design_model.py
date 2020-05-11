@@ -33,7 +33,7 @@ class Aircraft(object):
         self.cruise_speed = None    # Cruise speed
         self.range = range          # Range
         self.npax = npax            # Npax
-        self.mpax = 120.            # Weight per passenger
+        self.mpax = 140.            # Weight per passenger
         self.payload = None         # Design mission payload
         self.mtow = None            # Design mission Maximum Take Off Weight
         self.owe = None             # Design mission Operating Empty Weight
@@ -62,7 +62,7 @@ class Aircraft(object):
         pax1 = 60.
         lod1 = 15.
         pax2 = 160.
-        lod2 = 18.
+        lod2 = 19.
         lod = lod1 + (lod2-lod1)*(npax-pax1)/(pax2-pax1)
         lod = max(lod1,min(lod,lod2))
         return lod
