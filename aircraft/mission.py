@@ -606,7 +606,7 @@ class MissionDef(Flight):
         self.reserve_fuel_ratio = self.__reserve_fuel_ratio()  # Ratio of mission fuel to account into reserve
         self.diversion_range = self.__diversion_range()  # Diversion leg
 
-    def set_parameters(self,mach=None, altp=None, disa=None, owe=None):
+    def set_parameters(self, mach=None, altp=None, disa=None, owe=None):
         """Set the flight condition of the mission:
             1) if one or more value is specified : set the corresponding mission attributes
             2) if no value is specified : reset mission parameters to default aircraft requirements
@@ -755,10 +755,10 @@ class MissionDef(Flight):
         tas = mach * earth.sound_speed(tamb)
 
         dict = self.level_flight(pamb,tamb,mach,tow)
-        enrg = tow*g*range*dict["sec"] / (tas*dict["lod"])
+        fuel = tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
         time = 1.09*(range/tas)
 
-        return enrg,time
+        return fuel,time
 
     def eval_breguet(self, range, tow, altp, mach, disa):
         """

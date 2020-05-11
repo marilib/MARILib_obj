@@ -150,11 +150,11 @@ class ClimbReq(object):
     """
     def __init__(self, arrangement, requirement):
         self.disa = 15.
-        self.altp = self.__top_of_climb(arrangement,requirement)
+        self.altp = self.top_of_climb(arrangement,requirement)
         self.mach = requirement.cruise_mach
         self.kmtow = 0.97
 
-    def __top_of_climb(self, arrangement, requirement):
+    def top_of_climb(self, arrangement, requirement):
         if (arrangement.power_architecture in ["tf","extf"]): altp = unit.m_ft(35000.)
         elif (arrangement.power_architecture in ["efb","exefb"]): altp = unit.m_ft(35000.)
         elif (arrangement.power_architecture=="tp"): altp = unit.m_ft(16000.)
@@ -195,7 +195,7 @@ class TtcReq(ClimbReq):
         self.altp1 = unit.m_ft(1500.)
         self.cas2 = self.__ttc_cas2(requirement)
         self.altp2 = unit.m_ft(10000.)
-        self.altp = self.__top_of_climb(arrangement,requirement)
+        self.altp = self.top_of_climb(arrangement,requirement)
         self.ttc_req = unit.s_min(25.)
 
     def __ttc_cas1(self, requirement):
