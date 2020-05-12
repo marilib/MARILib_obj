@@ -14,8 +14,12 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../marilib/'))
+sys.path.insert(0, os.path.abspath('../..'))
 
+# NOTE by Micolas 2020: to generate the doc
+# make clean
+# sphinx-apidoc -fMe -o source/api/ ../marilib/
+# make html
 
 # -- Project information -----------------------------------------------------
 

@@ -9,7 +9,6 @@ import numpy as np
 from scipy.optimize import fsolve
 from marilib.aircraft.airframe.component import Component
 
-
 #--------------------------------------------------------------------------------------------------------------------------------
 class Airframe(object):
     """Logical aircraft components
