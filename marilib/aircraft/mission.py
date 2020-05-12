@@ -160,8 +160,8 @@ class MissionIsoMassNominal(Flight):
         self.battery_mass = None    # Mission battery mass
 
         self.holding_time = unit.s_min(30)  # Holding duration
-        self.reserve_enrg_ratio = self.__reserve_enrg_ratio__() # Ratio of mission fuel to account into reserve
-        self.diversion_range = self.__diversion_range__()       # Diversion leg
+        self.reserve_enrg_ratio = self.reserve_enrg_ratio() # Ratio of mission fuel to account into reserve
+        self.diversion_range = self.diversion_range()       # Diversion leg
 
     def eval(self,range,tow,owe,altp,mach,disa):
         """Evaluate mission and store results in object attributes
@@ -174,7 +174,7 @@ class MissionIsoMassNominal(Flight):
         self.eval_breguet(range,tow,altp,mach,disa)
         self.eval_payload(owe)
 
-    def __reserve_enrg_ratio__(self):
+    def reserve_enrg_ratio(self):
         design_range = self.aircraft.requirement.design_range
         if (design_range> unit.m_NM(6500.)):
             reserve_enrg_ratio = 0.03
@@ -182,7 +182,7 @@ class MissionIsoMassNominal(Flight):
             reserve_enrg_ratio = 0.05
         return reserve_enrg_ratio
 
-    def __diversion_range__(self):
+    def diversion_range(self):
         design_range = self.aircraft.requirement.design_range
         if (design_range> unit.m_NM(200.)):
             diversion_range = unit.m_NM(200.)
@@ -194,20 +194,6 @@ class MissionIsoMassNominal(Flight):
         """Computing resulting payload
         """
         self.payload = self.tow - self.battery_mass - owe
-
-    def breguet_range(self,range,tow,altp,mach,disa):
-        """Breguet range equation is dependant from power source : fuel or battery
-        """
-        g = earth.gravity()
-
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-        tas = mach * earth.sound_speed(tamb)
-
-        dict = self.level_flight(pamb,tamb,mach,tow)
-        enrg = tow*g*range*dict["sec"] / (tas*dict["lod"])
-        time = 1.09*(range/tas)
-
-        return enrg,time
 
     def eval_breguet(self,range,tow,altp,mach,disa):
         """
@@ -227,7 +213,7 @@ class MissionIsoMassNominal(Flight):
 
         # Mission leg
         #-----------------------------------------------------------------------------------------------------------
-        enrg_mission,time_mission = self.breguet_range(range,tow,altp,mach,disa)
+        enrg_mission,time_mission = self.breguet_range(range,tow,1.,altp,mach,disa)
 
         # Arrival ground phases
         #-----------------------------------------------------------------------------------------------------------
@@ -244,15 +230,13 @@ class MissionIsoMassNominal(Flight):
 
         # Diversion fuel
         #-----------------------------------------------------------------------------------------------------------
-        enrg_diversion,t = self.breguet_range(self.diversion_range,tow,altp,mach,disa)
+        enrg_diversion,t = self.breguet_range(self.diversion_range,tow,1.,altp,mach,disa)
 
         # Holding fuel
         #-----------------------------------------------------------------------------------------------------------
         altp_holding = unit.m_ft(1500.)
         mach_holding = 0.65 * mach
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding, disa)
-        dict = self.level_flight(pamb,tamb,mach_holding,tow)
-        enrg_holding = dict["sec"]*(tow*g/dict["lod"])*self.holding_time
+        enrg_holding = self.holding(self.holding_time,tow,altp_holding,mach_holding,disa)
 
         # Total
         #-----------------------------------------------------------------------------------------------------------
@@ -329,11 +313,7 @@ class Mission(MissionBasic):
         self.zero_payload = MissionGeneric(aircraft)
         self.cost = MissionGeneric(aircraft)
 
-        # self.max_fuel = MissionRangeFromFuelAndTow(aircraft)
-        # self.zero_payload = MissionRangeFromFuelAndPayload(aircraft)
-        # self.cost = MissionFuelFromRangeAndPayload(aircraft)
-
-        self.ktow = 0.90    # TOW ratio at which cruise mean consumption is computed for fueled airplanes only
+        self.ktow = 0.90    # TOW ratio at which cruise mean consumption is computed
 
         self.crz_sar = None
         self.crz_cz = None
@@ -424,8 +404,8 @@ class MissionNominal(Flight):
         self.fuel_total = None      # Mission total fuel
 
         self.holding_time = unit.s_min(30)  # Holding duration
-        self.reserve_fuel_ratio = self.__reserve_fuel_ratio__() # Ratio of mission fuel to account into reserve
-        self.diversion_range = self.__diversion_range__()       # Diversion leg
+        self.reserve_fuel_ratio = self.reserve_fuel_ratio() # Ratio of mission fuel to account into reserve
+        self.diversion_range = self.diversion_range()       # Diversion leg
 
     def eval(self,range,tow,owe,altp,mach,disa):
         """Evaluate mission and store results in object attributes
@@ -438,7 +418,7 @@ class MissionNominal(Flight):
         self.eval_breguet(range,tow,altp,mach,disa)
         self.eval_payload(owe)
 
-    def __reserve_fuel_ratio__(self):
+    def reserve_fuel_ratio(self):
         design_range = self.aircraft.requirement.design_range
         if (design_range> unit.m_NM(6500.)):
             reserve_fuel_ratio = 0.03
@@ -446,7 +426,7 @@ class MissionNominal(Flight):
             reserve_fuel_ratio = 0.05
         return reserve_fuel_ratio
 
-    def __diversion_range__(self):
+    def diversion_range(self):
         design_range = self.aircraft.requirement.design_range
         if (design_range> unit.m_NM(200.)):
             diversion_range = unit.m_NM(200.)
@@ -459,30 +439,16 @@ class MissionNominal(Flight):
         """
         self.payload = self.tow - self.fuel_total - owe
 
-    def breguet_range(self,range,tow,altp,mach,disa):
-        """Breguet range equation is dependant from power source : fuel or battery
-        """
-        g = earth.gravity()
-
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-        tas = mach * earth.sound_speed(tamb)
-
-        mass = self.aircraft.performance.mission.ktow*tow
-
-        dict = self.level_flight(pamb,tamb,mach,mass)
-        fuel = tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
-        time = 1.09*(range/tas)
-
-        return fuel,time
-
     def eval_breguet(self,range,tow,altp,mach,disa):
         """
         Mission computation using bregueçt equation, fixed L/D and fixed sfc
         """
         g = earth.gravity()
+
         n_engine = self.aircraft.airframe.nacelle.n_engine
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
         engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
+        ktow = self.aircraft.performance.mission.ktow
 
         # Departure ground phases
         #-----------------------------------------------------------------------------------------------------------
@@ -494,7 +460,7 @@ class MissionNominal(Flight):
 
         # Mission leg
         #-----------------------------------------------------------------------------------------------------------
-        fuel_mission,time_mission = self.breguet_range(range,tow,altp,mach,disa)
+        fuel_mission,time_mission = self.breguet_range(range,tow,ktow,altp,mach,disa)
 
         mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)     # mass is not landing weight
 
@@ -513,15 +479,13 @@ class MissionNominal(Flight):
 
         # Diversion fuel
         #-----------------------------------------------------------------------------------------------------------
-        fuel_diversion,t = self.breguet_range(self.diversion_range,tow,altp,mach,disa)
+        fuel_diversion,t = self.breguet_range(self.diversion_range,mass,0.99,altp,mach,disa)
 
         # Holding fuel
         #-----------------------------------------------------------------------------------------------------------
         altp_holding = unit.m_ft(1500.)
         mach_holding = 0.65 * mach
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp_holding, disa)
-        dict = self.level_flight(pamb,tamb,mach_holding,mass)
-        fuel_holding = dict["sfc"]*(mass*g/dict["lod"])*self.holding_time
+        fuel_holding = self.holding(self.holding_time,mass,altp_holding,mach_holding,disa)
 
         # Total
         #-----------------------------------------------------------------------------------------------------------
@@ -530,6 +494,8 @@ class MissionNominal(Flight):
 
         #-----------------------------------------------------------------------------------------------------------
         return
+
+
 
 
 class MissionGeneric(MissionNominal):
@@ -604,7 +570,7 @@ class MissionDef(Flight):
 
         self.holding_time = unit.s_min(30)  # Holding duration
         self.reserve_fuel_ratio = self.__reserve_fuel_ratio()  # Ratio of mission fuel to account into reserve
-        self.diversion_range = self.__diversion_range()  # Diversion leg
+        self.diversion_range = self.diversion_range()  # Diversion leg
 
     def set_parameters(self, mach=None, altp=None, disa=None, owe=None):
         """Set the flight condition of the mission:
@@ -732,7 +698,7 @@ class MissionDef(Flight):
             reserve_fuel_ratio = 0.05
         return reserve_fuel_ratio
 
-    def __diversion_range(self):
+    def diversion_range(self):
         design_range = self.aircraft.requirement.design_range
         if (design_range > unit.m_NM(200.)):
             diversion_range = unit.m_NM(200.)
@@ -746,28 +712,16 @@ class MissionDef(Flight):
         """
         self.payload = self.tow - self.fuel_total - owe
 
-    def breguet_range(self,range,tow,altp,mach,disa):
-        """Breguet range equation is dependant from power source : fuel or battery
-        """
-        g = earth.gravity()
-
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-        tas = mach * earth.sound_speed(tamb)
-
-        dict = self.level_flight(pamb,tamb,mach,tow)
-        fuel = tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
-        time = 1.09*(range/tas)
-
-        return fuel,time
-
     def eval_breguet(self, range, tow, altp, mach, disa):
         """
         Mission computation using breguet equation, fixed L/D and fixed sfc
         """
         g = earth.gravity()
+
         n_engine = self.aircraft.airframe.nacelle.n_engine
         reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
         engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
+        ktow = self.aircraft.performance.mission.ktow
 
         # Departure ground phases
         # -----------------------------------------------------------------------------------------------------------
@@ -779,7 +733,7 @@ class MissionDef(Flight):
 
         # Mission leg
         # -----------------------------------------------------------------------------------------------------------
-        fuel_mission, time_mission = self.breguet_range(range, tow, altp, mach, disa)
+        fuel_mission,time_mission = self.breguet_range(range,tow,ktow,altp,mach,disa)
 
         mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)  # mass is not landing weight
 
@@ -798,15 +752,13 @@ class MissionDef(Flight):
 
         # Diversion fuel
         # -----------------------------------------------------------------------------------------------------------
-        fuel_diversion, t = self.breguet_range(self.diversion_range, tow, altp, mach, disa)
+        fuel_diversion,t = self.breguet_range(self.diversion_range,mass,0.99,altp,mach,disa)
 
         # Holding fuel
         # -----------------------------------------------------------------------------------------------------------
         altp_holding = unit.m_ft(1500.)
         mach_holding = 0.65 * mach
-        pamb, tamb, tstd, dtodz = earth.atmosphere(altp_holding, disa)
-        dict = self.level_flight(pamb, tamb, mach_holding, mass)
-        fuel_holding = dict["sfc"] * (mass * g / dict["lod"]) * self.holding_time
+        fuel_holding = self.holding(self.holding_time,mass,altp_holding,mach_holding,disa)
 
         # Total
         # -----------------------------------------------------------------------------------------------------------

@@ -20,7 +20,7 @@ from marilib.aircraft.tool.read_write import MarilibIO
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
-                   stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
+                   stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "rear",     # "wing", "rear" or "pods"

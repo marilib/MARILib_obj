@@ -295,11 +295,11 @@ class Turbofan(PowerSystem, Flight):
     def __init__(self, aircraft):
         super(Turbofan, self).__init__(aircraft)
 
-        mto = ThrustDataTf(nei=1)
-        mcn = ThrustDataTf(nei=1)
-        mcl = ThrustDataTf(nei=0)
-        mcr = ThrustDataTf(nei=0)
-        self.data = {"MTO":mto, "MCN":mcn, "MCL":mcl, "MCR":mcr}
+        self.sfc_type = "thrust"
+        self.data = {"MTO":ThrustDataTf(nei=1),
+                     "MCN":ThrustDataTf(nei=1),
+                     "MCL":ThrustDataTf(nei=0),
+                     "MCR":ThrustDataTf(nei=0)}
 
     def thrust_analysis(self):
         self.thrust_requirement()
@@ -369,11 +369,11 @@ class Electrofan(PowerSystem, Flight):
     def __init__(self, aircraft):
         super(Electrofan, self).__init__(aircraft)
 
-        mto = ThrustDataEf(nei=1)
-        mcn = ThrustDataEf(nei=1)
-        mcl = ThrustDataEf(nei=0)
-        mcr = ThrustDataEf(nei=0)
-        self.data = {"MTO":mto, "MCN":mcn, "MCL":mcl, "MCR":mcr}
+        self.sec_type = "thrust"
+        self.data = {"MTO":ThrustDataEf(nei=1),
+                     "MCN":ThrustDataEf(nei=1),
+                     "MCL":ThrustDataEf(nei=0),
+                     "MCR":ThrustDataEf(nei=0)}
 
     def thrust_analysis(self):
         self.thrust_requirement()

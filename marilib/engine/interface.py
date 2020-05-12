@@ -31,7 +31,7 @@ class Exergetic_tf_nacelle(Component):
         design_range = self.aircraft.requirement.design_range
 
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        self.cruise_thrust = self.__cruise_thrust__()
+        self.cruise_thrust = self.__cruise_thrust()
         self.reference_thrust = None
         self.reference_offtake = 0.
         self.reference_wBleed = 0.
@@ -62,7 +62,7 @@ class Exergetic_tf_nacelle(Component):
 
         self.TF_model.cooling_flow = self.cooling_flow
 
-    def __turbofan_bpr__(self):
+    def __turbofan_bpr(self):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         if (80<n_pax_ref):
             bpr = 9.
@@ -70,7 +70,7 @@ class Exergetic_tf_nacelle(Component):
             bpr = 5.
         return bpr
 
-    def __cruise_thrust__(self):
+    def __cruise_thrust(self):
         g = earth.gravity()
         mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
         lod = 16.
@@ -122,7 +122,7 @@ class Exergetic_tf_nacelle(Component):
         self.aero_length = self.length
         self.form_factor = 1.15
 
-        self.frame_origin = self.__locate_nacelle__()
+        self.frame_origin = self.__locate_nacelle()
 
     def eval_mass(self):
         engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
@@ -218,7 +218,7 @@ class Exergetic_ef_nacelle(Component):
         design_range = self.aircraft.requirement.design_range
 
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        self.cruise_thrust = self.__cruise_thrust__()
+        self.cruise_thrust = self.__cruise_thrust()
         self.reference_thrust = None
         self.reference_power = None
         # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
@@ -246,7 +246,7 @@ class Exergetic_ef_nacelle(Component):
         tau_f, self.EF_model.ex_loss["Fan"] = self.EF_model.from_PR_to_tau_pol(1.32, 0.94)
         self.EF_model.ex_loss["PE"] = self.EF_model.from_PR_loss_to_Ex_loss(0.985)
 
-    def __cruise_thrust__(self):
+    def __cruise_thrust(self):
         g = earth.gravity()
         mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
         lod = 16.
@@ -304,7 +304,7 @@ class Exergetic_ef_nacelle(Component):
         self.aero_length = self.length
         self.form_factor = 1.15
 
-        self.frame_origin = self.__locate_nacelle__()
+        self.frame_origin = self.__locate_nacelle()
 
     def eval_mass(self):
         shaft_power_max = self.aircraft.airframe.nacelle.reference_power

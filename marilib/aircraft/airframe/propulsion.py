@@ -64,9 +64,9 @@ class SemiEmpiricTfNacelle(Component):
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
-        self.fuel_heat = self.__fuel_heat__()
+        self.fuel_heat = self.__fuel_heat()
         self.tune_factor = 1.
-        self.engine_bpr = self.__turbofan_bpr__()
+        self.engine_bpr = self.__turbofan_bpr()
         self.core_thrust_ratio = 0.13
         self.efficiency_prop = 0.82
 
@@ -75,9 +75,17 @@ class SemiEmpiricTfNacelle(Component):
 
         self.frame_origin = np.full(3,None)
 
-    def __fuel_heat__(self):
+    def __fuel_heat(self):
         energy_source = self.aircraft.arrangement.energy_source
         return earth.fuel_heat(energy_source)
+
+    def __turbofan_bpr(self):
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        if (80<n_pax_ref):
+            bpr = 9.
+        else:
+            bpr = 5.
+        return bpr
 
     def eval_geometry(self):
 
@@ -117,21 +125,13 @@ class SemiEmpiricTfNacelle(Component):
         self.aero_length = self.length
         self.form_factor = 1.15
 
-        self.frame_origin = self.__locate_nacelle__()
+        self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
         engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
         pylon_mass = 0.0031*self.reference_thrust*self.n_engine
         self.mass = engine_mass + pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
-
-    def __turbofan_bpr__(self):
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
-        if (80<n_pax_ref):
-            bpr = 9.
-        else:
-            bpr = 5.
-        return bpr
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
@@ -181,7 +181,7 @@ class InboradWingMountedNacelle(Component):
     def __init__(self, aircraft):
         super(InboradWingMountedNacelle, self).__init__(aircraft)
 
-    def __locate_nacelle__(self):
+    def locate_nacelle(self):
         body_width = self.aircraft.airframe.body.width
         wing_root_loc = self.aircraft.airframe.wing.root_loc
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
@@ -205,7 +205,7 @@ class OutboradWingMountedNacelle(Component):
     def __init__(self, aircraft):
         super(OutboradWingMountedNacelle, self).__init__(aircraft)
 
-    def __locate_nacelle__(self):
+    def locate_nacelle(self):
         body_width = self.aircraft.airframe.body.width
         wing_root_loc = self.aircraft.airframe.wing.root_loc
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
@@ -229,7 +229,7 @@ class RearFuselageMountedNacelle(Component):
     def __init__(self, aircraft):
         super(RearFuselageMountedNacelle, self).__init__(aircraft)
 
-    def __locate_nacelle__(self):
+    def locate_nacelle(self):
         body_width = self.aircraft.airframe.body.width
         body_height = self.aircraft.airframe.body.height
         body_length = self.aircraft.airframe.body.length
@@ -350,7 +350,7 @@ class SemiEmpiricEfNacelle(Component):
         self.aero_length = self.length
         self.form_factor = 1.15
 
-        self.frame_origin = self.__locate_nacelle__()
+        self.frame_origin = self.locate_nacelle()
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         mach = 0.25

@@ -83,7 +83,7 @@ class ExergeticEngine(object):
 
         # Ambient conditions (sea level, ISA+15degK, Mn 0.25)
         self.Ts0 = 288.15
-        self.Ps0 = 102325.
+        self.Ps0 = 101325.
         self.Mach = 0.25
 
         # derived parameters

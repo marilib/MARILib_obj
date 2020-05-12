@@ -297,7 +297,7 @@ class Fleet(object):
         :return:
         """
         range = unit.convert_from("NM",
-                                  [ 100.,  500., 1000., 1500., 2000., 2500., 3000., 3500., 4000.])
+                      [ 100.,  500., 1000., 1500., 2000., 2500., 3000., 3500., 4000.])
         utilization = [2300., 2300., 1500., 1200.,  900.,  800.,  700.,  600.,  600.]
         return lin_interp_1d(mean_range, range, utilization)
 

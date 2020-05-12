@@ -320,6 +320,39 @@ class Flight(object):
         acc = (dict["fn"] - 0.5*gam*pamb*mach**2*self.aircraft.airframe.wing.area*cx) / mass
         return acc
 
+    def breguet_range(self,range,tow,ktow,altp,mach,disa):
+        """Breguet range equation is dependant from power source and propulsion type
+        """
+        g = earth.gravity()
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        tas = mach * earth.sound_speed(tamb)
+        time = 1.09*(range/tas)
+
+        dict = self.level_flight(pamb,tamb,mach,tow*ktow)
+
+        if "sfc" in dict.keys():
+            fuel = tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
+            return fuel,time
+        elif "sec" in dict.keys():
+            enrg = tow*g*range*dict["sec"] / (tas*dict["lod"])
+            return enrg,time
+
+    def holding(self,time,mass,altp,mach,disa):
+        """Holding equation is dependant from power source
+        """
+        g = earth.gravity()
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        dict = self.level_flight(pamb,tamb,mach,mass)
+
+        if "sfc" in dict.keys():
+            fuel_holding = dict["sfc"]*(mass*g/dict["lod"])*time
+            return fuel_holding
+        elif "sec" in dict.keys():
+            enrg_holding = dict["sec"]*(mass*g/dict["lod"])*time
+            return enrg_holding
+
 
 class TakeOff(Flight):
     """Take Off Field Length

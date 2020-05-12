@@ -9,6 +9,8 @@ import numpy as np
 
 from marilib.context import earth, unit
 
+from marilib.context.math import lin_interp_1d
+
 from marilib.aircraft.performance import Flight
 
 
@@ -21,7 +23,7 @@ class Economics():
         self.period = 15.           # 15 years
         self.interest_rate = 0.04   # 4%
         self.labor_cost = 120.      # 120 $/h
-        self.utilisation = self.__utilisation__()
+        self.utilization = None
 
         self.engine_price = None
         self.gear_price = None
@@ -44,14 +46,16 @@ class Economics():
         self.cash_op_cost = None
         self.direct_op_cost = None
 
-    def __utilisation__(self):
-        """Number of flights per year
-        """
-        design_range = self.aircraft.requirement.design_range
-        if(design_range <= unit.m_NM(3500.)): utilisation = 1600.
-        else:                                 utilisation = 600.
-        return utilisation
+    def yearly_utilization(self, mean_range):
+        """Compute the yearly utilization from the average range
 
+        :param mean_range: Average range
+        :return:
+        """
+        range = unit.convert_from("NM",
+                      [ 100.,  500., 1000., 1500., 2000., 2500., 3000., 3500., 4000.])
+        utilization = [2300., 2300., 1500., 1200.,  900.,  800.,  700.,  600.,  600.]
+        return lin_interp_1d(mean_range, range, utilization)
 
     def landing_gear_price(self):
         """Typical value
@@ -149,11 +153,12 @@ class Economics():
 
 #        battery_price = eco.battery_mass_price*cost_mission.req_battery_mass
 
+        self.utilization = self.yearly_utilization(cost_range)
         self.aircraft_price = self.frame_price + self.engine_price * n_engine + self.gear_price #+ battery_price
         self.total_investment = self.frame_price * 1.06 + n_engine * self.engine_price * 1.025
-        self.interest = (self.total_investment/(self.utilisation*self.period)) * (self.irp * 0.04 * (((1. + self.interest_rate)**self.irp)/((1. + self.interest_rate)**self.irp - 1.)) - 1.)
-        self.insurance = 0.0035 * self.aircraft_price/self.utilisation
-        self.depreciation = 0.99 * (self.total_investment / (self.utilisation * self.period))     # Depreciation
+        self.interest = (self.total_investment/(self.utilization*self.period)) * (self.irp * 0.04 * (((1. + self.interest_rate)**self.irp)/((1. + self.interest_rate)**self.irp - 1.)) - 1.)
+        self.insurance = 0.0035 * self.aircraft_price/self.utilization
+        self.depreciation = 0.99 * (self.total_investment / (self.utilization * self.period))     # Depreciation
         self.direct_op_cost = self.cash_op_cost + self.interest + self.depreciation + self.insurance
 
         return
