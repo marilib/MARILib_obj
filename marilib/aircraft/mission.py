@@ -635,7 +635,6 @@ class MissionDef(Flight):
             else:
                 self.__dict__[name] = inputs[name] # set the input value in the mission attribute
 
-        # TODO: check the implementation with Thierry
         x0 = self.__init_unknowns(unknowns)
         x = fsolve(self.__mission_equations_to_solve, x0, args=({'inputs': inputs.keys(), 'unknowns': unknowns}))
 
@@ -673,7 +672,7 @@ class MissionDef(Flight):
         :return: the values of the two equations
         """
         inputs = args[0]['inputs']
-        unknowns = args[0]['unknowns']
+        unknowns_name = args[0]['unknowns']
 
         xx = {'range':None, 'tow':None, 'payload':None, 'fuel_total':None}
 
@@ -681,12 +680,13 @@ class MissionDef(Flight):
         for name in sorted(xx.keys()): # iterate over the list
             if name in inputs:
                 xx[name] = self.__dict__[name]  # read the value  of the attribute
-            elif name in unknowns:
+            elif name in unknowns_name:
                 xx[name] = unknowns[k]  # read the value in the unknown list : the order matters -> sorted()
                 k += 1
 
-        eq1 = xx['fuel_total'] - self.eval_breguet(xx['range'], xx['tow'], self.altp, self.mach, self.disa)
-        eq2 = xx['tow'] - xx['fuel_total'] - xx['owe'] - xx['payload']
+        self.eval_breguet(xx['range'], xx['tow'], self.altp, self.mach, self.disa)
+        eq1 = xx['fuel_total'] - self.fuel_total
+        eq2 = xx['tow'] - xx['fuel_total'] - self.owe - xx['payload']
 
         return eq1,eq2
 

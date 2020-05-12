@@ -41,7 +41,7 @@ mymission = MissionDef(ac)
 
 mymission.set_parameters() # set default requirement parameters
 
-result = mymission.eval(inputs={'range':3000.*1.854,'tow':64000.})
+result = mymission.eval(inputs={'range':3000.*1.854,'tow':64000.}) # TODO Check result with Thierry
 
 print(result)
 
