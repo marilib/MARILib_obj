@@ -103,6 +103,7 @@ class MissionIsoMass(MissionBasic):
         self.crz_lod = lf_dict["lod"]
         self.crz_thrust = lf_dict["fn"]
         self.crz_throttle = lf_dict["thtl"]
+        self.crz_power = lf_dict["pw"]
         self.crz_sec = lf_dict["sec"]
 
         self.max_esar_altp = sm_dict["altp"]
@@ -111,6 +112,7 @@ class MissionIsoMass(MissionBasic):
         self.max_esar_lod = sm_dict["lod"]
         self.max_esar_thrust = sm_dict["fn"]
         self.max_esar_throttle = sm_dict["thtl"]
+        self.max_esar_power = sm_dict["pw"]
         self.max_esar_sec = sm_dict["sec"]
 
     def mass_mission_adaptation(self):
@@ -382,7 +384,6 @@ class Mission(MissionBasic):
 
         self.aircraft.weight_cg.mtow = output_dict[0][0]
         self.aircraft.weight_cg.mass_pre_design()
-        self.aircraft.performance.mission.payload_range()
 
 
 class MissionNominal(Flight):

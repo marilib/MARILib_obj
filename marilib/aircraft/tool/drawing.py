@@ -347,8 +347,7 @@ class Drawing(object):
 
         # Draw top view
         #-----------------------------------------------------------------------------------------------------------
-        if (self.aircraft.arrangement.power_architecture!="tp" or
-            self.aircraft.arrangement.power_architecture!="ep1"):
+        if (self.aircraft.arrangement.power_architecture not in ["tp","ep"]):
             plt.plot(xTopView+nac_xy_ext[0:,0], yTopView+nac_xy_ext[0:,1], color="grey", zorder=3)        # Left nacelle top view
             plt.plot(xTopView+nac_xy_ext[0:,0], yTopView-nac_xy_ext[0:,1], color="grey", zorder=3)        # Right nacelle top view
             if (self.aircraft.arrangement.number_of_engine=="quadri"):
@@ -414,8 +413,7 @@ class Drawing(object):
         #     plt.fill(xSideView+r_nac_xz[0:,0], ySideView+r_nac_xz[0:,1], color="white", zorder=4)   # rear nacelle side view
         #     plt.plot(xSideView+r_nac_xz[0:,0], ySideView+r_nac_xz[0:,1], color="grey", zorder=5)    # rear nacelle side view
 
-        if (self.aircraft.arrangement.power_architecture=="tp" or
-            self.aircraft.arrangement.power_architecture!="ep1"):
+        if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
             if (self.aircraft.arrangement.number_of_engine=="quadri"):
                 plt.fill(xSideView+nac_xz_int[0:,0], ySideView+nac_xz_int[0:,1], color="white", zorder=4)     # nacelle side view
                 plt.plot(xSideView+nac_xz_int[0:,0], ySideView+nac_xz_int[0:,1], color="grey", zorder=4)      # nacelle side view

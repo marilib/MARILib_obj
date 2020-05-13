@@ -39,7 +39,9 @@ def mda(aircraft):
     # aircraft.weight_cg.mass_analysis()
     aircraft.weight_cg.mass_pre_design()
 
-    aircraft.performance.mission.mass_mission_adaptation()
+    # aircraft.performance.mission.mass_mission_adaptation()
+
+    aircraft.performance.mission.payload_range()
 
     aircraft.performance.analysis()
 
