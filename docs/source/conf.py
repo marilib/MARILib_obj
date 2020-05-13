@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.abspath('../..'))
 # -- Project information -----------------------------------------------------
 
 project = 'MARILib'
-copyright = '2020, CADO TEAM, ENAC-Toulouse'
-author = 'CADO TEAM, ENAC-Toulouse'
+copyright = '2020, CADO team, ENAC Toulouse'
+author = 'CADO team, ENAC Toulouse'
 
 # The full version, including alpha/beta/rc tags
 release = '2.0'
@@ -33,12 +33,16 @@ release = '2.0'
 extensions = [  'sphinx.ext.autodoc',
                 'sphinx.ext.imgmath',
                 'sphinx.ext.viewcode',
-                'sphinx_markdown_tables',
-                'm2r' # for markdown include
+                'recommonmark' # for markdown include
                 ]
+
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+
+source_suffix = ['.rst', '.md']
+
+master_doc = 'index'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

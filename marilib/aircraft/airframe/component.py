@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Created on Thu Jan 20 20:20:20 2020
+Authors: *DRUOT Thierry, Nicolas Monrolin*
 
-@author: DRUOT Thierry, Nicolas Monrolin
+This module describes all the components that can be included in an airframe.
+The :class:Component defines the common features of all components.
 
 .. note:: All physical parameters are given in SI units.
 """
@@ -15,11 +16,10 @@ from marilib.context import earth, unit
 class Component(object):
     """Define common features for all airplane components.
 
-    Every component of the :class:'Airframe' inherits the basic features written in :class:'Component'
+    Every component contained in an instance of :class:`marilib.aircraft.airframe.airframe_root.Airframe` inherits the basic features written in :class:`Component`
 
     **Attributs**
-        * aircraft : the aircraft to which the component belongs.
-        Needed for some pre-design methods (call to requirements) or multi-components interaction.
+        * aircraft : the aircraft to which the component belongs. Needed for some pre-design methods (call to requirements) or multi-components interaction.
         * frame_origin : [x,y,z] origin of the *local* coordinate system inside the global aircraft coordinate system.
         * frame_angles : [psi,theta,phi] Euler angles to describe rotation of the local coordinate system.
         * mass : the net mass of the component
@@ -407,11 +407,14 @@ class Wing(Component):
         return loc_np
 
     def high_lift(self, hld_conf):
-        """Retrieves max lift and zero aoa lift of a given deflection (from 0 to 1)
-        0 =< hld_type =< 10 : type of high lift device
-        0 =< hld_conf =< 1  : (slat) flap deflection
-        Typically : hld_conf = 1 ==> cz_max_ld
-                  : hld_conf = 0.1 to 0.5 ==> cz_max_to
+        """Retrieves max lift and zero aoa lift of a given (flap/slat) deflection (from 0 to 1).
+            * 0 =< hld_type =< 10 : type of high lift device
+            * 0 =< hld_conf =< 1  : (slat) flap deflection
+
+        Typically:
+            * hld_conf = 1 gives the :math:`C_{z,max}` for landind (`czmax_ld`)
+            * hld_conf = 0.1 to 0.5 gives the :math:`C_{z,max}` for take-off(`czmax_to`)
+
         """
 
         # Maximum lift coefficients of different airfoils, DUBS 1987

@@ -1,10 +1,11 @@
 .. MARILib documentation master file, created by
-   sphinx-quickstart on Tue May 12 18:17:33 2020.
+   sphinx-quickstart on Wed May 13 08:46:04 2020.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-. image:: marilib_logo.svg
-	:align:	left
+.. figure:: marilib_logo.svg
+   :align: left
+
 
 Welcome to MARILib's documentation!
 ===================================
