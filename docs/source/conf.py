@@ -33,6 +33,7 @@ release = '2.0'
 extensions = [  'sphinx.ext.autodoc',
                 'sphinx.ext.imgmath',
                 'sphinx.ext.viewcode',
+                'sphinx.ext.todo',
                 'recommonmark' # for markdown include
                 ]
 

@@ -3,7 +3,7 @@
 Authors: *DRUOT Thierry, Nicolas Monrolin*
 
 This module describes all the components that can be included in an airframe.
-The :class:Component defines the common features of all components.
+The :class:`Component` defines the common features of all components.
 
 .. note:: All physical parameters are given in SI units.
 """
@@ -15,8 +15,8 @@ from marilib.context import earth, unit
 
 class Component(object):
     """Define common features for all airplane components.
-
-    Every component contained in an instance of :class:`marilib.aircraft.airframe.airframe_root.Airframe` inherits the basic features written in :class:`Component`
+    Every component will override the methods defined in this abstract class.
+    A component is meant to be contained in an instance of :class:`marilib.aircraft.airframe.airframe_root.Airframe`.
 
     **Attributs**
         * aircraft : the aircraft to which the component belongs. Needed for some pre-design methods (call to requirements) or multi-components interaction.
@@ -46,37 +46,50 @@ class Component(object):
         self.form_factor = 0.       # factor on skin friction to account for lift independent pressure drag
 
     def eval_geometry(self):
+        """Estimates the geometry of the component from the aircraft requirements and statistical design laws.
+        """
         raise NotImplementedError
 
     def eval_mass(self):
+        """Estimates the geometry of the component from the aircraft requirements and statistical design laws.
+        """
         raise NotImplementedError
 
     def get_mass_mwe(self):
+        """Returns the *Manufacturer's Weight Empty*, the mass (kg) of the component"""
         return self.mass
 
     def get_mass_owe(self):
+        """Returns the *Operating Weight Empty*, the mass (kg) of the component. Can differ from MWE for some components"""
         return self.mass
 
     def get_cg_mwe(self):
+        """Returns the position of the center of gravity of the manufacturer empty aircraft"""
         return self.cg
 
     def get_cg_owe(self):
+        """Returns the position of the center of gravity of the operational empty aircraft"""
         return self.cg
 
     def get_inertia_tensor(self):
+        """returns the inertia matrix of the component, if implemented."""
         return self.inertia_tensor
 
     def get_net_wet_area(self):
+        """The net wet area of the component in contact with outer airflow, 0 if the component has no aerodynamic surface."""
         return self.net_wet_area
 
     def get_aero_length(self):
+        """The characteristic aerodynamic length of the component (used for Reynolds number estimations for example)."""
         return self.aero_length
 
     def get_form_factor(self):
+        """Form factor used to estimate form drag."""
         return self.form_factor
 
 
 class Cabin(Component):
+    """The Cabin includes the passenger seats, the crew space and furnishings."""
 
     def __init__(self, aircraft):
         super(Cabin, self).__init__(aircraft)
@@ -144,6 +157,7 @@ class Cabin(Component):
 
 
 class Cargo(Component):
+    """The Cargo defines the space where luggage and other payload can be stored."""
 
     def __init__(self, aircraft):
         super(Cargo, self).__init__(aircraft)
@@ -180,6 +194,7 @@ class Cargo(Component):
 
 
 class Fuselage(Component):
+    """The skin of the aircraft body (tube and wing configuration)"""
 
     def __init__(self, aircraft):
         super(Fuselage, self).__init__(aircraft)
@@ -218,7 +233,7 @@ class Fuselage(Component):
 
 
 class Wing(Component):
-
+    """"""
     def __init__(self, aircraft):
         super(Wing, self).__init__(aircraft)
 
@@ -415,6 +430,7 @@ class Wing(Component):
             * hld_conf = 1 gives the :math:`C_{z,max}` for landind (`czmax_ld`)
             * hld_conf = 0.1 to 0.5 gives the :math:`C_{z,max}` for take-off(`czmax_to`)
 
+        .. todo:: check this documentation
         """
 
         # Maximum lift coefficients of different airfoils, DUBS 1987

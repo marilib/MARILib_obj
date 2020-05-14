@@ -5,13 +5,15 @@
 
 .. figure:: marilib_logo.svg
    :align: left
+   :width: 100%
 
 
 Welcome to MARILib's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 2
+   :glob:
+   :maxdepth: 4
    :caption: Contents:
 
    api/marilib
