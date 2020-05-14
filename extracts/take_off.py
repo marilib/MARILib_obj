@@ -9,6 +9,13 @@ import numpy as np
 
 
 
+def m_ft(ft): return ft*0.3048   # Translate feet into metres
+def ft_m(m): return m/0.3048   # Translate metres into feet
+
+def mps_kt(kt): return kt*1852/3600   # Translate knots into meters per second
+def kt_mps(mps): return mps*3600./1852.   # Translate meters per second into knots
+
+
 def atmosphere(altp, disa=0.):
     """Ambiant data from pressure altitude from ground to 50 km according to Standard Atmosphere
     """
@@ -41,8 +48,8 @@ def atmosphere(altp, disa=0.):
     tamb = tstd + disa
     vsnd = np.sqrt(gam * r * tamb)
     rho = pamb / (r * tamb)
-    sig = rho / 101325.
-    return pamb, tamb, tstd, dtodz[j], vsnd, rho, sig, gam, g
+    sig = rho / 1.225
+    return pamb,tamb,tstd,dtodz[j],vsnd,rho,sig,gam,g
 
 
 def vcas_from_mach(pamb,mach):
@@ -98,23 +105,24 @@ def high_lift(hld_type,hld_conf):
                 10 : 3.20,  # Slat + Fowler + Fowler double slot (A321)
                 }.get(hld_type, "Erreur - high_lift_, HLDtype out of range")    # 9 is default if x not found
 
-        if (hld_type<5):
-            czmax_base = 1.45      # Flap only
+    if (hld_type<5):
+        czmax_base = 1.45      # Flap only
+    else:
+        if (hld_conf==0):
+            czmax_base = 1.45  # Clean
         else:
-            if (hld_conf==0):
-                czmax_base = 1.45  # Clean
-            else:
-                czmax_base = 2.00  # Slat + Flap
+            czmax_base = 2.00  # Slat + Flap
 
-        czmax = (1-hld_conf)*czmax_base + hld_conf*czmax_ld
-        cz0 = czmax - czmax_base  # Assumed the Lift vs AoA is just translated upward and Cz0 clean equal to zero
-        return czmax, cz0
+    czmax = (1-hld_conf)*czmax_base + hld_conf*czmax_ld
+    cz0 = czmax - czmax_base  # Assumed the Lift vs AoA is just translated upward and Cz0 clean equal to zero
+    return czmax, cz0
 
 
 def l_o_d(cz):
     """Lift to drag ratio
     """
-    return 10.
+    cx = 0.05 + 0.037*cz**2
+    return cz/cx
 
 
 def get_s2_min_path(ne):
@@ -130,7 +138,7 @@ def get_s2_min_path(ne):
 def get_data():
     return {"n_engine":2,
             "engine_bpr":9.,
-            "reference_thrust":1.e5,
+            "reference_thrust":90000.,
             "wing_area":140.,
             "hld_type":9}
 
@@ -146,7 +154,7 @@ def to_thrust(pamb,tamb,mach,throttle=1., nei=0):
 
     r = 287.053
     rho = pamb / ( r * tamb )
-    sig = rho / 101325.
+    sig = rho / 1.225
 
     total_thrust = fn_ref * throttle * sig**0.75 * (ne - nei)
 
@@ -193,9 +201,10 @@ def take_off_field_length(disa,altp,mass,hld_conf):
     return {"tofl":tofl, "kvs1g":kvs1g, "path":s2_path, "v2":cas, "mach2":mach, "limit":limitation}
 
 
-def take_off(self,kvs1g,altp,disa,mass,hld_conf):
+def take_off(kvs1g,altp,disa,mass,hld_conf):
     """Take off field length and climb path at 35 ft depending on stall margin (kVs1g)
     """
+    ne = get_data()["n_engine"]
     wing_area = get_data()["wing_area"]
     hld_type = get_data()["hld_type"]
 
@@ -209,13 +218,31 @@ def take_off(self,kvs1g,altp,disa,mass,hld_conf):
     fn = to_thrust(pamb,tamb,mach)
 
     ml_factor = mass**2 / (cz_to*fn*wing_area*sig**0.8 )  # Magic Line factor
+
     tofl = 15.5*ml_factor + 100.    # Magic line
 
     cas = vcas_from_mach(pamb,mach)
 
     lod = l_o_d(cz_to)
     acc_factor = climb_mode('cas', mach, dtodz, tstd, disa)
-    s2_path = ( fn/(mass*g) - 1./lod ) / acc_factor
+    s2_path = ( (fn*(ne-1)/ne)/(mass*g) - 1./lod ) / acc_factor
 
     return tofl,s2_path,cas,mach
+
+
+
+disa = 15.
+altp = m_ft(2000.)
+mass = 75000.
+hld_conf = 0.3
+
+dict = take_off_field_length(disa,altp,mass,hld_conf)
+
+print("")
+print(" Take off field length = ","%0.1f"%dict["tofl"], " m")
+print(" kVs1g at 35 ft = ","%0.3f"%dict["kvs1g"])
+print(" Air path at 35 ft = ","%0.2f"%(dict["path"]*100.), " %")
+print(" Speed at 35 ft V2 = ","%0.1f"%kt_mps(dict["v2"]), " kt")
+print(" Machh at 35 ft = ","%0.3f"%dict["mach2"])
+print(" Active limit = ",dict["limit"])
 
