@@ -449,7 +449,7 @@ class Turboprop(PowerSystem, Flight):
     def specific_breguet_range(self,tow,range,tas,dict):
         g = earth.gravity()
         eta_prop = self.aircraft.airframe.nacelle.propeller_efficiency
-        return tow*(1-np.exp(-(dict["sfc"]*g*range)/(eta_prop*dict["lod"])))
+        return tow*(1.-np.exp(-(dict["sfc"]*g*range)/(eta_prop*dict["lod"])))
 
     def specific_holding(self,mass,time,tas,dict):
         g = earth.gravity()

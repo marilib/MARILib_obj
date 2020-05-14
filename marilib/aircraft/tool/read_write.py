@@ -141,6 +141,8 @@ DATA_DICT = {
     "battery_density": {"unit":"kg/m3", "mag":1e3, "txt":"Battery density"},
     "battery_energy_density": {"unit":"kWh/kg", "mag":1e1, "txt":"Battery energy density"},
     "power_chain_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Global efficiency of the electric power chain"},
+    "propeller_width": {"unit":"m", "mag":1e0, "txt":"Propeller diameter"},
+    "propeller_disk_load": {"unit":"daN/m2", "mag":1e2, "txt":"Propeller disk load diameter"},
     "hub_width": {"unit":"m", "mag":1e0, "txt":"Fan hub diameter"},
     "fan_width": {"unit":"m", "mag":1e0, "txt":"Fan diameter"},
     "nozzle_width": {"unit":"m", "mag":1e0, "txt":"Nozzle diameter"},

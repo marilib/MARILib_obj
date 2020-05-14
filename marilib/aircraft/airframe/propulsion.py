@@ -32,9 +32,9 @@ class InboradWingMountedNacelle(Component):
 
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
-        y_int = 0.6 * body_width + 1.5 * self.width      # statistical regression
+        y_int = 0.6 * body_width + self.lateral_margin()
         x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.length
-        z_int = (y_int - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
+        z_int = wing_root_loc[2] + (y_int-wing_root_loc[2])*np.tan(wing_dihedral) - self.vertical_margin()
 
         return np.array([x_int, y_int, z_int])
 
@@ -56,9 +56,9 @@ class OutboradWingMountedNacelle(Component):
 
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
-        y_ext = 1.8 * body_width + 1.5 * self.width      # statistical regression
+        y_ext = 1.8 * body_width + self.lateral_margin()
         x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.length
-        z_ext = (y_ext - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
+        z_ext = wing_root_loc[2] + (y_ext-wing_root_loc[2])*np.tan(wing_dihedral) - self.vertical_margin()
 
         return np.array([x_ext, y_ext, z_ext])
 
@@ -73,7 +73,7 @@ class RearFuselageMountedNacelle(Component):
         body_height = self.aircraft.airframe.body.height
         body_length = self.aircraft.airframe.body.length
 
-        y_int = 0.5 * body_width + 0.6 * self.width      # statistical regression
+        y_int = 0.5 * body_width + 1.2 * self.width      # statistical regression
         x_int = 0.80 * body_length - self.length
         z_int = body_height
 
@@ -152,6 +152,12 @@ class SemiEmpiricTfNacelle(Component):
         else:
             bpr = 5.
         return bpr
+
+    def lateral_margin(self):
+        return 1.5*self.width
+
+    def vertical_margin(self):
+        return 0.55*self.width
 
     def eval_geometry(self):
         self.fuel_heat = self.__fuel_heat()
@@ -266,7 +272,7 @@ class SemiEmpiricTpNacelle(Component):
         self.propeller_efficiency = 0.82
         self.propeller_disk_load = 3000.    # N/m2
         self.sfc_type = "power"
-        self.reference_power = 0.5*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        self.reference_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.95, MCL=0.90, MCR=0.70, FID=0.10)
         self.fuel_heat = self.__fuel_heat()
@@ -282,6 +288,12 @@ class SemiEmpiricTpNacelle(Component):
     def __fuel_heat(self):
         energy_source = self.aircraft.arrangement.energy_source
         return earth.fuel_heat(energy_source)
+
+    def lateral_margin(self):
+        return 0.8*self.propeller_width
+
+    def vertical_margin(self):
+        return 0.
 
     def eval_geometry(self):
         self.fuel_heat = self.__fuel_heat()
@@ -338,7 +350,7 @@ class SemiEmpiricTpNacelle(Component):
         """
         dict = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake=pw_offtake)
         throttle = thrust/dict["fn"]
-        sfc = dict["ff"]/dict["fn"]
+        sfc = dict["ff"]/dict["pw"]     # Power SFC
         t41 = dict["t4"]
         return {"sfc":sfc, "thtl":throttle, "t4":t41}
 
@@ -433,6 +445,12 @@ class SemiEmpiricEfNacelle(Component):
         self.length = None
 
         self.frame_origin = np.full(3,None)
+
+    def lateral_margin(self):
+        return 1.5*self.width
+
+    def vertical_margin(self):
+        return 0.55*self.width
 
     def eval_geometry(self):
         # Electric fan geometry is design for MCR in cruise condition
