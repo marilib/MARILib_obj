@@ -285,7 +285,7 @@ class ThrustDataTf(ThrustData):
         self.thrust_opt = None
         self.thrust = None
         self.fuel_flow = None
-        self.sfc = None
+        self.tsfc = None
         self.T41 = None
 
 
@@ -312,7 +312,7 @@ class Turbofan(PowerSystem, Flight):
             self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].fuel_flow = dict["ff"]
-            self.data[rating].sfc = dict["sfc"]
+            self.data[rating].tsfc = dict["sfc"]
             self.data[rating].T41 = dict["t4"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
@@ -372,7 +372,7 @@ class ThrustDataTp(ThrustData):
         self.thrust = None
         self.power = None
         self.fuel_flow = None
-        self.sfc = None
+        self.psfc = None
         self.T41 = None
 
 
@@ -400,7 +400,7 @@ class Turboprop(PowerSystem, Flight):
             self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].power = dict["pw"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].fuel_flow = dict["ff"]
-            self.data[rating].sfc = dict["sfc"]
+            self.data[rating].psfc = dict["sfc"]
             self.data[rating].T41 = dict["t4"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
@@ -413,7 +413,7 @@ class Turboprop(PowerSystem, Flight):
         fn = dict["fn"]*(n_engine-nei)
         ff = dict["ff"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        sfc = ff/fn
+        sfc = ff/pw
         t41 = dict["t4"]
 
         return {"fn":fn, "ff":ff, "pw":pw, "sfc":sfc, "t4":t41}
