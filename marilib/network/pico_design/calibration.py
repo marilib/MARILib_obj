@@ -25,140 +25,142 @@ def get_data(file_name):
     name = [el.strip() for el in data_frame.iloc[2:,0].values]      # Aircraft names
     data = data_frame.iloc[2:,1:].values                            # Data matrix
 
-    data_dict = {}
+    data_dict = {"Name":name}
     for j in range(len(label)):
         data_dict[label[j]] = unit.convert_from(unit_[j], data[:, j].astype(np.float))
     return data_dict
 
 
-# ======================================================================================================
-# Identify structure model
-# ------------------------------------------------------------------------------------------------------
-data_dict = get_data("../input_data/Aircraft_general_data_v2.csv")
+if __name__ == '__main__':
 
-param = data_dict["MTOW"]
+    # ======================================================================================================
+    # Identify structure model
+    # ------------------------------------------------------------------------------------------------------
+    data_dict = get_data("../input_data/Aircraft_general_data_v2.csv")
 
-n = len(param)   # the number of aircraft
+    param = data_dict["MTOW"]
 
-A = np.vstack([param**2,param, np.ones(n)]).T                # Need to transpose the stacked matrix
+    n = len(param)   # the number of aircraft
 
-B = data_dict["OWE"]
+    A = np.vstack([param**2,param, np.ones(n)]).T                # Need to transpose the stacked matrix
 
-(C, res, rnk, s) = np.linalg.lstsq(A, B, rcond=None)
+    B = data_dict["OWE"]
 
-# Main results
-#------------------------------------------------------------------------------------------------------
-print("")
-print(C)
+    (C, res, rnk, s) = np.linalg.lstsq(A, B, rcond=None)
 
-AC = np.dot(A,C)
+    # Main results
+    #------------------------------------------------------------------------------------------------------
+    print("")
+    print(C)
 
-res = np.sqrt(np.sum((AC-B)**2))
+    AC = np.dot(A,C)
 
-print("%.0f"%res)
+    res = np.sqrt(np.sum((AC-B)**2))
 
-# Graph
-#------------------------------------------------------------------------------------------------------
-plt.plot(B, AC, 'o', color="red", markersize=2)
-plt.plot(B, B, 'green')
-plt.grid(True)
-plt.suptitle('Structure : residual = '+"%.0f"%res, fontsize=14)
-plt.ylabel('Approximations (kg)')
-plt.xlabel('Experiments (kg)')
-plt.savefig("calibration_structure_graph",dpi=500,bbox_inches = 'tight')
-plt.show()
+    print("%.0f"%res)
 
-# Result
-#------------------------------------------------------------------------------------------------------
-def operating_empty_weight(mtow):
-    owe = (-1.478e-07*mtow + 5.459e-01)*mtow + 8.40e+02
-    return owe
+    # Graph
+    #------------------------------------------------------------------------------------------------------
+    plt.plot(B, AC, 'o', color="red", markersize=2)
+    plt.plot(B, B, 'green')
+    plt.grid(True)
+    plt.suptitle('Structure : residual = '+"%.0f"%res, fontsize=14)
+    plt.ylabel('Approximations (kg)')
+    plt.xlabel('Experiments (kg)')
+    plt.savefig("calibration_structure_graph",dpi=500,bbox_inches = 'tight')
+    plt.show()
+
+    # Result
+    #------------------------------------------------------------------------------------------------------
+    def operating_empty_weight(mtow):
+        owe = (-1.478e-07*mtow + 5.459e-01)*mtow + 8.40e+02
+        return owe
 
 
-# ======================================================================================================
-# Identify design model
-# ------------------------------------------------------------------------------------------------------
-ac = Aircraft()
+    # ======================================================================================================
+    # Identify design model
+    # ------------------------------------------------------------------------------------------------------
+    ac = Aircraft()
 
-B = data_dict["MTOW"]
-n = len(B)
+    B = data_dict["MTOW"]
+    n = len(B)
 
-def model(x_in):
-    R = []
+    def model(x_in):
+        R = []
+        for j in range(n):
+            ac.npax = data_dict["Npax"][j]
+            ac.range = x_in*data_dict["WikiRange"][j]
+            ac.cruise_mach = data_dict["Speed"][j]
+            ac.design_aircraft()
+            R.append(ac.mtow)
+        return R
+
+    def residual(x_in):
+        return model(x_in)-B
+
+    def objective(x_in):
+        return 1.e4/np.sqrt(np.sum(model(x_in)-B)**2)
+
+    x0 = 1.
+
+    # x_out = x0
+
+    x_out, y_out, rc = math.maximize_1d(x0, 0.05, [objective])
+
+    # Main results
+    #------------------------------------------------------------------------------------------------------
+    print("")
+    print("x0 = ",x0)
+    print("x_out = ",x_out)
+
+    R = model(x_out)
+
+    res = np.sqrt(np.sum((R-B)**2))
+
+    print("%.0f"%res)
+
+    # for j in range(n):
+    #     print("%.0f"%B[j], "   ", "%.0f"%R[j] )
+
+    # Graph
+    #------------------------------------------------------------------------------------------------------
+    plt.plot(B, R, 'o', color="red", markersize=2)
+    plt.plot(B, B, 'green')
+    plt.grid(True)
+    plt.suptitle('Design : residual = '+"%.0f"%res, fontsize=14)
+    plt.ylabel('Approximations (kg)')
+    plt.xlabel('Experiments (kg)')
+    plt.savefig("calibration_design_graph",dpi=500,bbox_inches = 'tight')
+    plt.show()
+
+
+
+    # ======================================================================================================
+    # Identify design range
+    # ------------------------------------------------------------------------------------------------------
+    ac = Aircraft()
+
+    B = data_dict["MTOW"]
+    n = len(B)
+
+    def fct(dist):
+        ac.range = dist
+        ac.design_aircraft()
+        res = B[j] - ac.mtow
+        return 1./(1.+res**2)
+
+    print("")
     for j in range(n):
         ac.npax = data_dict["Npax"][j]
-        ac.range = data_dict["Range"][j]
+        ac.range = data_dict["WikiRange"][j] * x_out
         ac.cruise_mach = data_dict["Speed"][j]
         ac.design_aircraft()
-        R.append(ac.mtow)
-    return R
 
-def residual(x_in):
-    return model(x_in)-B
+        x0 = ac.range
 
-def objective(x_in):
-    return 1.e4/np.sqrt(np.sum(model(x_in)-B)**2)
+        range, y_out, rc = math.maximize_1d(x0, 1.e4, [fct])
 
-x0 = ac.lod / unit.convert_to("kg/daN/h", ac.sfc)   # Internal value
-
-x_out = x0
-
-# x_out, y_out, rc = math.maximize_1d(x0, 0.1, [objective])
-
-# Main results
-#------------------------------------------------------------------------------------------------------
-print("")
-print("x0 = ",x0)
-print("x_out = ",x_out)
-
-R = model(x_out)
-
-res = np.sqrt(np.sum((R-B)**2))
-
-print("%.0f"%res)
-
-# for j in range(n):
-#     print("%.0f"%B[j], "   ", "%.0f"%R[j] )
-
-# Graph
-#------------------------------------------------------------------------------------------------------
-plt.plot(B, R, 'o', color="red", markersize=2)
-plt.plot(B, B, 'green')
-plt.grid(True)
-plt.suptitle('Design : residual = '+"%.0f"%res, fontsize=14)
-plt.ylabel('Approximations (kg)')
-plt.xlabel('Experiments (kg)')
-plt.savefig("calibration_design_graph",dpi=500,bbox_inches = 'tight')
-plt.show()
-
-
-
-# ======================================================================================================
-# Identify design range
-# ------------------------------------------------------------------------------------------------------
-ac = Aircraft()
-
-B = data_dict["MTOW"]
-n = len(B)
-
-def fct(dist):
-    ac.range = dist
-    ac.design_aircraft()
-    res = B[j] - ac.mtow
-    return 1./(1.+res**2)
-
-print("")
-for j in range(n):
-    ac.npax = data_dict["Npax"][j]
-    ac.range = data_dict["Range"][j]
-    ac.cruise_mach = data_dict["Speed"][j]
-    ac.design_aircraft()
-
-    x0 = ac.range
-
-    range, y_out, rc = math.maximize_1d(x0, 1.e4, [fct])
-
-    print("j = ",j,"    ","%.0f"%(range/1000.))
+        print(j,"    ","%.0f"%(data_dict["WikiRange"][j]*x_out/1000.),"    ","%.0f"%(range/1000.),"  ",data_dict["Name"][j])
 
 
 

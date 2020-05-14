@@ -33,7 +33,7 @@ class Aircraft(object):
         self.cruise_speed = None    # Cruise speed
         self.range = range          # Range
         self.npax = npax            # Npax
-        self.mpax = 140.            # Weight per passenger
+        self.mpax = 130.            # Weight per passenger
         self.payload = None         # Design mission payload
         self.mtow = None            # Design mission Maximum Take Off Weight
         self.owe = None             # Design mission Operating Empty Weight
@@ -50,22 +50,17 @@ class Aircraft(object):
 
         self.range_no_pl = None     # Range for zero payload mission
 
-        self.lod = self.l_o_d(npax)                                  # Techno assumption
-        self.sfc = unit.convert_from("kg/daN/h", 0.60)  # Techno assumption
-
-        self.eff_ratio = self.lod / self.sfc            # Efficiency ratio for specific air range
+        self.eff_ratio = self.__eff_ratio(npax)     # Efficiency ratio for specific air range
         self.owe_coef = [-1.478e-07, 5.459e-01, 8.40e+02]   # "Structural model"
 
         self.design_aircraft()
 
-    def l_o_d(self, npax):
-        pax1 = 60.
-        lod1 = 15.
-        pax2 = 160.
-        lod2 = 19.
-        lod = lod1 + (lod2-lod1)*(npax-pax1)/(pax2-pax1)
-        lod = max(lod1,min(lod,lod2))
-        return lod
+    def __eff_ratio(self, npax):
+        pax_list = [10., 60., 260., 360.]
+        lod_list = [15., 15.,  19.,  19.]
+        lod = lin_interp_1d(npax, pax_list, lod_list)
+        sfc = unit.convert_from("kg/daN/h", 0.60)  # Techno assumption
+        return lod/sfc
 
     def structure(self, mtow, coef=None):
         """Structural relation
@@ -128,10 +123,7 @@ class Aircraft(object):
         if coef is not None: self.owe_coef = coef
         if kr is not None: self.kr = kr
         if mpax is not None: self.mpax = mpax
-        if effr is not None:
-            self.eff_ratio = effr / unit.convert_from("kg/daN/h", 1.)
-        else:
-            self.eff_ratio = self.l_o_d(self.npax) / self.sfc
+        if effr is not None: self.eff_ratio = effr / unit.convert_from("kg/daN/h", 1.)
 
         Xini = self.npax*self.mpax*np.array([4., 1.])
         dict = fsolve(self.eval_design, x0=Xini, full_output=True)
