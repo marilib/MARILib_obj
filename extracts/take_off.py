@@ -19,9 +19,7 @@ def kt_mps(mps): return mps*3600./1852.   # Translate meters per second into kno
 def atmosphere(altp, disa=0.):
     """Ambiant data from pressure altitude from ground to 50 km according to Standard Atmosphere
     """
-    g = 9.80665
-    r = 287.053
-    gam = 1.4
+    g, r, gam = [9.80665, 287.053, 1.4]
 
     Z = np.array([0., 11000., 20000., 32000., 47000., 50000.])
     dtodz = np.array([-0.0065, 0., 0.0010, 0.0028, 0.])
@@ -55,9 +53,7 @@ def atmosphere(altp, disa=0.):
 def vcas_from_mach(pamb,mach):
     """Calibrated air speed from Mach number, subsonic only
     """
-    gam = 1.4
-    P0 = 101325.
-    vc0 = 340.29
+    gam, P0, vc0 = [1.4, 101325., 340.29]
     fac = gam/(gam-1.)
     vcas = vc0*np.sqrt(5.*((((pamb/P0)*((1.+((gam-1.)/2.)*mach**2)**fac-1.))+1.)**(1./fac)-1.))
     return vcas
@@ -67,9 +63,7 @@ def climb_mode(speed_mode,mach,dtodz,tstd,disa):
     """Acceleration factor depending on speed driver ('cas': constant CAS, 'mach': constant Mach)
     WARNING : input is mach number whatever speed_mode
     """
-    g = 9.80665
-    r = 287.053
-    gam = 1.4
+    g, r, gam = [9.80665, 287.053, 1.4]
 
     if (speed_mode=="cas"):
         fac = (gam-1.)/2.
@@ -135,25 +129,17 @@ def get_s2_min_path(ne):
     return s2_min_path
 
 
-def get_data():
-    return {"n_engine":2,
-            "engine_bpr":9.,
-            "reference_thrust":90000.,
-            "wing_area":140.,
-            "hld_type":9}
-
-
 def to_thrust(pamb,tamb,mach,throttle=1., nei=0):
     """Take off thrust
     """
-    ne,bpr,fn_ref,wa,hld = get_data().values()
+    ne,bpr,fn_ref = list(map(get_data().get,["n_engine","bpr","fn_ref"]))
 
     kth =  0.475*mach**2 + 0.091*(bpr/10.)**2 \
          - 0.283*mach*bpr/10. \
          - 0.633*mach - 0.081*bpr/10. + 1.192
 
     r = 287.053
-    rho = pamb / ( r * tamb )
+    rho = pamb / (r * tamb)
     sig = rho / 1.225
 
     total_thrust = fn_ref * throttle * sig**0.75 * (ne - nei)
@@ -204,9 +190,7 @@ def take_off_field_length(disa,altp,mass,hld_conf):
 def take_off(kvs1g,altp,disa,mass,hld_conf):
     """Take off field length and climb path at 35 ft depending on stall margin (kVs1g)
     """
-    ne = get_data()["n_engine"]
-    wing_area = get_data()["wing_area"]
-    hld_type = get_data()["hld_type"]
+    ne,wing_area,hld_type = list(map(get_data().get,["n_engine","wing_area","hld_type"]))
 
     czmax,cz0 = high_lift(hld_type,hld_conf)
 
@@ -230,6 +214,13 @@ def take_off(kvs1g,altp,disa,mass,hld_conf):
     return tofl,s2_path,cas,mach
 
 
+def get_data():
+    return {"n_engine":2,
+            "bpr":9.,
+            "fn_ref":100000.,
+            "wing_area":140.,
+            "hld_type":9}
+
 
 disa = 15.
 altp = m_ft(2000.)
@@ -240,9 +231,9 @@ dict = take_off_field_length(disa,altp,mass,hld_conf)
 
 print("")
 print(" Take off field length = ","%0.1f"%dict["tofl"], " m")
+print(" Active limit = ",dict["limit"])
 print(" kVs1g at 35 ft = ","%0.3f"%dict["kvs1g"])
 print(" Air path at 35 ft = ","%0.2f"%(dict["path"]*100.), " %")
 print(" Speed at 35 ft V2 = ","%0.1f"%kt_mps(dict["v2"]), " kt")
 print(" Machh at 35 ft = ","%0.3f"%dict["mach2"])
-print(" Active limit = ",dict["limit"])
 
