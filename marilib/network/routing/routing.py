@@ -31,7 +31,7 @@ def distance_to_center(w,n,x,h,m,y):
     dist = 0.
     for i in range(n):
         for j in range(m):
-            dist += np.sqrt((i+0.5-x/n)*w**2*+(j+0.5-y/m)*h**2)
+            dist += np.sqrt((i+0.5-x*n)**2*w**2*+(j+0.5-y*m)**2*h**2)
     return dist
 
 
@@ -54,25 +54,25 @@ print("x = ",x,"  y = ",y)
 print("--------------------------------------")
 dist = distance_to_center(w,n,x,h,m,y)
 print("n = ",n,"  m = ",m,"  n.m = ",n*m)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
 print("--------------------------------------")
 n = 500
 m = 2000
 dist = distance_to_center(w,n,x,h,m,y)
 print("n = ",n,"  m = ",m,"  n.m = ",n*m)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
 print("--------------------------------------")
 n = 250
 m = 4000
 dist = distance_to_center(w,n,x,h,m,y)
 print("n = ",n,"  m = ",m,"  n.m = ",n*m)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
 print("--------------------------------------")
 n = 125
 m = 8000
 dist = distance_to_center(w,n,x,h,m,y)
 print("n = ",n,"  m = ",m,"  n.m = ",n*m)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
 
 
 print("")
@@ -86,19 +86,19 @@ x = 0.25
 y = 0.50
 dist = distance_to_center(w,n,x,h,m,y)
 print("x = ",x,"  y = ",y)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
 print("--------------------------------------")
 x = 0.25
 y = 0.25
 dist = distance_to_center(w,n,x,h,m,y)
 print("x = ",x,"  y = ",y)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
 print("--------------------------------------")
 x = 0.
 y = 0.
 dist = distance_to_center(w,n,x,h,m,y)
 print("x = ",x,"  y = ",y)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
 
 
 print("")
@@ -111,7 +111,7 @@ m = 4000
 dist = distance_to_center(w,n,x,h,m,y)
 print("n = ",n,"  m = ",m,"  n.m = ",n*m)
 print("x = ",x,"  y = ",y)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
 print("--------------------------------------")
 x = 0.25
 y = 0.75
@@ -120,7 +120,7 @@ m = 125
 dist = distance_to_center(w,n,x,h,m,y)
 print("n = ",n,"  m = ",m,"  n.m = ",n*m)
 print("x = ",x,"  y = ",y)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
 
 
 
@@ -140,9 +140,9 @@ def dist_to_fp(area,npt):
     dist = 0.
     for i in range(n):
         for j in range(m):
-            dist += np.sqrt((i+0.5-x/n)*w**2*+(j+0.5-y/m)*h**2)
+            dist += np.sqrt((i+0.5-0.5*n)**2*w**2*+(j+0.5-0.5*m)**2*h**2)
     for i in range(q):
-        dist += np.sqrt((i+0.5-x/n)*w**2*+(m+0.5-y/m)*h**2)
+        dist += np.sqrt((i+0.5-0.5*n)**2*w**2*+(m+0.5-0.5*m)**2*h**2)
     return dist
 
 
@@ -158,4 +158,4 @@ print("Generic version")
 print("--------------------------------------")
 print("area = ",area*1.e-6," km2")
 print("npt = ",npt)
-print("dist = ",dist*1.e-12," Tm (1e12 m)")
+print("dist = ",dist*1.e-12," Pm (1e15 m)")
