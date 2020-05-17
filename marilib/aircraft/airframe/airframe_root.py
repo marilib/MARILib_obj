@@ -39,6 +39,8 @@ class Airframe(object):
         self.aircraft.airframe.wing.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
         self.aircraft.airframe.nacelle.eval_geometry()
+        if (self.arrangement.number_of_engine=="quadri"):
+            self.aircraft.airframe.internal_nacelle.eval_geometry()
 
         if (stab_architecture in ["classic","t_tail"]):
             self.aircraft.airframe.vertical_stab.eval_geometry()
@@ -58,12 +60,15 @@ class Airframe(object):
         """Solves strong coupling and compute tail areas using volume coefficients
         """
         stab_architecture = self.aircraft.arrangement.stab_architecture
+        number_of_engine = self.aircraft.arrangement.number_of_engine
 
         self.aircraft.airframe.cabin.eval_geometry()
         self.aircraft.airframe.body.eval_geometry()
         self.aircraft.airframe.wing.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
         self.aircraft.airframe.nacelle.eval_geometry()
+        if (number_of_engine=="quadri"):
+            self.aircraft.airframe.internal_nacelle.eval_geometry()
 
         def fct(x_in):
             self.aircraft.airframe.vertical_stab.area = x_in[0]                           # Coupling variable

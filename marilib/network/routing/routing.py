@@ -101,29 +101,6 @@ print("x = ",x,"  y = ",y)
 print("dist = ",dist*1.e-12," Pm (1e15 m)")
 
 
-print("")
-print("Varying both aspect ratio and focal point position")
-print("--------------------------------------")
-x = 0.25
-y = 0.25
-n = 250
-m = 4000
-dist = distance_to_center(w,n,x,h,m,y)
-print("n = ",n,"  m = ",m,"  n.m = ",n*m)
-print("x = ",x,"  y = ",y)
-print("dist = ",dist*1.e-12," Pm (1e15 m)")
-print("--------------------------------------")
-x = 0.25
-y = 0.75
-n = 8000
-m = 125
-dist = distance_to_center(w,n,x,h,m,y)
-print("n = ",n,"  m = ",m,"  n.m = ",n*m)
-print("x = ",x,"  y = ",y)
-print("dist = ",dist*1.e-12," Pm (1e15 m)")
-
-
-
 
 def dist_to_fp(area,npt):
     """Compute the total distance between a focal point and the center of all cells

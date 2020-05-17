@@ -19,18 +19,18 @@ from marilib.aircraft.tool.read_write import MarilibIO
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
-                   wing_attachment = "low",         # "low" or "high"
-                   stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
+                   wing_attachment = "high",         # "low" or "high"
+                   stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
-                   number_of_engine = "twin",       # "twin" or "quadri"
+                   number_of_engine = "quadri",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "tf",       # "tf", "extf", "efb", "exefb",
-                   energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
+                   power_architecture = "ep",       # "tf", "extf", "ep", "efb", "exefb",
+                   energy_source = "battery")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
 
-reqs = Requirement(n_pax_ref = 150.,
-                   design_range = unit.m_NM(3000.),
-                   cruise_mach = 0.78,
-                   cruise_altp = unit.m_ft(35000.),
+reqs = Requirement(n_pax_ref = 40.,
+                   design_range = unit.m_NM(100.),
+                   cruise_mach = 0.55,
+                   cruise_altp = unit.m_ft(20000.),
                    arrangement = agmt)
 
 
@@ -42,7 +42,7 @@ ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this l
 
 ac.requirement.take_off.tofl_req = 2500.
 
-
+ac.airframe.nacelle.reference_power = unit.W_kW(2000.)
 
 process.mda(ac)
 

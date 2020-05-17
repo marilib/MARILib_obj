@@ -12,7 +12,7 @@ from marilib.aircraft.requirement import Requirement
 
 from marilib.aircraft.mission import MissionDef
 
-from marilib.design import process
+from marilib.aircraft.design import process
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"

@@ -12,7 +12,7 @@ from marilib.aircraft.aircraft_root import Arrangement
 from marilib.aircraft.aircraft_root import Aircraft
 from marilib.aircraft.requirement import Requirement
 
-from marilib.design import process
+from marilib.aircraft.design import process
 
 from marilib.aircraft.tool.read_write import MarilibIO
 
