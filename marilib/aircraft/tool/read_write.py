@@ -34,7 +34,7 @@ import json as json
 import pickle as pickle
 import re
 
-from marilib.context.unit import convert_to
+from marilib.context.unit import convert_to, convert_from
 
 STANDARD_FORMAT = 6
 
@@ -298,7 +298,8 @@ DATA_DICT = {
     "max_esar_lod": {"unit":"no_dim", "mag":1e0, "txt":"Lift to drag ratio for maximum specific air range"},
     "max_esar_thrust": {"unit":"kN", "mag":1e0, "txt":"Total thrust for maximum specific air range"},
     "max_esar_throttle": {"unit":"no_dim", "mag":1e0, "txt":"Throttle versus MCR for maximum specific air range"},
-    "max_esar_sec": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific energy consumption for maximum specific air range"}
+    "max_esar_sec": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific energy consumption for maximum specific air range"},
+    "morphing" : {"unit":"string", "mag":19, "txt":"design of the wings : 'aspect_ratio_driven' or 'span_driven'"}
 }
 
 
@@ -385,7 +386,7 @@ class MarilibIO(object):
                 unit = self.datadict[key]['unit']
                 text = self.datadict[key]['txt']
                 try:
-                    json_dict[key] = [convert_to(unit,value), f"({unit}) {text}"]
+                    json_dict[key] = [convert_to(unit,value), unit, text]
                 except KeyError:
                     json_dict[key] = [value, f"WARNING: conversion to ({unit}) failed. {text}"]
                     print("WARNING : unknwon unit "+str(unit))
@@ -435,13 +436,37 @@ class MarilibIO(object):
             output += part + "%0.6g" % float(val)  # reformat with 6 significant digits max
         return output + output_parts[-1]
 
-    def from_string(self,json_string):
-        """Parse a JSON string into a dict.
+    def from_json_file(self,filename):
+        """Reads a JSON file and parse it into a dict.
 
-        :param json_string: the string to parse
-        :return: dictionary
+        .. warning::
+                The JSON format is not an exact copy of the original object. in the following sequence, `aircraft2` is
+                a dictionary which contains truncated values of the original `aircraft1`::
+
+                    aircraft1 =  Aircraft()
+                    io = MarilibIO()
+                    io.to_json_file("my_plane")
+                    aircraft2 = io.from_json_file("my_plane")
+
+        :param filename: the file to parse
+        :return: mydict : a customized dictionary, where values can be accessed like object attributes.
+
+                        Example::
+
+                            aircraft2 = io.from_json_file("my_plane")
+                            assert(aircraft2['name'] == aircraft2.name)
+
         """
-        return json.loads(json_string)
+        try:  # Add .json extension if necessary
+            last_point_position = filename.rindex(r'\.')
+            filename = filename[:last_point_position]+".json"
+        except ValueError:  # pattern not found
+            filename = filename + ".json"
+
+        with open(filename, 'r') as f:
+            mydict = MyDict(json.loads(f.read()))
+
+        return mydict
 
     def to_json_file(self,aircraft_object,filename,datadict=None):
         """Save a MARILib object in a human readable format:
@@ -489,3 +514,33 @@ class MarilibIO(object):
             obj = pickle.load(f)
 
         return obj
+
+
+class MyDict(dict):
+    """A customized dictionary class to convert a MARILib json dict to an "aircraft-like" object. Converts all data to
+    SI units.
+    Attributes can be accessed by two manners::
+
+        obj = mydict['airframe']['wing']
+
+    is equivalent to::
+
+        obj = mydict.airframe.wing
+
+    """
+    def __init__(self,*args,**kwargs):
+        super(MyDict,self).__init__(*args,**kwargs)
+        self.__dict__ = self
+        for key,val in self.__dict__.items(): # recursively converts all items of type 'dict' to 'MyDict'
+            if isinstance(val, dict):
+                self.__dict__[key] = MyDict(val)
+            elif isinstance(val, list): # if list, extract value and convert to SI unit
+                self.__dict__[key] = convert_from(val[1],val[0])
+            elif key == 'name': # skip the 'name' entry which is of type string
+                pass
+            elif isinstance(val, type(None)):
+                print("WARNING in MyDict: %s is 'None'" %key)
+                self.__dict__[key] = None
+            else:
+                raise AttributeError("Unknown type, should be list or dict but type of '%s' is %s" %(key,type(val)))
+

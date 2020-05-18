@@ -531,7 +531,12 @@ UNIT["array"] = 1
 # Conversion functions
 #-------------------------------------------------------------------------
 def convert_from(ulab, val):
-    # Convert val expressed in ulab to corresponding standard unit
+    """Convert val expressed in ulab to corresponding standard unit
+    :param ulab: unit label. ex: 'NM' for Nautical miles
+    :param val: the value to convert to SI units
+    :return: val converted to SI units
+    """
+
     if isinstance(val, (type(None), str)):
         return val
     if isinstance(val, list):

@@ -37,9 +37,9 @@ my_plane = Aircraft("This_plane")
 my_plane.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
 io = MarilibIO()
-io.to_string(my_plane)
 io.to_json_file(my_plane,"my_plane")  # will write into the text file "my_plane.json"
-io.to_binary_file(my_plane, "my_plane")  # will write into the binary file "my_plane.pkl"
+my_test = io.from_json_file("my_plane")
+print(my_test.requirement.cruise_altp)
 
 process.mda(my_plane)
 
