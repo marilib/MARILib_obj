@@ -179,22 +179,19 @@ class Flight(object):
         """
         g = earth.gravity()
         r,gam,Cp,Cv = earth.gas_data()
-        vsnd = earth.sound_speed(tamb)
+        tas = mach * earth.sound_speed(tamb)
 
         cz = (2.*mass*g)/(gam*pamb*mach**2*self.aircraft.airframe.wing.area)
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
 
         thrust = (gam/2.)*pamb*mach**2*self.aircraft.airframe.wing.area*cx
         dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust)
-        throttle = dict.get("thtl")
-        sfc = dict.get("sfc")
-        if sfc is not None:
-            sar = (vsnd*mach*lod)/(mass*g*sfc)
-            return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sfc":sfc}
-        else:
-            sec = dict.get("sec")
-            sar = (vsnd*mach*lod)/(mass*g*sec)
-            return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sec":sec}
+        dict["fn"] = thrust
+        dict["cx"] = cx
+        dict["cz"] = cz
+        dict["lod"] = lod
+        dict["sar"] = self.aircraft.power_system.specific_air_range(mass,tas,dict)
+        return dict
 
     def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating,kfn):
         """Retrieve air path in various conditions
@@ -262,7 +259,7 @@ class Flight(object):
         """
         g = earth.gravity()
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-        vsnd = earth.sound_speed(tamb)
+        tas = mach * earth.sound_speed(tamb)
 
         cz = self.lift_from_speed(pamb,tamb,mach,mass)
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
@@ -270,15 +267,12 @@ class Flight(object):
         nei = 0
         thrust = mass*g / lod
         dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust,nei)
-        throttle = dict.get("thtl")
-        sfc = dict.get("sfc")
-        if sfc is not None:
-            sar = (vsnd*mach*lod)/(mass*g*sfc)
-            return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sfc":sfc}
-        else:
-            sec = dict.get("sec")
-            sar = (vsnd*mach*lod)/(mass*g*sec)
-            return {"sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":thrust, "thtl":throttle, "sec":sec}
+        dict["fn"] = thrust
+        dict["cz"] = cz
+        dict["cx"] = cx
+        dict["lod"] = lod
+        dict["sar"] = self.aircraft.power_system.specific_air_range(mass,tas,dict)
+        return dict
 
     def eval_max_sar(self,mass,mach,disa):
 
@@ -292,13 +286,8 @@ class Flight(object):
 
         altp_sar_max,sar_max,rc = maximize_1d(altp_ini,d_altp,fct)
         dict = self.eval_sar(altp_sar_max,mass,mach,disa)
-        sfc = dict.get("sfc")
-        if sfc is not None:
-            [sar,cz,cx,lod,fn,thtl,sfc] = dict.values()
-            return {"altp":altp_sar_max, "sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":fn, "thtl":thtl, "sfc":sfc}
-        else:
-            [sar,cz,cx,lod,fn,thtl,sec] = dict.values()
-            return {"altp":altp_sar_max, "sar":sar, "cz":cz, "cx":cx, "lod":lod, "fn":fn, "thtl":thtl, "sec":sec}
+        dict["altp"] = altp_sar_max
+        return dict
 
     def acceleration(self,nei,altp,disa,speed_mode,speed,mass,rating,throttle):
         """Aircraft acceleration on level flight
@@ -319,6 +308,25 @@ class Flight(object):
 
         acc = (dict["fn"] - 0.5*gam*pamb*mach**2*self.aircraft.airframe.wing.area*cx) / mass
         return acc
+
+    def breguet_range(self,range,tow,ktow,altp,mach,disa):
+        """Breguet range equation is dependant from power architecture
+        """
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        tas = mach * earth.sound_speed(tamb)
+        time = 1.09*(range/tas)
+
+        dict = self.level_flight(pamb,tamb,mach,tow*ktow)
+        val = self.aircraft.power_system.specific_breguet_range(tow,range,tas,dict)
+        return val,time
+
+    def holding(self,time,mass,altp,mach,disa):
+        """Holding equation is dependant from power architecture
+        """
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        tas = mach * earth.sound_speed(tamb)
+        dict = self.level_flight(pamb,tamb,mach,mass)
+        return self.aircraft.power_system.specific_holding(mass,time,tas,dict)
 
 
 class TakeOff(Flight):

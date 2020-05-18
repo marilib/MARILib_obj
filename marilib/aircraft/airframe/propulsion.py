@@ -15,13 +15,69 @@ from marilib.context import earth, unit
 from marilib.aircraft.airframe.component import Component
 
 
-class RatingFactor(object):
-    def __init__(self, MTO=None, MCN=None, MCL=None, MCR=None, FID=None):
-        self.MTO = MTO
-        self.MCN = MCN
-        self.MCL = MCL
-        self.MCR = MCR
-        self.FID = FID
+class InboradWingMountedNacelle(Component):
+
+    def __init__(self, aircraft):
+        super(InboradWingMountedNacelle, self).__init__(aircraft)
+
+    def locate_nacelle(self):
+        body_width = self.aircraft.airframe.body.width
+        wing_root_loc = self.aircraft.airframe.wing.root_loc
+        wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_dihedral = self.aircraft.airframe.wing.dihedral
+        wing_kink_c = self.aircraft.airframe.wing.kink_c
+        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
+        wing_tip_c = self.aircraft.airframe.wing.tip_c
+        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
+
+        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
+
+        y_int = 0.6 * body_width + 1.5 * self.width      # statistical regression
+        x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.length
+        z_int = (y_int - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
+
+        return np.array([x_int, y_int, z_int])
+
+
+class OutboradWingMountedNacelle(Component):
+
+    def __init__(self, aircraft):
+        super(OutboradWingMountedNacelle, self).__init__(aircraft)
+
+    def locate_nacelle(self):
+        body_width = self.aircraft.airframe.body.width
+        wing_root_loc = self.aircraft.airframe.wing.root_loc
+        wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_dihedral = self.aircraft.airframe.wing.dihedral
+        wing_kink_c = self.aircraft.airframe.wing.kink_c
+        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
+        wing_tip_c = self.aircraft.airframe.wing.tip_c
+        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
+
+        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
+
+        y_ext = 1.8 * body_width + 1.5 * self.width      # statistical regression
+        x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.length
+        z_ext = (y_ext - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
+
+        return np.array([x_ext, y_ext, z_ext])
+
+
+class RearFuselageMountedNacelle(Component):
+
+    def __init__(self, aircraft):
+        super(RearFuselageMountedNacelle, self).__init__(aircraft)
+
+    def locate_nacelle(self):
+        body_width = self.aircraft.airframe.body.width
+        body_height = self.aircraft.airframe.body.height
+        body_length = self.aircraft.airframe.body.length
+
+        y_int = 0.5 * body_width + 0.6 * self.width      # statistical regression
+        x_int = 0.80 * body_length - self.length
+        z_int = body_height
+
+        return np.array([x_int, y_int, z_int])
 
 
 class System(Component):
@@ -51,6 +107,15 @@ class System(Component):
                   + 0.10*nacelle_cg
 
 
+class RatingFactor(object):
+    def __init__(self, MTO=None, MCN=None, MCL=None, MCR=None, FID=None):
+        self.MTO = MTO
+        self.MCN = MCN
+        self.MCL = MCL
+        self.MCR = MCR
+        self.FID = FID
+
+
 class SemiEmpiricTfNacelle(Component):
 
     def __init__(self, aircraft):
@@ -64,22 +129,32 @@ class SemiEmpiricTfNacelle(Component):
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
-        self.fuel_heat = self.__fuel_heat__()
+        self.fuel_heat = self.__fuel_heat()
+        self.sfc_type = "thrust"
         self.tune_factor = 1.
-        self.engine_bpr = self.__turbofan_bpr__()
+        self.engine_bpr = self.__turbofan_bpr()
         self.core_thrust_ratio = 0.13
-        self.efficiency_prop = 0.82
+        self.propeller_efficiency = 0.82
 
         self.width = None
         self.length = None
 
         self.frame_origin = np.full(3,None)
 
-    def __fuel_heat__(self):
+    def __fuel_heat(self):
         energy_source = self.aircraft.arrangement.energy_source
         return earth.fuel_heat(energy_source)
 
+    def __turbofan_bpr(self):
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        if (80<n_pax_ref):
+            bpr = 9.
+        else:
+            bpr = 5.
+        return bpr
+
     def eval_geometry(self):
+        self.fuel_heat = self.__fuel_heat()
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         mach = 0.25
@@ -99,11 +174,11 @@ class SemiEmpiricTfNacelle(Component):
         total_thrust0 = self.reference_thrust*0.80
         core_thrust0 = total_thrust0*self.core_thrust_ratio
         fan_thrust0 = total_thrust0*(1.-self.core_thrust_ratio)
-        fan_power0 = fan_thrust0*vair/self.efficiency_prop
+        fan_power0 = fan_thrust0*vair/self.propeller_efficiency
 
         # total offtake is split over all engines
         fan_power = fan_power0 - self.reference_offtake*self.n_engine
-        fan_thrust = (fan_power/vair)*self.efficiency_prop
+        fan_thrust = (fan_power/vair)*self.propeller_efficiency
         total_thrust = fan_thrust + core_thrust0
 
         thrust_factor = total_thrust / total_thrust0
@@ -117,21 +192,13 @@ class SemiEmpiricTfNacelle(Component):
         self.aero_length = self.length
         self.form_factor = 1.15
 
-        self.frame_origin = self.__locate_nacelle__()
+        self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
         engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
         pylon_mass = 0.0031*self.reference_thrust*self.n_engine
         self.mass = engine_mass + pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
-
-    def __turbofan_bpr__(self):
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
-        if (80<n_pax_ref):
-            bpr = 9.
-        else:
-            bpr = 5.
-        return bpr
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
@@ -151,94 +218,26 @@ class SemiEmpiricTfNacelle(Component):
                         * sig**0.75
         core_thrust0 = total_thrust0 * self.core_thrust_ratio        # Core thrust
         fan_thrust0 = total_thrust0 * (1.-self.core_thrust_ratio)    # Fan thrust
-        fan_power0 = fan_thrust0*vair/self.efficiency_prop   # Available total shaft power for one engine
+        fan_power0 = fan_thrust0*vair/self.propeller_efficiency   # Available total shaft power for one engine
 
         fan_power = fan_power0 - pw_offtake
-        fan_thrust = (fan_power/vair)*self.efficiency_prop
+        fan_thrust = (fan_power/vair)*self.propeller_efficiency
         total_thrust = fan_thrust + core_thrust0
 
         sfc_ref = ( 0.4 + 1./self.engine_bpr**0.895 )/36000.
-        fuel_flow = sfc_ref * total_thrust0
-        t41 = None
+        sfc = sfc_ref * earth.fuel_heat("kerosene") / self.fuel_heat
+        fuel_flow = sfc * total_thrust0
 
-        return {"fn":total_thrust, "ff":fuel_flow, "t4":t41}
-
+        return {"fn":total_thrust, "ff":fuel_flow, "t4":None}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
         """
         dict = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake=pw_offtake)
-
         throttle = thrust/dict["fn"]
         sfc = dict["ff"]/dict["fn"]
         t41 = dict["t4"]
-
         return {"sfc":sfc, "thtl":throttle, "t4":t41}
-
-
-class InboradWingMountedNacelle(Component):
-
-    def __init__(self, aircraft):
-        super(InboradWingMountedNacelle, self).__init__(aircraft)
-
-    def __locate_nacelle__(self):
-        body_width = self.aircraft.airframe.body.width
-        wing_root_loc = self.aircraft.airframe.wing.root_loc
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
-        wing_dihedral = self.aircraft.airframe.wing.dihedral
-        wing_kink_c = self.aircraft.airframe.wing.kink_c
-        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
-        wing_tip_c = self.aircraft.airframe.wing.tip_c
-        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
-
-        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
-
-        y_int = 0.6 * body_width + 1.5 * self.width      # statistical regression
-        x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.length
-        z_int = (y_int - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
-
-        return np.array([x_int, y_int, z_int])
-
-
-class OutboradWingMountedNacelle(Component):
-
-    def __init__(self, aircraft):
-        super(OutboradWingMountedNacelle, self).__init__(aircraft)
-
-    def __locate_nacelle__(self):
-        body_width = self.aircraft.airframe.body.width
-        wing_root_loc = self.aircraft.airframe.wing.root_loc
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
-        wing_dihedral = self.aircraft.airframe.wing.dihedral
-        wing_kink_c = self.aircraft.airframe.wing.kink_c
-        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
-        wing_tip_c = self.aircraft.airframe.wing.tip_c
-        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
-
-        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
-
-        y_ext = 1.8 * body_width + 1.5 * self.width      # statistical regression
-        x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.length
-        z_ext = (y_ext - 0.5 * body_width) * np.tan(wing_dihedral) - 0.5*self.width
-
-        return np.array([x_ext, y_ext, z_ext])
-
-
-class RearFuselageMountedNacelle(Component):
-
-    def __init__(self, aircraft):
-        super(RearFuselageMountedNacelle, self).__init__(aircraft)
-
-    def __locate_nacelle__(self):
-        body_width = self.aircraft.airframe.body.width
-        body_height = self.aircraft.airframe.body.height
-        body_length = self.aircraft.airframe.body.length
-
-        y_int = 0.5 * body_width + 0.6 * self.width      # statistical regression
-        x_int = 0.80 * body_length - self.length
-        z_int = body_height
-
-        return np.array([x_int, y_int, z_int])
 
 
 class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboradWingMountedNacelle):
@@ -252,6 +251,106 @@ class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboradWingMountedNacelle
 class RearFuselageMountedTfNacelle(SemiEmpiricTfNacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
         super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
+
+
+class SemiEmpiricTpNacelle(Component):
+
+    def __init__(self, aircraft):
+        super(SemiEmpiricTpNacelle, self).__init__(aircraft)
+
+        ne = self.aircraft.arrangement.number_of_engine
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        design_range = self.aircraft.requirement.design_range
+
+        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+        self.propeller_efficiency = 0.82
+        self.propeller_disk_load = 3000.    # N/m2
+        self.sfc_type = "power"
+        self.reference_power = 0.5*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.95, MCL=0.90, MCR=0.70, FID=0.10)
+        self.fuel_heat = self.__fuel_heat()
+        self.engine_bpr = 100.
+
+        self.hub_width = None
+        self.propeller_width = None
+        self.width = None
+        self.length = None
+
+        self.frame_origin = np.full(3,None)
+
+    def __fuel_heat(self):
+        energy_source = self.aircraft.arrangement.energy_source
+        return earth.fuel_heat(energy_source)
+
+    def eval_geometry(self):
+        self.fuel_heat = self.__fuel_heat()
+
+        # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
+        mach = 0.25
+        disa = 15.
+        altp = 0.
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+
+        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
+        self.reference_thrust = dict["fn"] / 0.80
+
+        self.hub_width = 0.2
+        self.propeller_width = np.sqrt((4./np.pi)*(self.reference_thrust/3000.))      # Assuming 3000 N/m2
+
+        self.width = 0.25*(self.reference_power/1.e3)**0.2        # statistical regression
+        self.length = 0.84*(self.reference_power/1.e3)**0.2       # statistical regression
+
+        self.gross_wet_area = (2.3*(self.reference_power/1.e3)**0.2)*self.n_engine     # statistical regression
+        self.net_wet_area = self.gross_wet_area
+        self.aero_length = self.length
+        self.form_factor = 1.15
+
+        self.frame_origin = self.locate_nacelle()
+
+    def eval_mass(self):
+        self.mass = (0.633*(self.reference_power/1.e3)**0.9)*self.n_engine       # statistical regression
+        self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
+
+    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
+        """Unitary thrust of a pure turboprop engine (semi-empirical model)
+        """
+        factor = self.rating_factor
+        eta_prop = self.propeller_efficiency
+
+        psfc_ref = unit.kgpWps_lbpshpph(0.4)   # 0.4 lb/shp/h
+        psfc = psfc_ref * earth.fuel_heat("kerosene") / self.fuel_heat
+
+        rho,sig = earth.air_density(pamb,tamb)
+        Vsnd = earth.sound_speed(tamb)
+        Vair = Vsnd*mach
+
+        pw = throttle*getattr(factor,rating)*self.reference_power*sig**0.5
+
+        fn = eta_prop*pw/Vair
+        ff = psfc*pw
+
+        return {"fn":fn, "ff":ff, "pw":pw, "t4":None}
+
+    def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
+        """Unitary thrust of a pure turbofan engine (semi-empirical model)
+        """
+        dict = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake=pw_offtake)
+        throttle = thrust/dict["fn"]
+        sfc = dict["ff"]/dict["fn"]
+        t41 = dict["t4"]
+        return {"sfc":sfc, "thtl":throttle, "t4":t41}
+
+
+class OutboardWingMountedTpNacelle(SemiEmpiricTpNacelle,OutboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(OutboardWingMountedTpNacelle, self).__init__(aircraft)
+
+class InboardWingMountedTpNacelle(SemiEmpiricTpNacelle,InboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(InboardWingMountedTpNacelle, self).__init__(aircraft)
+
 
 
 class SystemElectrofanBattery(Component):
@@ -314,12 +413,12 @@ class SemiEmpiricEfNacelle(Component):
         design_range = self.aircraft.requirement.design_range
 
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        self.reference_power = 0.5*(1./0.8)*(87.26/0.82)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
-        self.reference_thrust = self.reference_power*(0.82/87.26)
+        self.propeller_efficiency = 0.82
+        self.fan_efficiency = 0.95
+        self.sec_type = "thrust"
+        self.reference_power = 0.5*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
-        self.tune_factor = 1.
-        self.efficiency_fan = 0.95
-        self.efficiency_prop = 0.82
         self.motor_efficiency = 0.95
         self.controller_efficiency = 0.99
         self.controller_pw_density = 20.e3    # W/kg
@@ -350,7 +449,7 @@ class SemiEmpiricEfNacelle(Component):
         self.aero_length = self.length
         self.form_factor = 1.15
 
-        self.frame_origin = self.__locate_nacelle__()
+        self.frame_origin = self.locate_nacelle()
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         mach = 0.25
@@ -378,9 +477,9 @@ class SemiEmpiricEfNacelle(Component):
         Vair = Mach * earth.sound_speed(Tamb)
 
         # Electrical nacelle geometry : e-nacelle diameter is size by cruise conditions
-        deltaV = 2.*Vair*(self.efficiency_fan/self.efficiency_prop - 1.)      # speed variation produced by the fan
+        deltaV = 2.*Vair*(self.fan_efficiency/self.propeller_efficiency - 1.)      # speed variation produced by the fan
 
-        PwInput = self.efficiency_fan*shaft_power     # kinetic energy produced by the fan
+        PwInput = self.fan_efficiency*shaft_power     # kinetic energy produced by the fan
 
         Vinlet = Vair
         Vjet = Vinlet + deltaV
@@ -432,7 +531,7 @@ class SemiEmpiricEfNacelle(Component):
 
         def fct(q,PwShaft,pamb,Ttot,Vair):
             Vinlet = Vair
-            PwInput = self.efficiency_fan*PwShaft
+            PwInput = self.fan_efficiency*PwShaft
             Vjet = np.sqrt(2.*PwInput/q + Vinlet**2)    # Supposing isentropic compression
             TtotJet = Ttot + PwShaft/(q*Cp)             # Stagnation temperature increases due to introduced work
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
@@ -464,7 +563,7 @@ class SemiEmpiricEfNacelle(Component):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         Vinlet = Vair
-        PwInput = self.efficiency_fan*PwShaft
+        PwInput = self.fan_efficiency*PwShaft
         Vjet = np.sqrt(2.*PwInput/q0 + Vinlet**2)
         eFn = q0*(Vjet - Vinlet)
 
@@ -498,7 +597,7 @@ class SemiEmpiricEfNacelle(Component):
             q = x_in[0]
             PwShaft = x_in[1]
             Vinlet = Vair
-            PwInput = self.efficiency_fan*PwShaft
+            PwInput = self.fan_efficiency*PwShaft
             Vjet = np.sqrt(2.*PwInput/q + Vinlet**2)    # Supposing isentropic compression
             TtotJet = Ttot + PwShaft/(q*Cp)             # Stagnation temperature increases due to introduced work
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
@@ -533,7 +632,7 @@ class SemiEmpiricEfNacelle(Component):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         Vinlet = Vair
-        PwInput = self.efficiency_fan*Pw
+        PwInput = self.fan_efficiency*Pw
         Vjet = np.sqrt(2.*PwInput/q0 + Vinlet**2)
         eFn = q0*(Vjet - Vinlet)
 

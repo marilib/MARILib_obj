@@ -82,6 +82,8 @@ def barLpkg_Pam3pkg(Pam3pkg): return Pam3pkg/1.e2  # Translate Pa.m3/kg into bar
 def pc_no_dim(no_dim): return no_dim*100.   # Translate no dimension value into percentile
 def no_dim_pc(no_dim): return no_dim/100.   # Translate percentile into no dimension value
 
+def kgpWps_lbpshpph(lbpshpph): return lbpshpph*1.68969e-07  # Ttranslate lb/shp/h into kg/W/s
+def lbpshpph_kgpWps(kgpWps_): return kgpWps_/1.68969e-07    # Ttranslate kg/W/s into lb/shp/h
 
 def smart_round(X, S):
     Fac = (10 * numpy.ones(S))**numpy.min(4, max(0, 4 - round(numpy.log10(S))))

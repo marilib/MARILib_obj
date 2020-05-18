@@ -133,6 +133,19 @@ class Aircraft(object):
                 raise Exception("Type of nacelle attachment is unknown")
             self.power_system = model.Turbofan(self)
 
+        elif (self.arrangement.power_architecture=="tp"):
+            if (self.arrangement.nacelle_attachment=="wing"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = propulsion.InboardWingMountedTpNacelle(self)
+                elif (self.arrangement.number_of_engine=="quadri"):
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTpNacelle(self)
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTpNacelle(self)
+                else:
+                    raise Exception("Number of engines not allowed")
+            else:
+                raise Exception("Type of nacelle attachment is not allowed")
+            self.power_system = model.Turboprop(self)
+
         elif (self.arrangement.power_architecture=="extf"):
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
@@ -207,7 +220,7 @@ class Aircraft(object):
 
         self.performance = Performance(self)
 
-        if (self.arrangement.power_architecture in ["tf","extf"]):
+        if (self.arrangement.power_architecture in ["tf","extf","tp"]):
             self.performance.mission = Mission(self)
         elif (self.arrangement.power_architecture in ["efb","exefb"]):
             self.performance.mission = MissionIsoMass(self)
