@@ -585,7 +585,10 @@ class MissionGeneric(MissionNominal):
 
 
 class MissionDef(Flight):
-    """Defines a mission evaluation for a fuel based propulsion system (kerozen, H2 ...etc)"""
+    """Defines a mission evaluation for a fuel based propulsion system (kerozen, H2 ...etc)
+
+    .. warning::
+        This class is not used. By default MARILib uses :class:`MissionGeneric`."""
     def __init__(self,aircraft):
         # Inputs
         self.aircraft = aircraft
@@ -635,27 +638,26 @@ class MissionDef(Flight):
     def eval(self, inputs={'range':None,'tow':None}, **kwargs):
         """Solve mission equations for given inputs.
         During a mission at given cruise mach, altitude, temperature shift (disa) and Operating Weight Empty (owe)
-        the four following parameters are linked together
-            * tow : Take-Off Weight
-            * payload : weight of Payload
-            * range : mission range
-            * fuel_total : weight of fuel taking into account safety margins
+        the four following parameters are linked together:
+
+        - tow : Take-Off Weight
+        - payload : weight of Payload
+        - range : mission range
+        - fuel_total : weight of fuel taking into account safety margins
+
         by two equations :
-            1) fuel_total = eval_Breguet(range,tow, altp, mach, disa)
-            2) tow - payload - fuel_total - owe = 0
+
+        1) fuel_total = `eval_Breguet(range,tow, altp, mach, disa)`
+        2) tow - payload - fuel_total - owe = 0
+
         By fixing two of the previous variables, we deduce the two remaining unknowns.
 
-        :param inputs: a dictionary of two fixed parameters. Default is {'range','tow'}
-        :param kwargs: optional named parameters for set_mission_parameters(**kwargs)
-        :return: a dictionary of the two remaining unknown parameter. By default {'range', 'fuel_total'}
-        Throws error if fsolve does not converge.
+        :param inputs: a dictionary of two fixed parameters. Default is `{'range','tow'}`
+        :param kwargs: optional named parameters for :py:meth:`set_parameters`
+        :return: a dictionary of the two remaining unknown parameter. By default `{'range', 'fuel_total'}`.
+
+        Throws error if `fsolve` does not converge.
         """
-        # range,tow,altp,mach,disa
-        # payload,tow,owe,altp,mach,disa
-        # fuel_total,tow,owe,altp,mach,disa
-        # fuel_total,payload,owe,altp,mach,disa
-        # range,payload,owe,altp,mach,disa
-        # range, tow, altp, mach, disa, payload, owe, fuel_total
 
         if len(kwargs)>0:
             self.set_parameters(**kwargs)

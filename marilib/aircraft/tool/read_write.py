@@ -1,8 +1,31 @@
 #!/usr/bin/env python3
 """
-Created on Thu Jan 20 20:20:20 2020
+Fonctionalities to read and write Marilib object in human readable format or binary format.
+The class :class:`MarilibIO` contains several methods:
 
-@author: DRUOT Thierry, Nicolas Monrolin
+* to convert an complex object into a human readable string (JSON format)
+* to write this JSON readable format in a text file
+* to write an exact copy of the object in a binary file (pickle)
+* to load an object from a binary file (pickle)
+
+Use case::
+
+    my_plane = Aircraft("This_plane")
+    # ... Do some stuff on my_plane
+
+    io = MarilibIO()
+    print(io.to_string(my_plane)) # print a veeery long string
+    io.to_json_file(my_plane,"my_plane")  # write into the text file "my_plane.json"
+    io.to_binary_file(my_plane, "my_plane")  # save into the binary file "my_plane.pkl"
+
+.. note::
+    The JSON format is very convenient to explore the numerous variable inside a complex object such as
+    :class:`marilib.aircraft.aircraft_root.Aircraft` but it is not an exact copy of the object, which is why you will not
+    find a `read_json_file` method. To save your results, you shoudl rather use :meth:`MarilibIO.to_binary_file`
+    and :meth:`MarilibIO.from_binary_file`.
+
+:author: DRUOT Thierry, MONROLIN Nicolas
+
 """
 
 import copy
@@ -326,19 +349,27 @@ def to_user_format(value, dec_format=STANDARD_FORMAT):
     else:
         return value
 
-class MarilibIO():
+class MarilibIO(object):
     """A collection of Input and Ouput functions for MARILib objects.
+
     1) Human readable format uses a *JSON-like* encoding and decoding functions adapted to MARILib objects.
+    2) Binary exact copies uses pickle.
+
     """
     def __init__(self):
         self.datadict = DATA_DICT # default units and variable description dict
 
-    def _marilib_encoding(self, o):
+    def marilib_encoding(self, o):
         """Default encoding function for MARILIB objects of non primitive types (int,float,list,string,tuple,dict)
-        Raises an `AttributeError` if te object has no `__dict__` attribute.
-        Skips `self.aircraft` entries to avoid circular reference and converts numpy array to list.
+
+        * Skips `self.aircraft` entries to avoid circular reference
+        * Converts numpy array to list.
+        * Convert to default units described in `DATA_DICT`
+        * Add a short description of each variable, found in `DATA_DICT`
+
         :param o: the object to encode
         :return: the attribute dict
+
         """
         if isinstance(o, type(np.array([]))):  # convert numpy arrays to list
             return o.tolist()
@@ -364,22 +395,33 @@ class MarilibIO():
         return json_dict
 
     def to_string(self,marilib_object,datadict=None):
-        """Customized Json-like print of the object
-        It uses _marilib_encoding() to parse objects into dict.
-        .. warning::
-            Numpy arrays and lists are rewritten on one line only, which is not the default JSON standard
+        """Build a human readable string output of the object in a JSON-like format.
+        It uses :meth:`marilib_encoding` to serialize the object into a dictionary.
+
         :param marilib_object: the object to print
-        :param datadict: a dictionary that give the unit and a description of each variable. Example ::
-            datadict = { "MTO": {"unit":"no_dim", "mag":1e0, "txt":"Max Takeoff rating factor"},
-                         "cg": {"unit":"m", "mag":1e1, "txt":"Position of the center of gravity in the assembly"},}
-        by default it uses the value given during the last call. If no previous call, the default value is DATA_DICT.
+        :param datadict: a dictionary that give the unit and a description of each variable.
+            Example of datadict::
+
+                datadict = {
+                             "MTO": {"unit":"no_dim", "txt":"Max Takeoff rating factor"},
+                             "cg": {"unit":"m", "txt":"Position of the center of gravity"}
+                            }
+
+            .. note::
+                by default it uses the value given during the last call. If no previous call, default is `DATA_DICT`
+                defined in `marilib.aircraft.tool.module_read_write.py`
+
         :return: a customized JSON-like formatted string
+
+            .. warning::
+                Numpy arrays and lists are rewritten on one line only.It does not strictly follow the JSON standard
+
         """
         # Set the new data dict if one is provided
         if (datadict is not None):
             self.datadict = datadict
 
-        json_string = json.dumps(marilib_object, indent=4, default=self._marilib_encoding)
+        json_string = json.dumps(marilib_object, indent=4, default=self.marilib_encoding)
         output = re.sub(r'\[\s+', '[', json_string)  # remove spaces after an opening bracket
         output = re.sub(r'(?<!\}),\s+(?!\s*".*":)', ', ', output)  # remove spaces after comma not followed by ".*":
         output = re.sub(r'\s+\]', ']', output)  # remove white spaces before a closing bracket
@@ -395,6 +437,7 @@ class MarilibIO():
 
     def from_string(self,json_string):
         """Parse a JSON string into a dict.
+
         :param json_string: the string to parse
         :return: dictionary
         """
@@ -403,6 +446,7 @@ class MarilibIO():
     def to_json_file(self,aircraft_object,filename,datadict=None):
         """Save a MARILib object in a human readable format:
         The object is serialized into a customized JSON-like string.
+
         :param marilib_object: the object to save
         :param filename: name of the file. Ex: myObjCollection/marilib_obj.json
         :param datadict: argument for to_string(). The default datadict is DATA_DICT.
@@ -420,6 +464,7 @@ class MarilibIO():
 
     def to_binary_file(self,obj,filename):
         """Save the obj as a binary file .pkl
+
         :param obj: the object to save
         :param filename: the path
         :return: None
@@ -436,6 +481,7 @@ class MarilibIO():
 
     def from_binary_file(self, filename):
         """Load a .pkl file as a python object
+
         :param filename: the binary filepath
         :return: the object
         """

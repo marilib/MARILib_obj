@@ -108,36 +108,34 @@ def mean_yearly_sun_power(latt):
     return sun_pwr(latt)
 
 
+if __name__ == "__main__":
+    latt = unit.rad_deg(43.668731)
+    long = unit.rad_deg(1.497691)
+    pamb = 101325.
+    #     JA FE MA AV MA JU
+    day = 31+29+31+30+31+30
+    gmt = 12.
 
-latt = unit.rad_deg(43.668731)
-long = unit.rad_deg(1.497691)
-pamb = 101325.
-#     JA FE MA AV MA JU
-day = 31+29+31+30+31+30
-gmt = 12.
+    pw = max_solar_power(latt,long,pamb,day,gmt)
+    print("")
+    print("Solar power = ","%8.1f" % pw)
 
-pw = max_solar_power(latt,long,pamb,day,gmt)
-print("")
-print("Solar power = ","%8.1f" % pw)
-
-
-#
-# md_pw = 0.
-# period = 24*60
-# for t in range(period):
-#     md_pw += max_solar_power(latt,long,pamb,day,float(t)/60.)/period
-# print("")
-# print("Mean dayly solar power = ","%8.1f" % md_pw)
-#
-#
-# year = 365
-# period = 24*60
-# for l in range(91):
-#     my_pw = 0.
-#     for y in range(year):
-#         for t in range(period):
-#             latt = unit.rad_deg(l)
-#             my_pw += max_solar_power(latt,long,pamb,y+1,float(t)/60.)/period/year
-#     print("Lat = ", "%8.1f"%l, " , Pw = ", "%8.1f"%my_pw)
-#
+    # md_pw = 0.
+    # period = 24*60
+    # for t in range(period):
+    #     md_pw += max_solar_power(latt,long,pamb,day,float(t)/60.)/period
+    # print("")
+    # print("Mean dayly solar power = ","%8.1f" % md_pw)
+    #
+    #
+    # year = 365
+    # period = 24*60
+    # for l in range(91):
+    #     my_pw = 0.
+    #     for y in range(year):
+    #         for t in range(period):
+    #             latt = unit.rad_deg(l)
+    #             my_pw += max_solar_power(latt,long,pamb,y+1,float(t)/60.)/period/year
+    #     print("Lat = ", "%8.1f"%l, " , Pw = ", "%8.1f"%my_pw)
+    #
 

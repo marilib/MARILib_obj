@@ -3,9 +3,7 @@
 """
 Created on Thu Jan 24 23:22:21 2019
 
-@author: DRUOT Thierry
-         PETEILH Nicolas
-         MONROLIN Nicolas
+:author: DRUOT Thierry, PETEILH Nicolas and MONROLIN Nicolas
 """
 
 import numpy as np
@@ -56,7 +54,7 @@ class Drawing(object):
 
     def view_3d(self, window_title):
         """
-        Build a 3 viewx drawing of the airplane
+        Build a 3 views drawing of the airplane
         """
         plot_title = self.aircraft.name
 
@@ -525,7 +523,7 @@ class Drawing(object):
         return nac_xz,nac_xy,nac_yz,fan_yz
 
 
-def get_shape():
+def get_shape(): # TODO: is the docstring up to date ?
     """Total aircraft drag with the assumption that the wing takes all the lift
     """
     nose1 = np.array([[ 0.0000 , 0.4453 , 0.4453 , 0.0000 ,  0.0000 ] ,

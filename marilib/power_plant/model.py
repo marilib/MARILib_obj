@@ -627,54 +627,57 @@ class EnergyMix(object):
         return pw
 
 
-# ======================================================================================================
-# Identify existing plants
-# ------------------------------------------------------------------------------------------------------
 
-st1 = CspPowerPlant(7500., 250., reg_factor=0.51)
-st1.print("Andasol 3")
+if __name__ == "__main__":
 
-pv1 = PvPowerPlant(1e6, 250., reg_factor=0.0)
-pv1.print("Cestas")
+    # ======================================================================================================
+    # Identify existing plants
+    # ------------------------------------------------------------------------------------------------------
 
-eol1 = EolPowerPlant(240., "onshore", rotor_peak_power=2.5e6, load_factor=0.25)
-eol1.print("Fantanele Cogealav")
+    st1 = CspPowerPlant(7500., 250., reg_factor=0.51)
+    st1.print("Andasol 3")
 
-eol2 = EolPowerPlant(175., "offshore", rotor_peak_power=3.5e6, load_factor=0.50)
-eol2.print("London Array")
+    pv1 = PvPowerPlant(1e6, 250., reg_factor=0.0)
+    pv1.print("Cestas")
 
-atom1 = NuclearPowerPlant(4)
-atom1.print()
+    eol1 = EolPowerPlant(240., "onshore", rotor_peak_power=2.5e6, load_factor=0.25)
+    eol1.print("Fantanele Cogealav")
+
+    eol2 = EolPowerPlant(175., "offshore", rotor_peak_power=3.5e6, load_factor=0.50)
+    eol2.print("London Array")
+
+    atom1 = NuclearPowerPlant(4)
+    atom1.print()
 
 
-# ======================================================================================================
-# Build a mix
-# ------------------------------------------------------------------------------------------------------
+    # ======================================================================================================
+    # Build a mix
+    # ------------------------------------------------------------------------------------------------------
 
-pv1 = PvPowerPlant(1e6, 250., reg_factor=0.50)
+    pv1 = PvPowerPlant(1e6, 250., reg_factor=0.50)
 
-st1 = CspPowerPlant(1e4, 250., reg_factor=0.50)
+    st1 = CspPowerPlant(1e4, 250., reg_factor=0.50)
 
-eol1 = EolPowerPlant(20., "onshore")
+    eol1 = EolPowerPlant(20., "onshore")
 
-eol2 = EolPowerPlant(200., "offshore", rotor_peak_power=3.5e6, load_factor=0.50)
+    eol2 = EolPowerPlant(200., "offshore", rotor_peak_power=3.5e6, load_factor=0.50)
 
-atom1 = NuclearPowerPlant(4)
+    atom1 = NuclearPowerPlant(4)
 
-tech_mix =  [atom1,  eol2,  eol1,  st1,  pv1]
-power_mix = [40.e9, 30.e9, 20.e9, 5.e9, 5.e9]
+    tech_mix =  [atom1,  eol2,  eol1,  st1,  pv1]
+    power_mix = [40.e9, 30.e9, 20.e9, 5.e9, 5.e9]
 
-mix = EnergyMix(tech_mix, power_mix)
+    mix = EnergyMix(tech_mix, power_mix)
 
-print("")
-mix.print()
+    print("")
+    mix.print()
 
-print("")
-pw = mix.param_iso_power([0.4, 0.5, 0.6666, 0.5])
-print([p*1.e-9 for p in pw])
-print(sum(pw)*1.e-9)
+    print("")
+    pw = mix.param_iso_power([0.4, 0.5, 0.6666, 0.5])
+    print([p*1.e-9 for p in pw])
+    print(sum(pw)*1.e-9)
 
-print("--------------------------------------------------")
-pw_mix = mix.param_iso_power([0.5, 0.5, 0.5, 0.5])
-mix.update(pw_mix)
-mix.print()
+    print("--------------------------------------------------")
+    pw_mix = mix.param_iso_power([0.5, 0.5, 0.5, 0.5])
+    mix.update(pw_mix)
+    mix.print()

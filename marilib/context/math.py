@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jan 24 23:22:21 2019
-@author: DRUOT Thierry : original Scilab implementation
-         ROCHES Pascal : portage to Python
+A math toolbox for MARILib
+
+:author: DRUOT Thierry, original Scilab implementation
+
+:author: ROCHES Pascal, portage to Python
 """
 
 import warnings
@@ -13,7 +15,9 @@ import numpy as np
 from numpy.linalg import solve
 from numpy.linalg.linalg import LinAlgError
 
-#===========================================================================================================
+
+# TODO: this module need some cleaning and updates !
+
 def lin_interp_1d(x,X,Y):
     """
     linear interpolation without any control
@@ -73,12 +77,13 @@ def trinome(A,Y):
 
 #===========================================================================================================
 def maximize_1d(xini,dx,*fct):
-    """
-    Optimize 1 single variable, no constraint
-    xini : initial value of the variable
-    dx : fixed search step
-    fct : function with the signature : ['function_name',a1,a2,a3,...,an]
-          and function_name(x,a1,a2,a3,...,an)
+    """Optimize 1 single variable, no constraint
+
+    :param xini: initial value of the variable
+    :param dx: fixed search step
+    :param fct: function with the signature : ['function_name',a1,a2,a3,...,an]
+        and function_name(x,a1,a2,a3,...,an)
+    :return: (xres,yres,rc)
     """
 
     n = len(fct[0])

@@ -14,6 +14,8 @@ from marilib.aircraft.mission import MissionDef
 
 from marilib.design import process
 
+from marilib.aircraft.tool.read_write import MarilibIO
+
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
@@ -31,13 +33,17 @@ reqs = Requirement(n_pax_ref = 150.,
                    arrangement = agmt)
 
 
-ac = Aircraft("This_plane")
-ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
+my_plane = Aircraft("This_plane")
+my_plane.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
+io = MarilibIO()
+io.to_string(my_plane)
+io.to_json_file(my_plane,"my_plane")  # will write into the text file "my_plane.json"
+io.to_binary_file(my_plane, "my_plane")  # will write into the binary file "my_plane.pkl"
 
-process.mda(ac)
+process.mda(my_plane)
 
-mymission = MissionDef(ac)
+mymission = MissionDef(my_plane)
 
 mymission.set_parameters() # set default requirement parameters
 

@@ -3,17 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. figure:: marilib_logo.svg
-   :align: left
-   :width: 100%
-
+.. figure:: _static/marilib_logo.svg
+    :align: center
+    :width: 50%
+    :alt: logo MARILib
 
 Welcome to MARILib's documentation!
 ===================================
 
 .. toctree::
    :glob:
-   :maxdepth: 4
+   :maxdepth: 2
    :caption: Contents:
 
    api/marilib

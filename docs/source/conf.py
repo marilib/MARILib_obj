@@ -39,7 +39,7 @@ extensions = [  'sphinx.ext.autodoc',
 
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ['_templates/apidoc/']
 
 source_suffix = ['.rst', '.md']
 
@@ -62,3 +62,6 @@ html_theme = 'sphinxdoc'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Display todos by setting to True
+todo_include_todos = True
