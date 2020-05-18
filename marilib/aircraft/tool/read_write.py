@@ -382,7 +382,7 @@ class MarilibIO(object):
         if isinstance(o, type(np.array([]))):  # convert numpy arrays to list
             return o.tolist()
 
-        json_dict = o.__dict__  # Store the public attributes, raises an AttributeError if no __dict__ is found.
+        json_dict = o.__dict__  #  Store the public attributes, raises an AttributeError if no __dict__ is found.
         try:
             del json_dict['aircraft']  # Try to delete the 'aircraft' entry to avoid circular reference
         except KeyError:
