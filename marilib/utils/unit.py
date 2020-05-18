@@ -23,8 +23,8 @@ def W_MW(MW): return MW*1.e6
 def GW_W(W): return W*1.e-9
 def W_GW(GW): return GW*1.e9
 
-def s_min(min): return min*60.   # Translate minutes into seconds
-def min_s(s): return s/60.   # Translate seconds into minutes
+def s_min(min): return min*60.  # Translate minutes into seconds
+def min_s(s): return s/60.      # Translate seconds into minutes
 
 def s_h(h): return h*3600.   # Translate hours into seconds
 def h_s(s): return s/3600.   # Translate seconds into hours
