@@ -7,7 +7,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
-from marilib.context import unit
+from marilib.utils import unit
 from marilib.aircraft.aircraft_root import Arrangement
 from marilib.aircraft.aircraft_root import Aircraft
 from marilib.aircraft.requirement import Requirement
@@ -38,6 +38,8 @@ reqs = Requirement(n_pax_ref = 150.,
 ac = Aircraft("This_plane")
 
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
+
+
 
 
 ac.requirement.take_off.tofl_req = 2500.

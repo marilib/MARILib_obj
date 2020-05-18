@@ -7,7 +7,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
-from marilib.context import unit
+from marilib.utils import unit
 from marilib.aircraft.aircraft_root import Arrangement
 from marilib.aircraft.aircraft_root import Aircraft
 from marilib.aircraft.requirement import Requirement

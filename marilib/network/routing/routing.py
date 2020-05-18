@@ -13,8 +13,8 @@ from scipy.optimize import fsolve
 
 import matplotlib.pyplot as plt
 
-from marilib.context import unit
-from marilib.context.math import lin_interp_1d
+from marilib.utils import unit
+from marilib.utils.math import lin_interp_1d
 
 
 def distance_to_center(w,n,x,h,m,y):

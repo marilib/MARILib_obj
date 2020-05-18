@@ -13,7 +13,7 @@ import numpy as np
 import pandas
 import matplotlib.pyplot as plt
 
-from marilib.context import unit, math
+from marilib.utils import unit, math
 from marilib.network.pico_design.design_model import Aircraft
 
 

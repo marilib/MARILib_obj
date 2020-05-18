@@ -8,11 +8,11 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy.optimize import fsolve
 
-from marilib.context import earth
+from marilib.utils import earth
 
 from marilib.aircraft.performance import Flight
 
-from marilib.context.math import lin_interp_1d, maximize_1d
+from marilib.utils.math import lin_interp_1d, maximize_1d
 
 
 class Aerodynamics(object):

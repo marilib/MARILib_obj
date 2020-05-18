@@ -5,12 +5,12 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-from marilib.context import earth, unit
+from marilib.utils import earth, unit
 
 import numpy as np
 from scipy.optimize import fsolve
 
-from marilib.context.math import vander3, trinome, maximize_1d
+from marilib.utils.math import vander3, trinome, maximize_1d
 
 
 class Performance(object):

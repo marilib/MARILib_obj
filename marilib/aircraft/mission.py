@@ -5,7 +5,7 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-from marilib.context import earth, unit
+from marilib.utils import earth, unit
 
 import numpy as np
 from scipy.optimize import fsolve
