@@ -8,11 +8,11 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy.optimize import fsolve
 
-from marilib.context import earth
+from marilib.utils import earth
 
 from marilib.aircraft.performance import Flight
 
-from marilib.context.math import lin_interp_1d, maximize_1d
+from marilib.utils.math import lin_interp_1d, maximize_1d
 
 
 class Aerodynamics(object):
@@ -285,7 +285,7 @@ class ThrustDataTf(ThrustData):
         self.thrust_opt = None
         self.thrust = None
         self.fuel_flow = None
-        self.sfc = None
+        self.tsfc = None
         self.T41 = None
 
 
@@ -312,7 +312,7 @@ class Turbofan(PowerSystem, Flight):
             self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].fuel_flow = dict["ff"]
-            self.data[rating].sfc = dict["sfc"]
+            self.data[rating].tsfc = dict["sfc"]
             self.data[rating].T41 = dict["t4"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
@@ -372,7 +372,7 @@ class ThrustDataTp(ThrustData):
         self.thrust = None
         self.power = None
         self.fuel_flow = None
-        self.sfc = None
+        self.psfc = None
         self.T41 = None
 
 
@@ -400,7 +400,7 @@ class Turboprop(PowerSystem, Flight):
             self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].power = dict["pw"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].fuel_flow = dict["ff"]
-            self.data[rating].sfc = dict["sfc"]
+            self.data[rating].psfc = dict["sfc"]
             self.data[rating].T41 = dict["t4"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
@@ -413,7 +413,7 @@ class Turboprop(PowerSystem, Flight):
         fn = dict["fn"]*(n_engine-nei)
         ff = dict["ff"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        sfc = ff/fn
+        sfc = ff/pw
         t41 = dict["t4"]
 
         return {"fn":fn, "ff":ff, "pw":pw, "sfc":sfc, "t4":t41}
@@ -434,7 +434,7 @@ class Turboprop(PowerSystem, Flight):
         wing_area = self.aircraft.airframe.wing.area
         nacelle_width = self.aircraft.airframe.nacelle.width
 
-        dCx = 0.12*nacelle_width**2 / wing_area
+        dCx = 1.15*nacelle_width**2 / wing_area
 
         return dCx
 
@@ -449,12 +449,95 @@ class Turboprop(PowerSystem, Flight):
     def specific_breguet_range(self,tow,range,tas,dict):
         g = earth.gravity()
         eta_prop = self.aircraft.airframe.nacelle.propeller_efficiency
-        return tow*(1-np.exp(-(dict["sfc"]*g*range)/(eta_prop*dict["lod"])))
+        return tow*(1.-np.exp(-(dict["sfc"]*g*range)/(eta_prop*dict["lod"])))
 
     def specific_holding(self,mass,time,tas,dict):
         g = earth.gravity()
         eta_prop = self.aircraft.airframe.nacelle.propeller_efficiency
         return ((mass*g*tas*dict["sfc"])/(eta_prop*dict["lod"]))*time
+
+
+class ThrustDataEp(ThrustData):
+    def __init__(self, nei):
+        super(ThrustDataEp, self).__init__(nei)
+        self.thrust_opt = None
+        self.thrust = None
+        self.power = None
+        self.sec = None
+
+
+class Electroprop(PowerSystem, Flight):
+
+    def __init__(self, aircraft):
+        super(Electroprop, self).__init__(aircraft)
+
+        self.data = {"MTO":ThrustDataEp(nei=1),
+                     "MCN":ThrustDataEp(nei=1),
+                     "MCL":ThrustDataEp(nei=0),
+                     "MCR":ThrustDataEp(nei=0)}
+
+    def thrust_analysis(self):
+        self.thrust_requirement()
+        for rating in self.data.keys():
+            disa = self.data[rating].disa
+            altp = self.data[rating].altp
+            mach = self.data[rating].mach
+            nei = self.data[rating].nei
+            kfn = self.data[rating].kfn_opt
+            pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+            dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
+            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].power = dict["pw"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].sec = dict["sec"]
+
+    def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
+        """Total thrust of a pure turbofan engine
+        """
+        n_engine = self.aircraft.airframe.nacelle.n_engine
+
+        dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
+
+        fn = dict["fn"]*(n_engine-nei)
+        pw = dict["pw"]*(n_engine-nei)
+        sec = pw/fn
+
+        return {"fn":fn, "pw":pw, "sec":sec}
+
+    def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
+        """Total thrust of a pure turbofan engine
+        """
+        n_engine = self.aircraft.airframe.nacelle.n_engine
+        fn = thrust/(n_engine - nei)
+
+        dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
+
+        return dict
+
+    def oei_drag(self,pamb,tamb):
+        """Inoperative engine drag coefficient
+        """
+        wing_area = self.aircraft.airframe.wing.area
+        nacelle_width = self.aircraft.airframe.nacelle.width
+
+        dCx = 1.15*nacelle_width**2 / wing_area
+
+        return dCx
+
+    def tail_cone_drag_factor(self):
+        return 1.
+
+    def specific_air_range(self,mass,tas,dict):
+        g = earth.gravity()
+        return (tas*dict["lod"])/(mass*g*dict["sec"])
+
+    def specific_breguet_range(self,tow,range,tas,dict):
+        g = earth.gravity()
+        return tow*g*range*dict["sec"] / (tas*dict["lod"])
+
+    def specific_holding(self,mass,time,tas,dict):
+        g = earth.gravity()
+        return dict["sec"]*(mass*g/dict["lod"])*time
 
 
 class ThrustDataEf(ThrustData):

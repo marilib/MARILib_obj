@@ -15,17 +15,13 @@ import numpy as np
 from numpy.linalg import solve
 from numpy.linalg.linalg import LinAlgError
 
-
-# TODO: this module need some cleaning and updates !
-
 def lin_interp_1d(x,X,Y):
+    """linear interpolation without any control
+    :param x: x current position
+    :param X: X array of the abscissa of the known points
+    :param Y: Y array of the known values at given abscissa
+    :return:
     """
-    linear interpolation without any control
-        x current position
-        X array of the abscissa of the known points
-        Y array of the known values at given abscissa
-    """
-
     n = np.size(X)
     for j in range(1,n):
         if x<X[j] :
@@ -35,10 +31,8 @@ def lin_interp_1d(x,X,Y):
     return y
 
 
-#===========================================================================================================
 def vander3(X):
-    """
-    Return the vandermonde matrix of a dim 3 array
+    """Return the vandermonde matrix of a dim 3 array
     A = [X^2, X, 1]
     """
     V = np.array([[X[0]**2, X[0], 1.],
@@ -49,8 +43,7 @@ def vander3(X):
 
 #===========================================================================================================
 def trinome(A,Y):
-    """
-    calculates trinome coefficients from 3 given points
+    """calculate trinome coefficients from 3 given points
     A = [X2, X, 1] (Vandermonde matrix)
     """
     X = np.array([A[0][1], A[1][1], A[2][1]])
@@ -75,17 +68,13 @@ def trinome(A,Y):
     return C
 
 
-#===========================================================================================================
 def maximize_1d(xini,dx,*fct):
     """Optimize 1 single variable, no constraint
-
-    :param xini: initial value of the variable
-    :param dx: fixed search step
-    :param fct: function with the signature : ['function_name',a1,a2,a3,...,an]
-        and function_name(x,a1,a2,a3,...,an)
-    :return: (xres,yres,rc)
+    :param xini : initial value of the variable
+    :param dx : fixed search step
+    :param fct : function with the signature : ['function_name',a1,a2,a3,...,an]
+                 and function_name(x,a1,a2,a3,...,an)
     """
-
     n = len(fct[0])
 
     X0 = xini

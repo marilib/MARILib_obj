@@ -5,14 +5,14 @@ Created on Wed Apr 29 11:11:11 2020
 ..author: DRUOT Thierry, Nicolas Monrolin
 """
 
-from marilib.context import unit
+from marilib.utils import unit
 from marilib.aircraft.aircraft_root import Arrangement
 from marilib.aircraft.aircraft_root import Aircraft
 from marilib.aircraft.requirement import Requirement
 
 from marilib.aircraft.mission import MissionDef
 
-from marilib.design import process
+from marilib.aircraft.design import process
 
 from marilib.aircraft.tool.read_write import MarilibIO
 

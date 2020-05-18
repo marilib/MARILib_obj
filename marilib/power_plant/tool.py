@@ -8,7 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy import interpolate
 
-from marilib.context import unit
+from marilib.utils import unit
 
 
 class Material(object):

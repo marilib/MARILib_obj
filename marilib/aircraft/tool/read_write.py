@@ -34,7 +34,7 @@ import json as json
 import pickle as pickle
 import re
 
-from marilib.context.unit import convert_to, convert_from
+from marilib.utils.unit import convert_to
 
 STANDARD_FORMAT = 6
 
@@ -164,6 +164,8 @@ DATA_DICT = {
     "battery_density": {"unit":"kg/m3", "mag":1e3, "txt":"Battery density"},
     "battery_energy_density": {"unit":"kWh/kg", "mag":1e1, "txt":"Battery energy density"},
     "power_chain_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Global efficiency of the electric power chain"},
+    "propeller_width": {"unit":"m", "mag":1e0, "txt":"Propeller diameter"},
+    "propeller_disk_load": {"unit":"daN/m2", "mag":1e2, "txt":"Propeller disk load diameter"},
     "hub_width": {"unit":"m", "mag":1e0, "txt":"Fan hub diameter"},
     "fan_width": {"unit":"m", "mag":1e0, "txt":"Fan diameter"},
     "nozzle_width": {"unit":"m", "mag":1e0, "txt":"Nozzle diameter"},
@@ -173,7 +175,8 @@ DATA_DICT = {
     "sec_type": {"unit":"string", "mag":6, "txt":"Type of Specific Energy Consumption, 'thrust' or 'power'"},
     "sec": {"unit":"kW/daN", "mag":1e0, "txt":"Specific Energy Consumption"},
     "sfc_type": {"unit":"string", "mag":6, "txt":"Type of Specific Fuel Consumption, 'thrust' or 'power'"},
-    "sfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific Fuel Consumption"},
+    "tsfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific Fuel Consumption versus thrust"},
+    "psfc": {"unit":"kg/kW/h", "mag":1e0, "txt":"Specific Fuel Consumption versus power"},
     "nei": {"unit":"int", "mag":1e0, "txt":"Number of engine inoperative, typically 0 or 1"},
     "disa": {"unit":"degK", "mag":1e1, "txt":"Temperature shift versus ISA conditions"},
     "altp": {"unit":"ft", "mag":1e4, "txt":"Target pressure altitude"},
@@ -285,7 +288,8 @@ DATA_DICT = {
     "crz_lod": {"unit":"no_dim", "mag":1e0, "txt":"Cruise lift to drag ratio"},
     "crz_thrust": {"unit":"kN", "mag":1e0, "txt":"Total cruise thrust"},
     "crz_throttle": {"unit":"no_dim", "mag":1e0, "txt":"Cruise throttle versus MCR"},
-    "crz_sfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Cruise specific fuel consumption"},
+    "crz_tsfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Cruise specific fuel consumption versus thrust"},
+    "crz_psfc": {"unit":"kg/kW/h", "mag":1e0, "txt":"Cruise specific fuel consumption versus power"},
     "crz_sec": {"unit":"kW/daN", "mag":1e0, "txt":"Cruise specific energy consumption"},
     "max_sar_altp": {"unit":"ft", "mag":1e0, "txt":"Altitude of specific air range"},
     "max_sar": {"unit":"NM/kg", "mag":1e0, "txt":"Maximum specific air range"},
@@ -293,7 +297,8 @@ DATA_DICT = {
     "max_sar_lod": {"unit":"no_dim", "mag":1e0, "txt":"Lift to drag ratio for maximum specific air range"},
     "max_sar_thrust": {"unit":"kN", "mag":1e0, "txt":"Total thrust for maximum specific air range"},
     "max_sar_throttle": {"unit":"no_dim", "mag":1e0, "txt":"Throttle versus MCR for maximum specific air range"},
-    "max_sar_sfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific fuel consumption for maximum specific air range"},
+    "max_sar_tsfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific fuel consumption versus thrust for maximum specific air range"},
+    "max_sar_psfc": {"unit":"kg/kW/h", "mag":1e0, "txt":"Specific fuel consumption versus power for maximum specific air range"},
     "max_esar_altp": {"unit":"ft", "mag":1e0, "txt":"Altitude of specific air range"},
     "max_esar": {"unit":"NM/kg", "mag":1e0, "txt":"Maximum specific air range"},
     "max_esar_cz": {"unit":"no_dim", "mag":1e0, "txt":"Lift coefficient for maximum specific air range"},

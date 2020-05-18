@@ -6,7 +6,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 """
 
-from marilib.context import unit
+from marilib.utils import unit
 
 
 class Requirement(object):
@@ -160,7 +160,7 @@ class ClimbReq(object):
         elif (arrangement.power_architecture=="tp"): altp = unit.m_ft(16000.)
         elif (arrangement.power_architecture=="pte1"): altp = unit.m_ft(31000.)
         elif (arrangement.power_architecture=="ef1"): altp = unit.m_ft(21000.)
-        elif (arrangement.power_architecture=="ep1"): altp = unit.m_ft(16000.)
+        elif (arrangement.power_architecture=="ep"): altp = unit.m_ft(16000.)
         else: raise Exception("propulsion.architecture index is out of range")
         top_of_climb = min(altp, requirement.cruise_altp - unit.m_ft(4000.))
         return top_of_climb

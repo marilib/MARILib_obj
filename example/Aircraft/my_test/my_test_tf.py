@@ -7,12 +7,12 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
-from marilib.context import unit
+from marilib.utils import unit
 from marilib.aircraft.aircraft_root import Arrangement
 from marilib.aircraft.aircraft_root import Aircraft
 from marilib.aircraft.requirement import Requirement
 
-from marilib.design import process
+from marilib.aircraft.design import process
 
 from marilib.aircraft.tool.read_write import MarilibIO
 
@@ -21,7 +21,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
                    stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "piggy_back",  # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
                    power_architecture = "tf",       # "tf", "extf", "efb", "exefb",
@@ -38,6 +38,8 @@ reqs = Requirement(n_pax_ref = 150.,
 ac = Aircraft("This_plane")
 
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
+
+
 
 
 ac.requirement.take_off.tofl_req = 2500.

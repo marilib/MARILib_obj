@@ -10,7 +10,7 @@ The :class:`Component` defines the common features of all components.
 
 import numpy as np
 
-from marilib.context import earth, unit
+from marilib.utils import earth, unit
 
 
 class Component(object):
@@ -1086,7 +1086,7 @@ class TankWingPod(Component):
             y_axe = 0.8 * body_width + 3.0 * self.width
 
         x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - 0.40*self.length
-        z_axe = (y_axe - 0.5 * body_width) * np.tan(wing_dihedral)
+        z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral)
 
         self.frame_origin = [x_axe, y_axe, z_axe]
 

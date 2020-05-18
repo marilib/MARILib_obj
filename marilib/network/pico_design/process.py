@@ -12,20 +12,20 @@ import pickle
 
 #import network.flight_data.data_explorer as data_explorer
 
-from marilib.context import unit
+from marilib.utils import unit
+
+from marilib.network.pico_design.calibration import get_data
 
 from marilib.network.pico_design.design_model import Aircraft, Fleet
 
+from marilib.network.flight_data.data_explorer import load_data_from_file
 
 
-def load_matrix_from_file(matrix_file_name):
-    with open(matrix_file_name, 'rb') as f:
-        data_matrix = pickle.load(f)
-    return data_matrix
 
 # ======================================================================================================
 # Test
 # ------------------------------------------------------------------------------------------------------
+data_dict = get_data("../input_data/Aircraft_general_data_v2.csv")
 # ac = Aircraft(npax=150., range=unit.m_NM(3000.), mach=0.78)
 #
 # ac.payload_range()
@@ -40,54 +40,26 @@ ac3 = Aircraft(npax=350., range=unit.m_km(12000.), mach=0.85)   # Long
 ac4 = Aircraft(npax=450., range=unit.m_km(12000.), mach=0.85)   # Long
 ac5 = Aircraft(npax=500., range=unit.m_km(14000.), mach=0.85)   # Very long
 
-ac_list0 = [ac0, ac1, ac2, ac3, ac4, ac5]
+ac_list = [ac0, ac1, ac2, ac3, ac4, ac5]
 
-ac0 = Aircraft(npax=117., range=unit.m_km(6000.), mach=0.78)    # A318
-ac1 = Aircraft(npax=134., range=unit.m_km(6500.), mach=0.78)    # A319
-ac2 = Aircraft(npax=164., range=unit.m_km(6000.), mach=0.78)    # A320
-ac3 = Aircraft(npax=199., range=unit.m_km(5600.), mach=0.78)    # A321
-ac4 = Aircraft(npax=140., range=unit.m_km(6600.), mach=0.78)    # A319neo
-ac5 = Aircraft(npax=165., range=unit.m_km(6200.), mach=0.78)    # A320neo
-ac6 = Aircraft(npax=190., range=unit.m_km(7000.), mach=0.78)    # A321neo
-ac7 = Aircraft(npax=246., range=unit.m_km(11500.), mach=0.82)   # A330-200
-ac8 = Aircraft(npax=277., range=unit.m_km(12000.), mach=0.82)   # A330-300
-ac9 = Aircraft(npax=257., range=unit.m_km(13600.), mach=0.82)   # A330-800neo
-ac10 = Aircraft(npax=287., range=unit.m_km(12000.), mach=0.82)   # A330-900neo
-ac11 = Aircraft(npax=280., range=unit.m_km(13000.), mach=0.85)   # A350-800neo
-ac12 = Aircraft(npax=326., range=unit.m_km(13500.), mach=0.85)   # A350-900neo
-ac13 = Aircraft(npax=400., range=unit.m_km(13000.), mach=0.85)   # A350-1000neo
-ac14 = Aircraft(npax=700., range=unit.m_km(14000.), mach=0.85)   # A380-800
+Airbus_list = []
+for i,name in enumerate(data_dict["Name"]):
+    if name[0]=="A":
+        Airbus_list.append(Aircraft(npax=data_dict["Npax"][i], range=data_dict["Range"][i], mach=data_dict["Speed"][i]))
 
-ac_list1 = [ac0, ac1, ac2, ac3, ac4, ac5, ac6, ac7, ac8, ac9, ac10, ac11, ac12, ac13, ac14]
+Boeing_list = []
+Full_list = Airbus_list
+for i,name in enumerate(data_dict["Name"]):
+    if name[0]!="A":
+        Boeing_list.append(Aircraft(npax=data_dict["Npax"][i], range=data_dict["Range"][i], mach=data_dict["Speed"][i]))
+        Full_list.append(Boeing_list[-1])
 
-ac20 = Aircraft(npax=130., range=unit.m_km(5500.), mach=0.785)    # 737-700
-ac21 = Aircraft(npax=160., range=unit.m_km(5500.), mach=0.785)    # 737-800
-ac22 = Aircraft(npax=177., range=unit.m_km(5500.), mach=0.785)    # 737-900ER
-ac23 = Aircraft(npax=138., range=unit.m_km(5800.), mach=0.79)    # 737 MAX 7
-ac24 = Aircraft(npax=162., range=unit.m_km(6100.), mach=0.79)    # 737 MAX 8
-ac25 = Aircraft(npax=178., range=unit.m_km(6200.), mach=0.79)   # 737 MAX 9
-ac26 = Aircraft(npax=188., range=unit.m_km(6700.), mach=0.79)   # 737 MAX 10
-ac27 = Aircraft(npax=261., range=unit.m_km(9500.), mach=0.80)   # 767-300ER
-ac28 = Aircraft(npax=242., range=unit.m_km(13000.), mach=0.85)   # 787-8
-ac29 = Aircraft(npax=290., range=unit.m_km(12700.), mach=0.85)   # 787-9
-ac30 = Aircraft(npax=330., range=unit.m_km(10700.), mach=0.85)   # 787-10
-ac31 = Aircraft(npax=300., range=unit.m_km(14500.), mach=0.84)   # 777-8
-ac32 = Aircraft(npax=400., range=unit.m_km(13500.), mach=0.84)   # 777-9
-ac33 = Aircraft(npax=317., range=unit.m_km(14200.), mach=0.84)   # 777-200LR
-ac34 = Aircraft(npax=350., range=unit.m_km(13000.), mach=0.84)   # 777-300ER
-ac35 = Aircraft(npax=313., range=unit.m_km(12500.), mach=0.84)   # 777-200ER
-ac36 = Aircraft(npax=467., range=unit.m_km(14000.), mach=0.84)   # 747-8
-
-ac_list2 = [ac20, ac21, ac22, ac23, ac24, ac25, ac26, ac27, ac28, ac29, ac30, ac31, ac32, ac33, ac34, ac35, ac36]
-
-ac_list3 = [ac0, ac1, ac2, ac3, ac4, ac5, ac6, ac7, ac8, ac9, ac10, ac11, ac12, ac13, ac14,
-            ac20, ac21, ac22, ac23, ac24, ac25, ac26, ac27, ac28, ac29, ac30, ac31, ac32, ac33, ac34, ac35, ac36]
 
 matrix_file = "../flight_data/all_flights_2016_matrix.bin"
 
-data_matrix = load_matrix_from_file(matrix_file)
+data_matrix = load_data_from_file(matrix_file)
 
-fleet = Fleet(ac_list0)
+fleet = Fleet(Airbus_list)
 
 out_dict = fleet.fleet_analysis(data_matrix)
 

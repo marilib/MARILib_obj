@@ -14,6 +14,9 @@ from copy import deepcopy
 def km2_m2(m2): return m2*1.e-6
 def m2_km2(km2): return km2*1.e6
 
+def kW_W(W): return W*1.e-3
+def W_kW(kW): return kW*1.e3
+
 def MW_W(W): return W*1.e-6
 def W_MW(MW): return MW*1.e6
 

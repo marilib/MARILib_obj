@@ -9,7 +9,7 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 from scipy.optimize import fsolve
 
-from marilib.context import earth
+from marilib.utils import earth
 
 from marilib.engine.ExergeticEngine import Turbofan, ElectricFan
 

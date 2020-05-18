@@ -5,7 +5,7 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
-from marilib.context import earth, unit
+from marilib.utils import earth, unit
 
 import numpy as np
 from scipy.optimize import fsolve
@@ -103,7 +103,7 @@ class MissionIsoMass(MissionBasic):
         self.crz_lod = lf_dict["lod"]
         self.crz_thrust = lf_dict["fn"]
         self.crz_throttle = lf_dict["thtl"]
-        self.crz_power = lf_dict["pw"]
+        self.crz_power = lf_dict["sec"]*lf_dict["fn"]
         self.crz_sec = lf_dict["sec"]
 
         self.max_esar_altp = sm_dict["altp"]
@@ -112,7 +112,7 @@ class MissionIsoMass(MissionBasic):
         self.max_esar_lod = sm_dict["lod"]
         self.max_esar_thrust = sm_dict["fn"]
         self.max_esar_throttle = sm_dict["thtl"]
-        self.max_esar_power = sm_dict["pw"]
+        self.max_esar_power = sm_dict["sec"]*sm_dict["fn"]
         self.max_esar_sec = sm_dict["sec"]
 
     def mass_mission_adaptation(self):
@@ -322,7 +322,10 @@ class Mission(MissionBasic):
         self.crz_lod = None
         self.crz_thrust = None
         self.crz_throttle = None
-        self.crz_sfc = None
+        if self.aircraft.airframe.nacelle.sfc_type=="thrust":
+            self.crz_tsfc = None
+        elif self.aircraft.airframe.nacelle.sfc_type=="power":
+            self.crz_psfc = None
 
         self.max_sar_altp = None
         self.max_sar = None
@@ -330,7 +333,10 @@ class Mission(MissionBasic):
         self.max_sar_lod = None
         self.max_sar_thrust = None
         self.max_sar_throttle = None
-        self.max_sar_sfc = None
+        if self.aircraft.airframe.nacelle.sfc_type=="thrust":
+            self.max_sar_tsfc = None
+        elif self.aircraft.airframe.nacelle.sfc_type=="power":
+            self.max_sar_psfc = None
 
     def eval_cruise_point(self):
         """Evaluate cruise point characteristics
@@ -350,7 +356,10 @@ class Mission(MissionBasic):
         self.crz_lod = lf_dict["lod"]
         self.crz_thrust = lf_dict["fn"]
         self.crz_throttle = lf_dict["thtl"]
-        self.crz_sfc = lf_dict["sfc"]
+        if self.aircraft.airframe.nacelle.sfc_type=="thrust":
+            self.crz_tsfc = lf_dict["sfc"]
+        elif self.aircraft.airframe.nacelle.sfc_type=="power":
+            self.crz_psfc = lf_dict["sfc"]
 
         self.max_sar_altp = sm_dict["altp"]
         self.max_sar = sm_dict["sar"]
@@ -358,7 +367,10 @@ class Mission(MissionBasic):
         self.max_sar_lod = sm_dict["lod"]
         self.max_sar_thrust = sm_dict["fn"]
         self.max_sar_throttle = sm_dict["thtl"]
-        self.max_sar_sfc = sm_dict["sfc"]
+        if self.aircraft.airframe.nacelle.sfc_type=="thrust":
+            self.max_sar_tsfc = sm_dict["sfc"]
+        elif self.aircraft.airframe.nacelle.sfc_type=="power":
+            self.max_sar_psfc = sm_dict["sfc"]
 
     def mass_mission_adaptation(self):
         """Solves coupling between MTOW and OWE
