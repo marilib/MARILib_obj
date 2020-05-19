@@ -34,7 +34,7 @@ import json as json
 import pickle as pickle
 import re
 
-from marilib.utils.unit import convert_to
+from marilib.utils.unit import convert_to, convert_from
 
 STANDARD_FORMAT = 6
 

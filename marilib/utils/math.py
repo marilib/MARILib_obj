@@ -17,10 +17,12 @@ from numpy.linalg.linalg import LinAlgError
 
 def lin_interp_1d(x,X,Y):
     """linear interpolation without any control
-    :param x: x current position
-    :param X: X array of the abscissa of the known points
-    :param Y: Y array of the known values at given abscissa
-    :return:
+
+    :param x: current position
+    :param X: array of the abscissa of the known points
+    :param Y: array of the known values at given abscissa
+    :return : y the interpolated value of Y at x
+
     """
     n = np.size(X)
     for j in range(1,n):
@@ -69,11 +71,12 @@ def trinome(A,Y):
 
 
 def maximize_1d(xini,dx,*fct):
-    """Optimize 1 single variable, no constraint
-    :param xini : initial value of the variable
-    :param dx : fixed search step
-    :param fct : function with the signature : ['function_name',a1,a2,a3,...,an]
-                 and function_name(x,a1,a2,a3,...,an)
+    """Optimize 1 single variable, no constraint.
+
+    :param xini: initial value of the variable.
+    :param dx: fixed search step.
+    :param fct: function with the signature : ['function_name',a1,a2,a3,...,an] and function_name(x,a1,a2,a3,...,an).
+
     """
     n = len(fct[0])
 
