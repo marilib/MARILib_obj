@@ -198,7 +198,10 @@ class WeightCg(object):
         self.mass_analysis()
 
 
-#--------------------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------
+#                            POWER SYTEM DESCRIPTION
+# -----------------------------------------------------------------------------------
+
 class ThrustData(object):
     def __init__(self, nei=0):
         self.disa = None
@@ -209,6 +212,7 @@ class ThrustData(object):
 
 
 class PowerSystem(object):
+    """A generic class that describes a power system."""
 
     def __init__(self, aircraft):
         self.aircraft = aircraft

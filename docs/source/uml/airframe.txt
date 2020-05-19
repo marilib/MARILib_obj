@@ -1,0 +1,104 @@
+@startuml
+
+Airframe "*" *-- Component
+Component o-- Aircraft
+Component <|-- Cabin
+Component <|-- Cargo
+Component <|-- Fuselage
+Component <|-- Wing
+Component <|-- VTP_classic
+Component <|-- VTP_T
+Component <|-- VTP_H
+Component <|-- HTP_classic
+Component <|-- HTP_T
+Component <|-- HTP_H
+Component <|-- Tank_wing_box
+Component <|-- Tank_wing_pod
+Component <|-- Tank_piggy_back
+Component <|-- Landing_gear
+Component <|-- System
+Component <|-- Semi_empiric_turbofan_nacelle
+Component <|-- inboard_wing_mounted_nacelle
+Component <|-- outboard_wing_mounted_nacelle
+Component <|-- rear_fuselage_mounted_nacelle
+Component <|-- Outboard_wing_mounted_tf_nacelle
+Component <|-- Inboard_wing_mounted_tf_nacelle
+Component <|-- rear_fuselage_tf_mounted_nacelle
+
+class Airframe {
+component1
+component2
+
+geometry_analysis()
+statistical_predesign()
+}
+
+abstract class Component{
+	aircraft
+	frame_origin
+	frame_angles
+	mass
+	inertia_tensor
+	gross_wet_area
+	net_wet_area
+	aero_length
+	form_factor
+
+	eval_mass()
+	eval_mwe()
+	eval_cg()
+	eval_inertia_tensor()
+	eval_gross_wet_area()
+	eval_net_wet_area()
+	eval_aero_length()
+	eval_form_factor()
+
+}
+
+class Cabin{
+	width
+	length
+	projected_area
+	m_furnishing
+	m_op_item
+	cg_furnishing
+	cg_op_item
+}
+
+class Fuselage{
+	width
+	height
+	length
+	tail_cone_length
+}
+
+class Wing{
+	morphing
+	area
+	span
+	aspect_ratio
+	sweep0
+	sweep25
+	sweep100
+	dihedral
+	setting
+
+	loc_root
+	toc_root
+	c_tip
+
+	loc_kink
+	toc_kink
+	c_kink
+
+	loc_tip
+	toc_tip
+	c_tip
+
+	loc_mac
+	mac
+
+}
+
+
+@enduml

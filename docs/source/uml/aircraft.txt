@@ -1,0 +1,147 @@
+@startuml
+
+package "aircraft" {
+	Aircraft o-- Requirement
+	Aircraft o-- Arrangement
+
+	class Aircraft {
+		name
+		requirement
+		arrangement
+		airframe
+		power_system
+		aerodynamics
+		weight_cg
+		performance
+		economics
+		environment
+		draw
+
+		factory()
+	}
+
+	class Requirement {
+		n_pax_ref
+		design_range
+		cruise_mach
+		cruise_altp
+		...
+	}
+
+    class Arrangement {
+        name
+        body_type
+        wing_attachment
+        htp_attachment
+        vtp_attachment
+        tank_architecture
+        number_of_engine
+        nacelle_attachment
+        power_architecture
+        energy_source
+    }
+
+    package "model" {
+        Aircraft *-- PowerSystem
+        Aircraft *-- Aerodynamics
+        Aircraft *-- WeightCg
+
+        abstract class PowerSystem {
+            thrust_requirement()
+            thrust_analysis()
+            thrust()
+            sc()
+            oei_drag()
+            tail_cone_drag_factor()
+            breguet_range()
+        }
+
+        class Aerodynamics {
+            aerodynamic_analysis()
+            drag()
+            lod_max()
+        }
+
+        class WeightCg {
+            mass_analysis()
+            mass_pre_design()
+        }
+    }
+
+    package "tool"{
+        Aircraft *-- Drawing
+
+        class Drawing {
+            payload_range()
+            view_3d()
+            nacelle_shape()
+        }
+    }
+
+    package "performance" {
+        Aircraft *-- Performance
+
+        class Performance {
+            aircraft
+
+            mission
+            take_off
+            approach
+            mcr_ceiling
+            mcl_ceiling
+            oei_ceiling
+            time_to_climb
+
+            analysis()
+        }
+
+    }
+
+    package "environment" {
+        Aircraft *-- Economics
+        Aircraft *-- Environment
+    }
+
+    package "mission" {
+
+    }
+
+    package "airframe" {
+    hide attributes
+        Aircraft *-- Airframe
+        Airframe "0..*" *-- Component
+        Component o-- Aircraft
+
+        class Airframe {
+        component1
+        component2
+
+        geometry_analysis()
+        statistical_predesign()
+        }
+
+        abstract class Component{
+            aircraft
+            frame_origin
+            frame_angles
+            mass
+            inertia_tensor
+            gross_wet_area
+            net_wet_area
+            aero_length
+            form_factor
+
+            eval_mass()
+            eval_mwe()
+            eval_cg()
+            eval_inertia_tensor()
+            eval_gross_wet_area()
+            eval_net_wet_area()
+            eval_aero_length()
+            eval_form_factor()
+
+        }
+    }
+}
+
+@enduml

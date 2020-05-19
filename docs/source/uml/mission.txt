@@ -1,0 +1,16 @@
+@startuml
+package "aircraft" {
+    class Aircraft
+
+    package "mission" {
+        Flight <|-- MissionBasic
+        Aircraft *-- MissionBasic
+        class MissionBasic {
+
+        }
+    }
+    package "performance" {
+        class Flight
+    }
+}
+@enduml

@@ -1,0 +1,153 @@
+@startuml
+package "aircraft" {
+    class Aircraft {
+
+    }
+    package "performance" {
+        Aircraft *-- Performance
+        Flight <|-- TakeOff
+        Flight <|-- MclCeiling
+        Flight <|-- McrCeiling
+        Flight <|-- OeiCeiling
+        Flight <|-- TimeToClimb
+
+        Performance "4" *-- Flight
+        Performance *-- Approach
+
+        class Performance {
+            aircraft
+            
+            mission
+            take_off
+            approach
+            mcr_ceiling
+            mcl_ceiling
+            oei_ceiling
+            time_to_climb
+
+            analysis()
+        }
+
+        class Approach {
+            aircraft
+            
+            disa
+            altp
+            kmlw
+            kvs1g
+            app_speed_req
+            app_speed_eff
+            hld_conf
+
+            eval()
+        }
+
+        abstract class Flight {
+            aircraft
+
+            get_speed()
+            get_mach()
+            speed_from_lift()
+            lift_from_speed()
+            level_flight()
+            air_path()
+            max_air_path()
+            propulsion_ceiling()
+            eval_sar()
+            eval_max_sar()
+            acceleration()
+            breguet_range()
+            holding()
+        }
+
+        class MclCeiling {
+            aircraft
+
+            disa
+            altp
+            mach
+            kmtow
+            rating
+            speed_mode
+            vz_req
+            vz_eff
+
+            eval()
+            thrust_opt()
+        }
+
+        class TakeOff {
+            aircraft
+
+            disa
+            altp
+            kmtow
+            kvs1g
+            s2_min_path
+            tofl_req
+            tofl_eff
+            hld_conf
+            kvs1g_eff
+            v2
+            mach2
+            s2_path
+            limit
+
+            eval()
+            thrust_opt()
+        }
+
+        class McrCeiling {
+            aircraft
+                      
+            disa
+            altp
+            mach
+            kmtow
+            rating
+            speed_mode
+            vz_req
+            vz_eff
+
+            eval()
+            thrust_opt()
+        }
+
+        class OeiCeiling {
+            aircraft
+
+            disa
+            altp
+            kmtow
+            rating
+            speed_mode
+            path_req
+            path_eff
+            mach_opt
+            
+            eval()
+            thrust_opt()
+        }
+
+        class TimeToClimb {
+             aircraft
+
+             disa
+             altp
+             mach
+             kmtow
+             cas1
+             altp1
+             cas2
+             altp2
+             altp
+             ttc_req
+             ttc_eff
+
+             eval()
+             thrust_opt()
+        }
+    }
+}
+
+@enduml
