@@ -154,7 +154,7 @@ def take_off_field_length(disa,altp,mass,hld_conf):
     s2_min_path = get_s2_min_path(ne)
     kvs1g = 1.13
 
-    tofl,s2_path,cas,mach = take_off(kvs1g,altp,disa,mass,hld_conf)
+    tofl,s2_path,cas,mach,czmax = take_off(kvs1g,altp,disa,mass,hld_conf)
 
     if(s2_min_path<s2_path):
         limitation = "fl"   # field length
@@ -166,16 +166,16 @@ def take_off_field_length(disa,altp,mass,hld_conf):
 
         s2_path_ = np.array([0.,0.])
         s2_path_[0] = s2_path
-        tofl,s2_path_[1],cas,mach = take_off(kvs1g_[1],altp,disa,mass,hld_conf)
+        tofl,s2_path_[1],cas,mach,czmax = take_off(kvs1g_[1],altp,disa,mass,hld_conf)
 
         while(s2_path_[0]<s2_path_[1] and s2_path_[1]<s2_min_path):
             kvs1g_[0] = kvs1g_[1]
             kvs1g_[1] = kvs1g_[1] + dkvs1g
-            tofl,s2_path_[1],cas,mach = take_off(kvs1g_[1],altp,disa,mass,hld_conf)
+            tofl,s2_path_[1],cas,mach,czmax = take_off(kvs1g_[1],altp,disa,mass,hld_conf)
 
         if(s2_min_path<s2_path_[1]):
             kvs1g = kvs1g_[0] + ((kvs1g_[1]-kvs1g_[0])/(s2_path_[1]-s2_path_[0]))*(s2_min_path-s2_path_[0])
-            tofl,s2_path,cas,mach = take_off(kvs1g,altp,disa,mass,hld_conf)
+            tofl,s2_path,cas,mach,czmax = take_off(kvs1g,altp,disa,mass,hld_conf)
             s2_path = s2_min_path
             limitation = "s2"   # second segment
         else:
@@ -184,7 +184,7 @@ def take_off_field_length(disa,altp,mass,hld_conf):
             s2_path = 0.
             limitation = None
 
-    return {"tofl":tofl, "kvs1g":kvs1g, "path":s2_path, "v2":cas, "mach2":mach, "limit":limitation}
+    return {"tofl":tofl, "kvs1g":kvs1g, "path":s2_path, "v2":cas, "mach2":mach, "limit":limitation, "czmax":czmax}
 
 
 def take_off(kvs1g,altp,disa,mass,hld_conf):
@@ -211,13 +211,13 @@ def take_off(kvs1g,altp,disa,mass,hld_conf):
     acc_factor = climb_mode('cas', mach, dtodz, tstd, disa)
     s2_path = ( (fn*(ne-1)/ne)/(mass*g) - 1./lod ) / acc_factor
 
-    return tofl,s2_path,cas,mach
+    return tofl,s2_path,cas,mach,czmax
 
 
 def get_data():
     return {"n_engine":2,
             "bpr":9.,
-            "fn_ref":100000.,
+            "fn_ref":90000.,
             "wing_area":140.,
             "hld_type":9}
 
@@ -235,5 +235,6 @@ print(" Active limit = ",dict["limit"])
 print(" kVs1g at 35 ft = ","%0.3f"%dict["kvs1g"])
 print(" Air path at 35 ft = ","%0.2f"%(dict["path"]*100.), " %")
 print(" Speed at 35 ft V2 = ","%0.1f"%kt_mps(dict["v2"]), " kt")
-print(" Machh at 35 ft = ","%0.3f"%dict["mach2"])
+print(" Mach at 35 ft = ","%0.3f"%dict["mach2"])
+print(" Cz max = ","%0.2f"%dict["czmax"])
 

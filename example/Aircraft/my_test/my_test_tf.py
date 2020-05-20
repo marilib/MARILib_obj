@@ -14,7 +14,7 @@ from marilib.aircraft.requirement import Requirement
 
 from marilib.aircraft.design import process
 
-from marilib.aircraft.tool.read_write import MarilibIO
+from marilib.utils.read_write import MarilibIO
 
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"

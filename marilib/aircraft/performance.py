@@ -424,6 +424,7 @@ class Approach(Flight):
     """Approach speed
     """
     def __init__(self, aircraft):
+        super(Approach, self).__init__(aircraft)
         self.aircraft = aircraft
 
         self.disa = None
@@ -437,11 +438,14 @@ class Approach(Flight):
     def eval(self,disa,altp,mass,hld_conf,kvs1g):
         """Minimum approach speed (VLS)
         """
-        g = earth.gravity()
-        czmax,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-        rho,sig = earth.air_density(pamb, tamb)
-        vapp = np.sqrt((mass*g) / (0.5*rho*self.aircraft.airframe.wing.area*(czmax / kvs1g**2)))
+
+        czmax,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)
+        cz = czmax / kvs1g**2
+
+        mach = self.speed_from_lift(pamb,tamb,cz,mass)
+        vapp = self.get_speed(pamb,"cas",mach)
+
         return {"vapp":vapp}
 
 

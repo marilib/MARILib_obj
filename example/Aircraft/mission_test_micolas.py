@@ -14,7 +14,7 @@ from marilib.aircraft.mission import MissionDef
 
 from marilib.design import process
 
-from marilib.aircraft.tool.read_write import MarilibIO
+from marilib.utils.read_write import MarilibIO
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
