@@ -20,7 +20,7 @@ class Performance(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.mission = None
+        self.mission = None  # Initialized by the factory of the Aircraft.
         self.take_off = TakeOff(aircraft)
         self.approach = Approach(aircraft)
         self.mcr_ceiling = McrCeiling(aircraft)
@@ -420,7 +420,7 @@ class TakeOff(Flight):
         return tofl,s2_path,speed,mach
 
 
-class Approach():
+class Approach(Flight):
     """Approach speed
     """
     def __init__(self, aircraft):

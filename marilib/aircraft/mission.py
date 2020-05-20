@@ -509,8 +509,6 @@ class MissionNominal(Flight):
         return
 
 
-
-
 class MissionGeneric(MissionNominal):
     """Generic mission evaluation
     Four variables are driving mission computation : total_fuel, tow, payload & range
