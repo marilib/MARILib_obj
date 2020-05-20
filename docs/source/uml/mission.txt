@@ -2,7 +2,7 @@
 package "aircraft" {
     class Aircraft
 
-    package "mission" {
+    package "performance & mission" {
 
         MissionBasic <|-- Mission
         MissionBasic <|-- MissionIsoMass
@@ -24,9 +24,6 @@ package "aircraft" {
         class MissionBasic {
 
         }
-    }
-    package "performance" {
-        class Flight
     }
 }
 @enduml
