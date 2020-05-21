@@ -88,7 +88,7 @@ class Economics():
         """
         n_pax_ref = self.aircraft.requirement.n_pax_ref
 
-        energy_source = self.aircraft.arrangement.energy_source
+        fuel_type = self.aircraft.arrangement.fuel_type
         power_architecture = self.aircraft.arrangement.power_architecture
         nacelle_mass = self.aircraft.airframe.nacelle.mass
 
@@ -103,11 +103,11 @@ class Economics():
 
         # Cash Operating Cost
         #-----------------------------------------------------------------------------------------------------------------------------------------------
-        if (self.aircraft.arrangement.energy_source=="battery"):
+        if (self.aircraft.arrangement.power_source == "battery"):
             enrg_block = self.aircraft.performance.mission.cost.enrg_block
             self.fuel_cost = enrg_block*self.energy_price
         else:
-            fuel_density = earth.fuel_density(energy_source)
+            fuel_density = earth.fuel_density(fuel_type)
             fuel_block = self.aircraft.performance.mission.cost.fuel_block
             self.fuel_cost = fuel_block*self.fuel_price/fuel_density
 
@@ -170,24 +170,24 @@ class Environment(Flight):
         super(Environment, self).__init__(aircraft)
         self.aircraft = aircraft
 
-        energy_source = self.aircraft.arrangement.energy_source
+        fuel_type = self.aircraft.arrangement.fuel_type
 
         self.CO2_metric = None
-        self.CO2_index = earth.emission_index(energy_source, "CO2")
-        self.H2O_index = earth.emission_index(energy_source, "H2O")
-        self.SO2_index = earth.emission_index(energy_source, "SO2")
-        self.NOx_index = earth.emission_index(energy_source, "NOx")
-        self.CO_index = earth.emission_index(energy_source, "CO")
-        self.HC_index = earth.emission_index(energy_source, "HC")
-        self.sulfuric_acid_index = earth.emission_index(energy_source, "sulfuric_acid")
-        self.nitrous_acid_index = earth.emission_index(energy_source, "nitrous_acid")
-        self.nitric_acid_index = earth.emission_index(energy_source, "nitric_acid")
-        self.soot_index = earth.emission_index(energy_source, "soot")
+        self.CO2_index = earth.emission_index(fuel_type, "CO2")
+        self.H2O_index = earth.emission_index(fuel_type, "H2O")
+        self.SO2_index = earth.emission_index(fuel_type, "SO2")
+        self.NOx_index = earth.emission_index(fuel_type, "NOx")
+        self.CO_index = earth.emission_index(fuel_type, "CO")
+        self.HC_index = earth.emission_index(fuel_type, "HC")
+        self.sulfuric_acid_index = earth.emission_index(fuel_type, "sulfuric_acid")
+        self.nitrous_acid_index = earth.emission_index(fuel_type, "nitrous_acid")
+        self.nitric_acid_index = earth.emission_index(fuel_type, "nitric_acid")
+        self.soot_index = earth.emission_index(fuel_type, "soot")
 
     def fuel_efficiency_metric(self):
         """Fuel efficiency metric (CO2 metric) valid for kerosene aircraft only
         """
-        if (self.aircraft.arrangement.energy_source=="kerosene"):
+        if (self.aircraft.arrangement.fuel_type=="kerosene"):
             mtow = self.aircraft.weight_cg.mtow
             rgf = self.aircraft.airframe.cabin.projected_area      # Reference Geometric Factor (Pressurized floor area)
             disa = self.aircraft.requirement.cruise_disa

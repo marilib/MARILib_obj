@@ -120,6 +120,8 @@ class SystemWithBattery(Component):
 
         self.power_chain_efficiency = None
 
+        self.power_elec_mass = None
+
     def eval_geometry(self):
         self.frame_origin = [0., 0., 0.]
 
@@ -131,20 +133,19 @@ class SystemWithBattery(Component):
         vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
         nacelle_cg = self.aircraft.airframe.nacelle.cg
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
+        n_engine = self.aircraft.airframe.nacelle.n_engine
 
         self.power_chain_efficiency =   self.wiring_efficiency \
                                       * self.aircraft.airframe.nacelle.controller_efficiency \
                                       * self.aircraft.airframe.nacelle.motor_efficiency
 
-        shaft_power_max = self.aircraft.airframe.nacelle.reference_power
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        elec_power_max = self.aircraft.airframe.nacelle.reference_power / self.power_chain_efficiency
 
-        power_elec_mass = (  1./self.wiring_pw_density + 1./self.cooling_pw_density
-                          ) * (shaft_power_max * n_engine)
+        self.power_elec_mass = (1./self.wiring_pw_density + 1./self.cooling_pw_density) * (elec_power_max * n_engine)
 
         power_elec_cg = 0.70*nacelle_cg + 0.30*body_cg
 
-        self.mass = 0.545*mtow**0.8  + power_elec_mass  # global mass of all systems
+        self.mass = 0.545*mtow**0.8  + self.power_elec_mass  # global mass of all systems
 
         self.cg =   0.40*body_cg \
                   + 0.20*wing_cg \
@@ -164,11 +165,14 @@ class SystemWithFuelCell(Component):
 
         self.cooling_pw_density = 10.e3     # W/kg, Cooling
 
-        self.fuel_cell_pw_density = 400. # W/kg
+        self.fuel_cell_pw_density = 1.e3    # W/kg
         self.fuel_cell_efficiency = 0.5
 
         self.global_energy_density = None
         self.power_chain_efficiency = None
+
+        self.fuel_cell_mass = None
+        self.power_elec_mass = None
 
     def eval_geometry(self):
         self.frame_origin = [0., 0., 0.]
@@ -181,20 +185,21 @@ class SystemWithFuelCell(Component):
         vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
         nacelle_cg = self.aircraft.airframe.nacelle.cg
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
+        n_engine = self.aircraft.airframe.nacelle.n_engine
 
         self.power_chain_efficiency =   self.wiring_efficiency \
                                       * self.aircraft.airframe.nacelle.controller_efficiency \
                                       * self.aircraft.airframe.nacelle.motor_efficiency
 
-        shaft_power_max = self.aircraft.airframe.nacelle.reference_power
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        elec_power_max = self.aircraft.airframe.nacelle.reference_power / self.power_chain_efficiency
 
-        power_elec_mass = (  1./self.wiring_pw_density + 1./self.cooling_pw_density + 1./self.fuel_cell_pw_density
-                          ) * (shaft_power_max * n_engine)
+        self.fuel_cell_mass = (elec_power_max * n_engine)/self.fuel_cell_pw_density
+        self.power_elec_mass =   (1./self.wiring_pw_density + 1./self.cooling_pw_density) * (elec_power_max * n_engine) \
+                               + self.fuel_cell_mass
 
         power_elec_cg = 0.70*nacelle_cg + 0.30*body_cg
 
-        self.mass = 0.545*mtow**0.8  + power_elec_mass  # global mass of all systems
+        self.mass = 0.545*mtow**0.8  + self.power_elec_mass  # global mass of all systems
 
         self.cg =   0.40*body_cg \
                   + 0.20*wing_cg \
@@ -227,7 +232,6 @@ class SemiEmpiricTfNacelle(Component):
         self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_offtake = 0.
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
-        self.sfc_type = "thrust"
         self.tune_factor = 1.
         self.engine_bpr = self.__turbofan_bpr()
         self.core_thrust_ratio = 0.13

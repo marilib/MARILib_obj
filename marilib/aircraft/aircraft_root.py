@@ -29,7 +29,8 @@ class Arrangement(object):
                       number_of_engine = "twin",       # "twin" or "quadri"
                       nacelle_attachment = "wing",     # "wing", "pod" or "rear"
                       power_architecture = "tf",       # "tf", "tp", "ef", "pte1", "ef1", "ep1",
-                      energy_source = "kerosene"       # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery", fuel_cell
+                      power_source = "fuel",           # "fuel", "battery", "fuel_cell"
+                      fuel_type = "kerosene"           # "kerosene", "methane", "liquid_h2", "700bar_h2" or "battery"
                  ):
 
         self.body_type = body_type
@@ -40,7 +41,8 @@ class Arrangement(object):
         self.number_of_engine = number_of_engine
         self.nacelle_attachment = nacelle_attachment
         self.power_architecture = power_architecture
-        self.energy_source = energy_source
+        self.power_source = power_source
+        self.fuel_type = fuel_type
 
 
 class Aircraft(object):
@@ -69,7 +71,7 @@ class Aircraft(object):
         self.arrangement = arrangement
 
         if (self.arrangement.power_architecture in ["ef","ep","exef"]):
-            if(self.arrangement.energy_source not in ["battery","fuel_cell"]):
+            if(self.arrangement.power_source not in ["battery","fuel_cell"]):
                 raise Exception("Power architecture electro_fan (ef) requires energy source battery or fuel_cell")
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -117,9 +119,9 @@ class Aircraft(object):
         self.airframe.landing_gear = component.LandingGear(self)
 
 # ----------------------------------------------------------------------------------------------------------------------
-        if (self.arrangement.energy_source == "battery"):
+        if (self.arrangement.power_source == "battery"):
             self.airframe.system = propulsion.SystemWithBattery(self)
-        elif (self.arrangement.energy_source == "fuel_cell"):
+        elif (self.arrangement.power_source == "fuel_cell"):
             self.airframe.system = propulsion.SystemWithFuelCell(self)
         else:
             self.airframe.system = propulsion.System(self)
@@ -248,7 +250,7 @@ class Aircraft(object):
         self.performance = Performance(self)
 
 # ----------------------------------------------------------------------------------------------------------------------
-        if (self.arrangement.energy_source == "battery"):
+        if (self.arrangement.power_source == "battery"):
             self.performance.mission = AllMissionIsoMass(self)
         else:
             self.performance.mission = AllMissionVarMass(self)
