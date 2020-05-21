@@ -1,8 +1,13 @@
 # Doc generation with Sphinx
 
+Initializing docs
+=================
 This folder docs/ as been created once for all using the command
     
     MARILib_obj/docs/> sphinx-quickstart
+
+Building the html documentation
+===============================
 
 Then to build the documentation, run the three following commands.
 First clean the `build/` directory with

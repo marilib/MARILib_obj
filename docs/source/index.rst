@@ -8,8 +8,12 @@
     :width: 50%
     :alt: logo MARILib
 
-Welcome to MARILib's documentation!
-===================================
+.. include:: ../../README.rst
+
+This is some text :doc:`test <../../LICENSE.rst>`
+
+MARILib documentation
+=====================
 
 .. toctree::
    :glob:

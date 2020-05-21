@@ -1,0 +1,29 @@
+@startuml
+package "aircraft" {
+    class Aircraft
+
+    package "performance & mission" {
+
+        MissionBasic <|-- Mission
+        MissionBasic <|-- MissionIsoMass
+
+        Mission *-- MissionNominal
+        Mission "0..1" *-- MissionGeneric
+
+        MissionIsoMass "0..1" *-- MissionIsoMassGeneric
+        MissionIsoMass "0..1" *-- MissionIsoMassNominal
+
+        MissionNominal <|-- MissionGeneric
+        MissionIsoMassNominal <|-- MissionIsoMassGeneric
+
+        Flight <|-- MissionBasic
+        Flight <|-- MissionNominal
+        Flight <|-- MissionIsoMassNominal
+
+        Aircraft *-- MissionBasic
+        class MissionBasic {
+
+        }
+    }
+}
+@enduml

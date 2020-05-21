@@ -12,7 +12,7 @@ from marilib.aircraft.requirement import Requirement
 
 from marilib.aircraft.mission import MissionDef
 
-from marilib.aircraft.design import process
+from marilib.design import process
 
 from marilib.utils.read_write import MarilibIO
 

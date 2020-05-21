@@ -631,7 +631,7 @@ class MissionDef(Flight):
         return output
 
 
-    def __init_unknowns(self,unknowns):
+    def init_unknowns(self,unknowns):
         """Initialize the value of the unknowns before calling fsolve
         :param unknowns: a list of two variable names in ['range', 'tow', 'payload', 'fuel_total']
         :return: two init values
@@ -648,7 +648,7 @@ class MissionDef(Flight):
                 x0[k] = self.aircraft.weight_cg.mtow
         return x0
 
-    def __mission_equations_to_solve(self, unknowns, *args):
+    def mission_equations_to_solve(self, unknowns, *args):
         """The set of two equations to solve to determine the two unknowns:
             1) `fuel_total - eval_Breguet(range,tow, altp, mach, disa) = 0`
             2) `tow - payload - fuel_total - owe = 0`
