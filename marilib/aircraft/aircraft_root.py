@@ -11,7 +11,7 @@ from marilib.aircraft.airframe import propulsion, component, model
 from marilib.engine import interface
 
 from marilib.aircraft.performance import Performance
-from marilib.aircraft.mission import Mission, MissionIsoMass
+from marilib.aircraft.mission import AllMissionVarMass, AllMissionIsoMass
 from marilib.aircraft.environment import Economics
 from marilib.aircraft.environment import Environment
 
@@ -28,7 +28,7 @@ class Arrangement(object):
                       tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                       number_of_engine = "twin",       # "twin" or "quadri"
                       nacelle_attachment = "wing",     # "wing", "pod" or "rear"
-                      power_architecture = "tf",       # "tf", "tp", "efb", "pte1", "ef1", "ep1",
+                      power_architecture = "tf",       # "tf", "tp", "ef", "pte1", "ef1", "ep1",
                       energy_source = "kerosene"       # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery", fuel_cell
                  ):
 
@@ -68,25 +68,29 @@ class Aircraft(object):
         self.requirement = requirement
         self.arrangement = arrangement
 
-        if (self.arrangement.power_architecture in ["efb","exefb"]):
-            if(self.arrangement.energy_source!="battery"):
+        if (self.arrangement.power_architecture in ["ef","ep","exef"]):
+            if(self.arrangement.energy_source not in ["battery","fuel_cell"]):
                 raise Exception("Power architecture electro_fan (ef) requires energy source battery or fuel_cell")
 
-        # plug a cabin component
+# ----------------------------------------------------------------------------------------------------------------------
         self.airframe.cabin = component.Cabin(self)
 
+# ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.body_type=="fuselage"):
             self.airframe.body = component.Fuselage(self)
         else:
             raise Exception("Type of body is unknown")
 
+# ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.wing_type=="classic"):
             self.airframe.wing = component.Wing(self)
         else:
             raise Exception("Type of wing is unknown")
 
+# ----------------------------------------------------------------------------------------------------------------------
         self.airframe.cargo = component.Cargo(self)
 
+# ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.stab_architecture=="classic"):
             self.airframe.vertical_stab = component.VtpClassic(self)
             self.airframe.horizontal_stab = component.HtpClassic(self)
@@ -99,6 +103,7 @@ class Aircraft(object):
         else:
             raise Exception("stab_architecture is unknown")
 
+# ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.tank_architecture=="wing_box"):
             self.airframe.tank = component.TankWingBox(self)
         elif (self.arrangement.tank_architecture=="piggy_back"):
@@ -108,13 +113,18 @@ class Aircraft(object):
         else:
             raise Exception("Type of tank is unknown")
 
+# ----------------------------------------------------------------------------------------------------------------------
         self.airframe.landing_gear = component.LandingGear(self)
 
-        if (self.arrangement.power_architecture in ["ep","efb","exefb"]):
+# ----------------------------------------------------------------------------------------------------------------------
+        if (self.arrangement.energy_source == "battery"):
             self.airframe.system = propulsion.SystemWithBattery(self)
+        elif (self.arrangement.energy_source == "fuel_cell"):
+            self.airframe.system = propulsion.SystemWithFuelCell(self)
         else:
             self.airframe.system = propulsion.System(self)
 
+# ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.power_architecture=="tf"):
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
@@ -159,6 +169,24 @@ class Aircraft(object):
                 raise Exception("Type of nacelle attachment is not allowed")
             self.power_system = model.Electroprop(self)
 
+        elif (self.arrangement.power_architecture=="ef"):
+            if (self.arrangement.nacelle_attachment=="wing"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = propulsion.InboardWingMountedEfNacelle(self)
+                elif (self.arrangement.number_of_engine=="quadri"):
+                    self.airframe.nacelle = propulsion.OutboardWingMountedEfNacelle(self)
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEfNacelle(self)
+                else:
+                    raise Exception("Number of engines not allowed")
+            elif (self.arrangement.nacelle_attachment=="rear"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = propulsion.RearFuselageMountedEfNacelle(self)
+                else:
+                    raise Exception("Number of engines not allowed")
+            else:
+                raise Exception("Type of nacelle attachment is unknown")
+            self.power_system = model.Electrofan(self)
+
         elif (self.arrangement.power_architecture=="extf"):
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
@@ -177,25 +205,7 @@ class Aircraft(object):
                 raise Exception("Type of nacelle attachment is unknown")
             self.power_system = model.Turbofan(self)
 
-        elif (self.arrangement.power_architecture=="efb"):
-            if (self.arrangement.nacelle_attachment=="wing"):
-                if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.InboardWingMountedEfNacelle(self)
-                elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.OutboardWingMountedEfNacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEfNacelle(self)
-                else:
-                    raise Exception("Number of engines not allowed")
-            elif (self.arrangement.nacelle_attachment=="rear"):
-                if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.RearFuselageMountedEfNacelle(self)
-                else:
-                    raise Exception("Number of engines not allowed")
-            else:
-                raise Exception("Type of nacelle attachment is unknown")
-            self.power_system = model.Battery(self)
-
-        elif (self.arrangement.power_architecture=="exefb"):
+        elif (self.arrangement.power_architecture=="exef"):
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
                     self.airframe.nacelle = interface.Inboard_wing_mounted_exef_nacelle(self)
@@ -216,6 +226,7 @@ class Aircraft(object):
         else:
             raise Exception("Type of power architecture is unknown")
 
+# ----------------------------------------------------------------------------------------------------------------------
         self.airframe.mass_analysis_order = ["cabin",
                                            "body",
                                            "wing",
@@ -227,21 +238,25 @@ class Aircraft(object):
                                            "tank",
                                            "system"]
 
+# ----------------------------------------------------------------------------------------------------------------------
         self.aerodynamics = model.Aerodynamics(self)
 
+# ----------------------------------------------------------------------------------------------------------------------
         self.weight_cg = model.WeightCg(self)
 
+# ----------------------------------------------------------------------------------------------------------------------
         self.performance = Performance(self)
 
-        if (self.arrangement.power_architecture in ["tf","extf","tp"]):
-            self.performance.mission = Mission(self)
-        elif (self.arrangement.power_architecture in ["ep","efb","exefb"]):
-            self.performance.mission = MissionIsoMass(self)
+# ----------------------------------------------------------------------------------------------------------------------
+        if (self.arrangement.energy_source == "battery"):
+            self.performance.mission = AllMissionIsoMass(self)
         else:
-            raise Exception("Type of power architecture is unknown")
+            self.performance.mission = AllMissionVarMass(self)
 
+# ----------------------------------------------------------------------------------------------------------------------
         self.economics = Economics(self)
 
+# ----------------------------------------------------------------------------------------------------------------------
         self.environment = Environment(self)
 
 

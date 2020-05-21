@@ -145,6 +145,7 @@ DATA_DICT = {
     "sfc_type": {"unit":"string", "mag":6, "txt":"Type of Specific Fuel Consumption, 'thrust' or 'power'"},
     "tsfc": {"unit":"kg/daN/h", "mag":1e0, "txt":"Specific Fuel Consumption versus thrust"},
     "psfc": {"unit":"kg/kW/h", "mag":1e0, "txt":"Specific Fuel Consumption versus power"},
+    "T41": {"unit":"Kelvin", "mag":1e3, "txt":"Temperature just after combustion chamber (turbine entry)"},
     "nei": {"unit":"int", "mag":1e0, "txt":"Number of engine inoperative, typically 0 or 1"},
     "disa": {"unit":"degK", "mag":1e1, "txt":"Temperature shift versus ISA conditions"},
     "altp": {"unit":"ft", "mag":1e4, "txt":"Target pressure altitude"},

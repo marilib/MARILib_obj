@@ -24,13 +24,13 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "tp",       # "tf", "extf", "ef", "exef",
-                   energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
+                   power_architecture = "ep",       # "tf", "extf", "ep", "ef", "exef",
+                   energy_source = "fuel_cell")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
 
-reqs = Requirement(n_pax_ref = 70.,
-                   design_range = unit.m_NM(600.),
+reqs = Requirement(n_pax_ref = 40.,
+                   design_range = unit.m_NM(100.),
                    cruise_mach = 0.55,
-                   cruise_altp = unit.m_ft(25000.),
+                   cruise_altp = unit.m_ft(20000.),
                    arrangement = agmt)
 
 
@@ -42,7 +42,7 @@ ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this l
 
 ac.requirement.take_off.tofl_req = 2500.
 
-
+ac.airframe.nacelle.reference_power = unit.W_kW(2000.)
 
 process.mda(ac)
 

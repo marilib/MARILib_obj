@@ -207,7 +207,6 @@ class ThrustData(object):
         self.nei = nei
         self.kfn_opt = None
 
-
 class PowerSystem(object):
 
     def __init__(self, aircraft):
@@ -222,6 +221,10 @@ class PowerSystem(object):
     def __fuel_density(self):
         energy_source = self.aircraft.arrangement.energy_source
         return earth.fuel_density(energy_source)
+
+    def fuel_heat(self):
+        energy_source = self.aircraft.arrangement.energy_source
+        return earth.fuel_heat(energy_source)
 
     def thrust_requirement(self):
         self.data["MTO"].disa = self.aircraft.performance.take_off.disa
@@ -275,7 +278,13 @@ class PowerSystem(object):
     def tail_cone_drag_factor(self):
         raise NotImplementedError
 
-    def breguet_range(self,range,tow,altp,mach,disa):
+    def specific_air_range(self,mass,tas,dict):
+        raise NotImplementedError
+
+    def specific_breguet_range(self,tow,range,tas,dict):
+        raise NotImplementedError
+
+    def specific_holding(self,mass,time,tas,dict):
         raise NotImplementedError
 
 
@@ -288,12 +297,12 @@ class ThrustDataTf(ThrustData):
         self.tsfc = None
         self.T41 = None
 
-
 class Turbofan(PowerSystem, Flight):
 
     def __init__(self, aircraft):
         super(Turbofan, self).__init__(aircraft)
 
+        self.fuel_heat = self.fuel_heat()
         self.data = {"MTO":ThrustDataTf(nei=1),
                      "MCN":ThrustDataTf(nei=1),
                      "MCL":ThrustDataTf(nei=0),
@@ -323,8 +332,8 @@ class Turbofan(PowerSystem, Flight):
         dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
 
         fn = dict["fn"]*(n_engine-nei)
-        ff = dict["ff"]*(n_engine-nei)
-        sfc = ff/fn
+        ff = dict["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / self.fuel_heat
+        sfc = ff / fn
         t41 = dict["t4"]
 
         return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41}
@@ -375,12 +384,12 @@ class ThrustDataTp(ThrustData):
         self.psfc = None
         self.T41 = None
 
-
 class Turboprop(PowerSystem, Flight):
 
     def __init__(self, aircraft):
         super(Turboprop, self).__init__(aircraft)
 
+        self.fuel_heat = self.fuel_heat()
         self.data = {"MTO":ThrustDataTp(nei=1),
                      "MCN":ThrustDataTp(nei=1),
                      "MCL":ThrustDataTp(nei=0),
@@ -411,9 +420,9 @@ class Turboprop(PowerSystem, Flight):
         dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
 
         fn = dict["fn"]*(n_engine-nei)
-        ff = dict["ff"]*(n_engine-nei)
+        ff = dict["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / self.fuel_heat
         pw = dict["pw"]*(n_engine-nei)
-        sfc = ff/pw
+        sfc = ff / pw
         t41 = dict["t4"]
 
         return {"fn":fn, "ff":ff, "pw":pw, "sfc":sfc, "t4":t41}
@@ -458,23 +467,28 @@ class Turboprop(PowerSystem, Flight):
 
 
 class ThrustDataEp(ThrustData):
-    def __init__(self, nei):
+    def __init__(self, aircraft, nei):
         super(ThrustDataEp, self).__init__(nei)
         self.thrust_opt = None
         self.thrust = None
         self.power = None
         self.sec = None
-
+        if (aircraft.arrangement.energy_source == "fuel_cell"):
+            self.tsfc = None
+            self.psfc = None
 
 class Electroprop(PowerSystem, Flight):
 
     def __init__(self, aircraft):
         super(Electroprop, self).__init__(aircraft)
 
-        self.data = {"MTO":ThrustDataEp(nei=1),
-                     "MCN":ThrustDataEp(nei=1),
-                     "MCL":ThrustDataEp(nei=0),
-                     "MCR":ThrustDataEp(nei=0)}
+        if (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            self.fuel_heat = self.fuel_heat()
+
+        self.data = {"MTO":ThrustDataEp(aircraft, nei=1),
+                     "MCN":ThrustDataEp(aircraft, nei=1),
+                     "MCL":ThrustDataEp(aircraft, nei=0),
+                     "MCR":ThrustDataEp(aircraft, nei=0)}
 
     def thrust_analysis(self):
         self.thrust_requirement()
@@ -490,6 +504,9 @@ class Electroprop(PowerSystem, Flight):
             self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].power = dict["pw"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].sec = dict["sec"]
+            if (self.aircraft.arrangement.energy_source == "fuel_cell"):
+                self.psfc = dict["tsfc"]
+                self.psfc = dict["psfc"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine
@@ -500,9 +517,16 @@ class Electroprop(PowerSystem, Flight):
 
         fn = dict["fn"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        sec = pw/fn
+        sec = pw / fn
 
-        return {"fn":fn, "pw":pw, "sec":sec}
+        if (self.aircraft.arrangement.energy_source == "battery"):
+            return {"fn":fn, "pw":pw, "sec":sec}
+        elif (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            tsfc = sec / (self.aircraft.airframe.system.fuel_cell_efficiency * self.fuel_heat)
+            psfc = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * self.fuel_heat)
+            return {"fn":fn, "pw":pw, "sec":sec, "tsfc":tsfc, "psfc":psfc}
+        else:
+            raise Exception("Energy source is unknown")
 
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
@@ -529,35 +553,58 @@ class Electroprop(PowerSystem, Flight):
 
     def specific_air_range(self,mass,tas,dict):
         g = earth.gravity()
-        return (tas*dict["lod"])/(mass*g*dict["sec"])
+        if (self.aircraft.arrangement.energy_source == "battery"):
+            return (tas*dict["lod"]) / (mass*g*dict["sec"])
+        elif (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            eta_prop = self.aircraft.airframe.nacelle.propeller_efficiency
+            return (eta_prop*dict["lod"])/(mass*g*dict["psfc"])
+        else:
+            raise Exception("Energy source is unknown")
 
     def specific_breguet_range(self,tow,range,tas,dict):
-        g = earth.gravity()
-        return tow*g*range*dict["sec"] / (tas*dict["lod"])
+        if (self.aircraft.arrangement.energy_source == "battery"):
+            return range / self.specific_air_range(tow,tas,dict)
+        elif (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            g = earth.gravity()
+            eta_prop = self.aircraft.airframe.nacelle.propeller_efficiency
+            return tow*(1.-np.exp(-(dict["psfc"]*g*range)/(eta_prop*dict["lod"])))
+        else:
+            raise Exception("Energy source is unknown")
 
     def specific_holding(self,mass,time,tas,dict):
         g = earth.gravity()
-        return dict["sec"]*(mass*g/dict["lod"])*time
+        if (self.aircraft.arrangement.energy_source == "battery"):
+            return dict["sec"]*(mass*g/dict["lod"])*time
+        elif (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            eta_prop = self.aircraft.airframe.nacelle.propeller_efficiency
+            return ((mass*g*tas*dict["psfc"])/(eta_prop*dict["lod"]))*time
+        else:
+            raise Exception("Energy source is unknown")
 
 
 class ThrustDataEf(ThrustData):
-    def __init__(self, nei):
+    def __init__(self, aircraft, nei):
         super(ThrustDataEf, self).__init__(nei)
         self.thrust_opt = None
         self.thrust = None
         self.power = None
         self.sec = None
-
+        if (aircraft.arrangement.energy_source == "fuel_cell"):
+            self.tsfc = None
+            self.psfc = None
 
 class Electrofan(PowerSystem, Flight):
 
     def __init__(self, aircraft):
         super(Electrofan, self).__init__(aircraft)
 
-        self.data = {"MTO":ThrustDataEf(nei=1),
-                     "MCN":ThrustDataEf(nei=1),
-                     "MCL":ThrustDataEf(nei=0),
-                     "MCR":ThrustDataEf(nei=0)}
+        if (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            self.fuel_heat = self.fuel_heat()
+
+        self.data = {"MTO":ThrustDataEf(aircraft, nei=1),
+                     "MCN":ThrustDataEf(aircraft, nei=1),
+                     "MCL":ThrustDataEf(aircraft, nei=0),
+                     "MCR":ThrustDataEf(aircraft, nei=0)}
 
     def thrust_analysis(self):
         self.thrust_requirement()
@@ -573,6 +620,9 @@ class Electrofan(PowerSystem, Flight):
             self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].power = dict["pw"]/(self.aircraft.airframe.nacelle.n_engine - nei)
             self.data[rating].sec = dict["sec"]
+            if (self.aircraft.arrangement.energy_source == "fuel_cell"):
+                self.psfc = dict["tsfc"]
+                self.psfc = dict["psfc"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine
@@ -583,9 +633,16 @@ class Electrofan(PowerSystem, Flight):
 
         fn = dict["fn"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        sec = pw/fn
+        sec = pw / fn
 
-        return {"fn":fn, "pw":pw, "sec":sec}
+        if (self.aircraft.arrangement.energy_source == "battery"):
+            return {"fn":fn, "pw":pw, "sec":sec}
+        elif (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            tsfc = sec / (self.aircraft.airframe.system.fuel_cell_efficiency * self.fuel_heat)
+            psfc = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * self.fuel_heat)
+            return {"fn":fn, "pw":pw, "sec":sec, "tsfc":tsfc, "psfc":psfc}
+        else:
+            raise Exception("Energy source is unknown")
 
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
@@ -612,17 +669,30 @@ class Electrofan(PowerSystem, Flight):
 
     def specific_air_range(self,mass,tas,dict):
         g = earth.gravity()
-        return (tas*dict["lod"])/(mass*g*dict["sec"])
+        if (self.aircraft.arrangement.energy_source == "battery"):
+            return (tas*dict["lod"])/(mass*g*dict["sec"])
+        elif (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            return (tas*dict["lod"])/(mass*g*dict["tsfc"])
+        else:
+            raise Exception("Energy source is unknown")
 
     def specific_breguet_range(self,tow,range,tas,dict):
-        g = earth.gravity()
-        return tow*g*range*dict["sec"] / (tas*dict["lod"])
+        if (self.aircraft.arrangement.energy_source == "battery"):
+            return range / self.specific_air_range(tow,tas,dict)
+        elif (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            g = earth.gravity()
+            return tow*(1-np.exp(-(dict["tsfc"]*g*range)/(tas*dict["lod"])))
+        else:
+            raise Exception("Energy source is unknown")
 
     def specific_holding(self,mass,time,tas,dict):
         g = earth.gravity()
-        return dict["sec"]*(mass*g/dict["lod"])*time
-
-
+        if (self.aircraft.arrangement.energy_source == "battery"):
+            return dict["sec"]*(mass*g/dict["lod"])*time
+        elif (self.aircraft.arrangement.energy_source == "fuel_cell"):
+            return dict["tsfc"]*(mass*g/dict["lod"])*time
+        else:
+            raise Exception("Energy source is unknown")
 
 
 
