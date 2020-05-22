@@ -12,6 +12,9 @@ from scipy.optimize import fsolve
 
 from marilib.aircraft.performance import Flight
 
+from marilib.aircraft.model_config import get_init
+
+
 class AllMissions(Flight):
     """Definition of all mission types for fuel powered airplanes
     """
@@ -70,7 +73,7 @@ class AllMissionVarMass(AllMissions):
         self.zero_payload = MissionVarMassGeneric(aircraft)
         self.cost = MissionVarMassGeneric(aircraft)
 
-        self.ktow = 0.90    # TOW ratio at which cruise mean consumption is computed
+        self.ktow = get_init(self,"ktow")
 
         self.crz_sar = None
         self.crz_cz = None
@@ -171,9 +174,9 @@ class MissionVarMassGeneric(Flight):
         self.fuel_reserve = None    # Mission reserve fuel
         self.fuel_total = None      # Mission total fuel
 
-        self.holding_time = unit.s_min(30)  # Holding duration
-        self.reserve_fuel_ratio = self.reserve_fuel_ratio() # Ratio of mission fuel to account into reserve
-        self.diversion_range = self.diversion_range()       # Diversion leg
+        self.holding_time = get_init(self,"holding_time")
+        self.reserve_fuel_ratio = get_init(self,"reserve_fuel_ratio", val=self.reserve_fuel_ratio())    # Ratio of mission fuel to account into reserve
+        self.diversion_range = get_init(self,"diversion_range", val=self.diversion_range())             # Diversion leg
 
     def eval(self,owe,altp,mach,disa,**kwargs):
         """Generic mission solver
@@ -406,9 +409,9 @@ class MissionIsoMassGeneric(Flight):
         self.enrg_total = None      # Mission total energy
         self.battery_mass = None    # Mission battery mass
 
-        self.holding_time = unit.s_min(30)  # Holding duration
-        self.reserve_enrg_ratio = self.reserve_enrg_ratio() # Ratio of mission fuel to account into reserve
-        self.diversion_range = self.diversion_range()       # Diversion leg
+        self.holding_time = get_init(self,"holding_time")
+        self.reserve_fuel_ratio = get_init(self,"reserve_fuel_ratio", val=self.reserve_fuel_ratio())    # Ratio of mission fuel to account into reserve
+        self.diversion_range = get_init(self,"diversion_range", val=self.diversion_range())             # Diversion leg
 
     def eval(self,owe,altp,mach,disa,**kwargs):
         """Generic mission solver

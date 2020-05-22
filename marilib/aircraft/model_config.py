@@ -11,10 +11,8 @@ from marilib.utils import unit
 def get_init(obj,key,val=None):
     cls = obj.__class__.__name__
     dat = mc[cls][key]
-    if dat[0]=="function":
-        return unit.convert_from(dat[1],val)
-    else:
-        return unit.convert_from(dat[1],dat[0])
+    if dat[0]=="function": return val
+    else: return unit.convert_from(dat[1],dat[0])
 
 
 mc = {
