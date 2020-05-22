@@ -483,7 +483,7 @@ class VtpClassic(Component):
         self.sweep25 = None
         self.thrust_volume_factor = 0.4    # Design rule
         self.wing_volume_factor = 0.07    # Design rule
-        self.anchor_ratio = None
+        self.anchor_ratio = 0.85    # Design rule
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -509,7 +509,6 @@ class VtpClassic(Component):
 
         self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
 
-        self.anchor_ratio = 0.85       # Locate self versus end body length
         x_root = body_length*(1-tail_cone_length/body_length*(1-self.anchor_ratio)) - self.root_c
         x_tip = x_root + 0.25*(self.root_c-self.tip_c) + self.height*np.tan(self.sweep25)
 
@@ -567,7 +566,7 @@ class VtpTtail(Component):
         self.sweep25 = None
         self.thrust_volume_factor = 0.4    # Design rule
         self.wing_volume_factor = 0.07    # Design rule
-        self.anchor_ratio = None
+        self.anchor_ratio = 0.85
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -593,7 +592,6 @@ class VtpTtail(Component):
 
         self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
 
-        self.anchor_ratio = 0.85       # Locate self versus end body length
         x_root = body_length*(1-tail_cone_length/body_length*(1-self.anchor_ratio)) - self.root_c
         x_tip = x_root + 0.25*(self.root_c-self.tip_c) + self.height*np.tan(self.sweep25)
 
@@ -973,7 +971,7 @@ class TankWingBox(Component):
         super(TankWingBox, self).__init__(aircraft)
 
         self.shell_parameter = unit.Pam3pkg_barLpkg(700.)   # bar.L/kg
-        self.shell_density = None
+        self.shell_density = 1750.
         self.fuel_pressure = unit.Pa_bar(0.)
         self.fuel_density = None
 
@@ -996,8 +994,6 @@ class TankWingBox(Component):
         wing_kink_toc = self.aircraft.airframe.wing.kink_toc
         wing_tip_toc = self.aircraft.airframe.wing.tip_toc
         fuel_type = self.aircraft.arrangement.fuel_type
-
-        self.shell_density = earth.tank_shell_density(fuel_type)
 
         shell_ratio = self.fuel_pressure/(self.shell_parameter*self.shell_density)
 
@@ -1056,7 +1052,7 @@ class TankWingPod(Component):
         n_aisle = self.aircraft.requirement.n_aisle
 
         self.shell_parameter = unit.Pam3pkg_barLpkg(700.)   # bar.L/kg
-        self.shell_density = None
+        self.shell_density = 1750.
         self.fuel_pressure = unit.Pa_bar(0.)
         self.fuel_density = None
 
@@ -1083,8 +1079,6 @@ class TankWingPod(Component):
         wing_tip_c = self.aircraft.airframe.wing.tip_c
         wing_tip_loc = self.aircraft.airframe.wing.tip_loc
         fuel_type = self.aircraft.arrangement.fuel_type
-
-        self.shell_density = earth.tank_shell_density(fuel_type)
 
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
@@ -1140,7 +1134,7 @@ class TankPiggyBack(Component):
         n_aisle = self.aircraft.requirement.n_aisle
 
         self.shell_parameter = unit.Pam3pkg_barLpkg(700.)   # bar.L/kg
-        self.shell_density = None
+        self.shell_density = 1750.
         self.fuel_pressure = unit.Pa_bar(0.)
         self.fuel_density = None
 
@@ -1161,8 +1155,6 @@ class TankPiggyBack(Component):
         wing_root_c = self.aircraft.airframe.wing.root_c
         wing_root_loc = self.aircraft.airframe.wing.root_loc
         fuel_type = self.aircraft.arrangement.fuel_type
-
-        self.shell_density = earth.tank_shell_density(fuel_type)
 
         x_axe = wing_mac_loc[0] - 0.40*self.length
         y_axe = 0.

@@ -389,15 +389,6 @@ def climb_mode(speed_mode,mach,dtodz,tstd,disa):
 
     return acc_factor
 
-def tank_shell_density(fuel_type):
-    """Reference fuel density
-    """
-    if (fuel_type in ["kerosene", "liquid_h2", "700bar_h2", "methane", "battery"]):
-        tank_shell_density = 1750. # Reinforced composite
-    else:
-        raise Exception("fuel_type key is unknown")
-    return tank_shell_density
-
 def fuel_density(fuel_type):
     """Reference fuel density
     """

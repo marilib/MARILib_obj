@@ -473,7 +473,7 @@ class SemiEmpiricEpNacelle(Component):
         self.motor_pw_density = 10.e3    # W/kg
         self.engine_bpr = 100.
 
-        self.hub_width = None
+        self.hub_width = 0.2
         self.propeller_width = None
         self.width = None
         self.length = None
@@ -497,7 +497,6 @@ class SemiEmpiricEpNacelle(Component):
         dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
         self.reference_thrust = dict["fn"] / 0.80
 
-        self.hub_width = 0.2
         self.propeller_width = np.sqrt((4./np.pi)*(self.reference_thrust/self.propeller_disk_load))      # Assuming 3000 N/m2
 
         self.width = 0.15*(self.reference_power/1.e3)**0.2        # statistical regression
