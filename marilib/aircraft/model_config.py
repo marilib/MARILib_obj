@@ -5,6 +5,18 @@ Created on Thu Jan 20 20:20:20 2020
 @author: DRUOT Thierry, Nicolas Monrolin
 """
 
+from marilib.utils import unit
+
+
+def get_init(obj,key,val=None):
+    cls = obj.__class__.__name__
+    dat = mc[cls][key]
+    if dat[0]=="function":
+        return unit.convert_from(dat[1],val)
+    else:
+        return unit.convert_from(dat[1],dat[0])
+
+
 mc = {
     "Wing":{
         "aspect_ratio": [9, "no_dim", "Wing aspect ratio"],
@@ -31,8 +43,7 @@ mc = {
         "taper_ratio": [0.4, "no_dim", "Vertical tail taper ratio"],
         "toc": [0.1, "no_dim", "Thickness to chord ratio of the vertical tail"],
         "thrust_volume_factor": [0.4, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
-        "wing_volume_factor": [0.07, "no_dim", "Volume coefficient of the vertical stabilizer according to wing"],
-        "anchor_ratio": [0.85, "no_dim", "Relative position of the reference point of the stabilization surface"]
+        "wing_volume_factor": [0.07, "no_dim", "Volume coefficient of the vertical stabilizer according to wing"]
     },
     "HtpClassic":{
         "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
@@ -155,29 +166,35 @@ mc = {
     },
     "OeiCeilingReq":{
         "disa": [15., "degK", "Temperature shift for one engine performance evaluation"],
-        "altp": [0., "ft", "Altitude for one engine performance evaluation"],
+        "altp": ["function", "ft", "Altitude for one engine performance evaluation"],
         "kmtow": [1., "no_dim", "Ratio of MTOW defining the aircraft weight"],
         "rating": ["MCN", "string", "Engine rating for one engine performance evaluation"],
         "speed_mode": ["cas", "string", "Speed mode for one engine performance evaluation, 'cas':constant CAS or 'mach':constant Mach"],
         "path_req": ["function", "%", "Minimum trajectory slope required in given conditions"]
     },
-    "ClimbReq":{
+    "MclCeilingReq":{
         "disa": [15., "degK", "Temperature shift for approach speed evaluation"],
         "altp": ["function", "ft", "Altitude for approach speed evaluation"],
         "mach": ["function", "ft", "Speed defined by a Mach number"],
-        "kmtow": [0.97, "no_dim", "Ratio of MTOW defining the aircraft weight"]
-    },
-    "MclCeilingReq":{
+        "kmtow": [0.97, "no_dim", "Ratio of MTOW defining the aircraft weight"],
         "rating": ["MCL", "string", "Engine rating for one engine performance evaluation"],
         "speed_mode": ["cas", "string", "Speed mode for one engine performance evaluation, 'cas':constant CAS or 'mach':constant Mach"],
         "vz_req": ["function", "%", "Minimum vertical speed required in given conditions"]
     },
     "McrCeilingReq":{
+        "disa": [15., "degK", "Temperature shift for approach speed evaluation"],
+        "altp": ["function", "ft", "Altitude for approach speed evaluation"],
+        "mach": ["function", "ft", "Speed defined by a Mach number"],
+        "kmtow": [0.97, "no_dim", "Ratio of MTOW defining the aircraft weight"],
         "rating": ["MCR", "string", "Engine rating for one engine performance evaluation"],
         "speed_mode": ["mach", "string", "Speed mode for one engine performance evaluation, 'cas':constant CAS or 'mach':constant Mach"],
         "vz_req": ["function", "%", "Minimum vertical speed required in given conditions"]
     },
     "TtcReq":{
+        "disa": [15., "degK", "Temperature shift for approach speed evaluation"],
+        "altp": ["function", "ft", "Altitude for approach speed evaluation"],
+        "mach": ["function", "ft", "Speed defined by a Mach number"],
+        "kmtow": [0.97, "no_dim", "Ratio of MTOW defining the aircraft weight"],
         "altp1": [1500., "ft", "Starting pressure altitude for climb trajectory, typically 1500ft"],
         "cas1": ["function", "kt", "Calibrated Air Speed below altp1 during climb trajectory"],
         "altp2": [10000., "ft", "Transtion pressure altitude from cas1 to cas2, typically 10000ft"],

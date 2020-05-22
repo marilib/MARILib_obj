@@ -12,6 +12,9 @@ import numpy as np
 
 from marilib.utils import earth, unit
 
+from marilib.aircraft.model_config import get_init
+
+
 
 class Component(object):
     """Define common features for all airplane components.
@@ -245,14 +248,14 @@ class Wing(Component):
         self.morphing = "aspect_ratio_driven"   # "aspect_ratio_driven" or "span_driven"
         self.area = 60. + 88.*n_pax_ref*design_range*1.e-9
         self.span = None
-        self.aspect_ratio = 9.          # Default value
+        self.aspect_ratio = get_init(self,"aspect_ratio")
         self.taper_ratio = None
         self.sweep0 = None
         self.sweep25 = None
         self.sweep100 = None
         self.dihedral = None
         self.setting = None
-        self.hld_type = 9
+        self.hld_type = get_init(self,"hld_type")
         self.induced_drag_factor = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -477,13 +480,13 @@ class VtpClassic(Component):
 
         self.area = 0.20*wing_area  # Coupling variable
         self.height = None
-        self.aspect_ratio = 1.7     # Design rule
-        self.taper_ratio = 0.40     # Design rule
-        self.toc = 0.10             # Design rule
+        self.aspect_ratio = get_init(self,"aspect_ratio")
+        self.taper_ratio = get_init(self,"taper_ratio")
+        self.toc = get_init(self,"toc")
         self.sweep25 = None
-        self.thrust_volume_factor = 0.4    # Design rule
-        self.wing_volume_factor = 0.07    # Design rule
-        self.anchor_ratio = 0.85    # Design rule
+        self.thrust_volume_factor = get_init(self,"thrust_volume_factor")
+        self.wing_volume_factor = get_init(self,"wing_volume_factor")
+        self.anchor_ratio = get_init(self,"anchor_ratio")
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -560,13 +563,13 @@ class VtpTtail(Component):
 
         self.area = 0.20*wing_area  # Coupling variable
         self.height = None
-        self.aspect_ratio = 1.2     # Design rule
-        self.taper_ratio = 0.80     # Design rule
-        self.toc = 0.10             # Design rule
+        self.aspect_ratio = get_init(self,"aspect_ratio")
+        self.taper_ratio = get_init(self,"taper_ratio")
+        self.toc = get_init(self,"toc")
         self.sweep25 = None
-        self.thrust_volume_factor = 0.4    # Design rule
-        self.wing_volume_factor = 0.07    # Design rule
-        self.anchor_ratio = 0.85
+        self.thrust_volume_factor = get_init(self,"thrust_volume_factor")
+        self.wing_volume_factor = get_init(self,"wing_volume_factor")
+        self.anchor_ratio = get_init(self,"anchor_ratio")
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -643,12 +646,12 @@ class VtpHtail(Component):
 
         self.area = 0.20*wing_area  # Coupling variable
         self.height = None
-        self.aspect_ratio = 1.5     # Design rule
-        self.taper_ratio = 0.40     # Design rule
-        self.toc = 0.10             # Design rule
+        self.aspect_ratio = get_init(self,"aspect_ratio")
+        self.taper_ratio = get_init(self,"taper_ratio")
+        self.toc = get_init(self,"toc")
         self.sweep25 = None
-        self.thrust_volume_factor = 0.4    # Design rule
-        self.wing_volume_factor = 0.07    # Design rule
+        self.thrust_volume_factor = get_init(self,"thrust_volume_factor")
+        self.wing_volume_factor = get_init(self,"wing_volume_factor")
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -723,12 +726,12 @@ class HtpClassic(Component):
 
         self.area = 0.33*wing_area  # Coupling variable
         self.span = None
-        self.aspect_ratio = 5.0     # Design rule
-        self.taper_ratio = 0.35     # Design rule
-        self.toc = 0.10             # Design rule
+        self.aspect_ratio = get_init(self,"aspect_ratio")
+        self.taper_ratio = get_init(self,"taper_ratio")
+        self.toc = get_init(self,"toc")
         self.sweep25 = None
-        self.dihedral = unit.rad_deg(5)     # HTP dihedral
-        self.volume_factor = 0.94                  # Design rule
+        self.dihedral = get_init(self,"dihedral")
+        self.volume_factor = get_init(self,"volume_factor")
         self.lever_arm = None
 
         self.axe_loc = np.full(3,None)     # Position of the virtual central chord
@@ -806,12 +809,12 @@ class HtpTtail(Component):
 
         self.area = 0.33*wing_area  # Coupling variable
         self.span = None
-        self.aspect_ratio = 5.0     # Design rule
-        self.taper_ratio = 0.35     # Design rule
-        self.toc = 0.10             # Design rule
+        self.aspect_ratio = get_init(self,"aspect_ratio")
+        self.taper_ratio = get_init(self,"taper_ratio")
+        self.toc = get_init(self,"toc")
         self.sweep25 = None
-        self.dihedral = unit.rad_deg(5)     # HTP dihedral
-        self.volume_factor = 0.94                  # Design rule
+        self.dihedral = get_init(self,"dihedral")
+        self.volume_factor = get_init(self,"volume_factor")
         self.lever_arm = None
 
         self.axe_loc = np.full(3,None)     # Position of the central chord
@@ -890,12 +893,12 @@ class HtpHtail(Component):
 
         self.area = 0.33*wing_area  # Coupling variable
         self.span = None
-        self.aspect_ratio = 5.0     # Design rule
-        self.taper_ratio = 0.45     # Design rule
-        self.toc = 0.10             # Design rule
+        self.aspect_ratio = get_init(self,"aspect_ratio")
+        self.taper_ratio = get_init(self,"taper_ratio")
+        self.toc = get_init(self,"toc")
         self.sweep25 = None
-        self.dihedral = unit.rad_deg(5)     # HTP dihedral
-        self.volume_factor = 0.94                  # Design rule
+        self.dihedral = get_init(self,"dihedral")
+        self.volume_factor = get_init(self,"volume_factor")
         self.lever_arm = None
 
         self.axe_loc = np.full(3,None)     # Position of the virtual central chord
@@ -970,9 +973,9 @@ class TankWingBox(Component):
     def __init__(self, aircraft):
         super(TankWingBox, self).__init__(aircraft)
 
-        self.shell_parameter = unit.Pam3pkg_barLpkg(700.)   # bar.L/kg
-        self.shell_density = 1750.
-        self.fuel_pressure = unit.Pa_bar(0.)
+        self.shell_parameter = get_init(self,"shell_parameter")
+        self.shell_density = get_init(self,"shell_density")
+        self.fuel_pressure = get_init(self,"fuel_pressure")
         self.fuel_density = None
 
         self.cantilever_volume = None
@@ -1051,9 +1054,9 @@ class TankWingPod(Component):
         n_pax_front = self.aircraft.requirement.n_pax_front
         n_aisle = self.aircraft.requirement.n_aisle
 
-        self.shell_parameter = unit.Pam3pkg_barLpkg(700.)   # bar.L/kg
-        self.shell_density = 1750.
-        self.fuel_pressure = unit.Pa_bar(0.)
+        self.shell_parameter = get_init(self,"shell_parameter")
+        self.shell_density = get_init(self,"shell_density")
+        self.fuel_pressure = get_init(self,"fuel_pressure")
         self.fuel_density = None
 
         self.length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
@@ -1133,9 +1136,9 @@ class TankPiggyBack(Component):
         n_pax_front = self.aircraft.requirement.n_pax_front
         n_aisle = self.aircraft.requirement.n_aisle
 
-        self.shell_parameter = unit.Pam3pkg_barLpkg(700.)   # bar.L/kg
-        self.shell_density = 1750.
-        self.fuel_pressure = unit.Pa_bar(0.)
+        self.shell_parameter = get_init(self,"shell_parameter")
+        self.shell_density = get_init(self,"shell_density")
+        self.fuel_pressure = get_init(self,"fuel_pressure")
         self.fuel_density = None
 
         self.length = 0.60*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
