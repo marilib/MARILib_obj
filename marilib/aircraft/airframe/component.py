@@ -97,10 +97,15 @@ class Cabin(Component):
     def __init__(self, aircraft):
         super(Cabin, self).__init__(aircraft)
 
+        self.n_pax_front = get_init(self,"n_pax_front", val=self.__n_pax_front())
+        self.n_aisle = get_init(self,"n_aisle", val=self.__n_aisle())
+
         self.width = None
         self.length = None
         self.co2_metric_area = None
 
+        self.m_pax_nominal = get_init(self,"m_pax_nominal", val=self.__m_pax_nominal())
+        self.m_pax_max = get_init(self,"m_pax_max", val=self.__m_pax_max())
         self.m_furnishing = None
         self.m_op_item = None
         self.nominal_payload = None
@@ -114,34 +119,65 @@ class Cabin(Component):
         self.max_bwd_req_cg = np.full(3,None)
         self.max_bwd_mass = None
 
+    def __n_pax_front(self):
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        if  (n_pax_ref<=8):   n_pax_front = 2
+        elif(n_pax_ref<=16):  n_pax_front = 3
+        elif(n_pax_ref<=70):  n_pax_front = 4
+        elif(n_pax_ref<=120): n_pax_front = 5
+        elif(n_pax_ref<=225): n_pax_front = 6
+        elif(n_pax_ref<=300): n_pax_front = 8
+        elif(n_pax_ref<=375): n_pax_front = 9
+        else:                      n_pax_front = 10
+        return n_pax_front
+
+    def __n_aisle(self):
+        if(self.n_pax_front <= 6): n_aisle = 1
+        else:                      n_aisle = 2
+        return n_aisle
+
+    def __m_pax_nominal(self):
+        design_range = self.aircraft.requirement.design_range
+        if  (design_range <= unit.m_NM(500.)): m_pax_nominal = 85.
+        elif(design_range <= unit.m_NM(1500.)): m_pax_nominal = 95.
+        elif(design_range <= unit.m_NM(3500.)): m_pax_nominal = 100.
+        elif(design_range <= unit.m_NM(5500.)): m_pax_nominal = 105.
+        else: m_pax_nominal = 110.
+        return m_pax_nominal
+
+    def __m_pax_max(self):
+        if(self.aircraft.requirement.design_range <= unit.m_NM(500.)): m_pax_max = 95.
+        elif(self.aircraft.requirement.design_range <= unit.m_NM(1500.)): m_pax_max = 105.
+        elif(self.aircraft.requirement.design_range <= unit.m_NM(3500.)): m_pax_max = 120.
+        elif(self.aircraft.requirement.design_range <= unit.m_NM(5500.)): m_pax_max = 135.
+        else: m_pax_max = 150.
+        return m_pax_max
+
     def eval_geometry(self):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
-        n_pax_front = self.aircraft.requirement.n_pax_front
-        n_aisle = self.aircraft.requirement.n_aisle
 
-        self.width = 0.38*n_pax_front + 1.05*n_aisle + 0.15     # Statistical regression
-        self.length = 6.3*(self.width - 0.24) + 0.005*(n_pax_ref/n_pax_front)**2.25     # Statistical regression
+        self.width = 0.38*self.n_pax_front + 1.05*self.n_aisle + 0.15     # Statistical regression
+        self.length = 6.3*(self.width - 0.24) + 0.005*(n_pax_ref/self.n_pax_front)**2.25     # Statistical regression
 
         self.projected_area = 0.95*self.length*self.width       # Factor 0.95 accounts for tapered parts
 
     def eval_mass(self):
         design_range = self.aircraft.requirement.design_range
         n_pax_ref = self.aircraft.requirement.n_pax_ref
-        m_pax_nominal = self.aircraft.requirement.m_pax_nominal
-        m_pax_max = self.aircraft.requirement.m_pax_max
+
         cabin_frame_origin = self.aircraft.airframe.cabin.frame_origin
 
         self.m_furnishing = (0.063*n_pax_ref**2 + 9.76*n_pax_ref)       # Furnishings mass
         self.m_op_item = 5.2*(n_pax_ref*design_range*1e-6)          # Operator items mass
 
-        self.nominal_payload = n_pax_ref * m_pax_nominal
-        self.maximum_payload = n_pax_ref * m_pax_max
+        self.nominal_payload = n_pax_ref * self.m_pax_nominal
+        self.maximum_payload = n_pax_ref * self.m_pax_max
 
         self.max_fwd_req_cg = cabin_frame_origin + 0.35*np.array([self.length, 0., 0.])        # Payload max forward CG
-        self.max_fwd_mass = 0.60*n_pax_ref*m_pax_max       # Payload mass for max forward CG
+        self.max_fwd_mass = 0.60*n_pax_ref*self.m_pax_max       # Payload mass for max forward CG
 
         self.max_bwd_req_cg = cabin_frame_origin + 0.70*np.array([self.length, 0., 0.])        # Payload max backward CG
-        self.max_bwd_mass = 0.70*n_pax_ref*m_pax_max       # Payload mass for max backward CG
+        self.max_bwd_mass = 0.70*n_pax_ref*self.m_pax_max       # Payload mass for max backward CG
 
         x_cg_furnishing = self.frame_origin[0] + 0.55*self.length      # Rear cabin is heavier because of higher density
         x_cg_op_item = x_cg_furnishing    # Operator items cg
@@ -169,7 +205,7 @@ class Cargo(Component):
         self.frame_origin = self.aircraft.airframe.cabin.frame_origin
 
     def eval_mass(self):
-        n_pax_front = self.aircraft.requirement.n_pax_front
+        n_pax_front = self.aircraft.airframe.cabin.n_pax_front
         body_width = self.aircraft.airframe.body.width
         body_length = self.aircraft.airframe.body.length
         wing_root_loc = self.aircraft.airframe.wing.root_loc
@@ -202,6 +238,10 @@ class Fuselage(Component):
     def __init__(self, aircraft):
         super(Fuselage, self).__init__(aircraft)
 
+        self.forward_limit = get_init(self,"forward_limit")
+        self.wall_thickness = get_init(self,"wall_thickness")
+        self.tail_cone_ratio = get_init(self,"tail_cone_ratio")
+
         self.width = None
         self.height = None
         self.length = None
@@ -213,15 +253,13 @@ class Fuselage(Component):
         cabin_width = self.aircraft.airframe.cabin.width
         cabin_length = self.aircraft.airframe.cabin.length
 
-        fwd_limit = 4.      # Cabin starts 4 meters behind fuselage nose
+        self.aircraft.airframe.cabin.frame_origin = [self.forward_limit, 0., 0.]     # cabin position inside the fuselage
+        self.aircraft.airframe.cargo.frame_origin = [self.forward_limit, 0., 0.]     # cabin position inside the fuselage
 
-        self.aircraft.airframe.cabin.frame_origin = [fwd_limit, 0., 0.]     # cabin position inside the fuselage
-        self.aircraft.airframe.cargo.frame_origin = [fwd_limit, 0., 0.]     # cabin position inside the fuselage
-
-        self.width = cabin_width + 0.4      # fuselage walls are supposed 0.2m thick
+        self.width = cabin_width + self.wall_thickness      # fuselage walls are supposed 0.2m thick
         self.height = 1.25*(cabin_width - 0.15)
-        self.length = fwd_limit + cabin_length + 1.50*self.width
-        self.tail_cone_length = 3.45*self.width
+        self.length = self.forward_limit + cabin_length + 1.50*self.width
+        self.tail_cone_length = self.tail_cone_ratio*self.width
 
         self.gross_wet_area = 2.70*self.length*np.sqrt(self.width*self.height)
         self.net_wet_area = self.gross_wet_area
@@ -242,8 +280,9 @@ class Wing(Component):
 
         design_range = self.aircraft.requirement.design_range
         n_pax_ref = self.aircraft.requirement.n_pax_ref
-        n_pax_front = self.aircraft.requirement.n_pax_front
-        n_aisle = self.aircraft.requirement.n_aisle
+
+        n_pax_front = self.aircraft.airframe.cabin.n_pax_front
+        n_aisle = self.aircraft.airframe.cabin.n_aisle
 
         self.morphing = "aspect_ratio_driven"   # "aspect_ratio_driven" or "span_driven"
         self.area = 60. + 88.*n_pax_ref*design_range*1.e-9
@@ -1051,8 +1090,8 @@ class TankWingPod(Component):
         super(TankWingPod, self).__init__(aircraft)
 
         n_pax_ref = self.aircraft.requirement.n_pax_ref
-        n_pax_front = self.aircraft.requirement.n_pax_front
-        n_aisle = self.aircraft.requirement.n_aisle
+        n_pax_front = self.aircraft.airframe.cabin.n_pax_front
+        n_aisle = self.aircraft.airframe.cabin.n_aisle
 
         self.shell_parameter = get_init(self,"shell_parameter")
         self.shell_density = get_init(self,"shell_density")
@@ -1133,8 +1172,8 @@ class TankPiggyBack(Component):
         super(TankPiggyBack, self).__init__(aircraft)
 
         n_pax_ref = self.aircraft.requirement.n_pax_ref
-        n_pax_front = self.aircraft.requirement.n_pax_front
-        n_aisle = self.aircraft.requirement.n_aisle
+        n_pax_front = self.aircraft.airframe.cabin.n_pax_front
+        n_aisle = self.aircraft.airframe.cabin.n_aisle
 
         self.shell_parameter = get_init(self,"shell_parameter")
         self.shell_density = get_init(self,"shell_density")

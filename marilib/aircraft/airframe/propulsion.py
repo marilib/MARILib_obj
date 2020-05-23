@@ -14,6 +14,8 @@ from marilib.utils import earth, unit
 
 from marilib.aircraft.airframe.component import Component
 
+from marilib.aircraft.model_config import get_init
+
 
 class InboradWingMountedNacelle(Component):
 
@@ -110,13 +112,13 @@ class SystemWithBattery(Component):
     def __init__(self, aircraft):
         super(SystemWithBattery, self).__init__(aircraft)
 
-        self.wiring_efficiency = 0.995
-        self.wiring_pw_density = 20.e3      # W/kg, Wiring
+        self.wiring_efficiency = get_init(self,"wiring_efficiency")
+        self.wiring_pw_density = get_init(self,"wiring_pw_density")
 
-        self.cooling_pw_density = 15.e3     # W/kg, Cooling
+        self.cooling_pw_density = get_init(self,"cooling_pw_density")
 
-        self.battery_density = 2800.                    # kg/m3
-        self.battery_energy_density = unit.J_kWh(0.4)   # J/kg
+        self.battery_density = get_init(self,"battery_density")
+        self.battery_energy_density = get_init(self,"battery_energy_density")
 
         self.power_chain_efficiency = None
 
@@ -160,13 +162,13 @@ class SystemWithFuelCell(Component):
     def __init__(self, aircraft):
         super(SystemWithFuelCell, self).__init__(aircraft)
 
-        self.wiring_efficiency = 0.995
-        self.wiring_pw_density = 20.e3      # W/kg, Wiring
+        self.wiring_efficiency = get_init(self,"wiring_efficiency")
+        self.wiring_pw_density = get_init(self,"wiring_pw_density")
 
-        self.cooling_pw_density = 10.e3     # W/kg, Cooling
+        self.cooling_pw_density = get_init(self,"cooling_pw_density")
 
-        self.fuel_cell_pw_density = 1.e3    # W/kg
-        self.fuel_cell_efficiency = 0.5
+        self.fuel_cell_pw_density = get_init(self,"fuel_cell_pw_density")
+        self.fuel_cell_efficiency = get_init(self,"fuel_cell_efficiency")
 
         self.global_energy_density = None
         self.power_chain_efficiency = None
@@ -224,6 +226,8 @@ class SemiEmpiricTfNacelle(Component):
     def __init__(self, aircraft):
         super(SemiEmpiricTfNacelle, self).__init__(aircraft)
 
+        class_name = "SemiEmpiricTfNacelle"
+
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
@@ -233,9 +237,9 @@ class SemiEmpiricTfNacelle(Component):
         self.reference_offtake = 0.
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
         self.tune_factor = 1.
-        self.engine_bpr = self.__turbofan_bpr()
-        self.core_thrust_ratio = 0.13
-        self.propeller_efficiency = 0.82
+        self.engine_bpr = get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
+        self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
+        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
 
         self.width = None
         self.length = None
@@ -357,13 +361,15 @@ class SemiEmpiricTpNacelle(Component):
     def __init__(self, aircraft):
         super(SemiEmpiricTpNacelle, self).__init__(aircraft)
 
+        class_name = "SemiEmpiricTpNacelle"
+
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        self.propeller_efficiency = 0.82
-        self.propeller_disk_load = 3000.    # N/m2
+        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
+        self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
         self.sfc_type = "power"
         self.reference_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
@@ -456,24 +462,26 @@ class SemiEmpiricEpNacelle(Component):
     def __init__(self, aircraft):
         super(SemiEmpiricEpNacelle, self).__init__(aircraft)
 
+        class_name = "SemiEmpiricEpNacelle"
+
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        self.propeller_efficiency = 0.82
-        self.propeller_disk_load = 3000.    # N/m2
+        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
+        self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
         self.reference_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
-        self.motor_efficiency = 0.95
-        self.controller_efficiency = 0.99
-        self.controller_pw_density = 20.e3    # W/kg
-        self.nacelle_pw_density = 5.e3    # W/kg
-        self.motor_pw_density = 10.e3    # W/kg
+        self.motor_efficiency = get_init(class_name,"motor_efficiency")
+        self.controller_efficiency = get_init(class_name,"controller_efficiency")
+        self.controller_pw_density = get_init(class_name,"controller_pw_density")
+        self.nacelle_pw_density = get_init(class_name,"nacelle_pw_density")
+        self.motor_pw_density = get_init(class_name,"motor_pw_density")
         self.engine_bpr = 100.
 
-        self.hub_width = 0.2
+        self.hub_width = get_init(class_name,"hub_width")
         self.propeller_width = None
         self.width = None
         self.length = None
@@ -552,23 +560,25 @@ class SemiEmpiricEfNacelle(Component):
     def __init__(self, aircraft):
         super(SemiEmpiricEfNacelle, self).__init__(aircraft)
 
+        class_name = "SemiEmpiricEfNacelle"
+
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        self.propeller_efficiency = 0.82
-        self.fan_efficiency = 0.95
+        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
+        self.fan_efficiency = get_init(class_name,"fan_efficiency")
         self.reference_power = 0.5*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
         self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
-        self.motor_efficiency = 0.95
-        self.controller_efficiency = 0.99
-        self.controller_pw_density = 20.e3    # W/kg
-        self.nacelle_pw_density = 5.e3    # W/kg
-        self.motor_pw_density = 10.e3    # W/kg
+        self.motor_efficiency = get_init(class_name,"motor_efficiency")
+        self.controller_efficiency = get_init(class_name,"controller_efficiency")
+        self.controller_pw_density = get_init(class_name,"controller_pw_density")
+        self.nacelle_pw_density = get_init(class_name,"nacelle_pw_density")
+        self.motor_pw_density = get_init(class_name,"motor_pw_density")
 
-        self.hub_width = 0.20
+        self.hub_width = get_init(class_name,"hub_width")
         self.fan_width = None
         self.nozzle_width = None
         self.nozzle_area = None

@@ -322,6 +322,7 @@ class AllMissionIsoMass(AllMissions):
         self.crz_cz = None
         self.crz_lod = None
         self.crz_thrust = None
+        self.crz_power = None
         self.crz_throttle = None
         self.crz_sec = None
 
@@ -330,6 +331,7 @@ class AllMissionIsoMass(AllMissions):
         self.max_esar_cz = None
         self.max_esar_lod = None
         self.max_esar_thrust = None
+        self.max_esar_power = None
         self.max_esar_throttle = None
         self.max_esar_sec = None
 
@@ -410,7 +412,7 @@ class MissionIsoMassGeneric(Flight):
         self.battery_mass = None    # Mission battery mass
 
         self.holding_time = get_init(self,"holding_time")
-        self.reserve_fuel_ratio = get_init(self,"reserve_fuel_ratio", val=self.reserve_fuel_ratio())    # Ratio of mission fuel to account into reserve
+        self.reserve_enrg_ratio = get_init(self,"reserve_enrg_ratio", val=self.reserve_enrg_ratio())    # Ratio of mission fuel to account into reserve
         self.diversion_range = get_init(self,"diversion_range", val=self.diversion_range())             # Diversion leg
 
     def eval(self,owe,altp,mach,disa,**kwargs):
