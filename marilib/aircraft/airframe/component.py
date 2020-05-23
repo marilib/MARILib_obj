@@ -1093,13 +1093,17 @@ class TankWingPod(Component):
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
+        self.span_ratio = get_init(self,"span_ratio")
         self.shell_parameter = get_init(self,"shell_parameter")
         self.shell_density = get_init(self,"shell_density")
         self.fuel_pressure = get_init(self,"fuel_pressure")
         self.fuel_density = None
 
-        self.length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
-        self.width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
+        width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+
+        self.length = get_init(self,"length", val=length)
+        self.width = get_init(self,"width", val=width)
         self.wing_axe_c = None
         self.wing_axe_x = None
         self.volume = None
@@ -1125,9 +1129,9 @@ class TankWingPod(Component):
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
         if (self.aircraft.arrangement.nacelle_attachment == "pod"):
-            y_axe = 0.8 * body_width + 1.5 * self.width
+            y_axe = 0.6 * body_width + 1.5 * self.width
         else:
-            y_axe = 0.8 * body_width + 3.0 * self.width
+            y_axe = self.span_ratio * wing_tip_loc[1]
 
         x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - 0.40*self.length
         z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral)
@@ -1180,8 +1184,11 @@ class TankPiggyBack(Component):
         self.fuel_pressure = get_init(self,"fuel_pressure")
         self.fuel_density = None
 
-        self.length = 0.60*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
-        self.width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        length = 0.60*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
+        width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+
+        self.length = get_init(self,"length", val=length)
+        self.width = get_init(self,"width", val=width)
         self.volume = None
         self.max_volume = None
         self.mfw_volume_limited = None

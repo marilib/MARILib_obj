@@ -6,7 +6,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 from marilib.aircraft.airframe.airframe_root import Airframe
-from marilib.aircraft.airframe import propulsion, component, model
+from marilib.aircraft.airframe import propulsion, component, system, model
 
 from marilib.engine import interface
 
@@ -120,11 +120,11 @@ class Aircraft(object):
 
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.power_source == "battery"):
-            self.airframe.system = propulsion.SystemWithBattery(self)
+            self.airframe.system = system.SystemWithBattery(self)
         elif (self.arrangement.power_source == "fuel_cell"):
-            self.airframe.system = propulsion.SystemWithFuelCell(self)
+            self.airframe.system = system.SystemWithFuelCell(self)
         else:
-            self.airframe.system = propulsion.System(self)
+            self.airframe.system = system.System(self)
 
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.power_architecture=="tf"):

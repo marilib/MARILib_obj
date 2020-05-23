@@ -74,11 +74,16 @@ model_config = {
         "shell_density": [1750, "kg/m3", "Tank shell material density"]
     },
     "TankWingPod":{
+        "span_ratio": [0.60, "no_dim", "Relative span wise position of the tank"],
+        "length": ["function", "m", "Length of the tank"],
+        "width": ["function", "m", "Diameter of the tank"],
         "fuel_pressure": [0, "bar", "Maximum over pressure of the fuel in the tank"],
         "shell_parameter": [700, "bar.l/kg", "Tank structural efficiency"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"]
     },
     "TankPiggyBack":{
+        "length": ["function", "m", "Length of the tank"],
+        "width": ["function", "m", "Diameter of the tank"],
         "fuel_pressure": [0, "bar", "Maximum over pressure of the fuel in the tank"],
         "shell_parameter": [700, "bar.l/kg", "Tank structural efficiency"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"]
