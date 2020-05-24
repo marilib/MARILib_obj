@@ -21,6 +21,7 @@ model_config = {
         "tail_cone_ratio": [3.45, "no_dim", "Fuselage tail cone length over fuselage diameter"]
     },
     "Wing":{
+        "wing_morphing": ["aspect_ratio_driven", "no_dim", "Wing deformation mode, 'aspect_ratio_driven' or 'span_driven'"],
         "aspect_ratio": [9, "no_dim", "Wing aspect ratio"],
         "hld_type": [9, "int", "Type of high lift device, from 0 to 10"]
     },

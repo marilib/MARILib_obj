@@ -297,6 +297,6 @@ DATA_DICT = {
     "max_esar_power": {"unit":"MW", "mag":1e0, "txt":"Total power for maximum specific air range"},
     "max_esar_throttle": {"unit":"no_dim", "mag":1e0, "txt":"Throttle versus MCR for maximum specific air range"},
     "max_esar_sec": {"unit":"kW/daN", "mag":1e0, "txt":"Specific energy consumption for maximum specific air range"},
-    "morphing" : {"unit":"string", "mag":19, "txt":"design of the wings : 'aspect_ratio_driven' or 'span_driven'"}
+    "wing_morphing" : {"unit":"string", "mag":19, "txt":"design of the wings : 'aspect_ratio_driven' or 'span_driven'"}
 }
 

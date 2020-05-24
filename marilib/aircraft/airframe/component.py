@@ -201,6 +201,8 @@ class Cargo(Component):
     def __init__(self, aircraft):
         super(Cargo, self).__init__(aircraft)
 
+        self.container_pallet_mass = None
+
     def eval_geometry(self):
         self.frame_origin = self.aircraft.airframe.cabin.frame_origin
 
@@ -217,7 +219,8 @@ class Cargo(Component):
             backward_hold_length = self.frame_origin[0]+cabin_length - (wing_root_loc[0]+wing_root_c)
             hold_length = forward_hold_length + backward_hold_length
 
-            self.mass = (4.36*body_width*body_length)        # Container and pallet mass
+            self.container_pallet_mass = 4.36 * body_width * body_length        # Container and pallet mass
+            self.mass = self.container_pallet_mass
             self.cg =   (self.frame_origin + 0.5*np.array([forward_hold_length, 0., 0.]))*(forward_hold_length/hold_length) \
                       + (wing_root_loc + np.array([wing_root_c+0.5*backward_hold_length, 0., 0.]))*(backward_hold_length/hold_length)
         else:
@@ -283,7 +286,7 @@ class Wing(Component):
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
-        self.morphing = "aspect_ratio_driven"   # "aspect_ratio_driven" or "span_driven"
+        self.wing_morphing = get_init(self,"wing_morphing")   # "aspect_ratio_driven" or "span_driven"
         self.area = 60. + 88.*n_pax_ref*design_range*1.e-9
         self.span = None
         self.aspect_ratio = get_init(self,"aspect_ratio")
@@ -329,12 +332,12 @@ class Wing(Component):
 
         self.dihedral = unit.rad_deg(5.)
 
-        if(self.morphing=="aspect_ratio_driven"):   # Aspect ratio is driving parameter
+        if(self.wing_morphing=="aspect_ratio_driven"):   # Aspect ratio is driving parameter
             self.span = np.sqrt(self.aspect_ratio*self.area)
-        elif(self.morphing=="span_driven"): # Span is driving parameter
+        elif(self.wing_morphing=="span_driven"): # Span is driving parameter
             self.aspect_ratio = self.span**2/self.area
         else:
-            print("geometry_predesign_, wing_morphing index is unkown")
+            print("geometry_predesign_, wing_wing_morphing index is unkown")
 
         # Correlation between span loading and tapper ratio
         self.taper_ratio = 0.3 - 0.025*(1e-3*mtow/self.span)
