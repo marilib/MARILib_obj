@@ -113,6 +113,10 @@ class SemiEmpiricTfNacelle(Component):
         self.width = None
         self.length = None
 
+        self.propeller_mass = 0.
+        self.engine_mass = 0.
+        self.pylon_mass = 0.
+
         self.frame_origin = np.full(3,None)
 
     def __turbofan_bpr(self):
@@ -169,9 +173,9 @@ class SemiEmpiricTfNacelle(Component):
         self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
-        engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
-        pylon_mass = 0.0031*self.reference_thrust*self.n_engine
-        self.mass = engine_mass + pylon_mass
+        self.engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
+        self.pylon_mass = 0.0031*self.reference_thrust*self.n_engine
+        self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
@@ -249,6 +253,11 @@ class SemiEmpiricTpNacelle(Component):
         self.propeller_width = None
         self.width = None
         self.length = None
+        self.propeller_mass = None
+
+        self.propeller_mass = 0.
+        self.engine_mass = 0.
+        self.pylon_mass = 0.
 
         self.frame_origin = np.full(3,None)
 
@@ -284,9 +293,9 @@ class SemiEmpiricTpNacelle(Component):
         self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
-        engine_mass = (0.633*(self.reference_power/1.e3)**0.9)*self.n_engine       # statistical regression
-        propeller_mass = (165./1.5e6)*self.reference_power * self.n_engine
-        self.mass = engine_mass + propeller_mass
+        self.engine_mass = (0.633*(self.reference_power/1.e3)**0.9)*self.n_engine       # statistical regression
+        self.propeller_mass = (165./1.5e6)*self.reference_power * self.n_engine
+        self.mass = self.engine_mass + self.propeller_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
@@ -355,6 +364,10 @@ class SemiEmpiricEpNacelle(Component):
         self.width = None
         self.length = None
 
+        self.propeller_mass = 0.
+        self.engine_mass = 0.
+        self.pylon_mass = 0.
+
         self.frame_origin = np.full(3,None)
 
     def lateral_margin(self):
@@ -387,11 +400,11 @@ class SemiEmpiricEpNacelle(Component):
         self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
-        engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
-                       + 1./self.nacelle_pw_density
-                      ) * self.reference_power * self.n_engine
-        propeller_mass = (165./1.5e6)*self.reference_power * self.n_engine
-        self.mass = engine_mass + propeller_mass
+        self.engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
+                            + 1./self.nacelle_pw_density
+                           ) * self.reference_power * self.n_engine
+        self.propeller_mass = (165./1.5e6)*self.reference_power * self.n_engine
+        self.mass = self.engine_mass + self.propeller_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
 
@@ -454,6 +467,10 @@ class SemiEmpiricEfNacelle(Component):
         self.width = None
         self.length = None
 
+        self.propeller_mass = 0.
+        self.engine_mass = 0.
+        self.pylon_mass = 0.
+
         self.frame_origin = np.full(3,None)
 
     def lateral_margin(self):
@@ -490,11 +507,11 @@ class SemiEmpiricEfNacelle(Component):
         self.reference_thrust = dict["fn"] / 0.80
 
     def eval_mass(self):
-        engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
-                       + 1./self.nacelle_pw_density
-                      ) * self.reference_power * self.n_engine
-        pylon_mass = 0.0031*self.reference_thrust*self.n_engine
-        self.mass = engine_mass + pylon_mass
+        self.engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
+                            + 1./self.nacelle_pw_density
+                          ) * self.reference_power * self.n_engine
+        self.pylon_mass = 0.0031*self.reference_thrust*self.n_engine
+        self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
     def efan_nacelle_design(self,Pamb,Tamb,Mach,shaft_power):

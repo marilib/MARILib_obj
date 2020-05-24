@@ -231,7 +231,6 @@ class Cargo(Component):
         return np.array([0., 0., 0.])
 
 
-
 class Fuselage(Component):
     """The skin of the aircraft body (tube and wing configuration)"""
 
@@ -1094,6 +1093,7 @@ class TankWingPod(Component):
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
         self.span_ratio = get_init(self,"span_ratio")
+        self.surface_mass = get_init(self,"surface_mass")
         self.shell_parameter = get_init(self,"shell_parameter")
         self.shell_density = get_init(self,"shell_density")
         self.fuel_pressure = get_init(self,"fuel_pressure")
@@ -1106,7 +1106,6 @@ class TankWingPod(Component):
         self.width = get_init(self,"width", val=width)
         self.wing_axe_c = None
         self.wing_axe_x = None
-        self.volume = None
         self.max_volume = None
         self.mfw_volume_limited = None
 
@@ -1124,7 +1123,6 @@ class TankWingPod(Component):
         wing_kink_loc = self.aircraft.airframe.wing.kink_loc
         wing_tip_c = self.aircraft.airframe.wing.tip_c
         wing_tip_loc = self.aircraft.airframe.wing.tip_loc
-        fuel_type = self.aircraft.arrangement.fuel_type
 
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
@@ -1141,17 +1139,16 @@ class TankWingPod(Component):
         self.wing_axe_c = wing_kink_c - (wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
         self.wing_axe_x = wing_kink_loc[0] - (wing_kink_loc[0]-wing_tip_loc[0])/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
 
-        self.net_wet_area = 2.*(0.85*3.14*self.width*self.length)
+        self.gross_wet_area = 2.*(0.85*3.14*self.width*self.length)
+        self.net_wet_area = 0.95*self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.05
 
         shell_ratio = self.fuel_pressure/(self.shell_parameter*self.shell_density)
 
-        self.volume =   0.85 \
-                          * 2.0*self.length*(0.25*np.pi*self.width**2) \
-                          * (1. - shell_ratio)                             # for both pods
-
-        self.max_volume = self.volume
+        self.max_volume =   0.85 \
+                                 * 2.0*self.length*(0.25*np.pi*self.width**2) \
+                                 * (1. - shell_ratio)                             # for both pods
 
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type
@@ -1160,14 +1157,15 @@ class TankWingPod(Component):
         self.fuel_density = earth.fuel_density(fuel_type)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.mass = (self.fuel_pressure/self.shell_parameter)*self.max_volume
+        self.mass =   self.surface_mass * self.gross_wet_area \
+                   + (self.fuel_pressure/self.shell_parameter)*self.max_volume
         self.cg = self.frame_origin + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
-        self.fuel_max_fwd_mass = self.volume*self.fuel_density
+        self.fuel_max_fwd_mass = self.max_volume*self.fuel_density
 
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
-        self.fuel_max_bwd_mass = self.volume*self.fuel_density
+        self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
 
 class TankPiggyBack(Component):
@@ -1179,6 +1177,7 @@ class TankPiggyBack(Component):
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
+        self.surface_mass = get_init(self,"surface_mass")
         self.shell_parameter = get_init(self,"shell_parameter")
         self.shell_density = get_init(self,"shell_density")
         self.fuel_pressure = get_init(self,"fuel_pressure")
@@ -1189,7 +1188,6 @@ class TankPiggyBack(Component):
 
         self.length = get_init(self,"length", val=length)
         self.width = get_init(self,"width", val=width)
-        self.volume = None
         self.max_volume = None
         self.mfw_volume_limited = None
 
@@ -1203,7 +1201,6 @@ class TankPiggyBack(Component):
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
         wing_root_c = self.aircraft.airframe.wing.root_c
         wing_root_loc = self.aircraft.airframe.wing.root_loc
-        fuel_type = self.aircraft.arrangement.fuel_type
 
         x_axe = wing_mac_loc[0] - 0.40*self.length
         y_axe = 0.
@@ -1220,11 +1217,9 @@ class TankPiggyBack(Component):
 
         shell_ratio = self.fuel_pressure/(self.shell_parameter*self.shell_density)
 
-        self.volume =   0.85 \
-                          * self.length*(0.25*np.pi*self.width**2) \
-                          * (1. - shell_ratio)
-
-        self.max_volume = self.volume
+        self.max_volume =   0.85 \
+                                 * self.length*(0.25*np.pi*self.width**2) \
+                                 * (1. - shell_ratio)
 
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type
@@ -1233,14 +1228,15 @@ class TankPiggyBack(Component):
         self.fuel_density = earth.fuel_density(fuel_type)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.mass = (self.fuel_pressure/self.shell_parameter)*self.max_volume
+        self.mass =   self.surface_mass * self.gross_wet_area \
+                   + (self.fuel_pressure/self.shell_parameter)*self.max_volume
         self.cg = self.frame_origin[0] + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
-        self.fuel_max_fwd_mass = self.volume*self.fuel_density
+        self.fuel_max_fwd_mass = self.max_volume*self.fuel_density
 
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
-        self.fuel_max_bwd_mass = self.volume*self.fuel_density
+        self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
 
 class LandingGear(Component):

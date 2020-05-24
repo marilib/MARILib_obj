@@ -15,6 +15,10 @@ from marilib.aircraft.performance import Flight
 from marilib.utils.math import lin_interp_1d, maximize_1d
 
 
+# -----------------------------------------------------------------------------------
+#                            AERODYNAMIC & WEIGHTS
+# -----------------------------------------------------------------------------------
+
 class Aerodynamics(object):
 
     def __init__(self, aircraft):
@@ -118,6 +122,28 @@ class Aerodynamics(object):
         return lodmax,cz_lodmax
 
 
+class OweBreakdown(object):
+
+    def __init__(self, aircraft):
+        self.aircraft = aircraft
+
+        self.owe = None
+        self.op_item_mass = None
+        self.container_pallet_mass = None
+        self.mwe = None
+        self.furnishing_mass = None
+        self.wing_mass = None
+        self.body_mass = None
+        self.htp_mass = None
+        self.vtp_mass = None
+        self.tank_mass = None
+        self.ldg_mass = None
+        self.system_mass = None
+        self.propeller_mass = None
+        self.engine_mass = None
+        self.pylon_mass = None
+
+
 class WeightCg(object):
 
     def __init__(self, aircraft):
@@ -129,6 +155,8 @@ class WeightCg(object):
         self.owe = None
         self.mwe = None
         self.mfw = None
+
+        self.breakdown = OweBreakdown(aircraft)
 
     def __mtow_init__(self):
         return 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
@@ -153,6 +181,22 @@ class WeightCg(object):
             owe += comp.get_mass_owe()
         self.mwe = mwe
         self.owe = owe
+
+        self.breakdown.owe = self.owe
+        self.breakdown.op_item_mass = self.aircraft.airframe.cabin.m_op_item
+        self.breakdown.container_pallet_mass = self.aircraft.airframe.cargo.mass
+        self.breakdown.mwe = self.mwe
+        self.breakdown.furnishing_mass = self.aircraft.airframe.cabin.m_furnishing
+        self.breakdown.wing_mass = self.aircraft.airframe.wing.mass
+        self.breakdown.body_mass = self.aircraft.airframe.body.mass
+        self.breakdown.htp_mass = self.aircraft.airframe.horizontal_stab.mass
+        self.breakdown.vtp_mass = self.aircraft.airframe.vertical_stab.mass
+        self.breakdown.tank_mass = self.aircraft.airframe.tank.mass
+        self.breakdown.ldg_mass = self.aircraft.airframe.landing_gear.mass
+        self.breakdown.system_mass = self.aircraft.airframe.system.mass
+        self.breakdown.propeller_mass = self.aircraft.airframe.nacelle.propeller_mass
+        self.breakdown.engine_mass = self.aircraft.airframe.nacelle.engine_mass
+        self.breakdown.pylon_mass = self.aircraft.airframe.nacelle.pylon_mass
 
         if (self.aircraft.arrangement.power_source=="battery"):
             self.mzfw = self.mtow
@@ -199,7 +243,7 @@ class WeightCg(object):
 
 
 # -----------------------------------------------------------------------------------
-#                            POWER SYTEM DESCRIPTION
+#                            POWER SYSTEM
 # -----------------------------------------------------------------------------------
 
 class ThrustData(object):
