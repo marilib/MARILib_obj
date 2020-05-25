@@ -389,15 +389,6 @@ def climb_mode(speed_mode,mach,dtodz,tstd,disa):
 
     return acc_factor
 
-def tank_shell_density(fuel_type):
-    """Reference fuel density
-    """
-    if (fuel_type in ["kerosene", "liquid_h2", "700bar_h2", "methane", "battery"]):
-        tank_shell_density = 1750. # Reinforced composite
-    else:
-        raise Exception("fuel_type key is unknown")
-    return tank_shell_density
-
 def fuel_density(fuel_type):
     """Reference fuel density
     """
@@ -428,10 +419,10 @@ def fuel_heat(fuel_type):
         raise Exception("fuel_type index is out of range")
     return fuel_heat
 
-def emission_index(energy_source,compound):
+def emission_index(fuel_type,compound):
     """Various emitted compound depending on energy source
     """
-    if (energy_source in ["kerosene"]):
+    if (fuel_type in ["kerosene"]):
         index = {"CO2" : 3140./1000.,
                  "H2O" : 1290./1000.,
                  "SO2" : 0.8/1000.,
@@ -443,7 +434,7 @@ def emission_index(energy_source,compound):
                  "nitric_acid" : 0.2/1000.,
                  "soot" : 2.5e12}
         return index.get(compound)
-    elif (energy_source in ["liquid_h2", "700bar_h2"]):
+    elif (fuel_type in ["liquid_h2", "700bar_h2"]):
         index = {"CO2" : 0.,
                  "H2O" : 18000./1000.,
                  "SO2" : 0.,
@@ -455,7 +446,7 @@ def emission_index(energy_source,compound):
                  "nitric_acid" : 0.2/1000.,
                  "soot" : 2.0e12}
         return index.get(compound)
-    elif (energy_source in ["battery"]):
+    elif (fuel_type in ["battery"]):
         index = {"CO2" : 0.,
                  "H2O" : 0.,
                  "SO2" : 0.,

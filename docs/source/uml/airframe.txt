@@ -73,7 +73,7 @@ class Fuselage{
 }
 
 class Wing{
-	morphing
+	wing_morphing
 	area
 	span
 	aspect_ratio

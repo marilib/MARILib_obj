@@ -14,7 +14,7 @@ from marilib.aircraft.requirement import Requirement
 
 from marilib.aircraft.design import process
 
-from marilib.aircraft.tool.read_write import MarilibIO
+from marilib.utils.read_write import MarilibIO
 
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
@@ -24,8 +24,9 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "extf",       # "tf", "extf", "efb", "exefb",
-                   energy_source = "kerosene")      # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery" or "fuel_cell"
+                   power_architecture = "extf",       # "tf", "extf", "ef", "exef",
+                   power_source = "fuel",           # "fuel", "battery", "fuel_cell"
+                   fuel_type = "kerosene")           # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
