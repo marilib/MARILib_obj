@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Created on Thu Jan 20 20:20:20 2020
+An interface between the module :mod:`marilib.engine.ExergeticEngine` and MARILib.
 
-@author: DRUOT Thierry, Nicolas Monrolin
+:author: DRUOT Thierry, Nicolas Monrolin
 """
 
 

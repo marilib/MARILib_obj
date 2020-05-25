@@ -10,7 +10,7 @@
 
 .. include:: ../../README.rst
 
-This is some text :doc:`test <../../LICENSE.rst>`
+The full license text is available :doc:`here <link/LICENSE_link>`
 
 MARILib documentation
 =====================
@@ -18,7 +18,7 @@ MARILib documentation
 .. toctree::
    :glob:
    :maxdepth: 2
-   :caption: Contents:
+   :caption: MARILib is a Python 3 package. This is the documentation of the source code:
 
    api/marilib
 
