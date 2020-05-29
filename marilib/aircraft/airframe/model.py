@@ -750,4 +750,124 @@ class Electrofan(PowerSystem, Flight):
             raise Exception("Power source is unknown")
 
 
+class ThrustDataPte(ThrustData):
+    def __init__(self, nei):
+        super(ThrustDataTf, self).__init__(nei)
+        self.thrust_opt = None
+        self.thrust = None
+        self.fuel_flow = None
+        self.tsfc = None
+        self.T41 = None
+
+class PartialTurboElectric(PowerSystem, Flight):
+
+    def __init__(self, aircraft):
+        super(Turbofan, self).__init__(aircraft)
+
+
+        self.fuel_density = self.fuel_density()
+        self.fuel_heat = self.fuel_heat()
+        self.sfc_type = "thrust"
+        self.data = {"MTO":ThrustDataTf(nei=1),
+                     "MCN":ThrustDataTf(nei=1),
+                     "MCL":ThrustDataTf(nei=0),
+                     "MCR":ThrustDataTf(nei=0)}
+
+        ref_power = 0.10 * aircraft.airframe.tail_nacelle.reference_power
+
+        power_chain_efficiency =   self.aircraft.airframe.system.generator_efficiency \
+                                 * self.aircraft.airframe.system.rectifier_efficiency \
+                                 * self.aircraft.airframe.system.wiring_efficiency \
+                                 * self.aircraft.airframe.tail_nacelle.controller_efficiency \
+                                 * self.aircraft.airframe.tail_nacelle.motor_efficiency
+
+        n_engine = self.aircraft.airframe.nacelle.n_engine
+        self.aircraft.airframe.nacelle.reference_offtake = ref_power/power_chain_efficiency/n_engine
+
+    def thrust_analysis(self):
+        self.thrust_requirement()
+        for rating in self.data.keys():
+            disa = self.data[rating].disa
+            altp = self.data[rating].altp
+            mach = self.data[rating].mach
+            nei = self.data[rating].nei
+            kfn = self.data[rating].kfn_opt
+            pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+            dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
+            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].fuel_flow = dict["ff"]
+            self.data[rating].tsfc = dict["sfc"]
+            self.data[rating].T41 = dict["t4"]
+
+    def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
+        """Total thrust of a pure turbofan engine
+        """
+        n_engine = self.aircraft.airframe.nacelle.n_engine
+
+        dict_ef = self.aircraft.airframe.tail_nacelle.unitary_thrust(pamb,tamb,mach,rating)
+
+        pw_elec = dict_ef["pw"]
+        pw_offtake =    pw_elec \
+                     / self.aircraft.airframe.system.wiring_efficiency \
+                     / self.aircraft.airframe.system.rectifier_efficiency \
+                     / self.aircraft.airframe.system.generator_efficiency \
+                     / (n_engine - nei)
+
+        dict_tf = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+
+        fn = dict_tf["fn"]*(n_engine-nei) + dict_ef["fn"]*self.aircraft.airframe.tail_nacelle.n_engine
+        ff = dict["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / self.fuel_heat
+        sfc = ff / fn
+        t41 = dict["t4"]
+
+        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41}
+
+    def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
+        """Total thrust of a pure turbofan engine
+        """
+        n_engine = self.aircraft.airframe.nacelle.n_engine
+        fn = thrust/(n_engine - nei)
+
+        def fct(thtl):
+            dict = self.thrust(pamb,tamb,mach,rating, throttle=thtl, nei=nei)
+            return thrust-dict["fn"]
+
+        thtl_ini = 0.9
+        output_dict = fsolve(fct, x0=thtl_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        throttle = output_dict[0][0]
+
+        dict = self.thrust(pamb,tamb,mach,rating, throttle=throttle, nei=nei)
+        sfc = dict["sfc"]
+        t41 = dict["t4"]
+
+        return {"sfc":sfc, "thtl":throttle, "t4":t41}
+
+    def oei_drag(self,pamb,tamb):
+        """Inoperative engine drag coefficient
+        """
+        wing_area = self.aircraft.airframe.wing.area
+        nacelle_width = self.aircraft.airframe.nacelle.width
+
+        dCx = 0.12*nacelle_width**2 / wing_area
+
+        return dCx
+
+    def tail_cone_drag_factor(self):
+        return 1.
+
+    def specific_air_range(self,mass,tas,dict):
+        g = earth.gravity()
+        return (tas*dict["lod"])/(mass*g*dict["sfc"])
+
+    def specific_breguet_range(self,tow,range,tas,dict):
+        g = earth.gravity()
+        return tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
+
+    def specific_holding(self,mass,time,tas,dict):
+        g = earth.gravity()
+        return dict["sfc"]*(mass*g/dict["lod"])*time
+
 

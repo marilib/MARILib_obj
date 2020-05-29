@@ -151,3 +151,57 @@ class SystemWithFuelCell(Component):
                   + 0.10*nacelle_cg \
                   + 0.10*power_elec_cg
 
+
+class SystemPartialTurboElectric(Component):
+
+    def __init__(self, aircraft):
+        super(SystemPartialTurboElectric, self).__init__(aircraft)
+
+        self.generator_efficiency = get_init(self,"generator_efficiency")
+        self.generator_pw_density = get_init(self,"generator_pw_density")
+
+        self.rectifier_efficiency = get_init(self,"rectifier_efficiency")
+        self.rectifier_pw_density = get_init(self,"rectifier_pw_density")
+
+        self.wiring_efficiency = get_init(self,"wiring_efficiency")
+        self.wiring_pw_density = get_init(self,"wiring_pw_density")
+
+        self.cooling_pw_density = get_init(self,"cooling_pw_density")
+
+        self.power_chain_efficiency = None
+
+        self.power_elec_mass = None
+
+    def eval_geometry(self):
+        self.frame_origin = [0., 0., 0.]
+
+    def eval_mass(self):
+        mtow = self.aircraft.weight_cg.mtow
+        body_cg = self.aircraft.airframe.body.cg
+        wing_cg = self.aircraft.airframe.wing.cg
+        horizontal_stab_cg = self.aircraft.airframe.horizontal_stab.cg
+        vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
+        nacelle_cg = self.aircraft.airframe.nacelle.cg
+        landing_gear_cg = self.aircraft.airframe.landing_gear.cg
+        n_engine = self.aircraft.airframe.nacelle.n_engine
+
+        self.power_chain_efficiency =   self.generator_efficiency * self.rectifier_efficiency * self.wiring_efficiency \
+                                      * self.aircraft.airframe.nacelle.controller_efficiency \
+                                      * self.aircraft.airframe.nacelle.motor_efficiency
+
+        elec_power_max = self.aircraft.airframe.nacelle.reference_power / self.power_chain_efficiency
+
+        self.power_elec_mass = (1./self.generator_pw_density + 1./self.rectifier_pw_density + 1./self.wiring_pw_density + 1./self.cooling_pw_density) * (elec_power_max * n_engine)
+
+        power_elec_cg = 0.70*nacelle_cg + 0.30*body_cg
+
+        self.mass = 0.545*mtow**0.8  + self.power_elec_mass  # global mass of all systems
+
+        self.cg =   0.40*body_cg \
+                  + 0.20*wing_cg \
+                  + 0.10*landing_gear_cg \
+                  + 0.05*horizontal_stab_cg \
+                  + 0.05*vertical_stab_cg \
+                  + 0.10*nacelle_cg \
+                  + 0.10*power_elec_cg
+

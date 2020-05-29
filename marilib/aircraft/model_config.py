@@ -117,6 +117,17 @@ model_config = {
         "fuel_cell_pw_density": [1., "kW/kg", "Fuell cell power density"],
         "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
     },
+    "SystemPartialTurboElectric":{
+        "generator_efficiency": [0.95, "no_dim", "Electric generator efficiency"],
+        "generator_pw_density": [10., "kW/kg", "Electric generator power density"],
+        "rectifier_efficiency": [0.98, "no_dim", "Rectifier efficiency"],
+        "rectifier_pw_density": [20., "kW/kg", "Rectifier power density"],
+        "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
+        "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "cooling_pw_density": [10., "kW/kg", "Cooling power density"],
+        "battery_density": [2800., "kg/m3", "Battery density"],
+        "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
+    },
     "SemiEmpiricTfNacelle":{
         "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
         "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
@@ -131,10 +142,10 @@ model_config = {
         "propeller_disk_load": [3000., "N/m2", "Propeller disk load"],
         "hub_width": [0.2, "m", "Propeller hub diameter"],
         "motor_efficiency": [0.95, "no_dim", "Electric motor efficiency"],
-        "controller_efficiency": [0.99, "no_dim", "Electric controller efficiency"],
-        "controller_pw_density": [20., "kW/kg", "Electric controller power density"],
+        "motor_pw_density": [10., "kW/kg", "Electric motor power density"],
         "nacelle_pw_density": [10., "kW/kg", "Electric nacelle power density"],
-        "motor_pw_density": [10., "kW/kg", "Electric motor power density"]
+        "controller_efficiency": [0.99, "no_dim", "Electric controller efficiency"],
+        "controller_pw_density": [20., "kW/kg", "Electric controller power density"]
     },
     "SemiEmpiricEfNacelle":{
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],

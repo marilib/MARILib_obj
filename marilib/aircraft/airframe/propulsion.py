@@ -83,6 +83,25 @@ class RearFuselageMountedNacelle(Component):
         return np.array([x_int, y_int, z_int])
 
 
+class FuselageTailConeMountedNacelle(Component):
+
+    def __init__(self, aircraft):
+        super(FuselageTailConeMountedNacelle, self).__init__(aircraft)
+
+        self.tail_cone_height_ratio = 0.90
+
+    def locate_nacelle(self):
+        body_origin = self.aircraft.airframe.body.frame_origin
+        body_height = self.aircraft.airframe.body.height
+        body_length = self.aircraft.airframe.body.length
+
+        y_axe = body_origin[1]
+        x_axe = body_origin[0] + body_length
+        z_axe = body_origin[2] + self.tail_cone_height_ratio * body_height
+
+        return np.array([x_axe, y_axe, z_axe])
+
+
 class RatingFactor(object):
     def __init__(self, MTO=None, MCN=None, MCL=None, MCR=None, FID=None):
         self.MTO = MTO
@@ -246,7 +265,7 @@ class SemiEmpiricTpNacelle(Component):
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
         self.sfc_type = "power"
-        self.reference_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        self.reference_power = self.__reference_power(aircraft)
         self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.95, MCL=0.90, MCR=0.70, FID=0.10)
         self.engine_bpr = 100.
@@ -262,6 +281,12 @@ class SemiEmpiricTpNacelle(Component):
         self.pylon_mass = 0.
 
         self.frame_origin = np.full(3,None)
+
+    def __reference_power(self, aircraft):
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        design_range = self.aircraft.requirement.design_range
+        ref_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        return ref_power
 
     def lateral_margin(self):
         return 0.8*self.propeller_width
@@ -351,7 +376,7 @@ class SemiEmpiricEpNacelle(Component):
         self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
-        self.reference_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        self.reference_power = self.__reference_power(aircraft)
         self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
         self.motor_efficiency = get_init(class_name,"motor_efficiency")
@@ -371,6 +396,12 @@ class SemiEmpiricEpNacelle(Component):
         self.pylon_mass = 0.
 
         self.frame_origin = np.full(3,None)
+
+    def __reference_power(self, aircraft):
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        design_range = self.aircraft.requirement.design_range
+        ref_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        return ref_power
 
     def lateral_margin(self):
         return 0.8*self.propeller_width
@@ -446,14 +477,13 @@ class SemiEmpiricEfNacelle(Component):
 
         class_name = "SemiEmpiricEfNacelle"
 
-        ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+        self.n_engine = self.__n_engine(aircraft)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.fan_efficiency = get_init(class_name,"fan_efficiency")
-        self.reference_power = 0.5*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        self.reference_power = self.__reference_power(aircraft)
         self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
         self.motor_efficiency = get_init(class_name,"motor_efficiency")
@@ -474,6 +504,22 @@ class SemiEmpiricEfNacelle(Component):
         self.pylon_mass = 0.
 
         self.frame_origin = np.full(3,None)
+
+    def __n_engine(self, aircraft):
+        if self.aircraft.arrangement.power_architecture=="ef":
+            ne = self.aircraft.arrangement.number_of_engine
+            n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+        elif self.aircraft.arrangement.power_architecture=="pte":
+            n_engine = 1.
+        else:
+            raise Exception("Power architecture type is not allowed")
+        return n_engine
+
+    def __reference_power(self, aircraft):
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        design_range = self.aircraft.requirement.design_range
+        ref_power = 0.5*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        return ref_power
 
     def lateral_margin(self):
         return 1.5*self.width
@@ -699,25 +745,12 @@ class RearFuselageMountedEfNacelle(SemiEmpiricEfNacelle,RearFuselageMountedNacel
     def __init__(self, aircraft):
         super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
 
-
-class SystemPartialTurboelectric(Component):
-
+class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMountedNacelle):
     def __init__(self, aircraft):
-        super(SystemPartialTurboelectric, self).__init__(aircraft)
+        super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
 
-        self.generator_efficiency = 0.95
-        self.generator_pw_density = 10.e3   # W/kg, Electric generator
 
-        self.rectifier_efficiency = 0.98
-        self.rectifier_pw_density = 20.e3   # W/kg, Rectifier
 
-        self.wiring_efficiency = 0.995
-        self.wiring_pw_density = 20.e3      # W/kg, Wiring
 
-        self.cooling_pw_density = 15.e3     # W/kg, Cooling
 
-        self.battery_density = 2800.                    # kg/m3
-        self.battery_energy_density = unit.J_kWh(1.2)   # J/kg
-
-        self.power_chain_efficiency = None
 

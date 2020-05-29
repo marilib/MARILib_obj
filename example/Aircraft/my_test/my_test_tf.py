@@ -43,10 +43,11 @@ ac = Aircraft("This_plane")
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
 
-
-
 ac.requirement.take_off.tofl_req = 2500.
 
+ac.airframe.nacelle.reference_thrust = unit.N_kN(120.)
+
+ac.airframe.wing.area = 122.
 
 
 process.mda(ac)

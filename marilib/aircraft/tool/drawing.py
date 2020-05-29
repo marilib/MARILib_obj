@@ -58,9 +58,9 @@ class Drawing(object):
         """
         plot_title = self.aircraft.name
 
-        fus_width = self.aircraft.airframe.body.width
-        fus_height = self.aircraft.airframe.body.height
-        fus_length = self.aircraft.airframe.body.length
+        body_width = self.aircraft.airframe.body.width
+        body_height = self.aircraft.airframe.body.height
+        body_length = self.aircraft.airframe.body.length
 
         htp_span = self.aircraft.airframe.horizontal_stab.span
         htp_dihedral = self.aircraft.airframe.horizontal_stab.dihedral
@@ -99,11 +99,11 @@ class Drawing(object):
         wing_toc_t = self.aircraft.airframe.wing.tip_toc
 
         if (self.aircraft.arrangement.tank_architecture in ["piggy_back", "pods"]):
-            body_width = self.aircraft.airframe.tank.width
-            body_length = self.aircraft.airframe.tank.length
-            body_x_axe = self.aircraft.airframe.tank.frame_origin[0]
-            body_y_axe = self.aircraft.airframe.tank.frame_origin[1]
-            body_z_axe = self.aircraft.airframe.tank.frame_origin[2]
+            pod_width = self.aircraft.airframe.tank.width
+            pod_length = self.aircraft.airframe.tank.length
+            pod_x_axe = self.aircraft.airframe.tank.frame_origin[0]
+            pod_y_axe = self.aircraft.airframe.tank.frame_origin[1]
+            pod_z_axe = self.aircraft.airframe.tank.frame_origin[2]
             wing_x_body = self.aircraft.airframe.tank.wing_axe_x
             wing_c_body = self.aircraft.airframe.tank.wing_axe_c
 
@@ -135,40 +135,40 @@ class Drawing(object):
 
         # Fuselage shape
         #-----------------------------------------------------------------------------------------------------------
-        cyl_yz = np.stack([cyl[0:,0]*fus_width , cyl[0:,1]*fus_height+0.5*fus_height , cyl[0:,2]*fus_height+0.5*fus_height], axis=1)
+        cyl_yz = np.stack([cyl[0:,0]*body_width , cyl[0:,1]*body_height+0.5*body_height , cyl[0:,2]*body_height+0.5*body_height], axis=1)
 
-        fus_front = np.vstack([np.stack([cyl_yz[0:,0] , cyl_yz[0:,1]],axis=1) , np.stack([cyl_yz[::-1,0] , cyl_yz[::-1,2]],axis=1)])
+        body_front = np.vstack([np.stack([cyl_yz[0:,0] , cyl_yz[0:,1]],axis=1) , np.stack([cyl_yz[::-1,0] , cyl_yz[::-1,2]],axis=1)])
 
-        nose_xz = np.stack([nose[0:,0]*fus_length*r_nose , nose[0:,1]*fus_height , nose[0:,2]*fus_height], axis=1)
-        cone_xz = np.stack([(1-r_cone)*fus_length + cone[0:,0]*fus_length*r_cone , cone[0:,1]*fus_height , cone[0:,2]*fus_height], axis=1)
-        fus_xz = np.vstack([nose_xz , cone_xz])
+        nose_xz = np.stack([nose[0:,0]*body_length*r_nose , nose[0:,1]*body_height , nose[0:,2]*body_height], axis=1)
+        cone_xz = np.stack([(1-r_cone)*body_length + cone[0:,0]*body_length*r_cone , cone[0:,1]*body_height , cone[0:,2]*body_height], axis=1)
+        body_xz = np.vstack([nose_xz , cone_xz])
 
-        fus_side = np.vstack([np.stack([fus_xz[0:-2,0] , fus_xz[0:-2,1]],axis=1) , np.stack([fus_xz[:0:-1,0] , fus_xz[:0:-1,2]],axis=1)])
+        body_side = np.vstack([np.stack([body_xz[0:-2,0] , body_xz[0:-2,1]],axis=1) , np.stack([body_xz[:0:-1,0] , body_xz[:0:-1,2]],axis=1)])
 
-        nose_xy = np.stack([nose[0:,0]*fus_length*r_nose , nose[0:,3]*fus_width , nose[0:,4]*fus_width], axis=1)
-        cone_xy = np.stack([(1-r_cone)*fus_length + cone[0:,0]*fus_length*r_cone , cone[0:,3]*fus_width , cone[0:,4]*fus_width], axis=1)
-        fus_xy = np.vstack([nose_xy , cone_xy])
+        nose_xy = np.stack([nose[0:,0]*body_length*r_nose , nose[0:,3]*body_width , nose[0:,4]*body_width], axis=1)
+        cone_xy = np.stack([(1-r_cone)*body_length + cone[0:,0]*body_length*r_cone , cone[0:,3]*body_width , cone[0:,4]*body_width], axis=1)
+        body_xy = np.vstack([nose_xy , cone_xy])
 
-        fus_top = np.vstack([np.stack([fus_xy[1:-2,0]  , fus_xy[1:-2,1]],axis=1) , np.stack([fus_xy[:0:-1,0] , fus_xy[:0:-1,2]],axis=1)])
+        body_top = np.vstack([np.stack([body_xy[1:-2,0]  , body_xy[1:-2,1]],axis=1) , np.stack([body_xy[:0:-1,0] , body_xy[:0:-1,2]],axis=1)])
 
         # Pod body shape
         #-----------------------------------------------------------------------------------------------------------
         if (self.aircraft.arrangement.tank_architecture in ["piggy_back", "pods"]):
-            body_cyl_yz = np.stack([body_y_axe + cyl[0:,0]*body_width , body_z_axe + cyl[0:,1]*body_width , body_z_axe + cyl[0:,2]*body_width], axis=1)
+            pod_cyl_yz = np.stack([pod_y_axe + cyl[0:,0]*pod_width , pod_z_axe + cyl[0:,1]*pod_width , pod_z_axe + cyl[0:,2]*pod_width], axis=1)
 
-            body_front = np.vstack([np.stack([body_cyl_yz[0:,0] , body_cyl_yz[0:,1]],axis=1) , np.stack([body_cyl_yz[::-1,0] , body_cyl_yz[::-1,2]],axis=1)])
+            pod_front = np.vstack([np.stack([pod_cyl_yz[0:,0] , pod_cyl_yz[0:,1]],axis=1) , np.stack([pod_cyl_yz[::-1,0] , pod_cyl_yz[::-1,2]],axis=1)])
 
-            body_nose_xz = np.stack([body_x_axe + nose2[0:,0]*body_length*r_nose , body_z_axe - 0.5*body_width + nose2[0:,1]*body_width , body_z_axe - 0.5*body_width + nose2[0:,2]*body_width], axis=1)
-            body_cone_xz = np.stack([body_x_axe + (1-r_cone)*body_length + cone2[0:,0]*body_length*r_cone , body_z_axe - 0.5*body_width + cone2[0:,1]*body_width , body_z_axe - 0.5*body_width + cone2[0:,2]*body_width], axis=1)
-            body_xz = np.vstack([body_nose_xz , body_cone_xz])
+            pod_nose_xz = np.stack([pod_x_axe + nose2[0:,0]*pod_length*r_nose , pod_z_axe - 0.5*pod_width + nose2[0:,1]*pod_width , pod_z_axe - 0.5*pod_width + nose2[0:,2]*pod_width], axis=1)
+            pod_cone_xz = np.stack([pod_x_axe + (1-r_cone)*pod_length + cone2[0:,0]*pod_length*r_cone , pod_z_axe - 0.5*pod_width + cone2[0:,1]*pod_width , pod_z_axe - 0.5*pod_width + cone2[0:,2]*pod_width], axis=1)
+            pod_xz = np.vstack([pod_nose_xz , pod_cone_xz])
 
-            body_side = np.vstack([np.stack([body_xz[0:-2,0] , body_xz[0:-2,1]],axis=1) , np.stack([body_xz[:0:-1,0] , body_xz[:0:-1,2]],axis=1)])
+            pod_side = np.vstack([np.stack([pod_xz[0:-2,0] , pod_xz[0:-2,1]],axis=1) , np.stack([pod_xz[:0:-1,0] , pod_xz[:0:-1,2]],axis=1)])
 
-            body_nose_xy = np.stack([body_x_axe + nose2[0:,0]*body_length*r_nose , body_y_axe + nose2[0:,3]*body_width , body_y_axe + nose2[0:,4]*body_width], axis=1)
-            body_cone_xy = np.stack([body_x_axe + (1-r_cone)*body_length + cone2[0:,0]*body_length*r_cone , body_y_axe + cone2[0:,3]*body_width , body_y_axe + cone2[0:,4]*body_width], axis=1)
-            body_xy = np.vstack([body_nose_xy , body_cone_xy])
+            pod_nose_xy = np.stack([pod_x_axe + nose2[0:,0]*pod_length*r_nose , pod_y_axe + nose2[0:,3]*pod_width , pod_y_axe + nose2[0:,4]*pod_width], axis=1)
+            pod_cone_xy = np.stack([pod_x_axe + (1-r_cone)*pod_length + cone2[0:,0]*pod_length*r_cone , pod_y_axe + cone2[0:,3]*pod_width , pod_y_axe + cone2[0:,4]*pod_width], axis=1)
+            pod_xy = np.vstack([pod_nose_xy , pod_cone_xy])
 
-            body_top = np.vstack([np.stack([body_xy[1:-2,0]  , body_xy[1:-2,1]],axis=1) , np.stack([body_xy[:0:-1,0] , body_xy[:0:-1,2]],axis=1)])
+            pod_top = np.vstack([np.stack([pod_xy[1:-2,0]  , pod_xy[1:-2,1]],axis=1) , np.stack([pod_xy[:0:-1,0] , pod_xy[:0:-1,2]],axis=1)])
 
         # HTP shape
         #-----------------------------------------------------------------------------------------------------------
@@ -284,8 +284,8 @@ class Drawing(object):
                                     [wing_x_tip+0.7*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip+0.5*wing_toc_t*wing_c_tip ],
                                     [wing_x_tip+0.1*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip+0.5*wing_toc_t*wing_c_tip ],
                                     [wing_x_tip                  , wing_z_tip+wing_toc_t*wing_c_tip                           ],
-                                    [wing_x_body                  , body_z_axe+0.5*wing_toc_k*wing_c_body                      ],
-                                    [wing_x_body+wing_c_body      , body_z_axe+0.5*wing_toc_k*wing_c_body                      ],
+                                    [wing_x_body                  , pod_z_axe+0.5*wing_toc_k*wing_c_body                      ],
+                                    [wing_x_body+wing_c_body      , pod_z_axe+0.5*wing_toc_k*wing_c_body                      ],
                                     [wing_x_tip+wing_c_tip       , wing_z_tip+wing_toc_t*wing_c_tip                           ]])
 
         # External engine shape
@@ -306,15 +306,15 @@ class Drawing(object):
         # Rear nacelle
         #-----------------------------------------------------------------------------------------------------------
         # if (nacelle.rear_nacelle==1):
-        #     r_nac_xz = np.array([[r_nac_x_axe                 , r_nac_z_axe+0.5*fus_height+0.4*r_nac_width ],
-        #                         [r_nac_x_axe+0.1*r_nac_length , r_nac_z_axe+0.5*fus_height+0.5*r_nac_width ],
-        #                         [r_nac_x_axe+0.7*r_nac_length , r_nac_z_axe+0.5*fus_height+0.5*r_nac_width ],
-        #                         [r_nac_x_axe+r_nac_length     , r_nac_z_axe+0.5*fus_height+0.4*r_nac_width ],
-        #                         [r_nac_x_axe+r_nac_length     , r_nac_z_axe+0.5*fus_height-0.4*r_nac_width ],
-        #                         [r_nac_x_axe+0.7*r_nac_length , r_nac_z_axe+0.5*fus_height-0.5*r_nac_width ],
-        #                         [r_nac_x_axe+0.1*r_nac_length , r_nac_z_axe+0.5*fus_height-0.5*r_nac_width ],
-        #                         [r_nac_x_axe                  , r_nac_z_axe+0.5*fus_height-0.4*r_nac_width ],
-        #                         [r_nac_x_axe                  , r_nac_z_axe+0.5*fus_height+0.4*r_nac_width ]])
+        #     r_nac_xz = np.array([[r_nac_x_axe                 , r_nac_z_axe+0.5*body_height+0.4*r_nac_width ],
+        #                         [r_nac_x_axe+0.1*r_nac_length , r_nac_z_axe+0.5*body_height+0.5*r_nac_width ],
+        #                         [r_nac_x_axe+0.7*r_nac_length , r_nac_z_axe+0.5*body_height+0.5*r_nac_width ],
+        #                         [r_nac_x_axe+r_nac_length     , r_nac_z_axe+0.5*body_height+0.4*r_nac_width ],
+        #                         [r_nac_x_axe+r_nac_length     , r_nac_z_axe+0.5*body_height-0.4*r_nac_width ],
+        #                         [r_nac_x_axe+0.7*r_nac_length , r_nac_z_axe+0.5*body_height-0.5*r_nac_width ],
+        #                         [r_nac_x_axe+0.1*r_nac_length , r_nac_z_axe+0.5*body_height-0.5*r_nac_width ],
+        #                         [r_nac_x_axe                  , r_nac_z_axe+0.5*body_height-0.4*r_nac_width ],
+        #                         [r_nac_x_axe                  , r_nac_z_axe+0.5*body_height+0.4*r_nac_width ]])
         #
         #     r_nac_xy = np.array([[r_nac_x_axe                 ,  0.4*r_nac_width ],
         #                         [r_nac_x_axe+0.1*r_nac_length ,  0.5*r_nac_width ],
@@ -377,24 +377,24 @@ class Drawing(object):
             plt.plot(xTopView+wing_xy[0:,0], yTopView+wing_xy[0:,1], color="grey", zorder=4)      # wing_ top view
 
         if (self.aircraft.arrangement.tank_architecture=="pods"):
-            plt.fill(xTopView+body_top[0:,0], yTopView-body_top[0:,1], color="white", zorder=5)   # Left pod top view
-            plt.plot(xTopView+body_top[0:,0], yTopView-body_top[0:,1], "grey", zorder=5)          # Left pod top view
-            plt.fill(xTopView+body_top[0:,0], yTopView+body_top[0:,1], color="white", zorder=5)   # Right pod top view
-            plt.plot(xTopView+body_top[0:,0], yTopView+body_top[0:,1], "grey", zorder=5)          # Right pod top view
+            plt.fill(xTopView+pod_top[0:,0], yTopView-pod_top[0:,1], color="white", zorder=5)   # Left pod top view
+            plt.plot(xTopView+pod_top[0:,0], yTopView-pod_top[0:,1], "grey", zorder=5)          # Left pod top view
+            plt.fill(xTopView+pod_top[0:,0], yTopView+pod_top[0:,1], color="white", zorder=5)   # Right pod top view
+            plt.plot(xTopView+pod_top[0:,0], yTopView+pod_top[0:,1], "grey", zorder=5)          # Right pod top view
 
         if (self.aircraft.arrangement.stab_architecture=="classic"):
             plt.plot(xTopView+htp_xy[0:,0], yTopView+htp_xy[0:,1], "grey", zorder=1)      # htp_ top view (Classic or Vtail)
 
         if (self.aircraft.arrangement.wing_attachment=="low"):
-            plt.fill(xTopView+fus_top[0:,0], yTopView+fus_top[0:,1], color="white", zorder=6)   # fuselage top view
-            plt.plot(xTopView+fus_top[0:,0], yTopView+fus_top[0:,1], "grey", zorder=6)          # fuselage top view
+            plt.fill(xTopView+body_top[0:,0], yTopView+body_top[0:,1], color="white", zorder=6)   # fuselage top view
+            plt.plot(xTopView+body_top[0:,0], yTopView+body_top[0:,1], "grey", zorder=6)          # fuselage top view
         elif (self.aircraft.arrangement.wing_attachment=="high"):
-            plt.fill(xTopView+fus_top[0:,0], yTopView+fus_top[0:,1], color="white", zorder=2)   # fuselage top view
-            plt.plot(xTopView+fus_top[0:,0], yTopView+fus_top[0:,1], "grey", zorder=2)          # fuselage top view
+            plt.fill(xTopView+body_top[0:,0], yTopView+body_top[0:,1], color="white", zorder=2)   # fuselage top view
+            plt.plot(xTopView+body_top[0:,0], yTopView+body_top[0:,1], "grey", zorder=2)          # fuselage top view
 
         if (self.aircraft.arrangement.tank_architecture=="piggy_back"):
-            plt.fill(xTopView+body_top[0:,0], yTopView-body_top[0:,1], color="white", zorder=7)   # pod top view
-            plt.plot(xTopView+body_top[0:,0], yTopView-body_top[0:,1], "grey", zorder=7)          # pod top view
+            plt.fill(xTopView+pod_top[0:,0], yTopView-pod_top[0:,1], color="white", zorder=7)   # pod top view
+            plt.plot(xTopView+pod_top[0:,0], yTopView-pod_top[0:,1], "grey", zorder=7)          # pod top view
 
         if (self.aircraft.arrangement.stab_architecture=="classic"):
             plt.plot(xTopView+vtp_xy[0:,0], yTopView+vtp_xy[0:,1], "grey", zorder=8)            # vtp top view
@@ -415,12 +415,12 @@ class Drawing(object):
         plt.fill(xSideView+vtp_xz[0:,0], ySideView+vtp_xz[0:,1], color="white", zorder=2)      # vtp_ side view
         plt.plot(xSideView+vtp_xz[0:,0], ySideView+vtp_xz[0:,1], color="grey", zorder=2)      # vtp_ side view
 
-        plt.fill(xSideView+fus_side[0:,0], ySideView+fus_side[0:,1], color="white", zorder=2) # fuselage side view
-        plt.plot(xSideView+fus_side[0:,0], ySideView+fus_side[0:,1], color="grey", zorder=3)  # fuselage side view
+        plt.fill(xSideView+body_side[0:,0], ySideView+body_side[0:,1], color="white", zorder=2) # fuselage side view
+        plt.plot(xSideView+body_side[0:,0], ySideView+body_side[0:,1], color="grey", zorder=3)  # fuselage side view
 
         if (self.aircraft.arrangement.tank_architecture=="piggy_back"):
-            plt.fill(xSideView+body_side[0:,0], ySideView+body_side[0:,1], color="white", zorder=1)     # Pod side view
-            plt.plot(xSideView+body_side[0:,0], ySideView+body_side[0:,1], color="grey", zorder=1)      # Pod side view
+            plt.fill(xSideView+pod_side[0:,0], ySideView+pod_side[0:,1], color="white", zorder=1)     # Pod side view
+            plt.plot(xSideView+pod_side[0:,0], ySideView+pod_side[0:,1], color="grey", zorder=1)      # Pod side view
 
         # if (nacelle.rear_nacelle==1):
         #     plt.fill(xSideView+r_nac_xz[0:,0], ySideView+r_nac_xz[0:,1], color="white", zorder=4)   # rear nacelle side view
@@ -444,8 +444,8 @@ class Drawing(object):
             plt.plot(xSideView+nac_xz_int[0:,0], ySideView+nac_xz_int[0:,1], color="grey", zorder=7)      # nacelle side view
 
         if (self.aircraft.arrangement.tank_architecture=="pods"):
-            plt.fill(xSideView+body_side[0:,0], ySideView+body_side[0:,1], color="white", zorder=8)     # Pod side view
-            plt.plot(xSideView+body_side[0:,0], ySideView+body_side[0:,1], color="grey", zorder=8)      # Pod side view
+            plt.fill(xSideView+pod_side[0:,0], ySideView+pod_side[0:,1], color="white", zorder=8)     # Pod side view
+            plt.plot(xSideView+pod_side[0:,0], ySideView+pod_side[0:,1], color="grey", zorder=8)      # Pod side view
             plt.fill(xSideView+tip_wing_xz[0:,0], ySideView+tip_wing_xz[0:,1], color="white", zorder=9)   # wing_ side view
             plt.plot(xSideView+tip_wing_xz[0:,0], ySideView+tip_wing_xz[0:,1], color="grey", zorder=9)    # wing_ side view
 
@@ -472,8 +472,8 @@ class Drawing(object):
         #     plt.plot(xFrontView-r_nac_yz[0:,0], yFrontView+r_nac_yz[0:,1], color="grey", zorder=3)    # rear nacelle front view
         #     plt.plot(xFrontView-r_fan_yz[0:,0], yFrontView+r_fan_yz[0:,1], color="grey", zorder=3)    # rear inlet front view
 
-        plt.fill(xFrontView-fus_front[0:,0], yFrontView+fus_front[0:,1], color="white", zorder=4)   # fuselage front view
-        plt.plot(xFrontView-fus_front[0:,0], yFrontView+fus_front[0:,1], color="grey", zorder=5)    # fuselage front view
+        plt.fill(xFrontView-body_front[0:,0], yFrontView+body_front[0:,1], color="white", zorder=4)   # fuselage front view
+        plt.plot(xFrontView-body_front[0:,0], yFrontView+body_front[0:,1], color="grey", zorder=5)    # fuselage front view
 
         plt.fill(xFrontView-nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="white", zorder=6)   # Right nacelle front view
         plt.plot(xFrontView-nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="grey", zorder=7)    # Right nacelle front view
@@ -500,13 +500,13 @@ class Drawing(object):
                 plt.plot(xFrontView+prop_yz_ext[0:,0], yFrontView+prop_yz_ext[0:,1], color="grey", zorder=10)    # Left propeller disk front view
 
         if (self.aircraft.arrangement.tank_architecture=="pods"):
-            plt.fill(xFrontView-body_front[0:,0], yFrontView+body_front[0:,1], color="white", zorder=9)   # Left pod front view
-            plt.plot(xFrontView-body_front[0:,0], yFrontView+body_front[0:,1], color="grey", zorder=10)    # Left pod front view
-            plt.fill(xFrontView+body_front[0:,0], yFrontView+body_front[0:,1], color="white", zorder=9)   # Right pod front view
-            plt.plot(xFrontView+body_front[0:,0], yFrontView+body_front[0:,1], color="grey", zorder=10)    # Right pod front view
+            plt.fill(xFrontView-pod_front[0:,0], yFrontView+pod_front[0:,1], color="white", zorder=9)   # Left pod front view
+            plt.plot(xFrontView-pod_front[0:,0], yFrontView+pod_front[0:,1], color="grey", zorder=10)    # Left pod front view
+            plt.fill(xFrontView+pod_front[0:,0], yFrontView+pod_front[0:,1], color="white", zorder=9)   # Right pod front view
+            plt.plot(xFrontView+pod_front[0:,0], yFrontView+pod_front[0:,1], color="grey", zorder=10)    # Right pod front view
         elif (self.aircraft.arrangement.tank_architecture in ["pods", "piggy_back"]):
-            plt.fill(xFrontView-body_front[0:,0], yFrontView+body_front[0:,1], color="white", zorder=9)   # pod front view
-            plt.plot(xFrontView-body_front[0:,0], yFrontView+body_front[0:,1], color="grey", zorder=10)    # pod front view
+            plt.fill(xFrontView-pod_front[0:,0], yFrontView+pod_front[0:,1], color="white", zorder=9)   # pod front view
+            plt.plot(xFrontView-pod_front[0:,0], yFrontView+pod_front[0:,1], color="grey", zorder=10)    # pod front view
 
         plt.show()
         return
