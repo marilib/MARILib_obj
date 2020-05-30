@@ -155,7 +155,8 @@ model_config = {
         "controller_efficiency": [0.99, "no_dim", "Electric controller efficiency"],
         "controller_pw_density": [20., "kW/kg", "Electric controller power density"],
         "nacelle_pw_density": [10., "kW/kg", "Electric nacelle power density"],
-        "motor_pw_density": [10., "kW/kg", "Electric motor power density"]
+        "motor_pw_density": [10., "kW/kg", "Electric motor power density"],
+        "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
     "AllMissionVarMass":{
         "ktow": [0.9, "no_dim", "Ratio of TOW defining the aircraft weight for mission breguet range"]

@@ -77,6 +77,11 @@ class Aircraft(object):
                 raise Exception("Power architecture electro_fan (ef) requires energy source battery or fuel_cell")
 
 # ----------------------------------------------------------------------------------------------------------------------
+        self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                             "nacelle",
+                                             "vertical_stab","horizontal_stab","tank","system"]
+
+# ----------------------------------------------------------------------------------------------------------------------
         self.airframe.cabin = component.Cabin(self)
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -126,7 +131,10 @@ class Aircraft(object):
         elif (self.arrangement.power_source == "fuel_cell"):
             self.airframe.system = system.SystemWithFuelCell(self)
         else:
-            self.airframe.system = system.System(self)
+            if (self.arrangement.power_architecture=="pte"):
+                self.airframe.system = system.SystemPartialTurboElectric(self)
+            else:
+                self.airframe.system = system.System(self)
 
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.power_architecture=="tf"):
@@ -136,6 +144,9 @@ class Aircraft(object):
                 elif (self.arrangement.number_of_engine=="quadri"):
                     self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self)
                     self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","internal_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
@@ -154,6 +165,9 @@ class Aircraft(object):
                 elif (self.arrangement.number_of_engine=="quadri"):
                     self.airframe.nacelle = propulsion.OutboardWingMountedTpNacelle(self)
                     self.airframe.internal_nacelle = propulsion.InboardWingMountedTpNacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","internal_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
                 else:
                     raise Exception("Number of engines not allowed")
             else:
@@ -167,6 +181,9 @@ class Aircraft(object):
                 elif (self.arrangement.number_of_engine=="quadri"):
                     self.airframe.nacelle = propulsion.OutboardWingMountedEpNacelle(self)
                     self.airframe.internal_nacelle = propulsion.InboardWingMountedEpNacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","internal_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
                 else:
                     raise Exception("Number of engines not allowed")
             else:
@@ -180,6 +197,9 @@ class Aircraft(object):
                 elif (self.arrangement.number_of_engine=="quadri"):
                     self.airframe.nacelle = propulsion.OutboardWingMountedEfNacelle(self)
                     self.airframe.internal_nacelle = propulsion.InboardWingMountedEfNacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","internal_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
@@ -198,6 +218,9 @@ class Aircraft(object):
                 elif (self.arrangement.number_of_engine=="quadri"):
                     self.airframe.nacelle = interface.Outboard_wing_mounted_extf_nacelle(self)
                     self.airframe.internal_nacelle = interface.Inboard_wing_mounted_extf_nacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","internal_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
@@ -216,6 +239,9 @@ class Aircraft(object):
                 elif (self.arrangement.number_of_engine=="quadri"):
                     self.airframe.nacelle = interface.Outboard_wing_mounted_exef_nacelle(self)
                     self.airframe.internal_nacelle = interface.Inboard_wing_mounted_exef_nacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","internal_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
@@ -227,20 +253,39 @@ class Aircraft(object):
                 raise Exception("Type of nacelle attachment is unknown")
             self.power_system = model.Electrofan(self)
 
+# ----------------------------------------------------------------------------------------------------------------------
+        elif (self.arrangement.power_architecture=="pte"):
+            if (self.arrangement.nacelle_attachment=="wing"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self)
+                    self.airframe.tail_nacelle = propulsion.FuselageTailConeMountedEfNacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","tail_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
+                elif (self.arrangement.number_of_engine=="quadri"):
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self)
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
+                    self.airframe.tail_nacelle = propulsion.FuselageTailConeMountedEfNacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","internal_nacelle","tail_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
+                else:
+                    raise Exception("Number of engines not allowed")
+            elif (self.arrangement.nacelle_attachment=="rear"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self)
+                    self.airframe.tail_nacelle = propulsion.FuselageTailConeMountedEfNacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","tail_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
+                else:
+                    raise Exception("Number of engines not allowed")
+            else:
+                raise Exception("Type of nacelle attachment is unknown")
+            self.power_system = model.PartialTurboElectric(self)
+
         else:
             raise Exception("Type of power architecture is unknown")
-
-# ----------------------------------------------------------------------------------------------------------------------
-        self.airframe.mass_analysis_order = ["cabin",
-                                           "body",
-                                           "wing",
-                                           "landing_gear",
-                                           "cargo",
-                                           "nacelle",
-                                           "vertical_stab",
-                                           "horizontal_stab",
-                                           "tank",
-                                           "system"]
 
 # ----------------------------------------------------------------------------------------------------------------------
         self.aerodynamics = model.Aerodynamics(self)

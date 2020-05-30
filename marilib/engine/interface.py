@@ -17,10 +17,10 @@ from marilib.engine.ExergeticEngine import Turbofan, ElectricFan
 
 from marilib.aircraft.airframe.component import Component
 
-from marilib.aircraft.airframe.propulsion import RatingFactor, \
-                                         InboradWingMountedNacelle,\
-                                         OutboradWingMountedNacelle,\
-                                         RearFuselageMountedNacelle
+from marilib.aircraft.airframe.propulsion import number_of_engine, RatingFactor, \
+                                                 InboradWingMountedNacelle,\
+                                                 OutboradWingMountedNacelle,\
+                                                 RearFuselageMountedNacelle
 
 
 class Exergetic_tf_nacelle(Component):
@@ -32,7 +32,7 @@ class Exergetic_tf_nacelle(Component):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+        self.n_engine = number_of_engine(aircraft)
         self.cruise_thrust = self.__cruise_thrust()
         self.reference_thrust = None
         self.reference_offtake = 0.

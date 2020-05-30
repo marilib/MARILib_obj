@@ -271,7 +271,7 @@ class PowerSystem(object):
         fuel_type = self.aircraft.arrangement.fuel_type
         return earth.fuel_density(fuel_type)
 
-    def fuel_heat(self):
+    def fuel_heating_value(self):
         fuel_type = self.aircraft.arrangement.fuel_type
         return earth.fuel_heat(fuel_type)
 
@@ -352,12 +352,15 @@ class Turbofan(PowerSystem, Flight):
         super(Turbofan, self).__init__(aircraft)
 
         self.fuel_density = self.fuel_density()
-        self.fuel_heat = self.fuel_heat()
+        self.fuel_heat = self.fuel_heating_value()
         self.sfc_type = "thrust"
         self.data = {"MTO":ThrustDataTf(nei=1),
                      "MCN":ThrustDataTf(nei=1),
                      "MCL":ThrustDataTf(nei=0),
                      "MCR":ThrustDataTf(nei=0)}
+
+    def update_power_transfert(self):
+        pass
 
     def thrust_analysis(self):
         self.thrust_requirement()
@@ -441,12 +444,15 @@ class Turboprop(PowerSystem, Flight):
         super(Turboprop, self).__init__(aircraft)
 
         self.fuel_density = self.fuel_density()
-        self.fuel_heat = self.fuel_heat()
+        self.fuel_heat = self.fuel_heating_value()
         self.sfc_type = "power"
         self.data = {"MTO":ThrustDataTp(nei=1),
                      "MCN":ThrustDataTp(nei=1),
                      "MCL":ThrustDataTp(nei=0),
                      "MCR":ThrustDataTp(nei=0)}
+
+    def reference_power_offtake(self):
+        return 0.
 
     def thrust_analysis(self):
         self.thrust_requirement()
@@ -536,7 +542,7 @@ class Electroprop(PowerSystem, Flight):
 
         self.fuel_density = self.fuel_density()
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            self.fuel_heat = self.fuel_heat()
+            self.fuel_heat = self.fuel_heating_value()
             self.sfc_type = "power"
 
         self.data = {"MTO":ThrustDataEp(aircraft, nei=1),
@@ -653,7 +659,7 @@ class Electrofan(PowerSystem, Flight):
 
         self.fuel_density = self.fuel_density()
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            self.fuel_heat = self.fuel_heat()
+            self.fuel_heat = self.fuel_heating_value()
             self.sfc_type = "thrust"
 
         self.data = {"MTO":ThrustDataEf(aircraft, nei=1),
@@ -762,26 +768,25 @@ class ThrustDataPte(ThrustData):
 class PartialTurboElectric(PowerSystem, Flight):
 
     def __init__(self, aircraft):
-        super(Turbofan, self).__init__(aircraft)
-
+        super(PartialTurboElectric, self).__init__(aircraft)
 
         self.fuel_density = self.fuel_density()
-        self.fuel_heat = self.fuel_heat()
+        self.fuel_heat = self.fuel_heating_value()
         self.sfc_type = "thrust"
         self.data = {"MTO":ThrustDataTf(nei=1),
                      "MCN":ThrustDataTf(nei=1),
                      "MCL":ThrustDataTf(nei=0),
                      "MCR":ThrustDataTf(nei=0)}
 
-        ref_power = 0.10 * aircraft.airframe.tail_nacelle.reference_power
-
+    def update_power_transfert(self):
+        ref_power = self.aircraft.airframe.system.chain_power
         power_chain_efficiency =   self.aircraft.airframe.system.generator_efficiency \
                                  * self.aircraft.airframe.system.rectifier_efficiency \
                                  * self.aircraft.airframe.system.wiring_efficiency \
                                  * self.aircraft.airframe.tail_nacelle.controller_efficiency \
                                  * self.aircraft.airframe.tail_nacelle.motor_efficiency
-
         n_engine = self.aircraft.airframe.nacelle.n_engine
+        self.aircraft.airframe.tail_nacelle.reference_power = ref_power
         self.aircraft.airframe.nacelle.reference_offtake = ref_power/power_chain_efficiency/n_engine
 
     def thrust_analysis(self):
@@ -817,9 +822,9 @@ class PartialTurboElectric(PowerSystem, Flight):
         dict_tf = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
         fn = dict_tf["fn"]*(n_engine-nei) + dict_ef["fn"]*self.aircraft.airframe.tail_nacelle.n_engine
-        ff = dict["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / self.fuel_heat
+        ff = dict_tf["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / self.fuel_heat
         sfc = ff / fn
-        t41 = dict["t4"]
+        t41 = dict_tf["t4"]
 
         return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41}
 

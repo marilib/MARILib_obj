@@ -151,7 +151,7 @@ DATA_DICT = {
     "fuel_cell_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Fuell cell conversion efficiency"},
     "fuel_cell_mass": {"unit":"kg", "mag":1e3, "txt":"Fuell cell mass"},
     "global_energy_density": {"unit":"kWh:kg", "mag":1e0, "txt":"Global energy density, fuel + tank + fuel cell"},
-    "power_elec_mass": {"unit":"no_dim", "mag":1e0, "txt":"Mass of power electric sub system"},
+    "power_chain_mass": {"unit":"no_dim", "mag":1e0, "txt":"Mass of power electric sub system"},
     "propeller_width": {"unit":"m", "mag":1e0, "txt":"Propeller diameter"},
     "propeller_disk_load": {"unit":"daN/m2", "mag":1e2, "txt":"Propeller disk load"},
     "hub_width": {"unit":"m", "mag":1e0, "txt":"Fan hub diameter"},

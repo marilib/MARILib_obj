@@ -19,6 +19,15 @@ from marilib.aircraft.airframe.component import Component
 from marilib.aircraft.model_config import get_init
 
 
+def number_of_engine(aircraft):
+    ne = aircraft.arrangement.number_of_engine
+    return {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+
+def init_thrust(aircraft):
+    n_pax_ref = aircraft.requirement.n_pax_ref
+    design_range = aircraft.requirement.design_range
+    return (1.e5 + 177.*n_pax_ref*design_range*1.e-6)
+
 class InboradWingMountedNacelle(Component):
 
     def __init__(self, aircraft):
@@ -122,8 +131,8 @@ class SemiEmpiricTfNacelle(Component):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        self.reference_thrust = (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        self.n_engine = number_of_engine(aircraft)
+        self.reference_thrust = init_thrust(aircraft)/self.n_engine
         self.reference_offtake = 0.
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
         self.tune_factor = 1.
@@ -131,6 +140,7 @@ class SemiEmpiricTfNacelle(Component):
         self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
 
+        self.thrust_factor = None
         self.width = None
         self.length = None
 
@@ -155,6 +165,9 @@ class SemiEmpiricTfNacelle(Component):
         return 0.55*self.width
 
     def eval_geometry(self):
+        # Update power transfert in case of hybridization
+        self.aircraft.power_system.update_power_transfert()
+
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         mach = 0.25
         disa = 15.
@@ -165,7 +178,7 @@ class SemiEmpiricTfNacelle(Component):
 
         # tune_factor allows that output of unitary_thrust matches the definition of the reference thrust
         self.tune_factor = 1.
-        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
+        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO",pw_offtake=self.reference_offtake)
         self.tune_factor = self.reference_thrust / (dict["fn"]/0.80)
 
         # Following computation as aim to model the decrease in nacelle dimension due to
@@ -175,14 +188,13 @@ class SemiEmpiricTfNacelle(Component):
         fan_thrust0 = total_thrust0*(1.-self.core_thrust_ratio)
         fan_power0 = fan_thrust0*vair/self.propeller_efficiency
 
-        # total offtake is split over all engines
-        fan_power = fan_power0 - self.reference_offtake*self.n_engine
+        fan_power = fan_power0 - self.reference_offtake
         fan_thrust = (fan_power/vair)*self.propeller_efficiency
         total_thrust = fan_thrust + core_thrust0
 
-        thrust_factor = total_thrust / total_thrust0
+        self.thrust_factor = total_thrust / total_thrust0
 
-        self.width = 0.5*self.engine_bpr**0.7 + 5.E-6*self.reference_thrust*thrust_factor
+        self.width = 0.5*self.engine_bpr**0.7 + 5.E-6*self.reference_thrust*self.thrust_factor
         self.length = 0.86*self.width + self.engine_bpr**0.37      # statistical regression
 
         knac = np.pi * self.width * self.length
@@ -194,8 +206,8 @@ class SemiEmpiricTfNacelle(Component):
         self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
-        self.engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
-        self.pylon_mass = 0.0031*self.reference_thrust*self.n_engine
+        self.engine_mass = (1250. + 0.021*self.reference_thrust*self.thrust_factor)*self.n_engine       # statistical regression, all engines
+        self.pylon_mass = 0.0031*self.reference_thrust*self.thrust_factor*self.n_engine
         self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
@@ -261,7 +273,7 @@ class SemiEmpiricTpNacelle(Component):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+        self.n_engine = number_of_engine(aircraft)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
         self.sfc_type = "power"
@@ -285,7 +297,7 @@ class SemiEmpiricTpNacelle(Component):
     def __reference_power(self, aircraft):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
-        ref_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        ref_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*init_thrust(aircraft)/self.n_engine
         return ref_power
 
     def lateral_margin(self):
@@ -373,7 +385,7 @@ class SemiEmpiricEpNacelle(Component):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+        self.n_engine = number_of_engine(aircraft)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
         self.reference_power = self.__reference_power(aircraft)
@@ -400,7 +412,7 @@ class SemiEmpiricEpNacelle(Component):
     def __reference_power(self, aircraft):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
-        ref_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        ref_power = 0.25*(1./0.8)*(87.26/self.propeller_efficiency)*init_thrust(aircraft)/self.n_engine
         return ref_power
 
     def lateral_margin(self):
@@ -477,10 +489,9 @@ class SemiEmpiricEfNacelle(Component):
 
         class_name = "SemiEmpiricEfNacelle"
 
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
-        design_range = self.aircraft.requirement.design_range
+        ne = self.aircraft.arrangement.number_of_engine
 
-        self.n_engine = self.__n_engine(aircraft)
+        self.n_engine = number_of_engine(aircraft)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.fan_efficiency = get_init(class_name,"fan_efficiency")
         self.reference_power = self.__reference_power(aircraft)
@@ -505,20 +516,10 @@ class SemiEmpiricEfNacelle(Component):
 
         self.frame_origin = np.full(3,None)
 
-    def __n_engine(self, aircraft):
-        if self.aircraft.arrangement.power_architecture=="ef":
-            ne = self.aircraft.arrangement.number_of_engine
-            n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
-        elif self.aircraft.arrangement.power_architecture=="pte":
-            n_engine = 1.
-        else:
-            raise Exception("Power architecture type is not allowed")
-        return n_engine
-
     def __reference_power(self, aircraft):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
-        ref_power = 0.5*(1./0.8)*(87.26/self.propeller_efficiency)*(1.e5 + 177.*n_pax_ref*design_range*1.e-6)/self.n_engine
+        ref_power = 0.5*(1./0.8)*(87.26/self.propeller_efficiency)*init_thrust(aircraft)/self.n_engine
         return ref_power
 
     def lateral_margin(self):
@@ -747,7 +748,10 @@ class RearFuselageMountedEfNacelle(SemiEmpiricEfNacelle,RearFuselageMountedNacel
 
 class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMountedNacelle):
     def __init__(self, aircraft):
-        super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
+        super(FuselageTailConeMountedEfNacelle, self).__init__(aircraft)
+        self.n_engine = 1
+        self.reference_power = self.aircraft.airframe.system.chain_power
+        self.specific_nacelle_cost = get_init("SemiEmpiricEfNacelle","specific_nacelle_cost")
 
 
 
