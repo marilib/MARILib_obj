@@ -450,8 +450,8 @@ class Drawing(object):
             plt.fill(xSideView+tip_wing_xz[0:,0], ySideView+tip_wing_xz[0:,1], color="white", zorder=9)   # wing_ side view
             plt.plot(xSideView+tip_wing_xz[0:,0], ySideView+tip_wing_xz[0:,1], color="grey", zorder=9)    # wing_ side view
 
-        plt.fill(xSideView+htp_xz[0:,0], ySideView+htp_xz[0:,1], color="white", zorder=4)     # htp_ side view
-        plt.plot(xSideView+htp_xz[0:,0], ySideView+htp_xz[0:,1], color="grey", zorder=5)      # htp_ side view
+        plt.fill(xSideView+htp_xz[0:,0], ySideView+htp_xz[0:,1], color="white", zorder=6)     # htp_ side view
+        plt.plot(xSideView+htp_xz[0:,0], ySideView+htp_xz[0:,1], color="grey", zorder=7)      # htp_ side view
 
         # Draw front view
         #-----------------------------------------------------------------------------------------------------------

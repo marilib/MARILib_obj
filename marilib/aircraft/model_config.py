@@ -150,12 +150,16 @@ model_config = {
     "SemiEmpiricEfNacelle":{
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
         "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"],
-        "hub_width": [0.2, "m", "Propeller hub diameter"],
+        "hub_width": [0.2, "m", "Fan hub diameter"],
         "motor_efficiency": [0.95, "no_dim", "Electric motor efficiency"],
         "controller_efficiency": [0.99, "no_dim", "Electric controller efficiency"],
         "controller_pw_density": [20., "kW/kg", "Electric controller power density"],
         "nacelle_pw_density": [10., "kW/kg", "Electric nacelle power density"],
-        "motor_pw_density": [10., "kW/kg", "Electric motor power density"],
+        "motor_pw_density": [10., "kW/kg", "Electric motor power density"]
+    },
+    "FuselageTailConeMountedNacelle":{
+        "hub_width": [0.4, "m", "Fan hub diameter"],
+        "tail_cone_height_ratio": [0.38, "no_dim", "Relative vertical position of the body tail cone"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
     "AllMissionVarMass":{
