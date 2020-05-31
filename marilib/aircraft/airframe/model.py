@@ -576,9 +576,10 @@ class Electroprop(PowerSystem, Flight):
 
         fn = dict["fn"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        sec = pw / fn
+        pw_net = pw / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        sec = pw_net / fn
 
-        dict = {"fn":fn, "pw":pw, "sec":sec}
+        dict = {"fn":fn, "pw":pw_net, "sec":sec}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * self.fuel_heat)
@@ -592,6 +593,8 @@ class Electroprop(PowerSystem, Flight):
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
+
+        dict["sec"] = dict["sec"] / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * self.fuel_heat)
@@ -693,9 +696,10 @@ class Electrofan(PowerSystem, Flight):
 
         fn = dict["fn"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        sec = pw / fn
+        pw_net = pw / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        sec = pw_net / fn
 
-        dict = {"fn":fn, "pw":pw, "sec":sec}
+        dict = {"fn":fn, "pw":pw_net, "sec":sec}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             dict["sfc"] = sec / (self.aircraft.airframe.system.fuel_cell_efficiency * self.fuel_heat)
@@ -709,6 +713,8 @@ class Electrofan(PowerSystem, Flight):
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
+
+        dict["sec"] = dict["sec"] / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             dict["sfc"] = dict["sec"] / (self.aircraft.airframe.system.fuel_cell_efficiency * self.fuel_heat)

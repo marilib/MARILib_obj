@@ -56,6 +56,7 @@ class SystemWithBattery(Component):
         self.wiring_efficiency = get_init(self,"wiring_efficiency")
         self.wiring_pw_density = get_init(self,"wiring_pw_density")
 
+        self.cooling_efficiency = get_init(self,"cooling_efficiency")
         self.cooling_pw_density = get_init(self,"cooling_pw_density")
 
         self.battery_density = get_init(self,"battery_density")
@@ -78,7 +79,7 @@ class SystemWithBattery(Component):
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
-        self.power_chain_efficiency =   self.wiring_efficiency \
+        self.power_chain_efficiency =   self.wiring_efficiency * self.cooling_efficiency \
                                       * self.aircraft.airframe.nacelle.controller_efficiency \
                                       * self.aircraft.airframe.nacelle.motor_efficiency
 
@@ -107,6 +108,7 @@ class SystemWithFuelCell(Component):
         self.wiring_efficiency = get_init(self,"wiring_efficiency")
         self.wiring_pw_density = get_init(self,"wiring_pw_density")
 
+        self.cooling_efficiency = get_init(self,"cooling_efficiency")
         self.cooling_pw_density = get_init(self,"cooling_pw_density")
 
         self.fuel_cell_pw_density = get_init(self,"fuel_cell_pw_density")
@@ -131,7 +133,7 @@ class SystemWithFuelCell(Component):
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
-        self.power_chain_efficiency =   self.wiring_efficiency \
+        self.power_chain_efficiency =   self.wiring_efficiency * self.cooling_efficiency \
                                       * self.aircraft.airframe.nacelle.controller_efficiency \
                                       * self.aircraft.airframe.nacelle.motor_efficiency
 
@@ -139,7 +141,7 @@ class SystemWithFuelCell(Component):
 
         self.fuel_cell_mass = (elec_power_max * n_engine)/self.fuel_cell_pw_density
         self.power_chain_mass =   (1./self.wiring_pw_density + 1./self.cooling_pw_density) * (elec_power_max * n_engine) \
-                               + self.fuel_cell_mass
+                                + self.fuel_cell_mass
 
         power_elec_cg = 0.70*nacelle_cg + 0.30*body_cg
 
@@ -170,6 +172,7 @@ class SystemPartialTurboElectric(Component):
         self.wiring_efficiency = get_init(self,"wiring_efficiency")
         self.wiring_pw_density = get_init(self,"wiring_pw_density")
 
+        self.cooling_efficiency = get_init(self,"cooling_efficiency")
         self.cooling_pw_density = get_init(self,"cooling_pw_density")
 
         self.power_chain_efficiency = None
@@ -193,7 +196,7 @@ class SystemPartialTurboElectric(Component):
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
         n_engine = self.aircraft.airframe.nacelle.n_engine
 
-        self.power_chain_efficiency =   self.generator_efficiency * self.rectifier_efficiency * self.wiring_efficiency \
+        self.power_chain_efficiency =   self.generator_efficiency * self.rectifier_efficiency * self.wiring_efficiency * self.cooling_efficiency \
                                       * self.aircraft.airframe.tail_nacelle.controller_efficiency \
                                       * self.aircraft.airframe.tail_nacelle.motor_efficiency
 

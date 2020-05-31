@@ -106,6 +106,7 @@ model_config = {
     "SystemWithBattery":{
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
         "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
         "cooling_pw_density": [10., "kW/kg", "Cooling power density"],
         "battery_density": [2800., "kg/m3", "Battery density"],
         "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
@@ -113,6 +114,7 @@ model_config = {
     "SystemWithFuelCell":{
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
         "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
         "cooling_pw_density": [10., "kW/kg", "Cooling power density"],
         "fuel_cell_pw_density": [1., "kW/kg", "Fuell cell power density"],
         "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
@@ -124,6 +126,7 @@ model_config = {
         "rectifier_pw_density": [20., "kW/kg", "Rectifier power density"],
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
         "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
         "cooling_pw_density": [10., "kW/kg", "Cooling power density"],
         "battery_density": [2800., "kg/m3", "Battery density"],
         "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]

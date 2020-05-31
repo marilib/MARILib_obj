@@ -572,11 +572,11 @@ class SemiEmpiricEfNacelle(Component):
         # Electrical nacelle geometry : e-nacelle diameter is size by cruise conditions
         deltaV = 2.*Vair*(self.fan_efficiency/self.propeller_efficiency - 1.)      # speed variation produced by the fan
 
-        PwInput = self.fan_efficiency*shaft_power     # kinetic energy produced by the fan
+        pw_input = self.fan_efficiency*shaft_power     # kinetic energy produced by the fan
 
         Vinlet = Vair
         Vjet = Vinlet + deltaV
-        q1 = 2.*PwInput / (Vjet**2 - Vinlet**2)
+        q1 = 2.*pw_input / (Vjet**2 - Vinlet**2)
 
         MachInlet = Mach     # The inlet is in free stream
         Ptot = earth.total_pressure(Pamb, MachInlet)        # Stagnation pressure at inlet position
@@ -686,11 +686,11 @@ class SemiEmpiricEfNacelle(Component):
         """
         r,gam,Cp,Cv = earth.gas_data()
 
-        def fct(q,PwShaft,pamb,Ttot,Vair):
+        def fct(q,pw_shaft,pamb,Ttot,Vair):
             Vinlet = Vair
-            PwInput = self.fan_efficiency*PwShaft
-            Vjet = np.sqrt(2.*PwInput/q + Vinlet**2)    # Supposing isentropic compression
-            TtotJet = Ttot + PwShaft/(q*Cp)             # Stagnation temperature increases due to introduced work
+            pw_input = self.fan_efficiency*pw_shaft
+            Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)    # Supposing isentropic compression
+            TtotJet = Ttot + pw_shaft/(q*Cp)             # Stagnation temperature increases due to introduced work
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output
@@ -700,15 +700,15 @@ class SemiEmpiricEfNacelle(Component):
             y = q0 - q
             return y
 
-        PwShaft = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
-        PwElec = PwShaft / (self.controller_efficiency*self.motor_efficiency)
+        pw_shaft = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
+        pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
 
         Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
         Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
 
         Vair = mach * earth.sound_speed(tamb)
 
-        fct_arg = (PwShaft,pamb,Ttot,Vair)
+        fct_arg = (pw_shaft,pamb,Ttot,Vair)
 
         CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
         q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
@@ -720,11 +720,11 @@ class SemiEmpiricEfNacelle(Component):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         Vinlet = Vair
-        PwInput = self.fan_efficiency*PwShaft
-        Vjet = np.sqrt(2.*PwInput/q0 + Vinlet**2)
+        pw_input = self.fan_efficiency*pw_shaft
+        Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
         eFn = q0*(Vjet - Vinlet)
 
-        return {"fn":eFn, "pw":PwElec}
+        return {"fn":eFn, "pw":pw_elec}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary power required of an electrofan engine delivering a given thrust (semi-empirical model)
@@ -733,11 +733,11 @@ class SemiEmpiricEfNacelle(Component):
 
         def fct(x_in,thrust,pamb,Ttot,Vair):
             q = x_in[0]
-            PwShaft = x_in[1]
+            pw_shaft = x_in[1]
             Vinlet = Vair
-            PwInput = self.fan_efficiency*PwShaft
-            Vjet = np.sqrt(2.*PwInput/q + Vinlet**2)    # Supposing isentropic compression
-            TtotJet = Ttot + PwShaft/(q*Cp)             # Stagnation temperature increases due to introduced work
+            pw_input = self.fan_efficiency*pw_shaft
+            Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)    # Supposing isentropic compression
+            TtotJet = Ttot + pw_shaft/(q*Cp)             # Stagnation temperature increases due to introduced work
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output
@@ -767,8 +767,8 @@ class SemiEmpiricEfNacelle(Component):
         Pw = output_dict[0][1]
 
         Vinlet = Vair
-        PwInput = self.fan_efficiency*Pw
-        Vjet = np.sqrt(2.*PwInput/q0 + Vinlet**2)
+        pw_input = self.fan_efficiency*Pw
+        Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
         eFn = q0*(Vjet - Vinlet)
 
         throttle = (Pw+pw_offtake)/(self.reference_power*getattr(self.rating_factor,rating))
@@ -782,11 +782,11 @@ class SemiEmpiricEfNacelle(Component):
         """
         r,gam,Cp,Cv = earth.gas_data()
 
-        def fct(y,PwShaft,pamb,rho,Ttot,Vair,r1,d1):
+        def fct(y,pw_shaft,pamb,rho,Ttot,Vair,r1,d1):
             q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y)
-            PwInput = self.fan_efficiency*PwShaft
-            Vjet = np.sqrt(2.*PwInput/q1 + Vinlet**2)       # Supposing isentropic compression
-            TtotJet = Ttot + PwShaft/(q1*Cp)                # Stagnation temperature increases due to introduced work
+            pw_input = self.fan_efficiency*pw_shaft
+            Vjet = np.sqrt(2.*pw_input/q1 + Vinlet**2)       # Supposing isentropic compression
+            TtotJet = Ttot + pw_shaft/(q1*Cp)                # Stagnation temperature increases due to introduced work
             TstatJet = TtotJet - 0.5*Vjet**2/Cp             # Static temperature
             VsndJet = earth.sound_speed(TstatJet)           # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                          # Mach number at nozzle output
@@ -796,8 +796,8 @@ class SemiEmpiricEfNacelle(Component):
             y = q1 - q
             return y
 
-        PwShaft = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
-        PwElec = PwShaft / (self.controller_efficiency*self.motor_efficiency)
+        pw_shaft = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
+        pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
 
         Re = earth.reynolds_number(pamb,tamb,mach)
         rho,sig = earth.air_density(pamb,pamb)
@@ -808,7 +808,7 @@ class SemiEmpiricEfNacelle(Component):
         r1 = 0.5*self.hub_width      # Radius of the hub of the eFan nacelle
         d1 = math.lin_interp_1d(d0,self.bnd_layer[:,0],self.bnd_layer[:,1])     # Using the precomputed relation
 
-        fct_arg = (PwShaft,pamb,rho,Ttot,Vair,r1,d1)
+        fct_arg = (pw_shaft,pamb,rho,Ttot,Vair,r1,d1)
 
         # Computation of y1 : thikness of the vein swallowed by the inlet
         output_dict = fsolve(fct, x0=0.5, args=fct_arg, full_output=True)
@@ -818,11 +818,11 @@ class SemiEmpiricEfNacelle(Component):
 
         (q0,q1,q2,Vinlet,dVbli) = self.air_flow(rho,Vair,r1,d1,y1)
 
-        PwInput = self.fan_efficiency*PwShaft
-        Vjet = np.sqrt(2.*PwInput/q1 + Vinlet**2)
+        pw_input = self.fan_efficiency*pw_shaft
+        Vjet = np.sqrt(2.*pw_input/q1 + Vinlet**2)
         eFn = q1*(Vjet - Vinlet)
 
-        return {"fn":eFn, "pw":PwElec}
+        return {"fn":eFn, "pw":pw_elec}
 
     def unitary_sc_bli(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary power required of an electrofan engine delivering a given thrust (semi-empirical model)
@@ -831,11 +831,11 @@ class SemiEmpiricEfNacelle(Component):
 
         def fct(x_in,thrust,pamb,rho,Ttot,Vair,r1,d1):
             y = x_in[0]
-            PwShaft = x_in[1]
+            pw_shaft = x_in[1]
             q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y)
-            PwInput = self.fan_efficiency*PwShaft
-            Vjet = np.sqrt(2.*PwInput/q + Vinlet**2)    # Supposing isentropic compression
-            TtotJet = Ttot + PwShaft/(q*Cp)             # Stagnation temperature increases due to introduced work
+            pw_input = self.fan_efficiency*pw_shaft
+            Vjet = np.sqrt(2.*pw_input/q1 + Vinlet**2)    # Supposing isentropic compression
+            TtotJet = Ttot + pw_shaft/(q1*Cp)             # Stagnation temperature increases due to introduced work
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output
@@ -870,8 +870,8 @@ class SemiEmpiricEfNacelle(Component):
         Pw = output_dict[0][1]
 
         Vinlet = Vair
-        PwInput = self.fan_efficiency*Pw
-        Vjet = np.sqrt(2.*PwInput/q0 + Vinlet**2)
+        pw_input = self.fan_efficiency*Pw
+        Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
         eFn = q0*(Vjet - Vinlet)
 
         throttle = (Pw+pw_offtake)/(self.reference_power*getattr(self.rating_factor,rating))

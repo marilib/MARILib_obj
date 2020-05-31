@@ -116,7 +116,7 @@ DATA_DICT = {
     "fuel_max_fwd_mass": {"unit":"kg", "mag":1e3, "txt":"Fuel mass corresponding to mximum forward position"},
     "fuel_max_bwd_cg": {"unit":"m", "mag":1e1, "txt":"Maximum backward position of the fuel"},
     "fuel_max_bwd_mass": {"unit":"kg", "mag":1e3, "txt":"Fuel mass corresponding to mximum backward position"},
-    "n_engine": {"unit":"int", "mag":1e0, "txt":"Algebraïc number of engine"},
+    "n_engine": {"unit":"int", "mag":1e0, "txt":"Numeric number of engine"},
     "reference_thrust": {"unit":"daN", "mag":1e5, "txt":"Engine reference thrust, thrust(sea level, ISA+15, Mach 0.25)/0.8"},
     "reference_power": {"unit":"kW", "mag":1e5, "txt":"Engine reference power, power(sea level, ISA+15, Mach 0.25)/0.8"},
     "reference_offtake": {"unit":"kW", "mag":1e4, "txt":"Refrence power offtake for design"},
