@@ -262,6 +262,241 @@ class RearFuselageMountedTfNacelle(SemiEmpiricTfNacelle,RearFuselageMountedNacel
         super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
 
 
+class SemiEmpiricTf2Nacelle(Component):
+
+    def __init__(self, aircraft):
+        super(SemiEmpiricTf2Nacelle, self).__init__(aircraft)
+
+        class_name = "SemiEmpiricTf2Nacelle"
+
+        ne = self.aircraft.arrangement.number_of_engine
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        design_range = self.aircraft.requirement.design_range
+
+        self.n_engine = number_of_engine(aircraft)
+        self.reference_thrust = init_thrust(aircraft)/self.n_engine
+        self.reference_offtake = 0.
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
+        self.tune_factor = 1.
+        self.engine_bpr = get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
+        self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
+        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
+        self.fan_efficiency = get_init(class_name,"fan_efficiency")
+        self.thrust_factor = None
+
+        self.hub_width = get_init(class_name,"hub_width")
+        self.fan_width = None
+        self.nozzle_width = None
+        self.nozzle_area = None
+        self.width = None
+        self.length = None
+
+        self.propeller_mass = 0.
+        self.engine_mass = 0.
+        self.pylon_mass = 0.
+
+        self.frame_origin = np.full(3,None)
+
+    def __turbofan_bpr(self):
+        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        if (80<n_pax_ref):
+            bpr = 9.
+        else:
+            bpr = 5.
+        return bpr
+
+    def lateral_margin(self):
+        return 1.5*self.width
+
+    def vertical_margin(self):
+        return 0.55*self.width
+
+    def eval_geometry(self):
+        # Update power transfert in case of hybridization, here : set power offtake
+        self.aircraft.power_system.update_power_transfert()
+
+        disa = self.aircraft.requirement.cruise_disa
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+
+        # Reset tune factor
+        self.tune_factor = 1.
+
+        # Get fan shaft power in cruise condition
+        shaft_power,core_thrust = self.fan_shaft_power(self,pamb,tamb,mach,"MCR",throttle=1.,pw_offtake=self.reference_offtake)
+
+        # Design nacelle according to this shaft power in cruise condition
+        self.turbofan_nacelle_design(self,pamb,tamb,mach,shaft_power)
+
+        mach = 0.25
+        disa = 15.
+        altp = 0.
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+
+        # Compute thrust of this nacelle in reference conditions
+        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO",pw_offtake=self.reference_offtake)
+
+        # Set tune factor so that output of unitary_thrust matches the definition of the reference thrust
+        self.tune_factor = self.reference_thrust / (dict["fn"]/0.80)
+
+        self.frame_origin = self.locate_nacelle()
+
+    def fan_shaft_power(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
+        """Fan shaft power of a pure turbofan engine (semi-empirical model)
+        """
+        kth =  0.475*mach**2 + 0.091*(self.engine_bpr/10.)**2 \
+             - 0.283*mach*self.engine_bpr/10. \
+             - 0.633*mach - 0.081*self.engine_bpr/10. + 1.192
+
+        rho,sig = earth.air_density(pamb, tamb)
+        vair = mach * earth.sound_speed(tamb)
+
+        total_thrust0 =   self.reference_thrust \
+                        * self.tune_factor \
+                        * kth \
+                        * getattr(self.rating_factor,rating) \
+                        * throttle \
+                        * sig**0.75
+        core_thrust0 = total_thrust0 * self.core_thrust_ratio        # Core thrust
+        fan_thrust0 = total_thrust0 * (1.-self.core_thrust_ratio)   # Fan thrust
+        fan_power0 = fan_thrust0*vair/self.propeller_efficiency     # Available total shaft power for one engine
+
+        return fan_power0-pw_offtake, core_thrust0
+
+    def turbofan_nacelle_design(self,Pamb,Tamb,Mach,shaft_power):
+        """Electrofan nacelle design
+        """
+        r,gam,Cp,Cv = earth.gas_data()
+        Vair = Mach * earth.sound_speed(Tamb)
+
+        # Electrical nacelle geometry : e-nacelle diameter is size by cruise conditions
+        deltaV = 2.*Vair*(self.fan_efficiency/self.propeller_efficiency - 1.)      # speed variation produced by the fan
+
+        pw_input = self.fan_efficiency*shaft_power     # kinetic energy produced by the fan
+
+        Vinlet = Vair
+        Vjet = Vinlet + deltaV
+        q1 = 2.*pw_input / (Vjet**2 - Vinlet**2)
+
+        MachInlet = Mach     # The inlet is in free stream
+        Ptot = earth.total_pressure(Pamb, MachInlet)        # Stagnation pressure at inlet position
+        Ttot = earth.total_temperature(Tamb, MachInlet)     # Stagnation temperature at inlet position
+
+        MachFan = 0.5       # required Mach number at fan position
+        CQoA1 = self.corrected_air_flow(Ptot,Ttot,MachFan)        # Corrected air flow per area at fan position
+
+        eFanArea = q1/CQoA1     # Fan area around the hub
+        fan_width = np.sqrt(self.hub_width**2 + 4*eFanArea/np.pi)        # Fan diameter
+
+        TtotJet = Ttot + shaft_power/(q1*Cp)        # Stagnation pressure increases due to introduced work
+        Tstat = TtotJet - 0.5*Vjet**2/Cp        # static temperature
+
+        VsndJet = np.sqrt(gam*r*Tstat) # Sound velocity at nozzle exhaust
+        MachJet = Vjet/VsndJet # Mach number at nozzle output
+        PtotJet = earth.total_pressure(Pamb, MachJet)       # total pressure at nozzle exhaust (P = Pamb)
+
+        CQoA2 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)     # Corrected air flow per area at nozzle output
+        nozzle_area = q1/CQoA2        # Fan area around the hub
+        nozzle_width = np.sqrt(4*nozzle_area/np.pi)       # Nozzle diameter
+
+        self.fan_width = fan_width
+        self.nozzle_width = nozzle_width
+        self.nozzle_area = nozzle_area
+
+        self.width = 1.20*fan_width      # Surrounding structure
+        self.length = 1.50*self.width
+
+        self.gross_wet_area = np.pi*self.width*self.length*self.n_engine
+        self.net_wet_area = self.gross_wet_area
+        self.aero_length = self.length
+        self.form_factor = 1.15
+
+    def corrected_air_flow(self,Ptot,Ttot,Mach):
+        """Computes the corrected air flow per square meter
+        """
+        r,gam,Cp,Cv = earth.gas_data()
+        f_m = Mach*(1. + 0.5*(gam-1)*Mach**2)**(-(gam+1.)/(2.*(gam-1.)))
+        cqoa = (np.sqrt(gam/r)*Ptot/np.sqrt(Ttot))*f_m
+        return cqoa
+
+    def eval_mass(self):
+        self.engine_mass = (1250. + 0.021*self.reference_thrust*self.thrust_factor)*self.n_engine       # statistical regression, all engines
+        self.pylon_mass = 0.0031*self.reference_thrust*self.thrust_factor*self.n_engine
+        self.mass = self.engine_mass + self.pylon_mass
+        self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
+
+    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
+        """Unitary thrust of an electrofan engine (semi-empirical model)
+        """
+        r,gam,Cp,Cv = earth.gas_data()
+
+        def fct(q,pw_shaft,pamb,Ttot,Vair):
+            Vinlet = Vair
+            pw_input = self.fan_efficiency*pw_shaft
+            Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)    # Supposing isentropic compression
+            TtotJet = Ttot + pw_shaft/(q*Cp)             # Stagnation temperature increases due to introduced work
+            TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
+            VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
+            MachJet = Vjet/VsndJet                      # Mach number at nozzle output
+            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
+            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+            q0 = CQoA1*self.nozzle_area
+            y = q0 - q
+            return y
+
+        pw_shaft,core_thrust = self.fan_shaft_power(self,pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+
+        Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
+        Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
+
+        Vair = mach * earth.sound_speed(tamb)
+
+        fct_arg = (pw_shaft,pamb,Ttot,Vair)
+
+        CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
+        q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
+
+        # Computation of the air flow swallowed by the inlet
+        output_dict = fsolve(fct, x0=q0init, args=fct_arg, full_output=True)
+
+        q0 = output_dict[0][0]
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        Vinlet = Vair
+        pw_input = self.fan_efficiency*pw_shaft
+        Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
+        fan_thrust = q0*(Vjet - Vinlet)
+
+        total_thrust = fan_thrust + core_thrust
+
+        sfc_ref = ( 0.4 + 1./self.engine_bpr**0.895 )/36000.
+        fuel_flow = sfc_ref * total_thrust
+
+        return {"fn":total_thrust, "ff":fuel_flow, "t4":None}
+
+    def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
+        """Unitary thrust of a pure turbofan engine (semi-empirical model)
+        """
+        dict = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake=pw_offtake)
+        throttle = thrust/dict["fn"]
+        sfc = dict["ff"]/dict["fn"]
+        t41 = dict["t4"]
+        return {"sfc":sfc, "thtl":throttle, "t4":t41}
+
+class OutboardWingMountedTf2Nacelle(SemiEmpiricTf2Nacelle,OutboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(OutboardWingMountedTf2Nacelle, self).__init__(aircraft)
+
+class InboardWingMountedTf2Nacelle(SemiEmpiricTf2Nacelle,InboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(InboardWingMountedTf2Nacelle, self).__init__(aircraft)
+
+class RearFuselageMountedTf2Nacelle(SemiEmpiricTf2Nacelle,RearFuselageMountedNacelle):
+    def __init__(self, aircraft):
+        super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
+
+
 class SemiEmpiricTpNacelle(Component):
 
     def __init__(self, aircraft):
