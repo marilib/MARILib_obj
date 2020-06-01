@@ -811,7 +811,7 @@ class SemiEmpiricEfNacelle(Component):
         deltaV = 2.*Vair*(self.fan_efficiency/self.propeller_efficiency - 1.)      # speed variation produced by the fan
 
         pw_input = self.fan_efficiency*shaft_power     # kinetic energy produced by the fan
-
+        print(pw_input)
         Vinlet = Vair
         Vjet = Vinlet + deltaV
         q1 = 2.*pw_input / (Vjet**2 - Vinlet**2)
@@ -852,6 +852,163 @@ class SemiEmpiricEfNacelle(Component):
         f_m = Mach*(1. + 0.5*(gam-1)*Mach**2)**(-(gam+1.)/(2.*(gam-1.)))
         cqoa = (np.sqrt(gam/r)*Ptot/np.sqrt(Ttot))*f_m
         return cqoa
+
+    def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
+        return self.unitary_thrust_free_stream(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+
+    def unitary_thrust_free_stream(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
+        """Unitary thrust of an electrofan engine (semi-empirical model)
+        """
+        r,gam,Cp,Cv = earth.gas_data()
+
+        def fct(q,pw_shaft,pamb,Ttot,Vair):
+            Vinlet = Vair
+            pw_input = self.fan_efficiency*pw_shaft
+            Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)    # Supposing isentropic compression
+            TtotJet = Ttot + pw_shaft/(q*Cp)             # Stagnation temperature increases due to introduced work
+            TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
+            VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
+            MachJet = Vjet/VsndJet                      # Mach number at nozzle output
+            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
+            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+            q0 = CQoA1*self.nozzle_area
+            y = q0 - q
+            return y
+
+        pw_shaft = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
+        pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
+
+        Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
+        Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
+
+        Vair = mach * earth.sound_speed(tamb)
+
+        fct_arg = (pw_shaft,pamb,Ttot,Vair)
+
+        CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
+        q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
+
+        # Computation of the air flow swallowed by the inlet
+        output_dict = fsolve(fct, x0=q0init, args=fct_arg, full_output=True)
+
+        q0 = output_dict[0][0]
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        Vinlet = Vair
+        pw_input = self.fan_efficiency*pw_shaft
+        Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
+        eFn = q0*(Vjet - Vinlet)
+
+        return {"fn":eFn, "pw":pw_elec}
+
+    def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
+        return self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
+
+    def unitary_sc_free_stream(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
+        """Unitary power required of an electrofan engine delivering a given thrust (semi-empirical model)
+        """
+        r,gam,Cp,Cv = earth.gas_data()
+
+        def fct(x_in,thrust,pamb,Ttot,Vair):
+            q = x_in[0]
+            pw_shaft = x_in[1]
+            Vinlet = Vair
+            pw_input = self.fan_efficiency*pw_shaft
+            Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)    # Supposing isentropic compression
+            TtotJet = Ttot + pw_shaft/(q*Cp)             # Stagnation temperature increases due to introduced work
+            TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
+            VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
+            MachJet = Vjet/VsndJet                      # Mach number at nozzle output
+            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
+            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+            q0 = CQoA1*self.nozzle_area
+            eFn = q*(Vjet - Vinlet)
+            return [q0-q, thrust-eFn]
+
+        Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
+        Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
+
+        Vair = mach * earth.sound_speed(tamb)
+
+        fct_arg = (thrust,pamb,Ttot,Vair)
+
+        CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
+        q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
+        PWinit = self.reference_power*getattr(self.rating_factor,rating) - pw_offtake
+        x_init = [q0init,PWinit]
+
+        # Computation of both air flow and shaft power
+        output_dict = fsolve(fct, x0=x_init, args=fct_arg, full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        q0 = output_dict[0][0]
+        Pw = output_dict[0][1]
+
+        Vinlet = Vair
+        pw_input = self.fan_efficiency*Pw
+        Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
+        eFn = q0*(Vjet - Vinlet)
+
+        throttle = (Pw+pw_offtake)/(self.reference_power*getattr(self.rating_factor,rating))
+        pw_elec = Pw / (self.controller_efficiency*self.motor_efficiency)
+        sec = pw_elec/eFn
+
+        return {"sec":sec, "thtl":throttle}
+
+class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(OutboardWingMountedEfNacelle, self).__init__(aircraft)
+
+class InboardWingMountedEfNacelle(SemiEmpiricEfNacelle,InboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(InboardWingMountedEfNacelle, self).__init__(aircraft)
+
+class RearFuselageMountedEfNacelle(SemiEmpiricEfNacelle,RearFuselageMountedNacelle):
+    def __init__(self, aircraft):
+        super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
+
+class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMountedNacelle):
+    def __init__(self, aircraft):
+        super(FuselageTailConeMountedEfNacelle, self).__init__(aircraft)
+        self.n_engine = 1
+        self.reference_power = self.aircraft.airframe.system.chain_power
+        self.bli_effect = get_init("FuselageTailConeMountedNacelle","bli_effect")
+        self.hub_width = get_init("FuselageTailConeMountedNacelle","hub_width")
+        self.body_width = None
+        self.body_length = None
+        self.bnd_layer = None
+
+    def eval_geometry(self):
+        self.reference_power = self.aircraft.airframe.system.chain_power
+        self.body_width = self.aircraft.airframe.body.width
+        self.body_length = self.aircraft.airframe.body.length
+        self.bnd_layer = self.tail_cone_boundary_layer(self.body_width,self.hub_width)
+
+        # Electric fan geometry is design for MCR in cruise condition
+        disa = self.aircraft.requirement.cruise_disa
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+
+        shaft_power = self.reference_power*self.rating_factor.MCR
+
+        self.efan_nacelle_design(pamb,tamb,mach,shaft_power)
+
+        self.aero_length = self.length
+        self.form_factor = 1.15
+
+        self.frame_origin = self.locate_nacelle()
+
+        # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
+        mach = 0.25
+        disa = 15.
+        altp = 0.
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+
+        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
+        self.reference_thrust = dict["fn"] / 0.80
 
     def air_flow(self,rho,vair,r,d,y):
         """Air flows and averaged speed at rear end of a cylinder of radius r mouving at vair in the direction of its axes,
@@ -918,100 +1075,10 @@ class SemiEmpiricEfNacelle(Component):
         return body_bnd_layer
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
-        """Unitary thrust of an electrofan engine (semi-empirical model)
-        """
-        r,gam,Cp,Cv = earth.gas_data()
-
-        def fct(q,pw_shaft,pamb,Ttot,Vair):
-            Vinlet = Vair
-            pw_input = self.fan_efficiency*pw_shaft
-            Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)    # Supposing isentropic compression
-            TtotJet = Ttot + pw_shaft/(q*Cp)             # Stagnation temperature increases due to introduced work
-            TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
-            VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
-            MachJet = Vjet/VsndJet                      # Mach number at nozzle output
-            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q0 = CQoA1*self.nozzle_area
-            y = q0 - q
-            return y
-
-        pw_shaft = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
-        pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
-
-        Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
-        Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
-
-        Vair = mach * earth.sound_speed(tamb)
-
-        fct_arg = (pw_shaft,pamb,Ttot,Vair)
-
-        CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
-        q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
-
-        # Computation of the air flow swallowed by the inlet
-        output_dict = fsolve(fct, x0=q0init, args=fct_arg, full_output=True)
-
-        q0 = output_dict[0][0]
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
-
-        Vinlet = Vair
-        pw_input = self.fan_efficiency*pw_shaft
-        Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
-        eFn = q0*(Vjet - Vinlet)
-
-        return {"fn":eFn, "pw":pw_elec}
-
-    def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
-        """Unitary power required of an electrofan engine delivering a given thrust (semi-empirical model)
-        """
-        r,gam,Cp,Cv = earth.gas_data()
-
-        def fct(x_in,thrust,pamb,Ttot,Vair):
-            q = x_in[0]
-            pw_shaft = x_in[1]
-            Vinlet = Vair
-            pw_input = self.fan_efficiency*pw_shaft
-            Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)    # Supposing isentropic compression
-            TtotJet = Ttot + pw_shaft/(q*Cp)             # Stagnation temperature increases due to introduced work
-            TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
-            VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
-            MachJet = Vjet/VsndJet                      # Mach number at nozzle output
-            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q0 = CQoA1*self.nozzle_area
-            eFn = q*(Vjet - Vinlet)
-            return [q0-q, thrust-eFn]
-
-        Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
-        Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
-
-        Vair = mach * earth.sound_speed(tamb)
-
-        fct_arg = (thrust,pamb,Ttot,Vair)
-
-        CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
-        q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
-        PWinit = self.reference_power*getattr(self.rating_factor,rating) - pw_offtake
-        x_init = [q0init,PWinit]
-
-        # Computation of both air flow and shaft power
-        output_dict = fsolve(fct, x0=x_init, args=fct_arg, full_output=True)
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
-
-        q0 = output_dict[0][0]
-        Pw = output_dict[0][1]
-
-        Vinlet = Vair
-        pw_input = self.fan_efficiency*Pw
-        Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
-        eFn = q0*(Vjet - Vinlet)
-
-        throttle = (Pw+pw_offtake)/(self.reference_power*getattr(self.rating_factor,rating))
-        pw_elec = Pw / (self.controller_efficiency*self.motor_efficiency)
-        sec = pw_elec/eFn
-
-        return {"sec":sec, "thtl":throttle}
+        if self.bli_effect=="yes":
+            return self.unitary_thrust_bli(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+        else:
+            return self.unitary_thrust_free_stream(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
     def unitary_thrust_bli(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Unitary thrust of an electrofan engine (semi-empirical model)
@@ -1029,16 +1096,15 @@ class SemiEmpiricEfNacelle(Component):
             PtotJet = earth.total_pressure(pamb,MachJet)    # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
             q = CQoA1*self.nozzle_area
-            y = q1 - q
-            return y
+            return q1 - q
 
         pw_shaft = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
         pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
 
         Re = earth.reynolds_number(pamb,tamb,mach)
-        rho,sig = earth.air_density(pamb,pamb)
+        rho,sig = earth.air_density(pamb,tamb)
         Vair = mach * earth.sound_speed(tamb)
-        Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
+        Ttot = earth.total_temperature(tamb,mach)     # Total temperature at inlet position
 
         d0 = self.boundary_layer(Re,self.body_length)      # theorical thickness of the boundary layer without taking account of fuselage tapering
         r1 = 0.5*self.hub_width      # Radius of the hub of the eFan nacelle
@@ -1052,13 +1118,19 @@ class SemiEmpiricEfNacelle(Component):
         y1 = output_dict[0][0]
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
-        (q0,q1,q2,Vinlet,dVbli) = self.air_flow(rho,Vair,r1,d1,y1)
+        q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y1)
 
         pw_input = self.fan_efficiency*pw_shaft
         Vjet = np.sqrt(2.*pw_input/q1 + Vinlet**2)
         eFn = q1*(Vjet - Vinlet)
 
-        return {"fn":eFn, "pw":pw_elec}
+        return {"fn":eFn, "pw":pw_elec, "dv_bli":dVbli}
+
+    def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
+        if self.bli_effect=="yes":
+            return self.unitary_sc_bli(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
+        else:
+            return self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
 
     def unitary_sc_bli(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary power required of an electrofan engine delivering a given thrust (semi-empirical model)
@@ -1082,7 +1154,7 @@ class SemiEmpiricEfNacelle(Component):
             return [q1-q, thrust-eFn]
 
         Re = earth.reynolds_number(pamb,tamb,mach)
-        rho,sig = earth.air_density(pamb,pamb)
+        rho,sig = earth.air_density(pamb,tamb)
         Vair = mach * earth.sound_speed(tamb)
         Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
         Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
@@ -1116,27 +1188,10 @@ class SemiEmpiricEfNacelle(Component):
 
         return {"sec":sec, "thtl":throttle}
 
-class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboradWingMountedNacelle):
-    def __init__(self, aircraft):
-        super(OutboardWingMountedEfNacelle, self).__init__(aircraft)
 
-class InboardWingMountedEfNacelle(SemiEmpiricEfNacelle,InboradWingMountedNacelle):
-    def __init__(self, aircraft):
-        super(InboardWingMountedEfNacelle, self).__init__(aircraft)
 
-class RearFuselageMountedEfNacelle(SemiEmpiricEfNacelle,RearFuselageMountedNacelle):
-    def __init__(self, aircraft):
-        super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
 
-class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMountedNacelle):
-    def __init__(self, aircraft):
-        super(FuselageTailConeMountedEfNacelle, self).__init__(aircraft)
-        self.n_engine = 1
-        self.reference_power = self.aircraft.airframe.system.chain_power
-        self.hub_width = get_init("FuselageTailConeMountedNacelle","hub_width")
-        self.body_width = self.aircraft.airframe.body.width
-        self.body_length = self.aircraft.airframe.body.length
-        self.bnd_layer = self.tail_cone_boundary_layer(self.body_width,self.hub_width)
+
 
 
 

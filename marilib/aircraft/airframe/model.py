@@ -831,8 +831,10 @@ class PartialTurboElectric(PowerSystem, Flight):
         ff = dict_tf["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / self.fuel_heat
         sfc = ff / fn
         t41 = dict_tf["t4"]
+        efn = dict_ef["fn"]
+        epw = dict_ef["pw"]
 
-        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41}
+        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41, "efn":efn, "epw":epw}
 
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
@@ -853,8 +855,10 @@ class PartialTurboElectric(PowerSystem, Flight):
         dict = self.thrust(pamb,tamb,mach,rating, throttle=throttle, nei=nei)
         sfc = dict["sfc"]
         t41 = dict["t4"]
+        efn = dict["efn"]
+        epw = dict["epw"]
 
-        return {"sfc":sfc, "thtl":throttle, "t4":t41}
+        return {"sfc":sfc, "thtl":throttle, "t4":t41, "efn":efn, "epw":epw}
 
     def oei_drag(self,pamb,tamb):
         """Inoperative engine drag coefficient

@@ -168,6 +168,7 @@ model_config = {
         "motor_pw_density": [10., "kW/kg", "Electric motor power density"]
     },
     "FuselageTailConeMountedNacelle":{
+        "bli_effect": ["no", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
         "hub_width": [0.4, "m", "Fan hub diameter"],
         "tail_cone_height_ratio": [0.38, "no_dim", "Relative vertical position of the body tail cone"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
