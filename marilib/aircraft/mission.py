@@ -112,9 +112,6 @@ class AllMissionVarMass(AllMissions):
         lf_dict = self.level_flight(pamb,tamb,self.mach,self.mass)
         sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
 
-        print("efn = ",lf_dict["efn"])
-        print("epw = ",lf_dict["epw"])
-
         self.crz_sar = lf_dict["sar"]
         self.crz_cz = lf_dict["cz"]
         self.crz_lod = lf_dict["lod"]
