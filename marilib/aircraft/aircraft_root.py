@@ -158,6 +158,27 @@ class Aircraft(object):
                 raise Exception("Type of nacelle attachment is unknown")
             self.power_system = model.Turbofan(self)
 
+        elif (self.arrangement.power_architecture=="tf2"):
+            if (self.arrangement.nacelle_attachment=="wing"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = propulsion.InboardWingMountedTf2Nacelle(self)
+                elif (self.arrangement.number_of_engine=="quadri"):
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTf2Nacelle(self)
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTf2Nacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","internal_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
+                else:
+                    raise Exception("Number of engines not allowed")
+            elif (self.arrangement.nacelle_attachment=="rear"):
+                if (self.arrangement.number_of_engine=="twin"):
+                    self.airframe.nacelle = propulsion.RearFuselageMountedTf2Nacelle(self)
+                else:
+                    raise Exception("Number of engines not allowed")
+            else:
+                raise Exception("Type of nacelle attachment is unknown")
+            self.power_system = model.Turbofan(self)
+
         elif (self.arrangement.power_architecture=="tp"):
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):

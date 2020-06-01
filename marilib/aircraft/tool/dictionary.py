@@ -156,7 +156,6 @@ DATA_DICT = {
     "propeller_disk_load": {"unit":"daN/m2", "mag":1e2, "txt":"Propeller disk load"},
     "hub_width": {"unit":"m", "mag":1e0, "txt":"Fan hub diameter"},
     "fan_width": {"unit":"m", "mag":1e0, "txt":"Fan diameter"},
-    "nozzle_width": {"unit":"m", "mag":1e0, "txt":"Nozzle diameter"},
     "nozzle_area": {"unit":"m2", "mag":1e0, "txt":"Nozzle area"},
     "fuel_flow": {"unit":"kg/s", "mag":1e0, "txt":"Fuel flow"},
     "fuel_heat": {"unit":"MJ/kg", "mag":1e1, "txt":"Fuel heating value"},

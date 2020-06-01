@@ -136,6 +136,13 @@ model_config = {
         "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"]
     },
+    "SemiEmpiricTf2Nacelle":{
+        "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
+        "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
+        "hub_width": [0.4, "m", "Fan hub diameter"],
+        "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
+        "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"]
+    },
     "SemiEmpiricTpNacelle":{
         "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
         "propeller_disk_load": [3000., "N/m2", "Propeller disk load"]

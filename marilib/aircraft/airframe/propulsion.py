@@ -282,11 +282,9 @@ class SemiEmpiricTf2Nacelle(Component):
         self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.fan_efficiency = get_init(class_name,"fan_efficiency")
-        self.thrust_factor = None
 
         self.hub_width = get_init(class_name,"hub_width")
         self.fan_width = None
-        self.nozzle_width = None
         self.nozzle_area = None
         self.width = None
         self.length = None
@@ -324,10 +322,10 @@ class SemiEmpiricTf2Nacelle(Component):
         self.tune_factor = 1.
 
         # Get fan shaft power in cruise condition
-        shaft_power,core_thrust = self.fan_shaft_power(self,pamb,tamb,mach,"MCR",throttle=1.,pw_offtake=self.reference_offtake)
+        shaft_power,core_thrust = self.fan_shaft_power(pamb,tamb,mach,"MCR",throttle=1.,pw_offtake=self.reference_offtake)
 
         # Design nacelle according to this shaft power in cruise condition
-        self.turbofan_nacelle_design(self,pamb,tamb,mach,shaft_power)
+        self.turbofan_nacelle_design(pamb,tamb,mach,shaft_power)
 
         mach = 0.25
         disa = 15.
@@ -377,7 +375,7 @@ class SemiEmpiricTf2Nacelle(Component):
 
         Vinlet = Vair
         Vjet = Vinlet + deltaV
-        q1 = 2.*pw_input / (Vjet**2 - Vinlet**2)
+        q1 = 2.*pw_input / (Vjet**2 - Vinlet**2)    # Here, it is total air flow, including core flow
 
         MachInlet = Mach     # The inlet is in free stream
         Ptot = earth.total_pressure(Pamb, MachInlet)        # Stagnation pressure at inlet position
@@ -390,18 +388,17 @@ class SemiEmpiricTf2Nacelle(Component):
         fan_width = np.sqrt(self.hub_width**2 + 4*eFanArea/np.pi)        # Fan diameter
 
         TtotJet = Ttot + shaft_power/(q1*Cp)        # Stagnation pressure increases due to introduced work
-        Tstat = TtotJet - 0.5*Vjet**2/Cp        # static temperature
+        Tstat = TtotJet - 0.5*Vjet**2/Cp            # static temperature
 
         VsndJet = np.sqrt(gam*r*Tstat) # Sound velocity at nozzle exhaust
         MachJet = Vjet/VsndJet # Mach number at nozzle output
         PtotJet = earth.total_pressure(Pamb, MachJet)       # total pressure at nozzle exhaust (P = Pamb)
 
-        CQoA2 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)     # Corrected air flow per area at nozzle output
-        nozzle_area = q1/CQoA2        # Fan area around the hub
-        nozzle_width = np.sqrt(4*nozzle_area/np.pi)       # Nozzle diameter
+        CQoA2 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at nozzle output
+        qf = q1 * self.engine_bpr/(1.+self.engine_bpr)              # Here, it is fan air flow only
+        nozzle_area = qf/CQoA2                                      # Fan nozzle area around the core nozzle
 
         self.fan_width = fan_width
-        self.nozzle_width = nozzle_width
         self.nozzle_area = nozzle_area
 
         self.width = 1.20*fan_width      # Surrounding structure
@@ -421,10 +418,16 @@ class SemiEmpiricTf2Nacelle(Component):
         return cqoa
 
     def eval_mass(self):
-        self.engine_mass = (1250. + 0.021*self.reference_thrust*self.thrust_factor)*self.n_engine       # statistical regression, all engines
-        self.pylon_mass = 0.0031*self.reference_thrust*self.thrust_factor*self.n_engine
+        mach = 0.25
+        disa = 15.
+        altp = 0.
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO",pw_offtake=self.reference_offtake)
+        eff_ref_thrust = dict["fn"]/0.8
+        self.engine_mass = (1250. + 0.021*eff_ref_thrust)*self.n_engine     # statistical regression, all engines
+        self.pylon_mass = 0.0031*eff_ref_thrust*self.n_engine
         self.mass = self.engine_mass + self.pylon_mass
-        self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
+        self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.]) # statistical regression
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Unitary thrust of an electrofan engine (semi-empirical model)
@@ -434,18 +437,19 @@ class SemiEmpiricTf2Nacelle(Component):
         def fct(q,pw_shaft,pamb,Ttot,Vair):
             Vinlet = Vair
             pw_input = self.fan_efficiency*pw_shaft
-            Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)    # Supposing isentropic compression
-            TtotJet = Ttot + pw_shaft/(q*Cp)             # Stagnation temperature increases due to introduced work
+            Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)   # Supposing isentropic compression
+            TtotJet = Ttot + pw_shaft/(q*Cp)            # Stagnation temperature increases due to introduced work
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output
-            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
+            PtotJet = earth.total_pressure(pamb, MachJet)               # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
             q0 = CQoA1*self.nozzle_area
-            y = q0 - q
+            qf = q * self.engine_bpr/(1.+self.engine_bpr)               # Here, it is fan air flow only
+            y = q0 - qf
             return y
 
-        pw_shaft,core_thrust = self.fan_shaft_power(self,pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+        pw_shaft,core_thrust = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
         Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
         Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
@@ -740,7 +744,6 @@ class SemiEmpiricEfNacelle(Component):
 
         self.hub_width = get_init(class_name,"hub_width")
         self.fan_width = None
-        self.nozzle_width = None
         self.nozzle_area = None
         self.width = None
         self.length = None
@@ -832,10 +835,8 @@ class SemiEmpiricEfNacelle(Component):
 
         CQoA2 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)     # Corrected air flow per area at nozzle output
         nozzle_area = q1/CQoA2        # Fan area around the hub
-        nozzle_width = np.sqrt(4*nozzle_area/np.pi)       # Nozzle diameter
 
         self.fan_width = fan_width
-        self.nozzle_width = nozzle_width
         self.nozzle_area = nozzle_area
 
         self.width = 1.20*fan_width      # Surrounding structure

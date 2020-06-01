@@ -246,7 +246,6 @@ class Exergetic_ef_nacelle(Component):
         self.EF_model = ElectricFan()
 
         self.fan_width = None
-        self.nozzle_width = None
         self.nozzle_area = None
         self.width = None
         self.length = None
@@ -315,7 +314,6 @@ class Exergetic_ef_nacelle(Component):
         # get the fan diameter, using a typical value for the hub to tip ratio: 0.28
         self.fan_width = np.sqrt(4. * fan_area / np.pi / (1 - 0.28**2))  # in m
         self.nozzle_area = s['9']['A']  # in m2
-        self.nozzle_width = np.sqrt(4. * s['9']['A'] / np.pi / (1 - 0.28**2))  # in m
 
         self.width = 1.20*self.fan_width      # Surrounding structure
         self.length = 1.50*self.width
