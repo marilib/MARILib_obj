@@ -23,7 +23,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
                    stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "pods",  # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "pods",      # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "pods",     # "wing", "rear" or "pods"
                    power_architecture = "tf",       # "tf", "extf", "ef", "exef", "tp", "ep"
@@ -33,10 +33,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
                    cruise_mach = 0.78,
-                   cruise_altp = unit.m_ft(35000.),
-                   arrangement = agmt)
-
-
+                   cruise_altp = unit.m_ft(35000.))
 
 ac = Aircraft("This_plane")
 

@@ -21,7 +21,7 @@ def lin_interp_1d(x,X,Y):
     :param x: current position
     :param X: array of the abscissa of the known points
     :param Y: array of the known values at given abscissa
-    :return : y the interpolated value of Y at x
+    :return: y the interpolated value of Y at x
 
     """
     n = np.size(X)
@@ -34,8 +34,7 @@ def lin_interp_1d(x,X,Y):
 
 
 def vander3(X):
-    """Return the vandermonde matrix of a dim 3 array
-    A = [X^2, X, 1]
+    """Return the vandermonde matrix of a dim 3 array A = [X^2, X, 1]
     """
     V = np.array([[X[0]**2, X[0], 1.],
                   [X[1]**2, X[1], 1.],

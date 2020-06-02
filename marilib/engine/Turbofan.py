@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
+:author: TODO
 
+An example of usage of :class:`marilib.engine.ExergeticEngine.Turbofan`
 """
 from marilib.engine.ExergeticEngine import Turbofan
 from matplotlib import pyplot as plt

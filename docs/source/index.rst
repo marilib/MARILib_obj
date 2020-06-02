@@ -10,15 +10,25 @@
 
 .. include:: ../../README.rst
 
-This is some text :doc:`test <../../LICENSE.rst>`
+The full license text is available :doc:`here <link/LICENSE_link>`
 
-MARILib documentation
-=====================
+Learning by examples
+====================
+
+Before you start using MARILib, we recommend that you first take a look to the module :mod:`marilib.aircraft`
+
+* The :doc:`classic MDA <link/classic_mda>` shows the basics of MARILib on a classical tube and wings airliner.
+
+
+
+
+Full documentation
+==================
 
 .. toctree::
    :glob:
    :maxdepth: 2
-   :caption: Contents:
+   :caption: MARILib is a Python 3 package. This is the documentation of the source code:
 
    api/marilib
 

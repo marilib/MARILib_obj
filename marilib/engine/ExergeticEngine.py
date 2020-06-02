@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+:author: TODO
+
 The ExergeticEngine module contains the base classes to simulate aircraft engines.
 
 It currently provide the following architectures:

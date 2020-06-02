@@ -658,11 +658,14 @@ class MissionDef(Flight):
 
     def mission_equations_to_solve(self, unknowns, *args):
         """The set of two equations to solve to determine the two unknowns:
+
             1) `fuel_total - eval_Breguet(range,tow, altp, mach, disa) = 0`
             2) `tow - payload - fuel_total - owe = 0`
+
         :param unknowns: a list of two guess values for the unknowns
         :param args: a tuple containing a dict of inputs and unknowns names in ['range', 'tow', 'payload', 'fuel_total']
         :return: the values of the two equations
+
         """
         inputs = args[0]['inputs']
         unknowns_name = args[0]['unknowns']

@@ -14,22 +14,36 @@ from marilib.aircraft.model_config import get_init
 
 
 class Requirement(object):
-    """Initialize top level aircraft requirements
-    """
+
     def __init__(self, n_pax_ref = 150.,
                  design_range = unit.m_NM(3000.),
                  cruise_mach = 0.78,
-                 cruise_altp = unit.m_ft(35000.),
-                 arrangement = None):
+                 cruise_altp = unit.m_ft(35000.)):
+        """Initialize top level aircraft requirements. The default requirements are for a typical jet liner.
 
-        self.cruise_disa = 0.
+        :param n_pax_ref: number of passangers. Default is 150.
+        :param design_range: design range of the aircraft in meters. Default is equivalent to 3000 NM.
+        :param cruise_mach: cruise Mach Number. Default is 0.78.
+        :param cruise_altp: cruise altitude in meters. Default is equivalent to 35 000 ft.
+        """
         self.cruise_altp = cruise_altp
         self.cruise_mach = cruise_mach
         self.design_range = design_range
-        self.cost_range = get_init(self,"cost_range", val=self.__cost_mission_range())
-
         self.n_pax_ref = n_pax_ref
 
+    def init_all_requirements(self,arrangement):
+        """Initialize the following categories of requirements:
+
+         * Take-Off : :class:`TakeOffReq`
+         * Approach : :class:`ApproachReq`
+         * One Engine Inoperative ceiling : :class:`OeiCeilingReq`
+         * Maximum Climb thrust : :class:`MclCeilingReq`
+         * Maximum Cruise thrust : :class:`McrCeilingReq`
+         * Time to climb requirements : :class:`TtcReq`
+
+         """
+        self.cruise_disa = 0.
+        self.cost_range = get_init(self, "cost_range", val=self.__cost_mission_range())
         self.take_off = TakeOffReq(arrangement, self)
         self.approach = ApproachReq(arrangement, self)
         self.oei_ceiling = OeiCeilingReq(arrangement, self)
@@ -114,7 +128,7 @@ class OeiCeilingReq(object):
 
 
 class ClimbReq(object):
-    """Initialize climb speed requirements
+    """A generic Climb requirement definition
     """
     def __init__(self, arrangement, requirement):
         self.disa = get_init(self,"disa")
@@ -134,7 +148,7 @@ class ClimbReq(object):
 
 
 class MclCeilingReq(ClimbReq):
-    """Initialize climb speed requirements in MCL rating
+    """Initialize climb speed requirements in **Maximum CLimb** thrust rating
     """
     def __init__(self, arrangement, requirement):
         super(MclCeilingReq, self).__init__(arrangement, requirement)
@@ -144,7 +158,7 @@ class MclCeilingReq(ClimbReq):
 
 
 class McrCeilingReq(ClimbReq):
-    """Initialize climb speed requirements in MCR rating
+    """Initialize climb speed requirements in **Maximum CRuise** thrust rating
     """
     def __init__(self, arrangement, requirement):
         super(McrCeilingReq, self).__init__(arrangement, requirement)

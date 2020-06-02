@@ -423,7 +423,6 @@ class Turbofan(PowerSystem, Flight):
         g = earth.gravity()
         return dict["sfc"]*(mass*g/dict["lod"])*time
 
-
 class ThrustDataTp(ThrustData):
     def __init__(self, nei):
         super(ThrustDataTp, self).__init__(nei)
