@@ -128,7 +128,7 @@ class OeiCeilingReq(object):
 
 
 class ClimbReq(object):
-    """Initialize climb speed requirements
+    """A generic Climb requirement definition
     """
     def __init__(self, arrangement, requirement):
         self.disa = get_init(self,"disa")
@@ -148,7 +148,7 @@ class ClimbReq(object):
 
 
 class MclCeilingReq(ClimbReq):
-    """Initialize climb speed requirements in **M**aximum **CL**imb thrust rating
+    """Initialize climb speed requirements in **Maximum CLimb** thrust rating
     """
     def __init__(self, arrangement, requirement):
         super(MclCeilingReq, self).__init__(arrangement, requirement)
@@ -158,7 +158,7 @@ class MclCeilingReq(ClimbReq):
 
 
 class McrCeilingReq(ClimbReq):
-    """Initialize climb speed requirements in **M**aximum **CR**uise thrust rating
+    """Initialize climb speed requirements in **Maximum CRuise** thrust rating
     """
     def __init__(self, arrangement, requirement):
         super(McrCeilingReq, self).__init__(arrangement, requirement)
