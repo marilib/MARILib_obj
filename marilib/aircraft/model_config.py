@@ -2,7 +2,9 @@
 """
 Created on Thu Jan 20 20:20:20 2020
 
-@author: DRUOT Thierry, Nicolas Monrolin
+@author: Conceptual Airplane Design & Operations (CADO team)
+         Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
+         Avionic & Systems, Air Transport Departement, ENAC
 """
 
 from marilib.utils import unit
@@ -104,6 +106,7 @@ model_config = {
     "SystemWithBattery":{
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
         "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
         "cooling_pw_density": [10., "kW/kg", "Cooling power density"],
         "battery_density": [2800., "kg/m3", "Battery density"],
         "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
@@ -111,14 +114,34 @@ model_config = {
     "SystemWithFuelCell":{
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
         "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
         "cooling_pw_density": [10., "kW/kg", "Cooling power density"],
         "fuel_cell_pw_density": [1., "kW/kg", "Fuell cell power density"],
         "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
     },
-    "SemiEmpiricTfNacelle":{
+    "SystemPartialTurboElectric":{
+        "generator_efficiency": [0.95, "no_dim", "Electric generator efficiency"],
+        "generator_pw_density": [10., "kW/kg", "Electric generator power density"],
+        "rectifier_efficiency": [0.98, "no_dim", "Rectifier efficiency"],
+        "rectifier_pw_density": [20., "kW/kg", "Rectifier power density"],
+        "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
+        "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
+        "cooling_pw_density": [10., "kW/kg", "Cooling power density"],
+        "battery_density": [2800., "kg/m3", "Battery density"],
+        "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
+    },
+    "SemiEmpiricTf0Nacelle":{
         "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
         "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"]
+    },
+    "SemiEmpiricTfNacelle":{
+        "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
+        "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
+        "hub_width": [0.4, "m", "Fan hub diameter"],
+        "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
+        "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"]
     },
     "SemiEmpiricTpNacelle":{
         "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
@@ -129,20 +152,31 @@ model_config = {
         "propeller_disk_load": [3000., "N/m2", "Propeller disk load"],
         "hub_width": [0.2, "m", "Propeller hub diameter"],
         "motor_efficiency": [0.95, "no_dim", "Electric motor efficiency"],
-        "controller_efficiency": [0.99, "no_dim", "Electric controller efficiency"],
-        "controller_pw_density": [20., "kW/kg", "Electric controller power density"],
+        "motor_pw_density": [10., "kW/kg", "Electric motor power density"],
         "nacelle_pw_density": [10., "kW/kg", "Electric nacelle power density"],
-        "motor_pw_density": [10., "kW/kg", "Electric motor power density"]
+        "controller_efficiency": [0.99, "no_dim", "Electric controller efficiency"],
+        "controller_pw_density": [20., "kW/kg", "Electric controller power density"]
     },
     "SemiEmpiricEfNacelle":{
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
         "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"],
-        "hub_width": [0.2, "m", "Propeller hub diameter"],
+        "hub_width": [0.2, "m", "Fan hub diameter"],
         "motor_efficiency": [0.95, "no_dim", "Electric motor efficiency"],
         "controller_efficiency": [0.99, "no_dim", "Electric controller efficiency"],
         "controller_pw_density": [20., "kW/kg", "Electric controller power density"],
         "nacelle_pw_density": [10., "kW/kg", "Electric nacelle power density"],
         "motor_pw_density": [10., "kW/kg", "Electric motor power density"]
+    },
+    "PodTailConeMountedNacelle":{
+        "bli_effect": ["no", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
+        "hub_width": [0.6, "m", "Fan hub diameter"],
+        "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
+    },
+    "FuselageTailConeMountedNacelle":{
+        "bli_effect": ["no", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
+        "hub_width": [0.4, "m", "Fan hub diameter"],
+        "tail_cone_height_ratio": [0.38, "no_dim", "Relative vertical position of the body tail cone"],
+        "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
     "AllMissionVarMass":{
         "ktow": [0.9, "no_dim", "Ratio of TOW defining the aircraft weight for mission breguet range"]

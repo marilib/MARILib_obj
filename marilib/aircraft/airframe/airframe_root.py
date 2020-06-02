@@ -32,14 +32,19 @@ class Airframe(object):
         """Crude geometry analysis of each component independantly by calling component.eval_geometry()
         """
         stab_architecture = self.aircraft.arrangement.stab_architecture
+        number_of_engine = self.aircraft.arrangement.number_of_engine
+        power_architecture = self.aircraft.arrangement.power_architecture
 
         self.aircraft.airframe.cabin.eval_geometry()
         self.aircraft.airframe.body.eval_geometry()
         self.aircraft.airframe.wing.eval_geometry()
+        self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
         self.aircraft.airframe.nacelle.eval_geometry()
-        if (self.arrangement.number_of_engine=="quadri"):
+        if (number_of_engine=="quadri"):
             self.aircraft.airframe.internal_nacelle.eval_geometry()
+        if (power_architecture=="pte"):
+            self.aircraft.airframe.tail_nacelle.eval_geometry()
 
         if (stab_architecture in ["classic","t_tail"]):
             self.aircraft.airframe.vertical_stab.eval_geometry()
@@ -51,7 +56,6 @@ class Airframe(object):
         self.aircraft.airframe.vertical_stab.eval_area()
         self.aircraft.airframe.horizontal_stab.eval_area()
 
-        self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.landing_gear.eval_geometry()
         self.aircraft.airframe.system.eval_geometry()
 
@@ -60,14 +64,18 @@ class Airframe(object):
         """
         stab_architecture = self.aircraft.arrangement.stab_architecture
         number_of_engine = self.aircraft.arrangement.number_of_engine
+        power_architecture = self.aircraft.arrangement.power_architecture
 
         self.aircraft.airframe.cabin.eval_geometry()
         self.aircraft.airframe.body.eval_geometry()
         self.aircraft.airframe.wing.eval_geometry()
+        self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
         self.aircraft.airframe.nacelle.eval_geometry()
         if (number_of_engine=="quadri"):
             self.aircraft.airframe.internal_nacelle.eval_geometry()
+        if (power_architecture=="pte"):
+            self.aircraft.airframe.tail_nacelle.eval_geometry()
 
         def fct(x_in):
             self.aircraft.airframe.vertical_stab.area = x_in[0]                           # Coupling variable
@@ -103,7 +111,6 @@ class Airframe(object):
             self.aircraft.airframe.horizontal_stab.eval_geometry()
             self.aircraft.airframe.vertical_stab.eval_geometry()
 
-        self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.landing_gear.eval_geometry()
         self.aircraft.airframe.system.eval_geometry()
 

@@ -15,10 +15,10 @@ from marilib.engine.ExergeticEngine import Turbofan, ElectricFan
 
 from marilib.aircraft.airframe.component import Component
 
-from marilib.aircraft.airframe.propulsion import RatingFactor, \
-                                         InboradWingMountedNacelle,\
-                                         OutboradWingMountedNacelle,\
-                                         RearFuselageMountedNacelle
+from marilib.aircraft.airframe.propulsion import number_of_engine, RatingFactor, \
+                                                 InboradWingMountedNacelle,\
+                                                 OutboradWingMountedNacelle,\
+                                                 RearFuselageMountedNacelle
 
 
 class Exergetic_tf_nacelle(Component):
@@ -30,7 +30,7 @@ class Exergetic_tf_nacelle(Component):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
+        self.n_engine = number_of_engine(aircraft)
         self.cruise_thrust = self.__cruise_thrust()
         self.reference_thrust = None
         self.reference_offtake = 0.
@@ -48,6 +48,10 @@ class Exergetic_tf_nacelle(Component):
 
         self.width = None
         self.length = None
+
+        self.propeller_mass = 0.
+        self.engine_mass = 0.
+        self.pylon_mass = 0.
 
         self.frame_origin = np.full(3,None)
 
@@ -76,6 +80,12 @@ class Exergetic_tf_nacelle(Component):
         lod = 16.
         fn = 1.6*(mass*g/lod)/self.n_engine
         return fn
+
+    def lateral_margin(self):
+        return 1.5*self.width
+
+    def vertical_margin(self):
+        return 0.55*self.width
 
     def eval_geometry(self):
 
@@ -122,12 +132,12 @@ class Exergetic_tf_nacelle(Component):
         self.aero_length = self.length
         self.form_factor = 1.15
 
-        self.frame_origin = self.__locate_nacelle()
+        self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
-        engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
-        pylon_mass = 0.0031*self.reference_thrust*self.n_engine
-        self.mass = engine_mass + pylon_mass
+        self.engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
+        self.pylon_mass = 0.0031*self.reference_thrust*self.n_engine
+        self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
@@ -234,10 +244,13 @@ class Exergetic_ef_nacelle(Component):
         self.EF_model = ElectricFan()
 
         self.fan_width = None
-        self.nozzle_width = None
         self.nozzle_area = None
         self.width = None
         self.length = None
+
+        self.propeller_mass = 0.
+        self.engine_mass = 0.
+        self.pylon_mass = 0.
 
         self.frame_origin = np.full(3,None)
 
@@ -250,8 +263,14 @@ class Exergetic_ef_nacelle(Component):
         g = earth.gravity()
         mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
         lod = 16.
-        fn = 1.6*(mass*g/lod)/self.n_engine
+        fn = 2.0*(mass*g/lod)/self.n_engine
         return fn
+
+    def lateral_margin(self):
+        return 1.5*self.width
+
+    def vertical_margin(self):
+        return 0.55*self.width
 
     def eval_geometry(self):
 
@@ -293,7 +312,6 @@ class Exergetic_ef_nacelle(Component):
         # get the fan diameter, using a typical value for the hub to tip ratio: 0.28
         self.fan_width = np.sqrt(4. * fan_area / np.pi / (1 - 0.28**2))  # in m
         self.nozzle_area = s['9']['A']  # in m2
-        self.nozzle_width = np.sqrt(4. * s['9']['A'] / np.pi / (1 - 0.28**2))  # in m
 
         self.width = 1.20*self.fan_width      # Surrounding structure
         self.length = 1.50*self.width
@@ -304,15 +322,15 @@ class Exergetic_ef_nacelle(Component):
         self.aero_length = self.length
         self.form_factor = 1.15
 
-        self.frame_origin = self.__locate_nacelle()
+        self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
         shaft_power_max = self.aircraft.airframe.nacelle.reference_power
-        engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
+        self.engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
                        + 1./self.nacelle_pw_density
                       ) * shaft_power_max * self.n_engine
-        pylon_mass = 0.0031*self.reference_thrust*self.n_engine
-        self.mass = engine_mass + pylon_mass
+        self.pylon_mass = 0.0031*self.reference_thrust*self.n_engine
+        self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):

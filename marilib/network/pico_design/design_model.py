@@ -98,7 +98,7 @@ class Aircraft(object):
         if (dict[2] != 1): raise Exception("Convergence problem")
         tow = dict[0][0]
         mission_fuel = dict[0][1]
-        mission_time = 20.*60. + self.cruise_speed*range
+        mission_time = 20.*60. + range/self.cruise_speed
         return mission_fuel,mission_time,tow
 
     def eval_design(self, X):

@@ -2,7 +2,9 @@
 """
 Created on Thu Jan 20 20:20:20 2020
 
-@author: DRUOT Thierry, Nicolas Monrolin
+@author: Conceptual Airplane Design & Operations (CADO team)
+         Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
+         Avionic & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -21,12 +23,12 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
                    stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "pods",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
-                   nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "tf",       # "tf", "extf", "ef", "exef",
+                   nacelle_attachment = "pods",     # "wing", "rear" or "pods"
+                   power_architecture = "tf",       # "tf", "extf", "ef", "exef", "tp", "ep"
                    power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                   fuel_type = "kerosene")           # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery"
+                   fuel_type = "kerosene")          # "kerosene", "methane", "liquid_h2", "700bar_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
@@ -41,10 +43,11 @@ ac = Aircraft("This_plane")
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
 
-
-
 ac.requirement.take_off.tofl_req = 2500.
 
+ac.airframe.nacelle.reference_thrust = unit.N_kN(120.)
+
+ac.airframe.wing.area = 122.
 
 
 process.mda(ac)
@@ -97,7 +100,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["OWE", "kg", "%8.1f", "aircraft.weight_cg.owe"],
         ["MWE", "kg", "%8.1f", "aircraft.weight_cg.mwe"],
         ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.performance.mission.crz_lod"],
-        ["Cruise_SFC", "kg/daN/h", "%8.4f", "aircraft.performance.mission.crz_sfc"],
+        ["Cruise_SFC", "kg/daN/h", "%8.4f", "aircraft.performance.mission.crz_tsfc"],
         ["TOFL", "m", "%8.1f", "aircraft.performance.take_off.tofl_eff"],
         ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.performance.approach.app_speed_eff)"],
         ["OEI_path", "%", "%8.1f", "aircraft.performance.oei_ceiling.path_eff*100"],
@@ -113,7 +116,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
 file = "explore_design.txt"
 
 #res = process.eval_this(ac,var)
-#res = process.explore_design_space(ac, var, step, data, file)
+res = process.explore_design_space(ac, var, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']
@@ -126,7 +129,7 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req)]       # Limit values
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub"])                 # ub: upper bound, lb: lower bound
 
-#process.draw_design_space(file, res, field, const, color, limit, bound)
+process.draw_design_space(file, res, field, const, color, limit, bound)
 
 
 

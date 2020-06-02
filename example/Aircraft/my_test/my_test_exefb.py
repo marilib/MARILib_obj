@@ -2,7 +2,9 @@
 """
 Created on Thu Jan 20 20:20:20 2020
 
-@author: DRUOT Thierry, Nicolas Monrolin
+@author: Conceptual Airplane Design & Operations (CADO team)
+         Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
+         Avionic & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -30,7 +32,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
 
 reqs = Requirement(n_pax_ref = 40.,
                    design_range = unit.m_NM(100.),
-                   cruise_mach = 0.78,
+                   cruise_mach = 0.72,
                    cruise_altp = unit.m_ft(35000.),
                    arrangement = agmt)
 

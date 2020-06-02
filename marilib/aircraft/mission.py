@@ -2,7 +2,10 @@
 """
 Created on Thu Jan 20 20:20:20 2020
 
-@author: DRUOT Thierry, Nicolas Monrolin
+@author: Conceptual Airplane Design & Operations (CADO team)
+         Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
+         Avionic & Systems, Air Transport Departement, ENAC
+         Avionic & Systems, Air Transport Departement, ENAC
 """
 
 from marilib.utils import earth, unit

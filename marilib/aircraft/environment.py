@@ -2,7 +2,9 @@
 """
 Created on Thu Jan 20 20:20:20 2020
 
-@author: DRUOT Thierry, Nicolas Monrolin
+@author: Conceptual Airplane Design & Operations (CADO team)
+         Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
+         Avionic & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -125,13 +127,12 @@ class Economics():
         labor_engine = n_engine*(0.645*t_t+t_h*(0.566*t_t+0.434))*self.labor_cost
         matrl_engine = n_engine*(25.*t_t+t_h*(0.62*t_t+0.38))
 
-        if (power_architecture=="pte1"):
-            pass
-#            rear_engine_cost = aircraft.rear_electric_nacelle.mass*eco.rear_nacelle_cost
+        if (power_architecture=="pte"):
+            rear_engine_cost = self.aircraft.airframe.tail_nacelle.specific_nacelle_cost * self.aircraft.airframe.tail_nacelle.mass
         else:
             rear_engine_cost = 0.
 
-        self.engine_cost = labor_engine + matrl_engine #+ rear_engine_cost
+        self.engine_cost = labor_engine + matrl_engine + rear_engine_cost
 
         w_g = mtow*1e-3
 
