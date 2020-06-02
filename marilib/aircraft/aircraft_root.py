@@ -72,6 +72,8 @@ class Aircraft(object):
         self.requirement = requirement
         self.arrangement = arrangement
 
+        self.requirement.init_all_requirements(arrangement)  # finalize the initialisation of all requirements.
+
         if (self.arrangement.power_architecture in ["ef","ep","exef"]):
             if(self.arrangement.power_source not in ["battery","fuel_cell"]):
                 raise Exception("Power architecture electro_fan (ef) requires energy source battery or fuel_cell")

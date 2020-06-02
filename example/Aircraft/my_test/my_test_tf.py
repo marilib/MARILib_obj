@@ -33,8 +33,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
                    cruise_mach = 0.78,
-                   cruise_altp = unit.m_ft(35000.),
-                   arrangement = agmt)
+                   cruise_altp = unit.m_ft(35000.))
 
 ac = Aircraft("This_plane")
 
