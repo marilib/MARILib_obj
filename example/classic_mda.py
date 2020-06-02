@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """
-Created on Thu Jan 20 20:20:20 2020
+Classic MDA
+===========
 
-@author: Conceptual Airplane Design & Operations (CADO team)
-         Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+We want to design a transport airplane that fulfills the following top level requirements:
+
+* capacity : 150 passengers
+* design range : 3000 NM
+* cruise Mach : 0.78
+* cruise altitude :  35 000 ft
+
+Before
 """
 
 import numpy as np
@@ -35,6 +41,8 @@ reqs = Requirement(n_pax_ref = 150.,
                    cruise_mach = 0.78,
                    cruise_altp = unit.m_ft(35000.),
                    arrangement = agmt)
+
+
 
 ac = Aircraft("This_plane")
 

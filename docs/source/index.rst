@@ -12,6 +12,16 @@
 
 The full license text is available :doc:`here <link/LICENSE_link>`
 
+Learning by examples
+====================
+
+Before you start using MARILib, we recommend that you first take a look to the module :mod:`marilib.aircraft`
+
+* The :doc:`classic MDA <link/classic_mda>` shows the basics of MARILib on a classical tube and wings airliner.
+
+
+
+
 MARILib documentation
 =====================
 

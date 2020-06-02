@@ -1,0 +1,1 @@
+.. include:: ../../../example/classic_mda.py
