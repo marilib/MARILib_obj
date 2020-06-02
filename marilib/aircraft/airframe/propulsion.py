@@ -115,6 +115,8 @@ class PodTailConeMountedNacelle(Component):
     def __init__(self, aircraft):
         super(PodTailConeMountedNacelle, self).__init__(aircraft)
 
+        self.lateral_margin = get_init("PodTailConeMountedNacelle","lateral_margin")
+        self.x_loc_ratio = get_init("PodTailConeMountedNacelle","x_loc_ratio")
         self.specific_nacelle_cost = get_init("PodTailConeMountedNacelle","specific_nacelle_cost")
 
     def locate_nacelle(self):
@@ -126,38 +128,24 @@ class PodTailConeMountedNacelle(Component):
         wing_kink_loc = self.aircraft.airframe.wing.kink_loc
         wing_tip_c = self.aircraft.airframe.wing.tip_c
         wing_tip_loc = self.aircraft.airframe.wing.tip_loc
+        tank_length = self.aircraft.airframe.tank.length
+        tank_width = self.aircraft.airframe.tank.width
 
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
-        y_int = 0.6 * body_width + self.lateral_margin()
-        x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.length
-        z_int = wing_root_loc[2] + (y_int-wing_root_loc[2])*np.tan(wing_dihedral) - self.vertical_margin()
-
-        # return np.array([x_int, y_int, z_int])
-
-
-
-        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
-
-        if (self.aircraft.arrangement.nacelle_attachment == "pod"):
-            y_axe = 0.6 * body_width + 1.5 * self.width
-        else:
-            y_axe = self.span_ratio * wing_tip_loc[1]
-
-        x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - 0.40*self.length
+        # Recompute pod position
+        y_axe = 0.6 * body_width + (0.5 + self.lateral_margin)*tank_width
+        x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - self.x_loc_ratio*tank_length
         z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral)
 
-        self.frame_origin = [x_axe, y_axe, z_axe]
+        self.aircraft.airframe.tank.frame_origin = [x_axe, y_axe, z_axe]
 
+        # Locate nacelle
+        y_int = y_axe
+        x_int = x_axe + self.aircraft.airframe.tank.length
+        z_int = z_axe
 
-        body_origin = self.aircraft.airframe.tank.frame_origin
-        body_length = self.aircraft.airframe.tank.length
-
-        y_axe = body_origin[1]
-        x_axe = body_origin[0] + body_length
-        z_axe = body_origin[2]
-
-        return np.array([x_axe, y_axe, z_axe])
+        return np.array([x_int, y_int, z_int])
 
 
 class RatingFactor(object):
@@ -188,6 +176,8 @@ class SemiEmpiricTf0Nacelle(Component):
         self.engine_bpr = get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
         self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
+        self.lateral_margin = get_init(class_name,"lateral_margin")
+        self.vertical_margin = get_init(class_name,"vertical_margin")
 
         self.thrust_factor = None
         self.width = None
@@ -208,10 +198,10 @@ class SemiEmpiricTf0Nacelle(Component):
         return bpr
 
     def lateral_margin(self):
-        return 1.5*self.width
+        return (0.5 + self.lateral_margin)*self.width
 
     def vertical_margin(self):
-        return 0.55*self.width
+        return (self.vertical_margin - 0.45)*self.width
 
     def eval_geometry(self):
         # Update power transfert in case of hybridization
@@ -331,6 +321,8 @@ class SemiEmpiricTfNacelle(Component):
         self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.fan_efficiency = get_init(class_name,"fan_efficiency")
+        self.lateral_margin = get_init(class_name,"lateral_margin")
+        self.vertical_margin = get_init(class_name,"vertical_margin")
 
         self.hub_width = get_init(class_name,"hub_width")
         self.fan_width = None
@@ -353,10 +345,10 @@ class SemiEmpiricTfNacelle(Component):
         return bpr
 
     def lateral_margin(self):
-        return 1.5*self.width
+        return (0.5 + self.lateral_margin)*self.width
 
     def vertical_margin(self):
-        return 0.55*self.width
+        return (self.vertical_margin - 0.45)*self.width
 
     def eval_geometry(self):
         # Update power transfert in case of hybridization, here : set power offtake
@@ -828,6 +820,7 @@ class SemiEmpiricTpNacelle(Component):
         self.reference_power = self.__reference_power(aircraft)
         self.reference_thrust = self.reference_power*(self.propeller_efficiency/87.26)
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.95, MCL=0.90, MCR=0.70, FID=0.10)
+        self.lateral_margin = get_init(class_name,"lateral_margin")
         self.engine_bpr = 100.
 
         self.hub_width = None
@@ -849,7 +842,7 @@ class SemiEmpiricTpNacelle(Component):
         return ref_power
 
     def lateral_margin(self):
-        return 0.8*self.propeller_width
+        return (self.lateral_margin - 0.2)*self.propeller_width
 
     def vertical_margin(self):
         return 0.
@@ -944,6 +937,7 @@ class SemiEmpiricEpNacelle(Component):
         self.controller_pw_density = get_init(class_name,"controller_pw_density")
         self.nacelle_pw_density = get_init(class_name,"nacelle_pw_density")
         self.motor_pw_density = get_init(class_name,"motor_pw_density")
+        self.lateral_margin = get_init(class_name,"lateral_margin")
         self.engine_bpr = 100.
 
         self.hub_width = get_init(class_name,"hub_width")
@@ -964,7 +958,7 @@ class SemiEmpiricEpNacelle(Component):
         return ref_power
 
     def lateral_margin(self):
-        return 0.8*self.propeller_width
+        return (self.lateral_margin - 0.2)*self.propeller_width
 
     def vertical_margin(self):
         return 0.
@@ -1050,6 +1044,8 @@ class SemiEmpiricEfNacelle(Component):
         self.controller_pw_density = get_init(class_name,"controller_pw_density")
         self.nacelle_pw_density = get_init(class_name,"nacelle_pw_density")
         self.motor_pw_density = get_init(class_name,"motor_pw_density")
+        self.lateral_margin = get_init(class_name,"lateral_margin")
+        self.vertical_margin = get_init(class_name,"vertical_margin")
 
         self.hub_width = get_init(class_name,"hub_width")
         self.fan_width = None
@@ -1070,10 +1066,10 @@ class SemiEmpiricEfNacelle(Component):
         return ref_power
 
     def lateral_margin(self):
-        return 1.5*self.width
+        return (0.5 + self.lateral_margin)*self.width
 
     def vertical_margin(self):
-        return 0.55*self.width
+        return (self.vertical_margin - 0.45)*self.width
 
     def eval_geometry(self):
         # Electric fan geometry is design for MCR in cruise condition

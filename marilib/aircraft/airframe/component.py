@@ -1073,7 +1073,7 @@ class TankWingBox(Component):
                               ) / (self.central_volume + self.cantilever_volume)
 
         # REMARK : if fuel_type is "Battery", fuel density will be battery density
-        self.fuel_density = earth.fuel_density(fuel_type)
+        self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
         self.mass = (self.fuel_pressure/self.shell_parameter)*self.max_volume
@@ -1107,6 +1107,7 @@ class TankWingPod(Component):
 
         self.length = get_init(self,"length", val=length)
         self.width = get_init(self,"width", val=width)
+        self.x_loc_ratio = get_init(self,"x_loc_ratio")
         self.wing_axe_c = None
         self.wing_axe_x = None
         self.max_volume = None
@@ -1134,7 +1135,7 @@ class TankWingPod(Component):
         else:
             y_axe = self.span_ratio * wing_tip_loc[1]
 
-        x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - 0.40*self.length
+        x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - self.x_loc_ratio*self.length
         z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral)
 
         self.frame_origin = [x_axe, y_axe, z_axe]
@@ -1157,7 +1158,7 @@ class TankWingPod(Component):
         fuel_type = self.aircraft.arrangement.fuel_type
 
         # REMARK : if fuel is "Battery", fuel density will be battery density
-        self.fuel_density = earth.fuel_density(fuel_type)
+        self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
         self.mass =   self.surface_mass * self.gross_wet_area \
@@ -1191,6 +1192,7 @@ class TankPiggyBack(Component):
 
         self.length = get_init(self,"length", val=length)
         self.width = get_init(self,"width", val=width)
+        self.x_loc_ratio = get_init(self,"x_loc_ratio")
         self.max_volume = None
         self.mfw_volume_limited = None
 
@@ -1205,7 +1207,7 @@ class TankPiggyBack(Component):
         wing_root_c = self.aircraft.airframe.wing.root_c
         wing_root_loc = self.aircraft.airframe.wing.root_loc
 
-        x_axe = wing_mac_loc[0] - 0.40*self.length
+        x_axe = wing_mac_loc[0] - self.x_loc_ratio*self.length
         y_axe = 0.
         z_axe = 1.07*body_width + 0.85*self.width
 
@@ -1228,7 +1230,7 @@ class TankPiggyBack(Component):
         fuel_type = self.aircraft.arrangement.fuel_type
 
         # REMARK : if fuel is "Battery", fuel density will be battery density
-        self.fuel_density = earth.fuel_density(fuel_type)
+        self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
         self.mass =   self.surface_mass * self.gross_wet_area \
