@@ -110,6 +110,23 @@ class FuselageTailConeMountedNacelle(Component):
 
         return np.array([x_axe, y_axe, z_axe])
 
+class PodTailConeMountedNacelle(Component):
+
+    def __init__(self, aircraft):
+        super(PodTailConeMountedNacelle, self).__init__(aircraft)
+
+        self.specific_nacelle_cost = get_init("PodTailConeMountedNacelle","specific_nacelle_cost")
+
+    def locate_nacelle(self):
+        body_origin = self.aircraft.airframe.tank.frame_origin
+        body_length = self.aircraft.airframe.tank.length
+
+        y_axe = body_origin[1]
+        x_axe = body_origin[0] + body_length
+        z_axe = body_origin[2]
+
+        return np.array([x_axe, y_axe, z_axe])
+
 
 class RatingFactor(object):
     def __init__(self, MTO=None, MCN=None, MCL=None, MCR=None, FID=None):
@@ -120,12 +137,12 @@ class RatingFactor(object):
         self.FID = FID
 
 
-class SemiEmpiricTfNacelle(Component):
+class SemiEmpiricTf0Nacelle(Component):
 
     def __init__(self, aircraft):
-        super(SemiEmpiricTfNacelle, self).__init__(aircraft)
+        super(SemiEmpiricTf0Nacelle, self).__init__(aircraft)
 
-        class_name = "SemiEmpiricTfNacelle"
+        class_name = "SemiEmpiricTf0Nacelle"
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -249,25 +266,25 @@ class SemiEmpiricTfNacelle(Component):
         t41 = dict["t4"]
         return {"sfc":sfc, "thtl":throttle, "t4":t41}
 
-class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboradWingMountedNacelle):
+class OutboardWingMountedTf0Nacelle(SemiEmpiricTf0Nacelle,OutboradWingMountedNacelle):
     def __init__(self, aircraft):
-        super(OutboardWingMountedTfNacelle, self).__init__(aircraft)
+        super(OutboardWingMountedTf0Nacelle, self).__init__(aircraft)
 
-class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboradWingMountedNacelle):
+class InboardWingMountedTf0Nacelle(SemiEmpiricTf0Nacelle,InboradWingMountedNacelle):
     def __init__(self, aircraft):
-        super(InboardWingMountedTfNacelle, self).__init__(aircraft)
+        super(InboardWingMountedTf0Nacelle, self).__init__(aircraft)
 
-class RearFuselageMountedTfNacelle(SemiEmpiricTfNacelle,RearFuselageMountedNacelle):
+class RearFuselageMountedTf0Nacelle(SemiEmpiricTf0Nacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
-        super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
+        super(RearFuselageMountedTf0Nacelle, self).__init__(aircraft)
 
 
-class SemiEmpiricTf2Nacelle(Component):
+class SemiEmpiricTfNacelle(Component):
 
     def __init__(self, aircraft):
-        super(SemiEmpiricTf2Nacelle, self).__init__(aircraft)
+        super(SemiEmpiricTfNacelle, self).__init__(aircraft)
 
-        class_name = "SemiEmpiricTf2Nacelle"
+        class_name = "SemiEmpiricTfNacelle"
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -530,21 +547,21 @@ class SemiEmpiricTf2Nacelle(Component):
 
         return {"sfc":sfc, "thtl":thtl, "t4":None}
 
-class OutboardWingMountedTf2Nacelle(SemiEmpiricTf2Nacelle,OutboradWingMountedNacelle):
+class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboradWingMountedNacelle):
     def __init__(self, aircraft):
-        super(OutboardWingMountedTf2Nacelle, self).__init__(aircraft)
+        super(OutboardWingMountedTfNacelle, self).__init__(aircraft)
 
-class InboardWingMountedTf2Nacelle(SemiEmpiricTf2Nacelle,InboradWingMountedNacelle):
+class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboradWingMountedNacelle):
     def __init__(self, aircraft):
-        super(InboardWingMountedTf2Nacelle, self).__init__(aircraft)
+        super(InboardWingMountedTfNacelle, self).__init__(aircraft)
 
-class RearFuselageMountedTf2Nacelle(SemiEmpiricTf2Nacelle,RearFuselageMountedNacelle):
+class RearFuselageMountedTfNacelle(SemiEmpiricTfNacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
         super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
 
-class PodTailConeMountedTf2Nacelle(SemiEmpiricTf2Nacelle,PodTailConeMountedNacelle):
+class PodTailConeMountedTfNacelle(SemiEmpiricTfNacelle,PodTailConeMountedNacelle):
     def __init__(self, aircraft):
-        super(PodTailConeMountedTf2Nacelle, self).__init__(aircraft)
+        super(PodTailConeMountedTfNacelle, self).__init__(aircraft)
         self.bli_effect = get_init("PodTailConeMountedNacelle","bli_effect")
         self.hub_width = get_init("PodTailConeMountedNacelle","hub_width")
         self.body_width = None
@@ -709,8 +726,9 @@ class PodTailConeMountedTf2Nacelle(SemiEmpiricTf2Nacelle,PodTailConeMountedNacel
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         if self.bli_effect=="yes":
             dict_bli = self.unitary_sc_bli(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
-            dict_fs = self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
-            return {"sfc":dict_fs["sfc"]*dict_bli["thtl"]/dict_fs["thtl"], "thtl":dict_fs["thtl"], "t4":None}
+            throttle = dict_bli["thtl"]
+            dict_fs = self.unitary_thrust_free_stream(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+            return {"sfc":dict_fs["ff"]/thrust, "thtl":throttle, "t4":None}
         else:
             return self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
 
@@ -1070,7 +1088,7 @@ class SemiEmpiricEfNacelle(Component):
         deltaV = 2.*Vair*(self.fan_efficiency/self.propeller_efficiency - 1.)      # speed variation produced by the fan
 
         pw_input = self.fan_efficiency*shaft_power     # kinetic energy produced by the fan
-        print(pw_input)
+
         Vinlet = Vair
         Vjet = Vinlet + deltaV
         q1 = 2.*pw_input / (Vjet**2 - Vinlet**2)

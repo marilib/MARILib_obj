@@ -131,12 +131,12 @@ model_config = {
         "battery_density": [2800., "kg/m3", "Battery density"],
         "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
     },
-    "SemiEmpiricTfNacelle":{
+    "SemiEmpiricTf0Nacelle":{
         "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
         "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"]
     },
-    "SemiEmpiricTf2Nacelle":{
+    "SemiEmpiricTfNacelle":{
         "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
         "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
         "hub_width": [0.4, "m", "Fan hub diameter"],
@@ -166,6 +166,11 @@ model_config = {
         "controller_pw_density": [20., "kW/kg", "Electric controller power density"],
         "nacelle_pw_density": [10., "kW/kg", "Electric nacelle power density"],
         "motor_pw_density": [10., "kW/kg", "Electric motor power density"]
+    },
+    "PodTailConeMountedNacelle":{
+        "bli_effect": ["no", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
+        "hub_width": [0.6, "m", "Fan hub diameter"],
+        "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
     "FuselageTailConeMountedNacelle":{
         "bli_effect": ["no", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],

@@ -123,7 +123,7 @@ class ClimbReq(object):
         self.kmtow = get_init(self,"kmtow")
 
     def top_of_climb(self, arrangement, requirement):
-        if (arrangement.power_architecture in ["tf","tf2","extf"]): altp = unit.m_ft(35000.)
+        if (arrangement.power_architecture in ["tf0","tf","extf"]): altp = unit.m_ft(35000.)
         elif (arrangement.power_architecture=="tp"): altp = unit.m_ft(16000.)
         elif (arrangement.power_architecture in ["ef","exef"]): altp = unit.m_ft(31000.)
         elif (arrangement.power_architecture=="ep"): altp = unit.m_ft(16000.)

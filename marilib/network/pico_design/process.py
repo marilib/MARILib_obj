@@ -59,7 +59,7 @@ matrix_file = "../flight_data/all_flights_2016_matrix.bin"
 
 data_matrix = load_data_from_file(matrix_file)
 
-fleet = Fleet(Airbus_list)
+fleet = Fleet(ac_list)
 
 out_dict = fleet.fleet_analysis(data_matrix)
 

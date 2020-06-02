@@ -38,6 +38,7 @@ class Airframe(object):
         self.aircraft.airframe.cabin.eval_geometry()
         self.aircraft.airframe.body.eval_geometry()
         self.aircraft.airframe.wing.eval_geometry()
+        self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
         self.aircraft.airframe.nacelle.eval_geometry()
         if (number_of_engine=="quadri"):
@@ -55,7 +56,6 @@ class Airframe(object):
         self.aircraft.airframe.vertical_stab.eval_area()
         self.aircraft.airframe.horizontal_stab.eval_area()
 
-        self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.landing_gear.eval_geometry()
         self.aircraft.airframe.system.eval_geometry()
 
@@ -69,6 +69,7 @@ class Airframe(object):
         self.aircraft.airframe.cabin.eval_geometry()
         self.aircraft.airframe.body.eval_geometry()
         self.aircraft.airframe.wing.eval_geometry()
+        self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
         self.aircraft.airframe.nacelle.eval_geometry()
         if (number_of_engine=="quadri"):
@@ -110,7 +111,6 @@ class Airframe(object):
             self.aircraft.airframe.horizontal_stab.eval_geometry()
             self.aircraft.airframe.vertical_stab.eval_geometry()
 
-        self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.landing_gear.eval_geometry()
         self.aircraft.airframe.system.eval_geometry()
 
