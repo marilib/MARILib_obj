@@ -118,6 +118,38 @@ class PodTailConeMountedNacelle(Component):
         self.specific_nacelle_cost = get_init("PodTailConeMountedNacelle","specific_nacelle_cost")
 
     def locate_nacelle(self):
+        body_width = self.aircraft.airframe.body.width
+        wing_root_loc = self.aircraft.airframe.wing.root_loc
+        wing_sweep25 = self.aircraft.airframe.wing.sweep25
+        wing_dihedral = self.aircraft.airframe.wing.dihedral
+        wing_kink_c = self.aircraft.airframe.wing.kink_c
+        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
+        wing_tip_c = self.aircraft.airframe.wing.tip_c
+        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
+
+        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
+
+        y_int = 0.6 * body_width + self.lateral_margin()
+        x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.length
+        z_int = wing_root_loc[2] + (y_int-wing_root_loc[2])*np.tan(wing_dihedral) - self.vertical_margin()
+
+        # return np.array([x_int, y_int, z_int])
+
+
+
+        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
+
+        if (self.aircraft.arrangement.nacelle_attachment == "pod"):
+            y_axe = 0.6 * body_width + 1.5 * self.width
+        else:
+            y_axe = self.span_ratio * wing_tip_loc[1]
+
+        x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - 0.40*self.length
+        z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral)
+
+        self.frame_origin = [x_axe, y_axe, z_axe]
+
+
         body_origin = self.aircraft.airframe.tank.frame_origin
         body_length = self.aircraft.airframe.tank.length
 
