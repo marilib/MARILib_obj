@@ -22,8 +22,8 @@ Before you start using MARILib, we recommend that you first take a look to the m
 
 
 
-MARILib documentation
-=====================
+Full documentation
+==================
 
 .. toctree::
    :glob:

@@ -3,22 +3,23 @@
 Classic MDA
 ===========
 
-We want to design a transport airplane that fulfills the following top level requirements:
+We want to design a transport airplane that fulfills the following Top Level Aircraft Requirements (TLARS):
 
 * capacity : 150 passengers
 * design range : 3000 NM
 * cruise Mach : 0.78
 * cruise altitude :  35 000 ft
-
-Before
 """
 
 import numpy as np
 
 from marilib.utils import unit
-from marilib.aircraft.aircraft_root import Arrangement
-from marilib.aircraft.aircraft_root import Aircraft
-from marilib.aircraft.requirement import Requirement
+
+from marilib.aircraft import *
+
+#from marilib.aircraft.aircraft_root import Arrangement
+#from marilib.aircraft.aircraft_root import Aircraft
+#from marilib.aircraft.requirement import Requirement
 
 from marilib.aircraft.design import process
 
