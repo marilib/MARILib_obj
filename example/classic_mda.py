@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Classic MDA
-===========
+Classic MDA example
+date : 06/2020
 
 We want to design a transport airplane that fulfills the following Top Level Aircraft Requirements (TLARS):
 
@@ -9,20 +9,14 @@ We want to design a transport airplane that fulfills the following Top Level Air
 * design range : 3000 NM
 * cruise Mach : 0.78
 * cruise altitude :  35 000 ft
+
 """
 
 import numpy as np
 
 from marilib.utils import unit
-
-from marilib.aircraft import *
-
-#from marilib.aircraft.aircraft_root import Arrangement
-#from marilib.aircraft.aircraft_root import Aircraft
-#from marilib.aircraft.requirement import Requirement
-
+import marilib.aircraft
 from marilib.aircraft.design import process
-
 from marilib.utils.read_write import MarilibIO
 
 
