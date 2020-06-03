@@ -57,6 +57,7 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_theme = 'sphinxdoc'
+pygments_style = 'sphinx'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -65,3 +66,6 @@ html_static_path = ['_static']
 
 # Display todos by setting to True
 todo_include_todos = True
+
+# remove module names from the doc
+add_module_names = False

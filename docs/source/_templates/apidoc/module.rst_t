@@ -1,5 +1,5 @@
 {%- if show_headings %}
-{{- [basename, ""] | join(' ') | e | heading }}
+{{- [basename.split('.')[-1], ""] | join(' ') | e | heading }}
 
 {% endif -%}
 .. automodule:: {{ qualname }}
