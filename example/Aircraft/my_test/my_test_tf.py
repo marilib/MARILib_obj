@@ -28,7 +28,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    nacelle_attachment = "pods",     # "wing", "rear" or "pods"
                    power_architecture = "tf",       # "tf", "extf", "ef", "exef", "tp", "ep"
                    power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                   fuel_type = "kerosene")          # "kerosene", "methane", "liquid_h2", "Compressed_h2", "battery"
+                   fuel_type = "liquid_h2")          # "kerosene", "methane", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
@@ -39,6 +39,7 @@ ac = Aircraft("This_plane")
 
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
+ac.airframe.tank.fuel_pressure = unit.Pa_bar(10.)
 
 ac.requirement.take_off.tofl_req = 2500.
 
