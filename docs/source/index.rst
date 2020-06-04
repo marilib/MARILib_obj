@@ -17,7 +17,7 @@ Learning by examples
 
 Before you start using MARILib, we recommend that you first take a look to the module :mod:`marilib.aircraft`
 
-* The :doc:`classic MDA <link/classic_mda>` shows the basics of MARILib on a classical tube and wings airliner.
+* The :doc:`classic MDA <link/classic_mda>` shows the basics of MARILib on a classic tube and wings airliner.
 
 
 
@@ -34,9 +34,4 @@ Full documentation
 
 
 
-Indices and tables
-==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

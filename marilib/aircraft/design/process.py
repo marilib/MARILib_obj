@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 """
-Created on Thu Jan 20 20:20:20 2020
-
-@author: Conceptual Airplane Design & Operations (CADO team)
+:author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
          Avionic & Systems, Air Transport Departement, ENAC
+
+The main design processes are defined in this module:
+
+* Multidisciplanary Design Analysis
+* Mulitdisciplinary Design Feasible
+
+Allow you to draw design space charts.
+
+.. todo: improve documentation
 """
 
 import numpy as np
-from scipy.optimize import minimize
 
 from scipy import interpolate
-
-import pandas
-
-import six
+from scipy.optimize import SR1, NonlinearConstraint, minimize
 
 import matplotlib as mpl
-
 import matplotlib.pyplot as plt
-
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from marilib.utils import unit
@@ -96,7 +97,6 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
     """
     Compute criterion and constraints
     """
-    from scipy.optimize import SR1, NonlinearConstraint
 
     start_value = np.zeros(len(var))
     for k,key in enumerate(var):    # put optimization variables in aircraft object
@@ -165,7 +165,6 @@ def explore_design_space(aircraft, var, step, data, file):
             for j in range(len(data)):
                 res_list.append([str(eval(val[j]))])
             res_array = np.array(res_list)
-
             txt = np.hstack([txt,res_array])
 
     np.savetxt(file,txt,delimiter=";",fmt='%14s')
@@ -176,14 +175,14 @@ def explore_design_space(aircraft, var, step, data, file):
 def draw_design_space(file, mark, field, const, color, limit, bound):
     # Read information
     #------------------------------------------------------------------------------------------------------
-    #dat = numpy.genfromtxt(file,delimiter = ";")
-    data_frame = pandas.read_csv(file, delimiter = ";",skipinitialspace=True, header=None)
+    dataframe = np.genfromtxt(file, dtype=str, delimiter=";")
+    #data_frame = pandas.read_csv(file, delimiter = ";",skipinitialspace=True, header=None)
 
     # Create figure
     #------------------------------------------------------------------------------------------------------
-    name = [el.strip() for el in data_frame[0]]     # Remove blanks
-    uni_ = [el.strip() for el in data_frame[1]]     # Remove blanks
-    data = data_frame.iloc[:,2:].values             # Extract matrix of data
+    name = [el.strip() for el in dataframe[:,0]]     # Remove blanks
+    uni_ = [el.strip() for el in dataframe[:,1]]     # Remove blanks
+    data = dataframe[:,2:].astype('float64')           # Extract matrix of data
 
     abs = list(set(data[0,:]))
     abs.sort()
@@ -194,12 +193,12 @@ def draw_design_space(file, mark, field, const, color, limit, bound):
     ny = len(ord)
 
     dat = {}
-    for j in range(2,len(data)):
-       dat[name[j]] = data[j,:]
+    for j in range(2,len(data[0])):
+        dat[name[j]] = data[j,:]
 
     uni = {}
-    for j in range(2,len(data)):
-       uni[name[j]] = uni_[j]
+    for j in range(2,len(data[0])):
+        uni[name[j]] = uni_[j]
 
     res = []
     res.append(unit.convert_to(uni_[0], mark[0]))
@@ -208,12 +207,12 @@ def draw_design_space(file, mark, field, const, color, limit, bound):
     mpl.rcParams['hatch.linewidth'] = 0.3
 
     fig, axs = plt.subplots(figsize=(7,7))
-    gs = mpl.gridspec.GridSpec(2,1, height_ratios=[3,1])
+    gs = mpl.gridspec.GridSpec(2,2, height_ratios=[3,1])
 
     F = {}
     typ = 'cubic'
 
-    axe = plt.subplot(gs[0])
+    axe = plt.subplot(gs[0,:])
     X, Y = np.meshgrid(abs, ord)
     Z = dat[field].reshape(ny,nx)
     F[field] = interpolate.interp2d(X, Y, Z, kind=typ)
@@ -248,22 +247,21 @@ def draw_design_space(file, mark, field, const, color, limit, bound):
         h,_ = ctr[j].legend_elements()
         hdl.append(h[0])
 
-    handle = [hl for hl in hdl]
-
-    axe.legend(handle,const, loc = "lower left", bbox_to_anchor=(1.02, 0.))
+    axe.legend(hdl,const, loc = "lower left", bbox_to_anchor=(1.02, 0.))
 
     # Set introspection
     #------------------------------------------------------------------------------------------------------
-    axe =  plt.subplot(gs[1])
+    axe = plt.subplot(gs[1,0])
     axe.axis('off')
     val1 = [["%6.0f"%12000., uni_[0]], ["%5.2f"%135.4, uni_[1]], ["%6.0f"%70000., uni[field]]]
     rowlabel=(name[0], name[1], field)
 
-    the_table = axe.table(cellText=val1,rowLabels=rowlabel, rowLoc='right', cellLoc='left', bbox=[0.18,0.25,0.4,0.6])
+    the_table = axe.table(cellText=val1,rowLabels=rowlabel,rowLoc='right', cellLoc='left',
+                          colWidths=[0.3,0.3], bbox=[0.1,0.5,0.8,0.5],edges='closed')
     the_table.auto_set_font_size(False)
     the_table.set_fontsize(10)
 
-    for k,cell in six.iteritems(the_table._cells):
+    for k,cell in the_table._cells.items():
         cell.set_edgecolor("silver")
 
     cst_uni = [uni[c] for c in const]
@@ -272,11 +270,13 @@ def draw_design_space(file, mark, field, const, color, limit, bound):
     val2 = ["%8.1f" %v for v in val2]
     val2 = list(map(list, zip(*[val2,cst_uni])))
 
-    the_table2 = axe.table(cellText=val2,rowLabels=const, rowLoc='right', cellLoc='left', bbox=[0.85,0.,0.4,1.])
+    ax3 = plt.subplot(gs[1,1])
+    ax3.axis("off")
+    the_table2 = ax3.table(cellText=val2,rowLabels=const, rowLoc='right', cellLoc='left', bbox=[0.5,0.,1.,1.])
     the_table2.auto_set_font_size(False)
     the_table2.set_fontsize(10)
 
-    for k,cell in six.iteritems(the_table2._cells):
+    for k,cell in the_table2._cells.items():
         cell.set_edgecolor("silver")
 
     the_table[0,0].get_text().set_text("%6.0f" %res[0])

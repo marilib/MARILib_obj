@@ -91,8 +91,8 @@ def to_user_format(value, dec_format=STANDARD_FORMAT):
 class MarilibIO(object):
     """A collection of Input and Ouput functions for MARILib objects.
 
-    1) Human readable format uses a *JSON-like* encoding and decoding functions adapted to MARILib objects.
-    2) Binary exact copies uses pickle.
+    1) Human readable format : uses *JSON-like* encoding and decoding functions adapted to MARILib objects.
+    2) Binary exact copy : uses pickle.
 
     """
     def __init__(self):
@@ -113,7 +113,7 @@ class MarilibIO(object):
         if isinstance(o, type(np.array([]))):  # convert numpy arrays to list
             return o.tolist()
 
-        json_dict = o.__dict__  #  Store the public attributes, raises an AttributeError if no __dict__ is found.
+        json_dict = copy.deepcopy(o.__dict__) #  Store the public attributes, raises an AttributeError if no __dict__ is found.
         try:
             del json_dict['aircraft']  # Try to delete the 'aircraft' entry to avoid circular reference
         except KeyError:
@@ -121,15 +121,18 @@ class MarilibIO(object):
 
         for key,value in json_dict.items():
             if key in self.datadict.keys():  # if entry found in DATA_DICT, add units and docstring
-                unit = self.datadict[key]['unit']
-                text = self.datadict[key]['txt']
                 try:
-                    json_dict[key] = [convert_to(unit,value), unit, text]
+                    unit = self.datadict[key]['unit']
+                    text = self.datadict[key]['txt']
+                    json_dict[key] = [convert_to(unit, value), unit, text]
                 except KeyError:
                     json_dict[key] = [value, f"WARNING: conversion to ({unit}) failed. {text}"]
                     print("WARNING : unknwon unit "+str(unit))
-            else:
+            elif key == "name":
                 pass
+            # TODO : check that the key is in DATA_DICT
+            elif type(value) in (int,float,bool,str,list,tuple): # if not a dict, should be in the data_dict
+                print("Salut Thierry, tu as oublie de mettre a jour le DATA_DICT: %s n'existe pas !" %key)
 
         return json_dict
 
@@ -198,7 +201,7 @@ class MarilibIO(object):
         try:  # Add .json extension if necessary
             last_point_position = filename.rindex(r'\.')
             filename = filename[:last_point_position]+".json"
-        except ValueError:  # pattern not found
+        except ValueError:  # dot pattern not found
             filename = filename + ".json"
 
         with open(filename, 'r') as f:
@@ -206,23 +209,22 @@ class MarilibIO(object):
 
         return mydict
 
-    def to_json_file(self,aircraft_object,filename,datadict=None):
+    def to_json_file(self,object,filename,datadict=None):
         """Save a MARILib object in a human readable format:
         The object is serialized into a customized JSON-like string.
 
-        :param marilib_object: the object to save
-        :param filename: name of the file. Ex: myObjCollection/marilib_obj.json
+        :param object: the object to save
+        :param filename: name of the file, optional. Ex: myObjCollection/marilib_obj.json
         :param datadict: argument for to_string(). The default datadict is DATA_DICT.
         :return: None
         """
-        marilib_object = copy.deepcopy(aircraft_object)
         try:  # Add .json extension if necessary
             last_point_position = filename.rindex(r'\.')
             filename = filename[:last_point_position]+".json"
         except ValueError:  # pattern not found
             filename = filename + ".json"
         with open(filename,'w') as f:
-            f.write(self.to_string(marilib_object,datadict=datadict))
+            f.write(self.to_string(object,datadict=datadict))
         return None
 
     def to_binary_file(self,obj,filename):
@@ -280,5 +282,5 @@ class MyDict(dict):
                 print("WARNING in MyDict: %s is 'None'" %key)
                 self.__dict__[key] = None
             else:
-                raise AttributeError("Unknown type, should be list or dict but type of '%s' is %s" %(key,type(val)))
+                raise AttributeError("Unknown type, should be list or dict but type of %s is %s" % (key, type(val)))
 

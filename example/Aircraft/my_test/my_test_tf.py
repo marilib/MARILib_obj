@@ -114,8 +114,8 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
 
 file = "explore_design.txt"
 
-#res = process.eval_this(ac,var)
-res = process.explore_design_space(ac, var, step, data, file)
+res = process.eval_this(ac,var)
+#res = process.explore_design_space(ac, var, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']

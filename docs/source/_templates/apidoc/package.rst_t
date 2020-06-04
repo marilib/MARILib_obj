@@ -16,7 +16,7 @@
 {%- if is_namespace %}
 {{- [pkgname, ""] | join(" ") | e | heading }}
 {% else %}
-{{- [pkgname, ""] | join(" ") | e | heading }}
+{{- [pkgname.split('.')[-1], ""] | join(" ") | e | heading }}
 {% endif %}
 
 {%- if modulefirst and not is_namespace %}
