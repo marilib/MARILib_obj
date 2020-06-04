@@ -76,7 +76,7 @@ class Economics():
     def one_engine_price(self):
         """Regression on catalog prices
         """
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
         engine_price = ((2.115e-4*reference_thrust + 78.85)*reference_thrust)
         return engine_price
 
@@ -99,8 +99,8 @@ class Economics():
         power_architecture = self.aircraft.arrangement.power_architecture
         nacelle_mass = self.aircraft.airframe.nacelle.mass
 
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
+        n_engine = self.aircraft.power_system.n_engine
 
         mtow = self.aircraft.weight_cg.mtow
         mwe = self.aircraft.weight_cg.mwe

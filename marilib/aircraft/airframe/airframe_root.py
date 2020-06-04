@@ -43,6 +43,9 @@ class Airframe(object):
         self.aircraft.airframe.nacelle.eval_geometry()
         if (number_of_engine=="quadri"):
             self.aircraft.airframe.internal_nacelle.eval_geometry()
+        if (number_of_engine=="hexa"):
+            self.aircraft.airframe.internal_nacelle.eval_geometry()
+            self.aircraft.airframe.median_nacelle.eval_geometry()
         if (power_architecture=="pte"):
             self.aircraft.airframe.tail_nacelle.eval_geometry()
 
@@ -74,6 +77,9 @@ class Airframe(object):
         self.aircraft.airframe.nacelle.eval_geometry()
         if (number_of_engine=="quadri"):
             self.aircraft.airframe.internal_nacelle.eval_geometry()
+        if (number_of_engine=="hexa"):
+            self.aircraft.airframe.internal_nacelle.eval_geometry()
+            self.aircraft.airframe.median_nacelle.eval_geometry()
         if (power_architecture=="pte"):
             self.aircraft.airframe.tail_nacelle.eval_geometry()
 

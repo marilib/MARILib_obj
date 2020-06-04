@@ -586,7 +586,7 @@ class VtpClassic(Component):
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
         nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
         wing_area = self.aircraft.airframe.wing.area
         wing_span = self.aircraft.airframe.wing.span
@@ -669,7 +669,7 @@ class VtpTtail(Component):
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
         nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
         wing_area = self.aircraft.airframe.wing.area
         wing_span = self.aircraft.airframe.wing.span
@@ -749,7 +749,7 @@ class VtpHtail(Component):
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
         nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
         wing_area = self.aircraft.airframe.wing.area
         wing_span = self.aircraft.airframe.wing.span

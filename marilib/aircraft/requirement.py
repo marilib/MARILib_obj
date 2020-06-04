@@ -77,7 +77,8 @@ class TakeOffReq(object):
         """
         if(arrangement.number_of_engine == "twin"): s2_min_path = 0.024
      #   elif(arrangement.number_of_engine == "tri"): s2_min_path = 0.027
-        elif(arrangement.number_of_engine >= "quadri"): s2_min_path = 0.030
+        elif(arrangement.number_of_engine == "quadri"): s2_min_path = 0.030
+        elif(arrangement.number_of_engine == "hexa"): s2_min_path = 0.033
         else: raise Exception("number of engine is not permitted")
         return s2_min_path
 
@@ -123,6 +124,7 @@ class OeiCeilingReq(object):
         if(arrangement.number_of_engine == "twin"): oei_min_path = 0.011
      #   elif(arrangement.number_of_engine == "tri"):  oei_min_path = 0.013
         elif(arrangement.number_of_engine >= "quadri"): oei_min_path = 0.016
+        elif(arrangement.number_of_engine >= "hexa"): oei_min_path = 0.019
         else: raise Exception("number of engine is not permitted")
         return oei_min_path
 

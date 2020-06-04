@@ -150,10 +150,13 @@ model_config = {
         "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"]
     },
     "SemiEmpiricTpNacelle":{
+        "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
+        "hub_width": [0.2, "m", "Propeller hub diameter"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
         "propeller_disk_load": [3000., "N/m2", "Propeller disk load"]
     },
     "SemiEmpiricEpNacelle":{
+        "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
         "propeller_disk_load": [3000., "N/m2", "Propeller disk load"],
         "hub_width": [0.2, "m", "Propeller hub diameter"],

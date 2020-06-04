@@ -248,6 +248,22 @@ class WeightCg(object):
 #                            POWER SYSTEM
 # -----------------------------------------------------------------------------------
 
+def number_of_engine(aircraft):
+    ne = aircraft.arrangement.number_of_engine
+    return {"twin":2, "quadri":4, "hexa":6}.get(ne, "number of engine is unknown")
+
+def init_thrust(aircraft):
+    n_pax_ref = aircraft.requirement.n_pax_ref
+    design_range = aircraft.requirement.design_range
+    n_engine = number_of_engine(aircraft)
+    return (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/n_engine
+
+def init_power(aircraft):
+    n_engine = number_of_engine(aircraft)
+    ref_power = 0.25*(1./0.8)*(87.26/0.82)*init_thrust(aircraft)
+    return ref_power
+
+
 class ThrustData(object):
     def __init__(self, nei=0):
         self.disa = None
@@ -343,11 +359,16 @@ class Turbofan(PowerSystem, Flight):
     def __init__(self, aircraft):
         super(Turbofan, self).__init__(aircraft)
 
+        self.n_engine = number_of_engine(aircraft)
+        self.reference_thrust = init_thrust(aircraft)
         self.sfc_type = "thrust"
         self.data = {"MTO":ThrustDataTf(nei=1),
                      "MCN":ThrustDataTf(nei=1),
                      "MCL":ThrustDataTf(nei=0),
                      "MCR":ThrustDataTf(nei=0)}
+
+    def get_reference_thrust(self):
+        return self.reference_thrust
 
     def update_power_transfert(self):
         pass
@@ -362,8 +383,8 @@ class Turbofan(PowerSystem, Flight):
             kfn = self.data[rating].kfn_opt
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
             dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
-            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.power_system.n_engine - nei)
+            self.data[rating].thrust = dict["fn"]/(self.aircraft.power_system.n_engine - nei)
             self.data[rating].fuel_flow = dict["ff"]
             self.data[rating].tsfc = dict["sfc"]
             self.data[rating].T41 = dict["t4"]
@@ -371,7 +392,7 @@ class Turbofan(PowerSystem, Flight):
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
         fuel_heat = earth.fuel_heat(fuel_type)
 
@@ -387,7 +408,7 @@ class Turbofan(PowerSystem, Flight):
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
         fuel_heat = earth.fuel_heat(fuel_type)
 
@@ -423,6 +444,7 @@ class Turbofan(PowerSystem, Flight):
         g = earth.gravity()
         return dict["sfc"]*(mass*g/dict["lod"])*time
 
+
 class ThrustDataTp(ThrustData):
     def __init__(self, nei):
         super(ThrustDataTp, self).__init__(nei)
@@ -438,6 +460,8 @@ class Turboprop(PowerSystem, Flight):
     def __init__(self, aircraft):
         super(Turboprop, self).__init__(aircraft)
 
+        self.n_engine = number_of_engine(aircraft)
+        self.reference_power = init_power(aircraft)
         self.sfc_type = "power"
         self.data = {"MTO":ThrustDataTp(nei=1),
                      "MCN":ThrustDataTp(nei=1),
@@ -539,6 +563,9 @@ class Electroprop(PowerSystem, Flight):
     def __init__(self, aircraft):
         super(Electroprop, self).__init__(aircraft)
 
+        self.n_engine = number_of_engine(aircraft)
+        self.reference_power = init_power(aircraft)
+
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             self.sfc_type = "power"
 
@@ -546,6 +573,9 @@ class Electroprop(PowerSystem, Flight):
                      "MCN":ThrustDataEp(aircraft, nei=1),
                      "MCL":ThrustDataEp(aircraft, nei=0),
                      "MCR":ThrustDataEp(aircraft, nei=0)}
+
+    def get_reference_thrust(self):
+        return self.reference_power * (0.82/87.26)
 
     def thrust_analysis(self):
         self.thrust_requirement()
@@ -557,9 +587,9 @@ class Electroprop(PowerSystem, Flight):
             kfn = self.data[rating].kfn_opt
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
             dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
-            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[rating].power = dict["pw"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.power_system.n_engine - nei)
+            self.data[rating].thrust = dict["fn"]/(self.aircraft.power_system.n_engine - nei)
+            self.data[rating].power = dict["pw"]/(self.aircraft.power_system.n_engine - nei)
             self.data[rating].sec = dict["sec"]
             if (self.aircraft.arrangement.power_source == "fuel_cell"):
                 self.data[rating].psfc = dict["sfc"]
@@ -567,9 +597,8 @@ class Electroprop(PowerSystem, Flight):
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
-        fuel_heat = earth.fuel_heat(fuel_type)
 
         dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
 
@@ -581,6 +610,7 @@ class Electroprop(PowerSystem, Flight):
         dict = {"fn":fn, "pw":pw_net, "sec":sec}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
+            fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
 
         return dict
@@ -588,9 +618,8 @@ class Electroprop(PowerSystem, Flight):
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
-        fuel_heat = earth.fuel_heat(fuel_type)
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
@@ -598,6 +627,7 @@ class Electroprop(PowerSystem, Flight):
         dict["sec"] = dict["sec"] / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
+            fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
 
         return dict
@@ -661,6 +691,9 @@ class Electrofan(PowerSystem, Flight):
     def __init__(self, aircraft):
         super(Electrofan, self).__init__(aircraft)
 
+        self.n_engine = number_of_engine(aircraft)
+        self.reference_power = init_power(aircraft)
+
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             self.sfc_type = "thrust"
 
@@ -668,6 +701,9 @@ class Electrofan(PowerSystem, Flight):
                      "MCN":ThrustDataEf(aircraft, nei=1),
                      "MCL":ThrustDataEf(aircraft, nei=0),
                      "MCR":ThrustDataEf(aircraft, nei=0)}
+
+    def get_reference_thrust(self):
+        return self.reference_power * (0.82/87.26)
 
     def thrust_analysis(self):
         self.thrust_requirement()
@@ -691,7 +727,6 @@ class Electrofan(PowerSystem, Flight):
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
-        fuel_heat = earth.fuel_heat(fuel_type)
 
         dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
 
@@ -703,6 +738,7 @@ class Electrofan(PowerSystem, Flight):
         dict = {"fn":fn, "pw":pw_net, "sec":sec}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
+            fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = sec / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
 
         return dict
@@ -712,7 +748,6 @@ class Electrofan(PowerSystem, Flight):
         """
         n_engine = self.aircraft.airframe.nacelle.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
-        fuel_heat = earth.fuel_heat(fuel_type)
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
@@ -720,6 +755,7 @@ class Electrofan(PowerSystem, Flight):
         dict["sec"] = dict["sec"] / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
+            fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = dict["sec"] / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
 
         return dict
@@ -779,11 +815,16 @@ class PartialTurboElectric(PowerSystem, Flight):
     def __init__(self, aircraft):
         super(PartialTurboElectric, self).__init__(aircraft)
 
+        self.n_engine = number_of_engine(aircraft)
+        self.reference_thrust = init_thrust(aircraft)
         self.sfc_type = "thrust"
         self.data = {"MTO":ThrustDataTf(nei=1),
                      "MCN":ThrustDataTf(nei=1),
                      "MCL":ThrustDataTf(nei=0),
                      "MCR":ThrustDataTf(nei=0)}
+
+    def get_reference_thrust(self):
+        return self.reference_thrust
 
     def update_power_transfert(self):
         ref_power = self.aircraft.airframe.system.chain_power

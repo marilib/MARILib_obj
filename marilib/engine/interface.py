@@ -15,7 +15,9 @@ from marilib.engine.ExergeticEngine import Turbofan, ElectricFan
 
 from marilib.aircraft.airframe.component import Component
 
-from marilib.aircraft.airframe.propulsion import number_of_engine, RatingFactor, \
+from marilib.aircraft.airframe.model import number_of_engine
+
+from marilib.aircraft.airframe.propulsion import RatingFactor, \
                                                  InboradWingMountedNacelle,\
                                                  OutboradWingMountedNacelle,\
                                                  RearFuselageMountedNacelle

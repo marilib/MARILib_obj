@@ -24,7 +24,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_attachment = "high",         # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
-                   number_of_engine = "quadri",       # "twin" or "quadri"
+                   number_of_engine = "hexa",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
                    power_architecture = "ep",       # "tf", "extf", "ep", "ef", "exef",
                    power_source = "battery",           # "fuel", "battery", "fuel_cell"
@@ -44,12 +44,12 @@ ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this l
 
 ac.requirement.take_off.tofl_req = 2500.
 
-ac.airframe.nacelle.reference_power = unit.W_kW(2000.)
+ac.power_system.reference_power = unit.W_kW(2000.)
 
 process.mda(ac)
 
 
-var = ["aircraft.airframe.nacelle.reference_thrust",
+var = ["aircraft.power_system.reference_power",
        "aircraft.airframe.wing.area"]
 
 var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],

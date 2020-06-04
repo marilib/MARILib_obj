@@ -23,12 +23,12 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
                    stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "pods",      # "wing_box", "piggy_back" or "pods"
-                   number_of_engine = "twin",       # "twin" or "quadri"
-                   nacelle_attachment = "pods",     # "wing", "rear" or "pods"
+                   tank_architecture = "wing_box",      # "wing_box", "piggy_back" or "pods"
+                   number_of_engine = "quadri",       # "twin", "quadri" or "hexa"
+                   nacelle_attachment = "wing",     # "wing", "rear" or "pods"
                    power_architecture = "tf",       # "tf", "extf", "ef", "exef", "tp", "ep"
                    power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                   fuel_type = "liquid_h2")          # "kerosene", "methane", "liquid_h2", "Compressed_h2", "battery"
+                   fuel_type = "kerosene")          # "kerosene", "methane", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
@@ -39,19 +39,20 @@ ac = Aircraft("This_plane")
 
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
-ac.airframe.tank.fuel_pressure = unit.Pa_bar(10.)
+ac.airframe.tank.fuel_pressure = unit.Pa_bar(0.)
+ac.airframe.tank.shell_parameter = unit.Pam3pkg_barLpkg(230.)
 
 ac.requirement.take_off.tofl_req = 2500.
 
-ac.airframe.nacelle.reference_thrust = unit.N_kN(120.)
+ac.power_system.reference_thrust = unit.N_kN(129.)
 
-ac.airframe.wing.area = 122.
+ac.airframe.wing.area = 123.
 
 
 process.mda(ac)
 
 
-var = ["aircraft.airframe.nacelle.reference_thrust",
+var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]
 
 var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],

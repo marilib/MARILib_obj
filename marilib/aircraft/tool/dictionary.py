@@ -136,7 +136,7 @@ DATA_DICT = {
     "tune_factor": {"unit":"no_dim", "mag":1e0, "txt":"Factor on unitary engine thrust to match with reference thrust definition"},
     "engine_bpr": {"unit":"no_dim", "mag":1e0, "txt":"Reference By Pass Ratio of the engine"},
     "core_thrust_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Reference ratio of the total thrust delivered by the core"},
-    "fan_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Classical fan efficiency"},
+    "fan_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Fan efficiency, Kinetic power delivered to the air flow devided by shaft power"},
     "propeller_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Propeller like fan efficiency Thrust.Speed/shaft_power"},
     "rating": {"unit":"string", "mag":3, "txt":"Engine rating name ('MTO','MCN','MCL','MCR','FID'"},
     "bli_effect": {"unit":"string", "mag":3, "txt":"Taking into account boundary layer ingestion, 'yes' or 'no'"},

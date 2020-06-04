@@ -257,8 +257,8 @@ class MissionVarMassGeneric(Flight):
         """
         g = earth.gravity()
 
-        n_engine = self.aircraft.airframe.nacelle.n_engine
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        n_engine = self.aircraft.power_system.n_engine
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
         engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
         ktow = self.aircraft.performance.mission.ktow
 
@@ -493,8 +493,8 @@ class MissionIsoMassGeneric(Flight):
         Mission computation using bregueçt equation, fixed L/D and fixed sfc
         """
         g = earth.gravity()
-        n_engine = self.aircraft.airframe.nacelle.n_engine
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        n_engine = self.aircraft.power_system.n_engine
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
 
         # Departure ground phases
         #-----------------------------------------------------------------------------------------------------------
