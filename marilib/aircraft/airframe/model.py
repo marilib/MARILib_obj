@@ -692,7 +692,7 @@ class Electrofan(PowerSystem, Flight):
         super(Electrofan, self).__init__(aircraft)
 
         self.n_engine = number_of_engine(aircraft)
-        self.reference_power = init_power(aircraft)
+        self.reference_power = 2.*init_power(aircraft)
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             self.sfc_type = "thrust"
@@ -701,6 +701,9 @@ class Electrofan(PowerSystem, Flight):
                      "MCN":ThrustDataEf(aircraft, nei=1),
                      "MCL":ThrustDataEf(aircraft, nei=0),
                      "MCR":ThrustDataEf(aircraft, nei=0)}
+
+    def get_reference_power(self):
+        return self.reference_power
 
     def get_reference_thrust(self):
         return self.reference_power * (0.82/87.26)
@@ -715,9 +718,9 @@ class Electrofan(PowerSystem, Flight):
             kfn = self.data[rating].kfn_opt
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
             dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
-            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[rating].power = dict["pw"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.power_system.n_engine - nei)
+            self.data[rating].thrust = dict["fn"]/(self.aircraft.power_system.n_engine - nei)
+            self.data[rating].power = dict["pw"]/(self.aircraft.power_system.n_engine - nei)
             self.data[rating].sec = dict["sec"]
             if (self.aircraft.arrangement.power_source == "fuel_cell"):
                 self.data[rating].tsfc = dict["sfc"]
@@ -725,7 +728,7 @@ class Electrofan(PowerSystem, Flight):
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
 
         dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
@@ -746,7 +749,7 @@ class Electrofan(PowerSystem, Flight):
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
         fn = thrust/(n_engine - nei)
 
@@ -826,6 +829,9 @@ class PartialTurboElectric(PowerSystem, Flight):
     def get_reference_thrust(self):
         return self.reference_thrust
 
+    def get_reference_power(self):
+        return self.aircraft.airframe.system.chain_power
+
     def update_power_transfert(self):
         ref_power = self.aircraft.airframe.system.chain_power
         power_chain_efficiency =   self.aircraft.airframe.system.generator_efficiency \
@@ -833,8 +839,7 @@ class PartialTurboElectric(PowerSystem, Flight):
                                  * self.aircraft.airframe.system.wiring_efficiency \
                                  * self.aircraft.airframe.tail_nacelle.controller_efficiency \
                                  * self.aircraft.airframe.tail_nacelle.motor_efficiency
-        n_engine = self.aircraft.airframe.nacelle.n_engine
-        self.aircraft.airframe.tail_nacelle.reference_power = ref_power
+        n_engine = self.aircraft.power_system.n_engine
         self.aircraft.airframe.nacelle.reference_offtake = ref_power/power_chain_efficiency/n_engine
 
     def thrust_analysis(self):
@@ -847,8 +852,8 @@ class PartialTurboElectric(PowerSystem, Flight):
             kfn = self.data[rating].kfn_opt
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
             dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
-            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.power_system.n_engine - nei)
+            self.data[rating].thrust = dict["fn"]/(self.aircraft.power_system.n_engine - nei)
             self.data[rating].fuel_flow = dict["ff"]
             self.data[rating].tsfc = dict["sfc"]
             self.data[rating].T41 = dict["t4"]
@@ -856,7 +861,7 @@ class PartialTurboElectric(PowerSystem, Flight):
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
         fuel_heat = earth.fuel_heat(fuel_type)
 
@@ -883,7 +888,7 @@ class PartialTurboElectric(PowerSystem, Flight):
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fn = thrust/(n_engine - nei)
 
         def fct(thtl):

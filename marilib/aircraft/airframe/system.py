@@ -161,7 +161,7 @@ class SystemPartialTurboElectric(Component):
     def __init__(self, aircraft):
         super(SystemPartialTurboElectric, self).__init__(aircraft)
 
-        self.chain_power = 0.2 * init_power(aircraft)
+        self.chain_power = get_init(self,"chain_power", val=0.2*init_power(aircraft))
 
         self.generator_efficiency = get_init(self,"generator_efficiency")
         self.generator_pw_density = get_init(self,"generator_pw_density")

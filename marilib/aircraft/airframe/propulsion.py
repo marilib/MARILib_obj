@@ -446,7 +446,7 @@ class SemiEmpiricTfNacelle(Component):
         CQoA1 = self.corrected_air_flow(Ptot,Ttot,MachFan)        # Corrected air flow per area at fan position
 
         eFanArea = q1/CQoA1     # Fan area around the hub
-        fan_width = np.sqrt(self.hub_width**2 + 4*eFanArea/np.pi)        # Fan diameter
+        fan_width = np.sqrt(self.hub_width**2 + 4.*eFanArea/np.pi)        # Fan diameter
 
         TtotJet = Ttot + shaft_power/(q1*Cp)        # Stagnation pressure increases due to introduced work
         Tstat = TtotJet - 0.5*Vjet**2/Cp            # static temperature
@@ -462,7 +462,7 @@ class SemiEmpiricTfNacelle(Component):
         self.fan_width = fan_width
         self.nozzle_area = nozzle_area
 
-        self.width = 1.20*fan_width      # Surrounding structure
+        self.width = 1.15*fan_width      # Surrounding structure
         self.length = 1.50*self.width
 
         self.gross_wet_area = np.pi*self.width*self.length*n_engine
@@ -1098,13 +1098,14 @@ class SemiEmpiricEfNacelle(Component):
         self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
-        reference_power = self.aircraft.power_system.reference_power
+        reference_power = self.aircraft.power_system.get_reference_power()
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
         n_engine = self.aircraft.power_system.n_engine
 
         self.engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
                             + 1./self.nacelle_pw_density
                           ) * reference_power * n_engine
-        self.pylon_mass = 0.0031*self.reference_thrust*n_engine
+        self.pylon_mass = 0.0031*reference_thrust*n_engine
         self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
@@ -1148,7 +1149,7 @@ class SemiEmpiricEfNacelle(Component):
         self.fan_width = fan_width
         self.nozzle_area = nozzle_area
 
-        self.width = 1.20*fan_width      # Surrounding structure
+        self.width = 1.15*fan_width      # Surrounding structure
         self.length = 1.50*self.width
 
         self.gross_wet_area = np.pi*self.width*self.length*n_engine
@@ -1168,7 +1169,7 @@ class SemiEmpiricEfNacelle(Component):
     def unitary_thrust_free_stream(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Unitary thrust of an electrofan engine (semi-empirical model)
         """
-        reference_power = self.aircraft.power_system.reference_power
+        reference_power = self.aircraft.power_system.get_reference_power()
 
         r,gam,Cp,Cv = earth.gas_data()
 

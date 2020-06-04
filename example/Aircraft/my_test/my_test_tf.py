@@ -23,8 +23,8 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
                    stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",      # "wing_box", "piggy_back" or "pods"
-                   number_of_engine = "quadri",       # "twin", "quadri" or "hexa"
+                   tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
+                   number_of_engine = "twin",       # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
                    power_architecture = "tf",       # "tf", "extf", "ef", "exef", "tp", "ep"
                    power_source = "fuel",           # "fuel", "battery", "fuel_cell"
@@ -115,7 +115,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
 file = "explore_design.txt"
 
 res = process.eval_this(ac,var)
-#res = process.explore_design_space(ac, var, step, data, file)
+res = process.explore_design_space(ac, var, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']

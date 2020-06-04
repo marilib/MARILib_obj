@@ -33,7 +33,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
 reqs = Requirement(n_pax_ref = 40.,
                    design_range = unit.m_NM(100.),
                    cruise_mach = 0.72,
-                   cruise_altp = unit.m_ft(35000.))
+                   cruise_altp = unit.m_ft(31000.))
 
 
 
@@ -46,7 +46,7 @@ ac.requirement.take_off.tofl_req = 2500.
 
 
 # ac.airframe.wing.area = 110.
-# ac.airframe.nacelle.reference_thrust = unit.N_kN(110.)
+# ac.power_system.reference_thrust = unit.N_kN(150.)
 
 
 process.mda(ac)

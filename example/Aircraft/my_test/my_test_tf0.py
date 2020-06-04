@@ -44,7 +44,7 @@ ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this l
 
 ac.requirement.take_off.tofl_req = 2500.
 
-ac.airframe.nacelle.reference_thrust = unit.N_kN(120.)
+ac.power_system.reference_thrust = unit.N_kN(120.)
 
 ac.airframe.wing.area = 122.
 
@@ -52,7 +52,7 @@ ac.airframe.wing.area = 122.
 process.mda(ac)
 
 
-var = ["aircraft.airframe.nacelle.reference_thrust",
+var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]
 
 var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],

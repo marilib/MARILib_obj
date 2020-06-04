@@ -122,6 +122,7 @@ model_config = {
         "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
     },
     "SystemPartialTurboElectric":{
+        "chain_power": ["function", "kW", "Electric chain power"],
         "generator_efficiency": [0.95, "no_dim", "Electric generator efficiency"],
         "generator_pw_density": [10., "kW/kg", "Electric generator power density"],
         "rectifier_efficiency": [0.98, "no_dim", "Rectifier efficiency"],
