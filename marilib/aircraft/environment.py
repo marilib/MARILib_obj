@@ -15,24 +15,29 @@ from marilib.utils.math import lin_interp_1d
 
 from marilib.aircraft.performance import Flight
 
+from marilib.aircraft.model_config import get_init
+
 
 class Economics():
 
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.irp = 10.              # 10 years
-        self.period = 15.           # 15 years
-        self.interest_rate = 0.04   # 4%
-        self.labor_cost = 120.      # 120 $/h
-        self.utilization = None
+        cost_range = self.aircraft.requirement.cost_range
+
+        self.irp = get_init(self,"irp")
+        self.period = get_init(self,"period")
+        self.interest_rate = get_init(self,"interest_rate")
+        self.labor_cost = get_init(self,"labor_cost")
+        self.utilization = get_init(self,"utilization", val=self.yearly_utilization(cost_range))
+
+        self.fuel_price = get_init(self,"fuel_price")
+        self.energy_price = get_init(self,"energy_price")
+        self.battery_price = get_init(self,"battery_price")
 
         self.engine_price = None
         self.gear_price = None
         self.frame_price = None
-        self.fuel_price = 2. / unit.m3_usgal(1.)     # 2 $/USgal
-        self.energy_price = 0.10 / unit.J_kWh(1.)    # $/J
-        self.battery_price = 20.                   # $/kg
 
         self.frame_cost = None
         self.engine_cost = None
@@ -157,9 +162,11 @@ class Economics():
         self.utilization = self.yearly_utilization(cost_range)
         self.aircraft_price = self.frame_price + self.engine_price * n_engine + self.gear_price #+ battery_price
         self.total_investment = self.frame_price * 1.06 + n_engine * self.engine_price * 1.025
-        self.interest = (self.total_investment/(self.utilization*self.period)) * (self.irp * 0.04 * (((1. + self.interest_rate)**self.irp)/((1. + self.interest_rate)**self.irp - 1.)) - 1.)
+        irp_year = unit.year_s(self.irp)
+        period_year = unit.year_s(self.period)
+        self.interest = (self.total_investment/(self.utilization*period_year)) * (irp_year * 0.04 * (((1. + self.interest_rate)**irp_year)/((1. + self.interest_rate)**irp_year - 1.)) - 1.)
         self.insurance = 0.0035 * self.aircraft_price/self.utilization
-        self.depreciation = 0.99 * (self.total_investment / (self.utilization * self.period))     # Depreciation
+        self.depreciation = 0.99 * (self.total_investment / (self.utilization * period_year))     # Depreciation
         self.direct_op_cost = self.cash_op_cost + self.interest + self.depreciation + self.insurance
 
         return
@@ -244,7 +251,7 @@ class Environment(Flight):
 
             self.CO2_metric = (1./rgf**0.24)*(1./sar_max_hw + 1./sar_max_mw + 1./sar_max_lw)/3.        # kg/m/m2
         else:
-            self.CO2_metric = None
+            self.CO2_metric = np.nan
         return
 
 

@@ -32,7 +32,7 @@ class Arrangement(object):
                       nacelle_attachment = "wing",     # "wing", "pod" or "rear"
                       power_architecture = "tf",       # "tf", "tp", "ef", "pte1", "ef1", "ep1",
                       power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                      fuel_type = "kerosene"           # "kerosene", "methane", "liquid_h2", "700bar_h2" or "battery"
+                      fuel_type = "kerosene"           # "kerosene", "methane", "liquid_h2", "Compressed_h2" or "battery"
                  ):
 
         self.body_type = body_type

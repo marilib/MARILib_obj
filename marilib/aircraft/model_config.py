@@ -78,14 +78,16 @@ model_config = {
     },
     "TankWingPod":{
         "span_ratio": [0.60, "no_dim", "Relative span wise position of the tank"],
+        "x_loc_ratio": [0.4, "no_dim", "Fraction of the tank length behind the wing"],
         "length": ["function", "m", "Length of the tank"],
         "width": ["function", "m", "Diameter of the tank"],
         "surface_mass": [10., "kg/m2", "Mass per surface unit of the tank structure"],
-        "fuel_pressure": [0, "bar", "Maximum over pressure of the fuel in the tank"],
+        "fuel_pressure": [0., "bar", "Maximum over pressure of the fuel in the tank"],
         "shell_parameter": [700, "bar.l/kg", "Tank structural efficiency"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"]
     },
     "TankPiggyBack":{
+        "x_loc_ratio": [0.4, "no_dim", "Fraction of the tank length behind the wing"],
         "length": ["function", "m", "Length of the tank"],
         "width": ["function", "m", "Diameter of the tank"],
         "surface_mass": [10., "kg/m2", "Mass per surface unit of the tank structure"],
@@ -132,11 +134,15 @@ model_config = {
         "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
     },
     "SemiEmpiricTf0Nacelle":{
+        "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
+        "vertical_margin": [1., "no_dim", "vertical margin as a fraction of nacelle width"],
         "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
         "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"]
     },
     "SemiEmpiricTfNacelle":{
+        "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
+        "vertical_margin": [1., "no_dim", "vertical margin as a fraction of nacelle width"],
         "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
         "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
         "hub_width": [0.4, "m", "Fan hub diameter"],
@@ -158,6 +164,8 @@ model_config = {
         "controller_pw_density": [20., "kW/kg", "Electric controller power density"]
     },
     "SemiEmpiricEfNacelle":{
+        "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
+        "vertical_margin": [1., "no_dim", "vertical margin as a fraction of nacelle width"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
         "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"],
         "hub_width": [0.2, "m", "Fan hub diameter"],
@@ -170,6 +178,8 @@ model_config = {
     "PodTailConeMountedNacelle":{
         "bli_effect": ["no", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
         "hub_width": [0.6, "m", "Fan hub diameter"],
+        "lateral_margin": [1.5, "no_dim", "Lateral margin as a fraction of nacelle width"],
+        "x_loc_ratio": [0.5, "no_dim", "Fraction of the tank length behind the wing"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
     "FuselageTailConeMountedNacelle":{
@@ -248,6 +258,16 @@ model_config = {
         "cas2": ["function", "kt", "Calibrated Air Speed above altp2 (function)"],
         "altp": ["function", "ft", "Targetted climb altitude (function)"],
         "ttc_req": [25., "min", "Maximum time to climb required in given conditions"]
+    },
+    "Economics":{
+        "irp": [10., "year", "Interest recovery period"],
+        "period": [15., "year", "Utilization period"],
+        "interest_rate": [4., "%", "Interest rate"],
+        "labor_cost": [120, "$/h", "Labor cost"],
+        "utilization": ["function", "int", "Number of flights per year (function)"],
+        "fuel_price": [2., "$/gal", "Fuel price"],
+        "energy_price": [0.10, "$/kWh", "Energy price"],
+        "battery_price": [20., "$/kg", "Battery price"]
     }
 }
 

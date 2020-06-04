@@ -389,15 +389,16 @@ def climb_mode(speed_mode,mach,dtodz,tstd,disa):
 
     return acc_factor
 
-def fuel_density(fuel_type):
+def fuel_density(fuel_type, press=101325.):
     """Reference fuel density
     """
     if (fuel_type=="kerosene"):
         fuel_density = 803. # Kerosene : between 775-840 kg/m3
     elif (fuel_type=="liquid_h2"):
         fuel_density = 70.8 # Liquid hydrogene
-    elif (fuel_type=="700bar_h2"):
-        fuel_density = 42. # hydrogene at 700bar
+    elif (fuel_type=="Compressed_h2"):
+        p = press*1.e-5
+        fuel_density = (-3.11480362e-05*p + 7.82320891e-02)*p + 1.03207822e-01 # Compressed hydrogen at 293.15 K
     elif (fuel_type=="methane"):
         fuel_density = 422.6 # Liquid methane
     elif (fuel_type=="battery"):
@@ -411,7 +412,7 @@ def fuel_heat(fuel_type):
     """
     if (fuel_type=="kerosene"):
         fuel_heat = 43.1e6 # J/kg, kerosene
-    elif (fuel_type in ["liquid_h2", "700bar_h2"]):
+    elif (fuel_type in ["liquid_h2", "Compressed_h2"]):
         fuel_heat = 121.0e6 # J/kg, hydrogene
     elif (fuel_type=="methane"):
         fuel_heat = 50.3e6 # J/kg, Liquid methane
@@ -434,7 +435,7 @@ def emission_index(fuel_type,compound):
                  "nitric_acid" : 0.2/1000.,
                  "soot" : 2.5e12}
         return index.get(compound)
-    elif (fuel_type in ["liquid_h2", "700bar_h2"]):
+    elif (fuel_type in ["liquid_h2", "Compressed_h2"]):
         index = {"CO2" : 0.,
                  "H2O" : 18000./1000.,
                  "SO2" : 0.,

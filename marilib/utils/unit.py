@@ -11,6 +11,9 @@ import numpy
 from copy import deepcopy
 
       
+def year_s(s): return s/31557600.
+def s_year(year): return year*31557600.
+
 def km2_m2(m2): return m2*1.e-6
 def m2_km2(km2): return km2*1.e6
 
