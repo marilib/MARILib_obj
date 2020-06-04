@@ -131,8 +131,8 @@ class MarilibIO(object):
             elif key == "name":
                 pass
             # TODO : check that the key is in DATA_DICT
-            #elif isinstance(value,): # if not a dict, should be in the data_dict
-            #    raise KeyError("Salut Thierry, tu as oublie de mettre a jour le DATA_DICT: %s n'existe pas !" %key)
+            elif type(value) in (int,float,bool,str,list,tuple): # if not a dict, should be in the data_dict
+                print("Salut Thierry, tu as oublie de mettre a jour le DATA_DICT: %s n'existe pas !" %key)
 
         return json_dict
 
