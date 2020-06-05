@@ -259,7 +259,6 @@ def init_thrust(aircraft):
     return (1.e5 + 177.*n_pax_ref*design_range*1.e-6)/n_engine
 
 def init_power(aircraft):
-    n_engine = number_of_engine(aircraft)
     ref_power = 0.25*(1./0.8)*(87.26/0.82)*init_thrust(aircraft)
     return ref_power
 
@@ -468,6 +467,9 @@ class Turboprop(PowerSystem, Flight):
                      "MCL":ThrustDataTp(nei=0),
                      "MCR":ThrustDataTp(nei=0)}
 
+    def get_reference_thrust(self):
+        return self.reference_power * (0.82/87.26)
+
     def reference_power_offtake(self):
         return 0.
 
@@ -481,9 +483,9 @@ class Turboprop(PowerSystem, Flight):
             kfn = self.data[rating].kfn_opt
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
             dict = self.thrust(pamb,tamb,mach,rating, nei=nei)
-            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[rating].thrust = dict["fn"]/(self.aircraft.airframe.nacelle.n_engine - nei)
-            self.data[rating].power = dict["pw"]/(self.aircraft.airframe.nacelle.n_engine - nei)
+            self.data[rating].thrust_opt = kfn*dict["fn"]/(self.aircraft.power_system.n_engine - nei)
+            self.data[rating].thrust = dict["fn"]/(self.aircraft.power_system.n_engine - nei)
+            self.data[rating].power = dict["pw"]/(self.aircraft.power_system.n_engine - nei)
             self.data[rating].fuel_flow = dict["ff"]
             self.data[rating].psfc = dict["sfc"]
             self.data[rating].T41 = dict["t4"]
@@ -491,7 +493,7 @@ class Turboprop(PowerSystem, Flight):
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
         fuel_heat = earth.fuel_heat(fuel_type)
 
@@ -508,7 +510,7 @@ class Turboprop(PowerSystem, Flight):
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
         """
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
         fuel_heat = earth.fuel_heat(fuel_type)
 

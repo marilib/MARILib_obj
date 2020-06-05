@@ -904,8 +904,7 @@ class SemiEmpiricTpNacelle(Component):
         psfc_ref = unit.kgpWps_lbpshpph(0.4)   # 0.4 lb/shp/h
 
         rho,sig = earth.air_density(pamb,tamb)
-        Vsnd = earth.sound_speed(tamb)
-        Vair = Vsnd*mach
+        Vair = mach*earth.sound_speed(tamb)
 
         shaft_power = throttle*getattr(factor,rating)*reference_power*sig**0.5 - pw_offtake
 

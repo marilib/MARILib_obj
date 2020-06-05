@@ -84,8 +84,8 @@ class TakeOffReq(object):
 
     def __tofl_req(self, requirement):
         if(requirement.design_range <= unit.m_NM(1500.)): tofl_req = 1500.
-        elif(requirement.design_range <= unit.m_NM(3500.)): tofl_req = 2000.
-        elif(requirement.design_range <= unit.m_NM(5500.)): tofl_req = 2500.
+        elif(requirement.design_range <= unit.m_NM(3500.)): tofl_req = 2300.
+        elif(requirement.design_range <= unit.m_NM(5500.)): tofl_req = 2800.
         else: tofl_req = 3000.
         return tofl_req
 
