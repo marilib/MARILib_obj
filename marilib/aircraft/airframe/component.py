@@ -289,14 +289,14 @@ class Wing(Component):
         self.wing_morphing = get_init(self,"wing_morphing")   # "aspect_ratio_driven" or "span_driven"
         self.area = 60. + 88.*n_pax_ref*design_range*1.e-9
         self.span = None
-        self.aspect_ratio = get_init(self,"aspect_ratio")
+        self.aspect_ratio = get_init(self,"aspect_ratio", val=self.aspect_ratio())
         self.taper_ratio = None
         self.sweep0 = None
         self.sweep25 = None
         self.sweep100 = None
         self.dihedral = None
         self.setting = None
-        self.hld_type = get_init(self,"hld_type")
+        self.hld_type = get_init(self,"hld_type", val=self.high_lift_type())
         self.induced_drag_factor = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -315,6 +315,20 @@ class Wing(Component):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+
+    def aspect_ratio(self):
+        if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): ar = 9
+        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","exef"]): ar = 9
+        elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): ar = 10
+        else: raise Exception("propulsion.architecture index is out of range")
+        return ar
+
+    def high_lift_type(self):
+        if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): hld_type = 9
+        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","exef"]): hld_type = 9
+        elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): hld_type = 2
+        else: raise Exception("propulsion.architecture index is out of range")
+        return hld_type
 
     def eval_geometry(self):
         wing_attachment = self.aircraft.arrangement.wing_attachment

@@ -24,8 +24,8 @@ model_config = {
     },
     "Wing":{
         "wing_morphing": ["aspect_ratio_driven", "no_dim", "Wing deformation mode, 'aspect_ratio_driven' or 'span_driven'"],
-        "aspect_ratio": [9, "no_dim", "Wing aspect ratio"],
-        "hld_type": [9, "int", "Type of high lift device, from 0 to 10"]
+        "aspect_ratio": ["function", "no_dim", "Wing aspect ratio (function)"],
+        "hld_type": ["function", "int", "Type of high lift device, from 0 to 10, (function)"]
     },
     "VtpClassic":{
         "aspect_ratio": [1.7, "no_dim", "Vertical tail aspect ratio"],

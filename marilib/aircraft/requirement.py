@@ -135,15 +135,20 @@ class ClimbReq(object):
     def __init__(self, arrangement, requirement):
         self.disa = get_init(self,"disa")
         self.altp = get_init(self,"altp", val=self.top_of_climb(arrangement,requirement))
-        self.mach = get_init(self,"mach", val=requirement.cruise_mach)
+        self.mach = get_init(self,"mach", val=self.trajectory_speed(arrangement,requirement))
         self.kmtow = get_init(self,"kmtow")
+
+    def trajectory_speed(self, arrangement, requirement):
+        if (arrangement.power_architecture in ["tf0","tf","extf"]): mach = requirement.cruise_mach
+        elif (arrangement.power_architecture in ["ef","pte","exef"]): mach = requirement.cruise_mach
+        elif (arrangement.power_architecture in ["tp","ep"]): mach = requirement.cruise_mach - 0.10
+        else: raise Exception("propulsion.architecture index is out of range")
+        return mach
 
     def top_of_climb(self, arrangement, requirement):
         if (arrangement.power_architecture in ["tf0","tf","extf"]): altp = unit.m_ft(35000.)
-        elif (arrangement.power_architecture=="tp"): altp = unit.m_ft(16000.)
-        elif (arrangement.power_architecture in ["ef","exef"]): altp = unit.m_ft(31000.)
-        elif (arrangement.power_architecture=="ep"): altp = unit.m_ft(16000.)
-        elif (arrangement.power_architecture=="pte"): altp = unit.m_ft(31000.)
+        elif (arrangement.power_architecture in ["ef","pte","exef"]): altp = unit.m_ft(35000.)
+        elif (arrangement.power_architecture in ["tp","ep"]): altp = unit.m_ft(16000.)
         else: raise Exception("propulsion.architecture index is out of range")
         # top_of_climb = min(altp, requirement.cruise_altp - unit.m_ft(4000.))
         return altp

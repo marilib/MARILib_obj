@@ -20,32 +20,32 @@ from marilib.aircraft.design import process
 # ---------------------------------------------------------------------------------------------------------------------
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
-                   wing_attachment = "low",         # "low" or "high"
+                   wing_attachment = "high",         # "low" or "high"
                    stab_architecture = "t_tail",    # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "tp",       # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
-                   power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                   fuel_type = "kerosene")          # "kerosene", "methane", "liquid_h2", "Compressed_h2", "battery"
+                   power_architecture = "ep",       # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_source = "battery",           # "fuel", "battery", "fuel_cell"
+                   fuel_type = "battery")          # "kerosene", "methane", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 70.,
-                   design_range = unit.m_NM(600.),
+reqs = Requirement(n_pax_ref = 19.,
+                   design_range = unit.m_NM(100.),
                    cruise_mach = 0.55,
-                   cruise_altp = unit.m_ft(25000.))
+                   cruise_altp = unit.m_ft(20000.))
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(4000.)
-ac.airframe.wing.area = 60.
+ac.power_system.reference_power = unit.W_kW(2700.)
+ac.airframe.wing.area = 74.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 
-raise Exception()
+# raise Exception()
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
 var = ["aircraft.power_system.reference_power",
@@ -102,14 +102,14 @@ data = [["Power", "kW", "%8.1f", var[0]+"/1000."],
         ["OWE", "kg", "%8.1f", "aircraft.weight_cg.owe"],
         ["MWE", "kg", "%8.1f", "aircraft.weight_cg.mwe"],
         ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.performance.mission.crz_lod"],
-        ["Cruise_SFC", "kg/kW/h", "%8.4f", "aircraft.performance.mission.crz_psfc"],
+        ["Cruise_SEC", "kW/daN", "%8.4f", "aircraft.performance.mission.crz_sec"],
         ["TOFL", "m", "%8.1f", "aircraft.performance.take_off.tofl_eff"],
         ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.performance.approach.app_speed_eff)"],
         ["OEI_path", "%", "%8.1f", "aircraft.performance.oei_ceiling.path_eff*100"],
         ["Vz_MCL", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcl_ceiling.vz_eff)"],
         ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcr_ceiling.vz_eff)"],
         ["TTC", "min", "%8.1f", "unit.min_s(aircraft.performance.time_to_climb.ttc_eff)"],
-        ["Block_fuel", "kg", "%8.1f", "aircraft.performance.mission.cost.fuel_block"],
+        ["Block_energy", "MWh", "%8.1f", "aircraft.performance.mission.cost.enrg_block"],
         ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
         ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],
         ["Direct_op_cost", "$/trip", "%8.1f", "aircraft.economics.direct_op_cost"],
