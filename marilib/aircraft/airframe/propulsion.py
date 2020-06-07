@@ -622,6 +622,8 @@ class PodTailConeMountedTfNacelle(SemiEmpiricTfNacelle,PodTailConeMountedNacelle
         # Update power transfert in case of hybridization, here : set power offtake
         self.aircraft.power_system.update_power_transfert()
 
+        reference_thrust = self.aircraft.power_system.reference_thrust
+
         disa = self.aircraft.requirement.cruise_disa
         altp = self.aircraft.requirement.cruise_altp
         mach = self.aircraft.requirement.cruise_mach
@@ -645,7 +647,7 @@ class PodTailConeMountedTfNacelle(SemiEmpiricTfNacelle,PodTailConeMountedNacelle
         dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO",pw_offtake=self.reference_offtake)
 
         # Set tune factor so that output of unitary_thrust matches the definition of the reference thrust
-        self.tune_factor = self.reference_thrust / (dict["fn"]/0.80)
+        self.tune_factor = reference_thrust / (dict["fn"]/0.80)
 
         self.frame_origin = self.locate_nacelle()
 
@@ -717,7 +719,7 @@ class PodTailConeMountedTfNacelle(SemiEmpiricTfNacelle,PodTailConeMountedNacelle
         if self.bli_effect=="yes":
             dict_bli = self.unitary_thrust_bli(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
             dict_fs = self.unitary_thrust_free_stream(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
-            return {"fn":dict_bli["fn"], "ff":dict_fs["ff"], "T4":None}
+            return {"fn":dict_bli["fn"], "ff":dict_fs["ff"], "t4":None}
         else:
             return self.unitary_thrust_free_stream(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 

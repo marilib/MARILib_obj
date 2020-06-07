@@ -72,8 +72,8 @@ model_config = {
         "volume_factor": [0.94, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"]
     },
     "TankWingBox":{
-        "fuel_pressure": [0, "bar", "Maximum over pressure of the fuel in the tank"],
-        "shell_parameter": [700, "bar.l/kg", "Tank structural efficiency"],
+        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
+        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency (function)"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"]
     },
     "TankWingPod":{
@@ -82,8 +82,8 @@ model_config = {
         "length": ["function", "m", "Length of the tank"],
         "width": ["function", "m", "Diameter of the tank"],
         "surface_mass": [10., "kg/m2", "Mass per surface unit of the tank structure"],
-        "fuel_pressure": [0., "bar", "Maximum over pressure of the fuel in the tank"],
-        "shell_parameter": [700, "bar.l/kg", "Tank structural efficiency"],
+        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
+        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency (function)"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"]
     },
     "TankPiggyBack":{
@@ -91,8 +91,8 @@ model_config = {
         "length": ["function", "m", "Length of the tank"],
         "width": ["function", "m", "Diameter of the tank"],
         "surface_mass": [10., "kg/m2", "Mass per surface unit of the tank structure"],
-        "fuel_pressure": [0, "bar", "Maximum over pressure of the fuel in the tank"],
-        "shell_parameter": [700, "bar.l/kg", "Tank structural efficiency"],
+        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
+        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"]
     },
     "LandingGear":{
@@ -180,14 +180,14 @@ model_config = {
         "motor_pw_density": [10., "kW/kg", "Electric motor power density"]
     },
     "PodTailConeMountedNacelle":{
-        "bli_effect": ["no", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
+        "bli_effect": ["yes", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
         "hub_width": [0.6, "m", "Fan hub diameter"],
         "lateral_margin": [1.5, "no_dim", "Lateral margin as a fraction of nacelle width"],
         "x_loc_ratio": [0.5, "no_dim", "Fraction of the tank length behind the wing"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
     "FuselageTailConeMountedNacelle":{
-        "bli_effect": ["no", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
+        "bli_effect": ["yes", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
         "hub_width": [0.4, "m", "Fan hub diameter"],
         "tail_cone_height_ratio": [0.38, "no_dim", "Relative vertical position of the body tail cone"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]

@@ -27,7 +27,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
                    power_architecture = "tp",       # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
                    power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                   fuel_type = "kerosene")          # "kerosene", "methane", "liquid_h2", "Compressed_h2", "battery"
+                   fuel_type = "kerosene")          # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 70.,
                    design_range = unit.m_NM(600.),
@@ -115,7 +115,7 @@ data = [["Power", "kW", "%8.1f", var[0]+"/1000."],
         ["Direct_op_cost", "$/trip", "%8.1f", "aircraft.economics.direct_op_cost"],
         ["CO2_metric", "kg/km/m0.48", "%8.4f", "unit.convert_to('kg/km/m0.48',aircraft.environment.CO2_metric)"]]
 
-file = "explore_design.txt"
+file = "aircraft_explore_design.txt"
 
 # res = process.eval_this(ac,var)                                       # This function allows to get the values of a list of addresses in the Aircraft
 res = process.explore_design_space(ac, var, step, data, file)           # Build a set of experiments using above config data and store it in a file
