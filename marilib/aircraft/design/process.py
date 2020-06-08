@@ -26,15 +26,22 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 from marilib.utils import unit
 
 
-def eval_this(aircraft,var):
+def eval_this(aircraft,design_variables):
+    """Evaluate the current value of the design variables of the aircraft
+    :param aircraft: the aircraft being designed
+    :param design_variables: a list of string path to the variables. Example : ::
+            design_variables = ["aircraft.airframe.nacelle.reference_thrust",
+                                "aircraft.airframe.wing.area"]
+    :return: the value of the designed variables
+    """
     res = []
-    for str in var:
+    for str in design_variables:
         res.append(eval(str))
     return res
 
 def mda(aircraft):
     """Perform Multidsciplinary_Design_Analysis
-    All coupling constraints are solved
+    All coupling constraints are solved in a relevent order
     """
     # aircraft.airframe.geometry_analysis()
     aircraft.airframe.statistical_pre_design()
