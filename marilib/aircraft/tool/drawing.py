@@ -112,13 +112,17 @@ class Drawing(object):
         nac_length = self.aircraft.airframe.nacelle.length
         nac_height = self.aircraft.airframe.nacelle.width
         nac_width = self.aircraft.airframe.nacelle.width
-        nac_x_int = self.aircraft.airframe.nacelle.frame_origin[0]
-        nac_y_int = self.aircraft.airframe.nacelle.frame_origin[1]
-        nac_z_int = self.aircraft.airframe.nacelle.frame_origin[2]
-        if (self.aircraft.arrangement.number_of_engine=="quadri"):
-            nac_x_ext = self.aircraft.airframe.internal_nacelle.frame_origin[0]
-            nac_y_ext = self.aircraft.airframe.internal_nacelle.frame_origin[1]
-            nac_z_ext = self.aircraft.airframe.internal_nacelle.frame_origin[2]
+        nac_x_ext = self.aircraft.airframe.nacelle.frame_origin[0]
+        nac_y_ext = self.aircraft.airframe.nacelle.frame_origin[1]
+        nac_z_ext = self.aircraft.airframe.nacelle.frame_origin[2]
+        if (self.aircraft.arrangement.number_of_engine in ["quadri","hexa"]):
+            nac_x_int = self.aircraft.airframe.internal_nacelle.frame_origin[0]
+            nac_y_int = self.aircraft.airframe.internal_nacelle.frame_origin[1]
+            nac_z_int = self.aircraft.airframe.internal_nacelle.frame_origin[2]
+        if (self.aircraft.arrangement.number_of_engine=="hexa"):
+            nac_x_med = self.aircraft.airframe.median_nacelle.frame_origin[0]
+            nac_y_med = self.aircraft.airframe.median_nacelle.frame_origin[1]
+            nac_z_med = self.aircraft.airframe.median_nacelle.frame_origin[2]
         if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
             prop_width = self.aircraft.airframe.nacelle.propeller_width
 
@@ -289,20 +293,27 @@ class Drawing(object):
                                     [wing_x_body+wing_c_body      , pod_z_axe+0.5*wing_toc_k*wing_c_body                      ],
                                     [wing_x_tip+wing_c_tip       , wing_z_tip+wing_toc_t*wing_c_tip                           ]])
 
-        # External engine shape
+        # Engine shape
         #-----------------------------------------------------------------------------------------------------------
-        nac_xz_int,nac_xy_int,nac_yz_int,fan_yz_int = self.nacelle_shape(nac_x_int,nac_y_int,nac_z_int,nac_width,nac_height,nac_length,cyl)
+        nac_xz_ext,nac_xy_ext,nac_yz_ext,fan_yz_ext = self.nacelle_shape(nac_x_ext,nac_y_ext,nac_z_ext,nac_width,nac_height,nac_length,cyl)
         if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
             d_prop_yz = np.stack([cyl[0:,0]*prop_width , cyl[0:,1]*prop_width , cyl[0:,2]*prop_width], axis=1)
-            prop_yz_int = np.vstack([np.stack([nac_y_int+d_prop_yz[0:,0] , nac_z_int+d_prop_yz[0:,1]],axis=1) ,
-                                     np.stack([nac_y_int+d_prop_yz[::-1,0] , nac_z_int+d_prop_yz[::-1,2]],axis=1)])
+            prop_yz_ext = np.vstack([np.stack([nac_y_ext+d_prop_yz[0:,0] , nac_z_ext+d_prop_yz[0:,1]],axis=1) ,
+                                     np.stack([nac_y_ext+d_prop_yz[::-1,0] , nac_z_ext+d_prop_yz[::-1,2]],axis=1)])
 
-        if (self.aircraft.arrangement.number_of_engine=="quadri"):
-            nac_xz_ext,nac_xy_ext,nac_yz_ext,fan_yz_ext = self.nacelle_shape(nac_x_ext,nac_y_ext,nac_z_ext,nac_width,nac_height,nac_length,cyl)
+        if (self.aircraft.arrangement.number_of_engine in ["quadri","hexa"]):
+            nac_xz_int,nac_xy_int,nac_yz_int,fan_yz_int = self.nacelle_shape(nac_x_int,nac_y_int,nac_z_int,nac_width,nac_height,nac_length,cyl)
             if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
                 d_prop_yz = np.stack([cyl[0:,0]*prop_width , cyl[0:,1]*prop_width , cyl[0:,2]*prop_width], axis=1)
-                prop_yz_ext = np.vstack([np.stack([nac_y_ext+d_prop_yz[0:,0] , nac_z_ext+d_prop_yz[0:,1]],axis=1) ,
-                                         np.stack([nac_y_ext+d_prop_yz[::-1,0] , nac_z_ext+d_prop_yz[::-1,2]],axis=1)])
+                prop_yz_int = np.vstack([np.stack([nac_y_int+d_prop_yz[0:,0] , nac_z_int+d_prop_yz[0:,1]],axis=1) ,
+                                         np.stack([nac_y_int+d_prop_yz[::-1,0] , nac_z_int+d_prop_yz[::-1,2]],axis=1)])
+
+        if (self.aircraft.arrangement.number_of_engine=="hexa"):
+            nac_xz_med,nac_xy_med,nac_yz_med,fan_yz_med = self.nacelle_shape(nac_x_med,nac_y_med,nac_z_med,nac_width,nac_height,nac_length,cyl)
+            if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
+                d_prop_yz = np.stack([cyl[0:,0]*prop_width , cyl[0:,1]*prop_width , cyl[0:,2]*prop_width], axis=1)
+                prop_yz_med = np.vstack([np.stack([nac_y_med+d_prop_yz[0:,0] , nac_z_med+d_prop_yz[0:,1]],axis=1) ,
+                                         np.stack([nac_y_med+d_prop_yz[::-1,0] , nac_z_med+d_prop_yz[::-1,2]],axis=1)])
 
         # Rear nacelle
         #-----------------------------------------------------------------------------------------------------------
@@ -359,21 +370,26 @@ class Drawing(object):
         if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
             plt.fill(xTopView+wing_xy[0:,0], yTopView+wing_xy[0:,1], color="white", zorder=3)     # wing_ top view
             plt.plot(xTopView+wing_xy[0:,0], yTopView+wing_xy[0:,1], color="grey", zorder=3)      # wing_ top view
-            plt.fill(xTopView+nac_xy_int[0:,0], yTopView+nac_xy_int[0:,1], color="white", zorder=4)        # Left nacelle top view
-            plt.plot(xTopView+nac_xy_int[0:,0], yTopView+nac_xy_int[0:,1], color="grey", zorder=4)        # Left nacelle top view
-            plt.fill(xTopView+nac_xy_int[0:,0], yTopView-nac_xy_int[0:,1], color="white", zorder=4)        # Right nacelle top view
-            plt.plot(xTopView+nac_xy_int[0:,0], yTopView-nac_xy_int[0:,1], color="grey", zorder=4)        # Right nacelle top view
-            if (self.aircraft.arrangement.number_of_engine=="quadri"):
-                plt.fill(xTopView+nac_xy_ext[0:,0], yTopView+nac_xy_ext[0:,1], color="white", zorder=4)        # Left nacelle top view
-                plt.plot(xTopView+nac_xy_ext[0:,0], yTopView+nac_xy_ext[0:,1], color="grey", zorder=4)        # Left nacelle top view
-                plt.fill(xTopView+nac_xy_ext[0:,0], yTopView-nac_xy_ext[0:,1], color="white", zorder=4)        # Right nacelle top view
-                plt.plot(xTopView+nac_xy_ext[0:,0], yTopView-nac_xy_ext[0:,1], color="grey", zorder=4)        # Right nacelle top view
+            plt.fill(xTopView+nac_xy_ext[0:,0], yTopView+nac_xy_ext[0:,1], color="white", zorder=4)        # Left nacelle top view
+            plt.plot(xTopView+nac_xy_ext[0:,0], yTopView+nac_xy_ext[0:,1], color="grey", zorder=4)        # Left nacelle top view
+            plt.fill(xTopView+nac_xy_ext[0:,0], yTopView-nac_xy_ext[0:,1], color="white", zorder=4)        # Right nacelle top view
+            plt.plot(xTopView+nac_xy_ext[0:,0], yTopView-nac_xy_ext[0:,1], color="grey", zorder=4)        # Right nacelle top view
+            if (self.aircraft.arrangement.number_of_engine in ["quadri","hexa"]):
+                plt.fill(xTopView+nac_xy_int[0:,0], yTopView+nac_xy_int[0:,1], color="white", zorder=4)        # Left nacelle top view
+                plt.plot(xTopView+nac_xy_int[0:,0], yTopView+nac_xy_int[0:,1], color="grey", zorder=4)        # Left nacelle top view
+                plt.fill(xTopView+nac_xy_int[0:,0], yTopView-nac_xy_int[0:,1], color="white", zorder=4)        # Right nacelle top view
+                plt.plot(xTopView+nac_xy_int[0:,0], yTopView-nac_xy_int[0:,1], color="grey", zorder=4)        # Right nacelle top view
+            if (self.aircraft.arrangement.number_of_engine=="hexa"):
+                plt.fill(xTopView+nac_xy_med[0:,0], yTopView+nac_xy_med[0:,1], color="white", zorder=4)        # Left nacelle top view
+                plt.plot(xTopView+nac_xy_med[0:,0], yTopView+nac_xy_med[0:,1], color="grey", zorder=4)        # Left nacelle top view
+                plt.fill(xTopView+nac_xy_med[0:,0], yTopView-nac_xy_med[0:,1], color="white", zorder=4)        # Right nacelle top view
+                plt.plot(xTopView+nac_xy_med[0:,0], yTopView-nac_xy_med[0:,1], color="grey", zorder=4)        # Right nacelle top view
         else:
-            plt.plot(xTopView+nac_xy_int[0:,0], yTopView+nac_xy_int[0:,1], color="grey", zorder=3)        # Left nacelle top view
-            plt.plot(xTopView+nac_xy_int[0:,0], yTopView-nac_xy_int[0:,1], color="grey", zorder=3)        # Right nacelle top view
+            plt.plot(xTopView+nac_xy_ext[0:,0], yTopView+nac_xy_ext[0:,1], color="grey", zorder=3)        # Left nacelle top view
+            plt.plot(xTopView+nac_xy_ext[0:,0], yTopView-nac_xy_ext[0:,1], color="grey", zorder=3)        # Right nacelle top view
             if (self.aircraft.arrangement.number_of_engine=="quadri"):
-                plt.plot(xTopView+nac_xy_ext[0:,0], yTopView+nac_xy_ext[0:,1], color="grey", zorder=3)        # Left nacelle top view
-                plt.plot(xTopView+nac_xy_ext[0:,0], yTopView-nac_xy_ext[0:,1], color="grey", zorder=3)        # Right nacelle top view
+                plt.plot(xTopView+nac_xy_int[0:,0], yTopView+nac_xy_int[0:,1], color="grey", zorder=3)        # Left nacelle top view
+                plt.plot(xTopView+nac_xy_int[0:,0], yTopView-nac_xy_int[0:,1], color="grey", zorder=3)        # Right nacelle top view
             plt.fill(xTopView+wing_xy[0:,0], yTopView+wing_xy[0:,1], color="white", zorder=4)     # wing_ top view
             plt.plot(xTopView+wing_xy[0:,0], yTopView+wing_xy[0:,1], color="grey", zorder=4)      # wing_ top view
 
@@ -384,6 +400,8 @@ class Drawing(object):
             plt.plot(xTopView+pod_top[0:,0], yTopView+pod_top[0:,1], "grey", zorder=5)          # Right pod top view
 
         if (self.aircraft.arrangement.stab_architecture=="classic"):
+            plt.plot(xTopView+htp_xy[0:,0], yTopView+htp_xy[0:,1], "grey", zorder=1)      # htp_ top view (Classic or Vtail)
+        elif (self.aircraft.arrangement.stab_architecture=="h_tail"):
             plt.plot(xTopView+htp_xy[0:,0], yTopView+htp_xy[0:,1], "grey", zorder=1)      # htp_ top view (Classic or Vtail)
 
         if (self.aircraft.arrangement.wing_attachment=="low"):
@@ -403,8 +421,8 @@ class Drawing(object):
             plt.plot(xTopView+vtp_xy[0:,0], yTopView+vtp_xy[0:,1], "grey", zorder=8)            # vtp top view
             plt.plot(xTopView+vtp_xy[0:,0], yTopView-vtp_xy[0:,1], "grey", zorder=8)            # vtp top view
         elif (self.aircraft.arrangement.stab_architecture=="t_tail"):
-            plt.fill(xTopView+htp_xy[0:,0], yTopView+htp_xy[0:,1], color="white", zorder=8)   # htp_ top view (T-tail)
-            plt.plot(xTopView+htp_xy[0:,0], yTopView+htp_xy[0:,1], "grey", zorder=9)      # htp_ top view (T-tail)
+            plt.fill(xTopView+htp_xy[0:,0], yTopView+htp_xy[0:,1], color="white", zorder=8)     # htp_ top view (T-tail)
+            plt.plot(xTopView+htp_xy[0:,0], yTopView+htp_xy[0:,1], "grey", zorder=9)            # htp_ top view (T-tail)
         else:
             raise Exception("draw_3d_view, vertical_tail.attachment value is out of range")
 
@@ -428,11 +446,14 @@ class Drawing(object):
             plt.plot(xSideView+r_nac_xz[0:,0], ySideView+r_nac_xz[0:,1], color="grey", zorder=5)    # rear nacelle side view
 
         if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
-            if (self.aircraft.arrangement.number_of_engine=="quadri"):
-                plt.fill(xSideView+nac_xz_ext[0:,0], ySideView+nac_xz_ext[0:,1], color="white", zorder=4)     # nacelle side view
-                plt.plot(xSideView+nac_xz_ext[0:,0], ySideView+nac_xz_ext[0:,1], color="grey", zorder=4)      # nacelle side view
-            plt.fill(xSideView+nac_xz_int[0:,0], ySideView+nac_xz_int[0:,1], color="white", zorder=5)     # nacelle side view
-            plt.plot(xSideView+nac_xz_int[0:,0], ySideView+nac_xz_int[0:,1], color="grey", zorder=5)      # nacelle side view
+            if (self.aircraft.arrangement.number_of_engine in ["quadri","hexa"]):
+                plt.fill(xSideView+nac_xz_int[0:,0], ySideView+nac_xz_int[0:,1], color="white", zorder=4)     # nacelle side view
+                plt.plot(xSideView+nac_xz_int[0:,0], ySideView+nac_xz_int[0:,1], color="grey", zorder=4)      # nacelle side view
+            if (self.aircraft.arrangement.number_of_engine=="hexa"):
+                plt.fill(xSideView+nac_xz_med[0:,0], ySideView+nac_xz_med[0:,1], color="white", zorder=4)     # nacelle side view
+                plt.plot(xSideView+nac_xz_med[0:,0], ySideView+nac_xz_med[0:,1], color="grey", zorder=4)      # nacelle side view
+            plt.fill(xSideView+nac_xz_ext[0:,0], ySideView+nac_xz_ext[0:,1], color="white", zorder=5)     # nacelle side view
+            plt.plot(xSideView+nac_xz_ext[0:,0], ySideView+nac_xz_ext[0:,1], color="grey", zorder=5)      # nacelle side view
             plt.fill(xSideView+wing_xz[0:,0], ySideView+wing_xz[0:,1], color="white", zorder=6)   # wing_ side view
             plt.plot(xSideView+wing_xz[0:,0], ySideView+wing_xz[0:,1], color="grey", zorder=7)    # wing_ side view
         else:
@@ -441,8 +462,8 @@ class Drawing(object):
             if (self.aircraft.arrangement.number_of_engine=="quadri"):
                 plt.fill(xSideView+nac_xz_ext[0:,0], ySideView+nac_xz_ext[0:,1], color="white", zorder=6)     # nacelle side view
                 plt.plot(xSideView+nac_xz_ext[0:,0], ySideView+nac_xz_ext[0:,1], color="grey", zorder=6)      # nacelle side view
-            plt.fill(xSideView+nac_xz_int[0:,0], ySideView+nac_xz_int[0:,1], color="white", zorder=7)     # nacelle side view
-            plt.plot(xSideView+nac_xz_int[0:,0], ySideView+nac_xz_int[0:,1], color="grey", zorder=7)      # nacelle side view
+            plt.fill(xSideView+nac_xz_ext[0:,0], ySideView+nac_xz_ext[0:,1], color="white", zorder=7)     # nacelle side view
+            plt.plot(xSideView+nac_xz_ext[0:,0], ySideView+nac_xz_ext[0:,1], color="grey", zorder=7)      # nacelle side view
 
         if (self.aircraft.arrangement.tank_architecture=="pods"):
             plt.fill(xSideView+pod_side[0:,0], ySideView+pod_side[0:,1], color="white", zorder=8)     # Pod side view
@@ -476,29 +497,41 @@ class Drawing(object):
         plt.fill(xFrontView-body_front[0:,0], yFrontView+body_front[0:,1], color="white", zorder=4)   # fuselage front view
         plt.plot(xFrontView-body_front[0:,0], yFrontView+body_front[0:,1], color="grey", zorder=5)    # fuselage front view
 
-        plt.fill(xFrontView-nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="white", zorder=6)   # Right nacelle front view
-        plt.plot(xFrontView-nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="grey", zorder=7)    # Right nacelle front view
-        plt.plot(xFrontView-fan_yz_int[0:,0], yFrontView+fan_yz_int[0:,1], color="grey", zorder=8)    # Right Inlet front view
+        plt.fill(xFrontView-nac_yz_ext[0:,0], yFrontView+nac_yz_ext[0:,1], color="white", zorder=6)   # Right nacelle front view
+        plt.plot(xFrontView-nac_yz_ext[0:,0], yFrontView+nac_yz_ext[0:,1], color="grey", zorder=7)    # Right nacelle front view
+        plt.plot(xFrontView-fan_yz_ext[0:,0], yFrontView+fan_yz_ext[0:,1], color="grey", zorder=8)    # Right Inlet front view
         if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
-            plt.plot(xFrontView-prop_yz_int[0:,0], yFrontView+prop_yz_int[0:,1], color="grey", zorder=10)    # Right propeller disk front view
-        if (self.aircraft.arrangement.number_of_engine=="quadri"):
-            plt.fill(xFrontView-nac_yz_ext[0:,0], yFrontView+nac_yz_ext[0:,1], color="white", zorder=6)   # Right nacelle front view
-            plt.plot(xFrontView-nac_yz_ext[0:,0], yFrontView+nac_yz_ext[0:,1], color="grey", zorder=7)    # Right nacelle front view
-            plt.plot(xFrontView-fan_yz_ext[0:,0], yFrontView+fan_yz_ext[0:,1], color="grey", zorder=8)    # Right Inlet front view
+            plt.plot(xFrontView-prop_yz_ext[0:,0], yFrontView+prop_yz_ext[0:,1], color="grey", zorder=10)    # Right propeller disk front view
+        if (self.aircraft.arrangement.number_of_engine in ["quadri","hexa"]):
+            plt.fill(xFrontView-nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="white", zorder=6)   # Right nacelle front view
+            plt.plot(xFrontView-nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="grey", zorder=7)    # Right nacelle front view
+            plt.plot(xFrontView-fan_yz_int[0:,0], yFrontView+fan_yz_int[0:,1], color="grey", zorder=8)    # Right Inlet front view
             if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
-                plt.plot(xFrontView-prop_yz_ext[0:,0], yFrontView+prop_yz_ext[0:,1], color="grey", zorder=10)    # Right propeller disk front view
+                plt.plot(xFrontView-prop_yz_int[0:,0], yFrontView+prop_yz_int[0:,1], color="grey", zorder=10)    # Right propeller disk front view
+        if (self.aircraft.arrangement.number_of_engine=="hexa"):
+            plt.fill(xFrontView-nac_yz_med[0:,0], yFrontView+nac_yz_med[0:,1], color="white", zorder=6)   # Right nacelle front view
+            plt.plot(xFrontView-nac_yz_med[0:,0], yFrontView+nac_yz_med[0:,1], color="grey", zorder=7)    # Right nacelle front view
+            plt.plot(xFrontView-fan_yz_med[0:,0], yFrontView+fan_yz_med[0:,1], color="grey", zorder=8)    # Right Inlet front view
+            if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
+                plt.plot(xFrontView-prop_yz_med[0:,0], yFrontView+prop_yz_med[0:,1], color="grey", zorder=10)    # Right propeller disk front view
 
-        plt.fill(xFrontView+nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="white", zorder=6)   # Left nacelle front view
-        plt.plot(xFrontView+nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="grey", zorder=7)    # Left nacelle front view
-        plt.plot(xFrontView+fan_yz_int[0:,0], yFrontView+fan_yz_int[0:,1], color="grey", zorder=8)    # Left Inlet front view
+        plt.fill(xFrontView+nac_yz_ext[0:,0], yFrontView+nac_yz_ext[0:,1], color="white", zorder=6)   # Left nacelle front view
+        plt.plot(xFrontView+nac_yz_ext[0:,0], yFrontView+nac_yz_ext[0:,1], color="grey", zorder=7)    # Left nacelle front view
+        plt.plot(xFrontView+fan_yz_ext[0:,0], yFrontView+fan_yz_ext[0:,1], color="grey", zorder=8)    # Left Inlet front view
         if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
-            plt.plot(xFrontView+prop_yz_int[0:,0], yFrontView+prop_yz_int[0:,1], color="grey", zorder=10)    # Left propeller disk front view
-        if (self.aircraft.arrangement.number_of_engine=="quadri"):
-            plt.fill(xFrontView+nac_yz_ext[0:,0], yFrontView+nac_yz_ext[0:,1], color="white", zorder=6)   # Left nacelle front view
-            plt.plot(xFrontView+nac_yz_ext[0:,0], yFrontView+nac_yz_ext[0:,1], color="grey", zorder=7)    # Left nacelle front view
-            plt.plot(xFrontView+fan_yz_ext[0:,0], yFrontView+fan_yz_ext[0:,1], color="grey", zorder=8)    # Left Inlet front view
+            plt.plot(xFrontView+prop_yz_ext[0:,0], yFrontView+prop_yz_ext[0:,1], color="grey", zorder=10)    # Left propeller disk front view
+        if (self.aircraft.arrangement.number_of_engine in ["quadri","hexa"]):
+            plt.fill(xFrontView+nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="white", zorder=6)   # Left nacelle front view
+            plt.plot(xFrontView+nac_yz_int[0:,0], yFrontView+nac_yz_int[0:,1], color="grey", zorder=7)    # Left nacelle front view
+            plt.plot(xFrontView+fan_yz_int[0:,0], yFrontView+fan_yz_int[0:,1], color="grey", zorder=8)    # Left Inlet front view
             if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
-                plt.plot(xFrontView+prop_yz_ext[0:,0], yFrontView+prop_yz_ext[0:,1], color="grey", zorder=10)    # Left propeller disk front view
+                plt.plot(xFrontView+prop_yz_int[0:,0], yFrontView+prop_yz_int[0:,1], color="grey", zorder=10)    # Left propeller disk front view
+        if (self.aircraft.arrangement.number_of_engine=="hexa"):
+            plt.fill(xFrontView+nac_yz_med[0:,0], yFrontView+nac_yz_med[0:,1], color="white", zorder=6)   # Left nacelle front view
+            plt.plot(xFrontView+nac_yz_med[0:,0], yFrontView+nac_yz_med[0:,1], color="grey", zorder=7)    # Left nacelle front view
+            plt.plot(xFrontView+fan_yz_med[0:,0], yFrontView+fan_yz_med[0:,1], color="grey", zorder=8)    # Left Inlet front view
+            if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
+                plt.plot(xFrontView+prop_yz_med[0:,0], yFrontView+prop_yz_med[0:,1], color="grey", zorder=10)    # Left propeller disk front view
 
         if (self.aircraft.arrangement.tank_architecture=="pods"):
             plt.fill(xFrontView-pod_front[0:,0], yFrontView+pod_front[0:,1], color="white", zorder=9)   # Left pod front view

@@ -289,14 +289,14 @@ class Wing(Component):
         self.wing_morphing = get_init(self,"wing_morphing")   # "aspect_ratio_driven" or "span_driven"
         self.area = 60. + 88.*n_pax_ref*design_range*1.e-9
         self.span = None
-        self.aspect_ratio = get_init(self,"aspect_ratio")
+        self.aspect_ratio = get_init(self,"aspect_ratio", val=self.aspect_ratio())
         self.taper_ratio = None
         self.sweep0 = None
         self.sweep25 = None
         self.sweep100 = None
         self.dihedral = None
         self.setting = None
-        self.hld_type = get_init(self,"hld_type")
+        self.hld_type = get_init(self,"hld_type", val=self.high_lift_type())
         self.induced_drag_factor = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -315,6 +315,20 @@ class Wing(Component):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+
+    def aspect_ratio(self):
+        if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): ar = 9
+        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","exef"]): ar = 9
+        elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): ar = 10
+        else: raise Exception("propulsion.architecture index is out of range")
+        return ar
+
+    def high_lift_type(self):
+        if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): hld_type = 9
+        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","exef"]): hld_type = 9
+        elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): hld_type = 2
+        else: raise Exception("propulsion.architecture index is out of range")
+        return hld_type
 
     def eval_geometry(self):
         wing_attachment = self.aircraft.arrangement.wing_attachment
@@ -586,7 +600,7 @@ class VtpClassic(Component):
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
         nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
         wing_area = self.aircraft.airframe.wing.area
         wing_span = self.aircraft.airframe.wing.span
@@ -669,7 +683,7 @@ class VtpTtail(Component):
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
         nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
         wing_area = self.aircraft.airframe.wing.area
         wing_span = self.aircraft.airframe.wing.span
@@ -749,7 +763,7 @@ class VtpHtail(Component):
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
-        reference_thrust = self.aircraft.airframe.nacelle.reference_thrust
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
         nacelle_loc_ext = self.aircraft.airframe.nacelle.frame_origin
         wing_area = self.aircraft.airframe.wing.area
         wing_span = self.aircraft.airframe.wing.span
@@ -1014,9 +1028,9 @@ class TankWingBox(Component):
     def __init__(self, aircraft):
         super(TankWingBox, self).__init__(aircraft)
 
-        self.shell_parameter = get_init(self,"shell_parameter")
+        self.shell_parameter = get_init(self,"shell_parameter", val=self.shell_parameter(aircraft))
         self.shell_density = get_init(self,"shell_density")
-        self.fuel_pressure = get_init(self,"fuel_pressure")
+        self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
         self.fuel_density = None
 
         self.cantilever_volume = None
@@ -1028,6 +1042,16 @@ class TankWingBox(Component):
         self.fuel_max_fwd_mass = None
         self.fuel_max_bwd_cg = None
         self.fuel_max_bwd_mass = None
+
+    def shell_parameter(self, aircraft):
+        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
+        elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
+        else: return unit.Pam3pkg_barLpkg(700.)
+
+    def fuel_pressure(self, aircraft):
+        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pa_bar(10.)
+        elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pa_bar(700.)
+        else: return 0.
 
     def eval_geometry(self):
         body_width = self.aircraft.airframe.body.width
@@ -1097,9 +1121,9 @@ class TankWingPod(Component):
 
         self.span_ratio = get_init(self,"span_ratio")
         self.surface_mass = get_init(self,"surface_mass")
-        self.shell_parameter = get_init(self,"shell_parameter")
+        self.shell_parameter = get_init(self,"shell_parameter", val=self.shell_parameter(aircraft))
         self.shell_density = get_init(self,"shell_density")
-        self.fuel_pressure = get_init(self,"fuel_pressure")
+        self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
         self.fuel_density = None
 
         length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
@@ -1117,6 +1141,16 @@ class TankWingPod(Component):
         self.fuel_max_fwd_mass = None
         self.fuel_max_bwd_cg = None
         self.fuel_max_bwd_mass = None
+
+    def shell_parameter(self, aircraft):
+        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
+        elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
+        else: return unit.Pam3pkg_barLpkg(700.)
+
+    def fuel_pressure(self, aircraft):
+        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pa_bar(10.)
+        elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pa_bar(700.)
+        else: return 0.
 
     def eval_geometry(self):
         body_width = self.aircraft.airframe.body.width
@@ -1182,9 +1216,9 @@ class TankPiggyBack(Component):
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
         self.surface_mass = get_init(self,"surface_mass")
-        self.shell_parameter = get_init(self,"shell_parameter")
+        self.shell_parameter = get_init(self,"shell_parameter", val=self.shell_parameter(aircraft))
         self.shell_density = get_init(self,"shell_density")
-        self.fuel_pressure = get_init(self,"fuel_pressure")
+        self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
         self.fuel_density = None
 
         length = 0.60*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
@@ -1200,6 +1234,16 @@ class TankPiggyBack(Component):
         self.fuel_max_fwd_mass = None
         self.fuel_max_bwd_cg = None
         self.fuel_max_bwd_mass = None
+
+    def shell_parameter(self, aircraft):
+        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
+        elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
+        else: return unit.Pam3pkg_barLpkg(700.)
+
+    def fuel_pressure(self, aircraft):
+        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pa_bar(10.)
+        elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pa_bar(700.)
+        else: return 0.
 
     def eval_geometry(self):
         body_width = self.aircraft.airframe.body.width

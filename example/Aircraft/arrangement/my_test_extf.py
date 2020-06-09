@@ -21,19 +21,19 @@ from marilib.utils.read_write import MarilibIO
 
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
-                   wing_attachment = "high",         # "low" or "high"
-                   stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
+                   wing_attachment = "low",         # "low" or "high"
+                   stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
-                   number_of_engine = "quadri",       # "twin" or "quadri"
+                   number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "ep",       # "tf", "extf", "ep", "ef", "exef",
-                   power_source = "battery",           # "fuel", "battery", "fuel_cell"
-                   fuel_type = "battery")           # "kerosene", "methane", "liquid_h2", "Compressed_h2", "battery"
+                   power_architecture = "extf",       # "tf", "extf", "ef", "exef",
+                   power_source = "fuel",           # "fuel", "battery", "fuel_cell"
+                   fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 40.,
-                   design_range = unit.m_NM(100.),
-                   cruise_mach = 0.55,
-                   cruise_altp = unit.m_ft(20000.))
+reqs = Requirement(n_pax_ref = 150.,
+                   design_range = unit.m_NM(3000.),
+                   cruise_mach = 0.78,
+                   cruise_altp = unit.m_ft(35000.))
 
 
 
@@ -42,17 +42,17 @@ ac = Aircraft("This_plane")
 ac.factory(agmt, reqs)  # WARNING : arrangement must not be changed after this line
 
 
-ac.requirement.take_off.tofl_req = 2500.
+ac.requirement.take_off.tofl_req = 2200.
 
-ac.airframe.nacelle.reference_power = unit.W_kW(2000.)
+
 
 process.mda(ac)
 
 
-var = ["aircraft.airframe.nacelle.reference_thrust",
+var = ["aircraft.airframe.nacelle.cruise_thrust",
        "aircraft.airframe.wing.area"]
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],
+var_bnd = [[unit.N_kN(15.), unit.N_kN(35.)],
            [100., 200.]]
 
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -71,7 +71,7 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 
 crt = "aircraft.weight_cg.mtow"
 
-#process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+# process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
 
 ac.draw.payload_range("This_plot")
@@ -96,7 +96,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["OWE", "kg", "%8.1f", "aircraft.weight_cg.owe"],
         ["MWE", "kg", "%8.1f", "aircraft.weight_cg.mwe"],
         ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.performance.mission.crz_lod"],
-        ["Cruise_SFC", "kg/daN/h", "%8.4f", "aircraft.performance.mission.crz_sfc"],
+        ["Cruise_SFC", "kg/daN/h", "%8.4f", "aircraft.performance.mission.crz_tsfc"],
         ["TOFL", "m", "%8.1f", "aircraft.performance.take_off.tofl_eff"],
         ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.performance.approach.app_speed_eff)"],
         ["OEI_path", "%", "%8.1f", "aircraft.performance.oei_ceiling.path_eff*100"],
@@ -112,7 +112,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
 file = "explore_design.txt"
 
 #res = process.eval_this(ac,var)
-#res = process.explore_design_space(ac, var, step, data, file)
+res = process.explore_design_space(ac, var, step, data, file)
 
 field = 'MTOW'
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC']
@@ -125,7 +125,7 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req)]       # Limit values
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub"])                 # ub: upper bound, lb: lower bound
 
-#process.draw_design_space(file, res, field, const, color, limit, bound)
+process.draw_design_space(file, res, field, const, color, limit, bound)
 
 
 

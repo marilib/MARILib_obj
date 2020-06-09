@@ -404,10 +404,11 @@ class TakeOff(Flight):
 
         cz_to = czmax / kvs1g**2
         mach = self.speed_from_lift(pamb,tamb,cz_to,mass)
+        speed_factor = 0.7
 
         nei = 0    # For Magic Line factor computation
         throttle = 1.
-        dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,throttle,nei)
+        dict = self.aircraft.power_system.thrust(pamb, tamb, speed_factor*mach, rating, throttle,nei)
         fn = kfn*dict["fn"]
 
         ml_factor = mass**2 / (cz_to*fn*self.aircraft.airframe.wing.area*sig**0.8 )  # Magic Line factor

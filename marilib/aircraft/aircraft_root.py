@@ -32,7 +32,7 @@ class Arrangement(object):
                       nacelle_attachment = "wing",     # "wing", "pod" or "rear"
                       power_architecture = "tf",       # "tf", "tp", "ef", "pte1", "ef1", "ep1",
                       power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                      fuel_type = "kerosene"           # "kerosene", "methane", "liquid_h2", "Compressed_h2" or "battery"
+                      fuel_type = "kerosene"           # "kerosene", "liquid_h2", "Compressed_h2" or "battery"
                  ):
 
         self.body_type = body_type
@@ -140,6 +140,7 @@ class Aircraft(object):
 
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.power_architecture=="tf0"):
+            self.power_system = model.Turbofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
                     self.airframe.nacelle = propulsion.InboardWingMountedTf0Nacelle(self)
@@ -158,9 +159,9 @@ class Aircraft(object):
                     raise Exception("Number of engines not allowed")
             else:
                 raise Exception("Type of nacelle attachment is unknown")
-            self.power_system = model.Turbofan(self)
 
         elif (self.arrangement.power_architecture=="tf"):
+            self.power_system = model.Turbofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
                     self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self)
@@ -184,9 +185,9 @@ class Aircraft(object):
                     raise Exception("Number of engines not allowed")
             else:
                 raise Exception("Type of nacelle attachment is unknown")
-            self.power_system = model.Turbofan(self)
 
         elif (self.arrangement.power_architecture=="tp"):
+            self.power_system = model.Turboprop(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
                     self.airframe.nacelle = propulsion.InboardWingMountedTpNacelle(self)
@@ -200,9 +201,9 @@ class Aircraft(object):
                     raise Exception("Number of engines not allowed")
             else:
                 raise Exception("Type of nacelle attachment is not allowed")
-            self.power_system = model.Turboprop(self)
 
         elif (self.arrangement.power_architecture=="ep"):
+            self.power_system = model.Electroprop(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
                     self.airframe.nacelle = propulsion.InboardWingMountedEpNacelle(self)
@@ -212,13 +213,20 @@ class Aircraft(object):
                     self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
                                                          "nacelle","internal_nacelle",
                                                          "vertical_stab","horizontal_stab","tank","system"]
+                elif (self.arrangement.number_of_engine=="hexa"):
+                    self.airframe.nacelle = propulsion.ExternalWingMountedEpNacelle(self)
+                    self.airframe.median_nacelle = propulsion.OutboardWingMountedEpNacelle(self)
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEpNacelle(self)
+                    self.airframe.mass_analysis_order = ["cabin","body","wing","landing_gear","cargo",
+                                                         "nacelle","median_nacelle","internal_nacelle",
+                                                         "vertical_stab","horizontal_stab","tank","system"]
                 else:
                     raise Exception("Number of engines not allowed")
             else:
                 raise Exception("Type of nacelle attachment is not allowed")
-            self.power_system = model.Electroprop(self)
 
         elif (self.arrangement.power_architecture=="ef"):
+            self.power_system = model.Electrofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
                     self.airframe.nacelle = propulsion.InboardWingMountedEfNacelle(self)
@@ -237,9 +245,9 @@ class Aircraft(object):
                     raise Exception("Number of engines not allowed")
             else:
                 raise Exception("Type of nacelle attachment is unknown")
-            self.power_system = model.Electrofan(self)
 
         elif (self.arrangement.power_architecture=="extf"):
+            self.power_system = model.Turbofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
                     self.airframe.nacelle = interface.Inboard_wing_mounted_extf_nacelle(self)
@@ -258,9 +266,9 @@ class Aircraft(object):
                     raise Exception("Number of engines not allowed")
             else:
                 raise Exception("Type of nacelle attachment is unknown")
-            self.power_system = model.Turbofan(self)
 
         elif (self.arrangement.power_architecture=="exef"):
+            self.power_system = model.Electrofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
                     self.airframe.nacelle = interface.Inboard_wing_mounted_exef_nacelle(self)
@@ -279,10 +287,10 @@ class Aircraft(object):
                     raise Exception("Number of engines not allowed")
             else:
                 raise Exception("Type of nacelle attachment is unknown")
-            self.power_system = model.Electrofan(self)
 
 # ----------------------------------------------------------------------------------------------------------------------
         elif (self.arrangement.power_architecture=="pte"):
+            self.power_system = model.PartialTurboElectric(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
                     self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self)
@@ -310,7 +318,6 @@ class Aircraft(object):
                     raise Exception("Number of engines not allowed")
             else:
                 raise Exception("Type of nacelle attachment is unknown")
-            self.power_system = model.PartialTurboElectric(self)
 
         else:
             raise Exception("Type of power architecture is unknown")

@@ -16,7 +16,7 @@ from marilib.utils import earth, unit
 
 from marilib.aircraft.airframe.component import Component
 
-from marilib.aircraft.airframe.propulsion import number_of_engine, init_thrust
+from marilib.aircraft.airframe.model import init_power
 
 from marilib.aircraft.model_config import get_init
 
@@ -77,13 +77,13 @@ class SystemWithBattery(Component):
         vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
         nacelle_cg = self.aircraft.airframe.nacelle.cg
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
 
         self.power_chain_efficiency =   self.wiring_efficiency * self.cooling_efficiency \
                                       * self.aircraft.airframe.nacelle.controller_efficiency \
                                       * self.aircraft.airframe.nacelle.motor_efficiency
 
-        elec_power_max = self.aircraft.airframe.nacelle.reference_power / self.power_chain_efficiency
+        elec_power_max = self.aircraft.power_system.reference_power / self.power_chain_efficiency
 
         self.power_chain_mass = (1./self.wiring_pw_density + 1./self.cooling_pw_density) * (elec_power_max * n_engine)
 
@@ -131,13 +131,13 @@ class SystemWithFuelCell(Component):
         vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
         nacelle_cg = self.aircraft.airframe.nacelle.cg
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
 
         self.power_chain_efficiency =   self.wiring_efficiency * self.cooling_efficiency \
                                       * self.aircraft.airframe.nacelle.controller_efficiency \
                                       * self.aircraft.airframe.nacelle.motor_efficiency
 
-        elec_power_max = self.aircraft.airframe.nacelle.reference_power / self.power_chain_efficiency
+        elec_power_max = self.aircraft.power_system.reference_power / self.power_chain_efficiency
 
         self.fuel_cell_mass = (elec_power_max * n_engine)/self.fuel_cell_pw_density
         self.power_chain_mass =   (1./self.wiring_pw_density + 1./self.cooling_pw_density) * (elec_power_max * n_engine) \
@@ -161,7 +161,7 @@ class SystemPartialTurboElectric(Component):
     def __init__(self, aircraft):
         super(SystemPartialTurboElectric, self).__init__(aircraft)
 
-        self.chain_power = self.__reference_power(aircraft)
+        self.chain_power = get_init(self,"chain_power", val=0.2*init_power(aircraft))
 
         self.generator_efficiency = get_init(self,"generator_efficiency")
         self.generator_pw_density = get_init(self,"generator_pw_density")
@@ -179,10 +179,6 @@ class SystemPartialTurboElectric(Component):
 
         self.power_chain_mass = None
 
-    def __reference_power(self, aircraft):
-        ref_power = 0.1 * 0.5*(1./0.8)*(87.26/0.82)*init_thrust(aircraft)/number_of_engine(aircraft)
-        return ref_power
-
     def eval_geometry(self):
         self.frame_origin = [0., 0., 0.]
 
@@ -194,7 +190,7 @@ class SystemPartialTurboElectric(Component):
         vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
         nacelle_cg = self.aircraft.airframe.nacelle.cg
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
-        n_engine = self.aircraft.airframe.nacelle.n_engine
+        n_engine = self.aircraft.power_system.n_engine
 
         self.power_chain_efficiency =   self.generator_efficiency * self.rectifier_efficiency * self.wiring_efficiency * self.cooling_efficiency \
                                       * self.aircraft.airframe.tail_nacelle.controller_efficiency \

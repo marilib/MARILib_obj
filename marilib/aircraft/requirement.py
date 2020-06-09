@@ -77,14 +77,15 @@ class TakeOffReq(object):
         """
         if(arrangement.number_of_engine == "twin"): s2_min_path = 0.024
      #   elif(arrangement.number_of_engine == "tri"): s2_min_path = 0.027
-        elif(arrangement.number_of_engine >= "quadri"): s2_min_path = 0.030
+        elif(arrangement.number_of_engine == "quadri"): s2_min_path = 0.030
+        elif(arrangement.number_of_engine == "hexa"): s2_min_path = 0.033
         else: raise Exception("number of engine is not permitted")
         return s2_min_path
 
     def __tofl_req(self, requirement):
         if(requirement.design_range <= unit.m_NM(1500.)): tofl_req = 1500.
-        elif(requirement.design_range <= unit.m_NM(3500.)): tofl_req = 2000.
-        elif(requirement.design_range <= unit.m_NM(5500.)): tofl_req = 2500.
+        elif(requirement.design_range <= unit.m_NM(3500.)): tofl_req = 2300.
+        elif(requirement.design_range <= unit.m_NM(5500.)): tofl_req = 2800.
         else: tofl_req = 3000.
         return tofl_req
 
@@ -123,6 +124,7 @@ class OeiCeilingReq(object):
         if(arrangement.number_of_engine == "twin"): oei_min_path = 0.011
      #   elif(arrangement.number_of_engine == "tri"):  oei_min_path = 0.013
         elif(arrangement.number_of_engine >= "quadri"): oei_min_path = 0.016
+        elif(arrangement.number_of_engine >= "hexa"): oei_min_path = 0.019
         else: raise Exception("number of engine is not permitted")
         return oei_min_path
 
@@ -133,15 +135,20 @@ class ClimbReq(object):
     def __init__(self, arrangement, requirement):
         self.disa = get_init(self,"disa")
         self.altp = get_init(self,"altp", val=self.top_of_climb(arrangement,requirement))
-        self.mach = get_init(self,"mach", val=requirement.cruise_mach)
+        self.mach = get_init(self,"mach", val=self.trajectory_speed(arrangement,requirement))
         self.kmtow = get_init(self,"kmtow")
+
+    def trajectory_speed(self, arrangement, requirement):
+        if (arrangement.power_architecture in ["tf0","tf","extf"]): mach = requirement.cruise_mach
+        elif (arrangement.power_architecture in ["ef","pte","exef"]): mach = requirement.cruise_mach
+        elif (arrangement.power_architecture in ["tp","ep"]): mach = requirement.cruise_mach - 0.10
+        else: raise Exception("propulsion.architecture index is out of range")
+        return mach
 
     def top_of_climb(self, arrangement, requirement):
         if (arrangement.power_architecture in ["tf0","tf","extf"]): altp = unit.m_ft(35000.)
-        elif (arrangement.power_architecture=="tp"): altp = unit.m_ft(16000.)
-        elif (arrangement.power_architecture in ["ef","exef"]): altp = unit.m_ft(31000.)
-        elif (arrangement.power_architecture=="ep"): altp = unit.m_ft(16000.)
-        elif (arrangement.power_architecture=="pte"): altp = unit.m_ft(31000.)
+        elif (arrangement.power_architecture in ["ef","pte","exef"]): altp = unit.m_ft(35000.)
+        elif (arrangement.power_architecture in ["tp","ep"]): altp = unit.m_ft(16000.)
         else: raise Exception("propulsion.architecture index is out of range")
         # top_of_climb = min(altp, requirement.cruise_altp - unit.m_ft(4000.))
         return altp
