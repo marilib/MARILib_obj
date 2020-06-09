@@ -21,13 +21,13 @@ from marilib.aircraft.design import process
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
-                   stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
+                   stab_architecture = "h_tail",    # "classic", "t_tail" or "h_tail"
+                   tank_architecture = "piggy_back",# "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin", "quadri" or "hexa"
-                   nacelle_attachment = "wing",     # "wing", "rear" or "pods"
+                   nacelle_attachment = "body_cones",     # "wing", "rear", "pods", "body_cones"
                    power_architecture = "tf",       # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
                    power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                   fuel_type = "kerosene")          # "kerosene", "liquid_h2", "Compressed_h2", "battery"
+                   fuel_type = "liquid_h2")         # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
@@ -39,8 +39,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_thrust = unit.N_kN(160.)
-ac.airframe.wing.area = 128.
+ac.power_system.reference_thrust = unit.N_kN(125.)
+ac.airframe.wing.area = 130.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)

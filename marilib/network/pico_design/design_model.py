@@ -343,7 +343,7 @@ class Fleet(object):
                                 # print("Flight realized at max capacity: npax = ",npax," capa = ",capa," range = ","%.0f"%unit.km_m(dist_eff)," km")
                                 nf = 0
                                 while npax>0.:
-                                    fly_it(i,nflight,capa,capa,dist,dist_eff)
+                                    fly_it(i,nflight,capa,npax,dist,dist_eff)
                                     npax -= capa
                                     nf += 1
                                 # print(nf," times")
@@ -360,7 +360,7 @@ class Fleet(object):
                                 ns = 0
                                 while dist_eff>0.:
                                     dist = max_dist/self.dist_factor
-                                    fly_it(i,nflight,capa,npax,dist,max_dist)
+                                    fly_it(i,nflight,capa,npax,dist,dist_eff)
                                     dist_eff -= max_dist
                                     ns += 1
                                 # print(ns," steps")

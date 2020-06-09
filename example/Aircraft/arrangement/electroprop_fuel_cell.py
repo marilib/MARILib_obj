@@ -30,7 +30,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    fuel_type = "liquid_h2")          # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 19.,
-                   design_range = unit.m_NM(400.),
+                   design_range = unit.m_NM(380.),
                    cruise_mach = 0.55,
                    cruise_altp = unit.m_ft(20000.))
 

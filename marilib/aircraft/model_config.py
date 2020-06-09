@@ -186,10 +186,15 @@ model_config = {
         "x_loc_ratio": [0.5, "no_dim", "Fraction of the tank length behind the wing"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
-    "FuselageTailConeMountedNacelle":{
+    "PiggyBackTailConeMountedNacelle":{
+        "bli_effect": ["yes", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
+        "hub_width": [0.6, "m", "Fan hub diameter"],
+        "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
+    },
+    "BodyTailConeMountedNacelle":{
         "bli_effect": ["yes", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
         "hub_width": [0.4, "m", "Fan hub diameter"],
-        "tail_cone_height_ratio": [0.38, "no_dim", "Relative vertical position of the body tail cone"],
+        "tail_cone_height_ratio": [0.87, "no_dim", "Relative vertical position of the body tail cone"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
     "AllMissionVarMass":{
