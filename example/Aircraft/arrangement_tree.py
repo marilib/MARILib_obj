@@ -27,16 +27,17 @@ ARRANGEMENT_DICT={
           "fuel_type":            ["kerosene", "methane"   , "liquid_h2", "Compressed_h2", "battery", ""  ]
           }
 
-def build_tree(selected_nodes):
+def build_tree():
     """ Keep only the branches of the tree passing through the selected node(s)
     :param selected_node: the list of nodes used for filtering.
     :return: the root node of the tree (anytree.Node)
     """
     # Build the tree of feasible Arrangement choices
-    feasible_settings = Node("Arrangement")  # root node
+    feasible_settings = Node("root")  # root node
     for settings in ARRANGEMENT_DICT.values():  # iterate over all options
         for leaf in feasible_settings.leaves:  # iterate over the "leaves" of the tree
             leaf.children = (Node(setting) for setting in settings if (len(setting)>0 and setting is not "blended"))
+    return feasible_settings
 
 def check_feasible(node):
     """
@@ -58,8 +59,9 @@ def savetext(filename,root_node):
         f.write(content)
 
 
-
-
+tree = build_tree()
+leaf = tree.leaves[0]
+print(leaf)
 
 
 
