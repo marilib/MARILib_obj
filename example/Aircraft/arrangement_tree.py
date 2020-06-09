@@ -2,6 +2,8 @@ from marilib.aircraft import Arrangement
 import matplotlib.pyplot as plt
 from anytree import Node, RenderTree, AsciiStyle, LevelOrderIter
 
+"""Un message pour Pascal"""
+
 agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    wing_type = "classic",           # "classic" or "blended"
                    wing_attachment = "low",         # "low" or "high"
@@ -17,7 +19,6 @@ ARRANGEMENT_DICT={
           "body_type" :           ["fuselage", "blended"   , ""         , ""             , ""       , ""  ],
           "wing_type" :           ["classic" , "blended"   , ""         , ""             , ""       , ""  ],
           "wing_attachment":      ["low"     , "high"      , ""         , ""             , ""       , ""  ],
-          "number_of_engine":     ["twin"    , "quadri"    , ""         , ""             , ""       , ""  ],
           "stab_architecture":    ["classic" , "t_tail"    , "h_tail"   , ""             , ""       , ""  ],
           "tank_architecture":    ["wong_box", "piggy_back", "pods"     , ""             , ""       , ""  ],
           "number_of_engine":     ["twin"    , "quadri"    , ""         , ""             , ""       , ""  ],
@@ -61,7 +62,7 @@ def savetext(filename,root_node):
 
 tree = build_tree()
 leaf = tree.leaves[0]
-print(leaf)
+print(leaf.path)
 
 
 
