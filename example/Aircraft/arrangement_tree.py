@@ -4,16 +4,16 @@ import matplotlib.pyplot as plt
 from anytree import Node, RenderTree, AsciiStyle, LevelOrderGroupIter
 
 ARRANGEMENT_DICT={
-          "body_type" :           ["fuselage", "blended"   , ""         , ""             , ""       , ""  ],
-          "wing_type" :           ["classic" , "blended"   , ""         , ""             , ""       , ""  ],
-          "wing_attachment":      ["low"     , "high"      , ""         , ""             , ""       , ""  ],
-          "stab_architecture":    ["classic" , "t_tail"    , "h_tail"   , ""             , ""       , ""  ],
-          "tank_architecture":    ["wing_box", "piggy_back", "pods"     , ""             , ""       , ""  ],
-          "number_of_engine":     ["twin"    , "quadri"    , ""         , ""             , ""       , ""  ],
-          "nacelle_atttachment" : ["wing"    , "rear"      , "pods"     , ""             , ""       , ""  ],
-          "power_architecture":   ["tf"      , "extf"      , "ef"       , "exef"         , "tp"     , "ep"],
-          "power_source" :        ["fuel"    , "fuel_cell" , "battery"  , ""             , ""       , ""  ],
-          "fuel_type":            ["kerosene", "methane"   , "liquid_h2", "Compressed_h2", "battery", ""  ]
+          "body_type" :           ["fuselage", "blended"   , ""         , ""             , ""       , ""    , ""     ],
+          "wing_type" :           ["classic" , "blended"   , ""         , ""             , ""       , ""    , ""     ],
+          "wing_attachment":      ["low"     , "high"      , ""         , ""             , ""       , ""    , ""     ],
+          "stab_architecture":    ["classic" , "t_tail"    , "h_tail"   , ""             , ""       , ""    , ""     ],
+          "tank_architecture":    ["wing_box", "piggy_back", "pods"     , ""             , ""       , ""    , ""     ],
+          "number_of_engine":     ["twin"    , "quadri"    , "hexa"     , ""             , ""       , ""    , ""     ],
+          "nacelle_attachment" :  ["wing"    , "rear"      , "pods"     , ""             , ""       , ""    , ""     ],
+          "power_architecture":   ["tf"      , "tp"        , "ef"       , "ep"           , "pte"    , "extf", "exef" ],
+          "power_source" :        ["fuel"    , "fuel_cell" , "battery"  , ""             , ""       , ""    , ""     ],
+          "fuel_type":            ["kerosene", "methane"   , "liquid_h2", "Compressed_h2", "battery", ""    , ""     ]
           }
 
 class ArrangementTree(Node):
@@ -54,7 +54,6 @@ class ArrangementTree(Node):
     def filter_feasible(self):
         """
         TODO : filter for feasible arrangement choices
-        :param node: the root node of the tree (type anytree.Node)
         :return:
         """
 
