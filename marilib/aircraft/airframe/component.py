@@ -1215,12 +1215,12 @@ class TankPiggyBack(Component):
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
-        self.surface_mass = get_init(self,"surface_mass")
         self.shell_parameter = get_init(self,"shell_parameter", val=self.shell_parameter(aircraft))
         self.shell_density = get_init(self,"shell_density")
         self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
         self.fuel_density = None
 
+        # Estimations based on fuselage dimension estimation
         length = 0.60*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
         width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
@@ -1277,7 +1277,8 @@ class TankPiggyBack(Component):
         self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.mass =   self.surface_mass * self.gross_wet_area \
+        # Tank structural mass makes use of statistical regression versus fuselage built surface
+        self.mass =   5.47*(np.pi*self.width*self.length)**1.2 \
                    + (self.fuel_pressure/self.shell_parameter)*self.max_volume
         self.cg = self.frame_origin[0] + 0.45*np.array([self.length, 0., 0.])
 

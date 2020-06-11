@@ -90,7 +90,6 @@ model_config = {
         "x_loc_ratio": [0.4, "no_dim", "Fraction of the tank length behind the wing"],
         "length": ["function", "m", "Length of the tank"],
         "width": ["function", "m", "Diameter of the tank"],
-        "surface_mass": [10., "kg/m2", "Mass per surface unit of the tank structure"],
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"]
