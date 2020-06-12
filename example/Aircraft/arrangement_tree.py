@@ -13,11 +13,49 @@ ARRANGEMENT_DICT={
           "nacelle_attachment" :  ["wing"    , "rear"      , "pods"     , ""             , ""       , ""    , ""     ],
           "power_architecture":   ["tf"      , "tp"        , "ef"       , "ep"           , "pte"    , "extf", "exef" ],
           "power_source" :        ["fuel"    , "fuel_cell" , "battery"  , ""             , ""       , ""    , ""     ],
-          "fuel_type":            ["kerosene", "methane"   , "liquid_h2", "Compressed_h2", "battery", ""    , ""     ]
+          "fuel_type":            ["kerosene", "methane"   , "liquid_h2", "compressed_h2", "battery", ""    , ""     ]
           }
 
+INCOMPATIBILITY_DICT={
+        "body_type" : {"fuselage" : {"wing_type" : ["blended"]},
+                       "blended" : {"wing_type": ["classic"]}
+                       },
+        "wing_type" : None , # No incompatibility
+        "wing_attachement": None ,
+        "stab_architecture": {"classic" : {"nacelle_attachment":["rear"],
+                                           "tank_architecture": ["piggy_back"]},
+                              "h_tail"  : {"nacelle_attachment":["rear"]},
+                              "t_tail"  : {"tank_architecture": ["piggy_back"]}
+                              },
+        "tank_architecture": {"pods"      : {"number_of_engine":["quadri","hexa"]},
+                              "wing_box"  : {"nacelle_attachment":["pods"]},
+                              "piggy_back": {"nacelle_attachment":["pods"]}
+                              },
+        "number_of_engine": None, # already listed in tank_architecture
+        "nacelle_attachment": None, # already listed in stab_architecture and tank_architecture
+        "power_architecture": {"tf"  :{"power_source":["fuel_cell","battery"],
+                                       "fuel_type":["battery"]},
+                               "tp"  :{"power_source":["fuel_cell","battery"],
+                                       "fuel_type":["battery"]},
+                               "ef"  :{"power_source":["fuel"],
+                                       "fuel_type":["kerosene","methane"]},
+                               "ep"  :{"power_source":["fuel"],
+                                       "fuel_type":["kerosene","methane"]},
+                               "pte" :{"power_source":[]},                      # TODO: is pte compatible with all power sources ?
+                               "extf":{"power_source":["fuel_cell","battery"],
+                                       "fuel_type":["battery"]},
+                               "exef":{"power_source":["fuel"],
+                                       "fuel_type":["kerosene","methane"]},
+                               },
+        "power_source": {"fuel"     : {"fuel_type":["battery"]},
+                         "fuel_cell": {"fuel_type":["kerosene","methane","battery"]},
+                         "battery"  : {"fuel_type":["kerosene","methane","liquid_h2","compressed_h2"]}
+                         },
+        "fuel_type": None
+}
+
 class ArrangementTree(Node):
-    """A custom anytree.Node object to describe all feasible arrangement choices"""
+    """A custom anytree.Node object to describe all feasible arrangement"""
     def __init__(self,**kwargs):
         """ Keep only the branches of the tree passing through the selected node(s)
         :param **kwargs: the Arrangement settings that are set to a desired value. Example::
