@@ -216,8 +216,8 @@ class MissionVarMassGeneric(Flight):
 
         x_ini = np.zeros(2)
         for k,key in enumerate(vars):              # load init values from object
-            if (key=="fuel_total"): x_ini[k] = 0.25*owe
-            elif (key=="payload"): x_ini[k] = 0.25*owe
+            if (key=="fuel_total"): x_ini[k] = self.aircraft.airframe.cabin.nominal_payload
+            elif (key=="payload"): x_ini[k] = self.aircraft.airframe.cabin.nominal_payload
             elif (key=="range"): x_ini[k] = self.aircraft.requirement.design_range
             elif (key=="tow"): x_ini[k] = self.aircraft.weight_cg.mtow
         output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
@@ -453,8 +453,8 @@ class MissionIsoMassGeneric(Flight):
 
         x_ini = np.zeros(2)
         for k,key in enumerate(vars):              # load init values from object
-            if (key=="fuel_total"): x_ini[k] = 0.25*owe
-            elif (key=="payload"): x_ini[k] = 0.25*owe
+            if (key=="fuel_total"): x_ini[k] = self.aircraft.airframe.cabin.nominal_payload
+            elif (key=="payload"): x_ini[k] = self.aircraft.airframe.cabin.nominal_payload
             elif (key=="range"): x_ini[k] = self.aircraft.requirement.design_range
             elif (key=="tow"): x_ini[k] = self.aircraft.weight_cg.mtow
         output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)

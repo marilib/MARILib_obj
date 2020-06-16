@@ -90,7 +90,6 @@ model_config = {
         "x_loc_ratio": [0.4, "no_dim", "Fraction of the tank length behind the wing"],
         "length": ["function", "m", "Length of the tank"],
         "width": ["function", "m", "Diameter of the tank"],
-        "surface_mass": [10., "kg/m2", "Mass per surface unit of the tank structure"],
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"]
@@ -186,10 +185,15 @@ model_config = {
         "x_loc_ratio": [0.5, "no_dim", "Fraction of the tank length behind the wing"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
-    "FuselageTailConeMountedNacelle":{
+    "PiggyBackTailConeMountedNacelle":{
+        "bli_effect": ["yes", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
+        "hub_width": [0.6, "m", "Fan hub diameter"],
+        "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
+    },
+    "BodyTailConeMountedNacelle":{
         "bli_effect": ["yes", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
         "hub_width": [0.4, "m", "Fan hub diameter"],
-        "tail_cone_height_ratio": [0.38, "no_dim", "Relative vertical position of the body tail cone"],
+        "tail_cone_height_ratio": [0.87, "no_dim", "Relative vertical position of the body tail cone"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
     "AllMissionVarMass":{

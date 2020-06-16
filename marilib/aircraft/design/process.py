@@ -15,6 +15,7 @@ Allow you to draw design space charts.
 """
 
 import numpy as np
+from copy import deepcopy
 
 from scipy import interpolate
 from scipy.optimize import SR1, NonlinearConstraint, minimize
@@ -136,7 +137,9 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
     return res
 
 
-def explore_design_space(aircraft, var, step, data, file):
+def explore_design_space(ac, var, step, data, file):
+
+    aircraft = deepcopy(ac)
 
     res = eval_this(aircraft,var)
 

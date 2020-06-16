@@ -103,15 +103,24 @@ class RearFuselageMountedNacelle(Component):
 
         return np.array([x_int, y_int, z_int])
 
-class FuselageTailConeMountedNacelle(Component):
+class BodyTailConeMountedNacelle(Component):
 
     def __init__(self, aircraft):
-        super(FuselageTailConeMountedNacelle, self).__init__(aircraft)
+        super(BodyTailConeMountedNacelle, self).__init__(aircraft)
 
-        self.tail_cone_height_ratio = get_init("FuselageTailConeMountedNacelle","tail_cone_height_ratio")
-        self.specific_nacelle_cost = get_init("FuselageTailConeMountedNacelle","specific_nacelle_cost")
+        self.tail_cone_height_ratio = get_init("BodyTailConeMountedNacelle","tail_cone_height_ratio")
+        self.specific_nacelle_cost = get_init("BodyTailConeMountedNacelle","specific_nacelle_cost")
+        self.bli_effect = get_init("BodyTailConeMountedNacelle","bli_effect")
+        self.hub_width = get_init("BodyTailConeMountedNacelle","hub_width")
+        self.body_width = None
+        self.body_length = None
+        self.bnd_layer = None
 
     def locate_nacelle(self):
+        self.body_width = self.aircraft.airframe.body.width
+        self.body_length = self.aircraft.airframe.body.length
+        self.bnd_layer = self.aircraft.aerodynamics.tail_cone_boundary_layer(self.body_width,self.hub_width)
+
         body_origin = self.aircraft.airframe.body.frame_origin
         body_height = self.aircraft.airframe.body.height
         body_length = self.aircraft.airframe.body.length
@@ -130,8 +139,17 @@ class PodTailConeMountedNacelle(Component):
         self.lateral_margin = get_init("PodTailConeMountedNacelle","lateral_margin")
         self.x_loc_ratio = get_init("PodTailConeMountedNacelle","x_loc_ratio")
         self.specific_nacelle_cost = get_init("PodTailConeMountedNacelle","specific_nacelle_cost")
+        self.hub_width = get_init("PodTailConeMountedNacelle","hub_width")
+        self.bli_effect = get_init("PodTailConeMountedNacelle","bli_effect")
+        self.body_width = None
+        self.body_length = None
+        self.bnd_layer = None
 
     def locate_nacelle(self):
+        self.body_width = self.aircraft.airframe.tank.width
+        self.body_length = self.aircraft.airframe.tank.length
+        self.bnd_layer = self.aircraft.aerodynamics.tail_cone_boundary_layer(self.body_width,self.hub_width)
+
         body_width = self.aircraft.airframe.body.width
         wing_root_loc = self.aircraft.airframe.wing.root_loc
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
@@ -150,6 +168,7 @@ class PodTailConeMountedNacelle(Component):
         x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - self.x_loc_ratio*tank_length
         z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral)
 
+        # Re-locate tank pods
         self.aircraft.airframe.tank.frame_origin = [x_axe, y_axe, z_axe]
 
         # Locate nacelle
@@ -158,6 +177,32 @@ class PodTailConeMountedNacelle(Component):
         z_int = z_axe
 
         return np.array([x_int, y_int, z_int])
+
+class PiggyBackTailConeMountedNacelle(Component):
+
+    def __init__(self, aircraft):
+        super(PiggyBackTailConeMountedNacelle, self).__init__(aircraft)
+
+        self.specific_nacelle_cost = get_init("PiggyBackTailConeMountedNacelle","specific_nacelle_cost")
+        self.hub_width = get_init("PiggyBackTailConeMountedNacelle","hub_width")
+        self.bli_effect = get_init("PiggyBackTailConeMountedNacelle","bli_effect")
+        self.body_width = None
+        self.body_length = None
+        self.bnd_layer = None
+
+    def locate_nacelle(self):
+        self.body_width = self.aircraft.airframe.tank.width
+        self.body_length = self.aircraft.airframe.tank.length
+        self.bnd_layer = self.aircraft.aerodynamics.tail_cone_boundary_layer(self.body_width,self.hub_width)
+
+        tank_frame = self.aircraft.airframe.tank.frame_origin
+
+        # Locate nacelle
+        y_axe = tank_frame[1]
+        x_axe = tank_frame[0] + self.aircraft.airframe.tank.length
+        z_axe = tank_frame[2]
+
+        return np.array([x_axe, y_axe, z_axe])
 
 
 class RatingFactor(object):
@@ -220,7 +265,6 @@ class SemiEmpiricTf0Nacelle(Component):
         self.aircraft.power_system.update_power_transfert()
 
         reference_thrust = self.aircraft.power_system.reference_thrust
-        n_engine = self.aircraft.power_system.n_engine
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         mach = 0.25
@@ -252,7 +296,7 @@ class SemiEmpiricTf0Nacelle(Component):
         self.length = 0.86*self.width + self.engine_bpr**0.37      # statistical regression
 
         knac = np.pi * self.width * self.length
-        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*n_engine       # statistical regression, all engines
+        self.gross_wet_area = knac*(1.48 - 0.0076*knac)       # statistical regression, all engines
         self.net_wet_area = self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.15
@@ -261,9 +305,8 @@ class SemiEmpiricTf0Nacelle(Component):
 
     def eval_mass(self):
         reference_thrust = self.aircraft.power_system.reference_thrust
-        n_engine = self.aircraft.power_system.n_engine
-        self.engine_mass = (1250. + 0.021*reference_thrust*self.thrust_factor)*n_engine       # statistical regression, all engines
-        self.pylon_mass = 0.0031*reference_thrust*self.thrust_factor*n_engine
+        self.engine_mass = (1250. + 0.021*reference_thrust*self.thrust_factor)       # statistical regression, all engines
+        self.pylon_mass = 0.0031*reference_thrust*self.thrust_factor
         self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
@@ -385,6 +428,8 @@ class SemiEmpiricTfNacelle(Component):
         # Design nacelle according to this shaft power in cruise condition
         self.turbofan_nacelle_design(pamb,tamb,mach,shaft_power)
 
+        self.frame_origin = self.locate_nacelle()
+
         mach = 0.25
         disa = 15.
         altp = 0.
@@ -395,8 +440,6 @@ class SemiEmpiricTfNacelle(Component):
 
         # Set tune factor so that output of unitary_thrust matches the definition of the reference thrust
         self.tune_factor = reference_thrust / (dict["fn"]/0.80)
-
-        self.frame_origin = self.locate_nacelle()
 
     def fan_shaft_power(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Fan shaft power of a pure turbofan engine (semi-empirical model)
@@ -424,8 +467,6 @@ class SemiEmpiricTfNacelle(Component):
     def turbofan_nacelle_design(self,Pamb,Tamb,Mach,shaft_power):
         """Electrofan nacelle design
         """
-        n_engine = self.aircraft.power_system.n_engine
-
         r,gam,Cp,Cv = earth.gas_data()
         Vair = Mach * earth.sound_speed(Tamb)
 
@@ -465,7 +506,7 @@ class SemiEmpiricTfNacelle(Component):
         self.width = 1.15*fan_width      # Surrounding structure
         self.length = 1.50*self.width
 
-        self.gross_wet_area = np.pi*self.width*self.length*n_engine
+        self.gross_wet_area = np.pi*self.width*self.length
         self.net_wet_area = self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.15
@@ -479,16 +520,14 @@ class SemiEmpiricTfNacelle(Component):
         return cqoa
 
     def eval_mass(self):
-        n_engine = self.aircraft.power_system.n_engine
-
         mach = 0.25
         disa = 15.
         altp = 0.
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
         dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO",pw_offtake=self.reference_offtake)
         eff_ref_thrust = dict["fn"]/0.8
-        self.engine_mass = (1250. + 0.021*eff_ref_thrust)*n_engine     # statistical regression, all engines
-        self.pylon_mass = 0.0031*eff_ref_thrust*n_engine
+        self.engine_mass = (1250. + 0.021*eff_ref_thrust)     # statistical regression, all engines
+        self.pylon_mass = 0.0031*eff_ref_thrust
         self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.]) # statistical regression
 
@@ -593,63 +632,9 @@ class SemiEmpiricTfNacelle(Component):
 
         return {"sfc":sfc, "thtl":thtl, "t4":None}
 
-class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboradWingMountedNacelle):
+class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
     def __init__(self, aircraft):
-        super(OutboardWingMountedTfNacelle, self).__init__(aircraft)
-
-class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboradWingMountedNacelle):
-    def __init__(self, aircraft):
-        super(InboardWingMountedTfNacelle, self).__init__(aircraft)
-
-class RearFuselageMountedTfNacelle(SemiEmpiricTfNacelle,RearFuselageMountedNacelle):
-    def __init__(self, aircraft):
-        super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
-
-class PodTailConeMountedTfNacelle(SemiEmpiricTfNacelle,PodTailConeMountedNacelle):
-    def __init__(self, aircraft):
-        super(PodTailConeMountedTfNacelle, self).__init__(aircraft)
-        self.bli_effect = get_init("PodTailConeMountedNacelle","bli_effect")
-        self.hub_width = get_init("PodTailConeMountedNacelle","hub_width")
-        self.body_width = None
-        self.body_length = None
-        self.bnd_layer = None
-
-    def eval_geometry(self):
-        self.body_width = self.aircraft.airframe.tank.width
-        self.body_length = self.aircraft.airframe.tank.length
-        self.bnd_layer = self.tail_cone_boundary_layer(self.body_width,self.hub_width)
-
-        # Update power transfert in case of hybridization, here : set power offtake
-        self.aircraft.power_system.update_power_transfert()
-
-        reference_thrust = self.aircraft.power_system.reference_thrust
-
-        disa = self.aircraft.requirement.cruise_disa
-        altp = self.aircraft.requirement.cruise_altp
-        mach = self.aircraft.requirement.cruise_mach
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-
-        # Reset tune factor
-        self.tune_factor = 1.
-
-        # Get fan shaft power in cruise condition
-        shaft_power,core_thrust = self.fan_shaft_power(pamb,tamb,mach,"MCR",throttle=1.,pw_offtake=self.reference_offtake)
-
-        # Design nacelle according to this shaft power in cruise condition
-        self.turbofan_nacelle_design(pamb,tamb,mach,shaft_power)
-
-        mach = 0.25
-        disa = 15.
-        altp = 0.
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-
-        # Compute thrust of this nacelle in reference conditions
-        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO",pw_offtake=self.reference_offtake)
-
-        # Set tune factor so that output of unitary_thrust matches the definition of the reference thrust
-        self.tune_factor = reference_thrust / (dict["fn"]/0.80)
-
-        self.frame_origin = self.locate_nacelle()
+        super(SemiEmpiricTfBliNacelle, self).__init__(aircraft)
 
     def air_flow(self,rho,vair,r,d,y):
         """Air flows and averaged speed at rear end of a cylinder of radius r mouving at vair in the direction of its axes,
@@ -665,55 +650,10 @@ class PodTailConeMountedTfNacelle(SemiEmpiricTfNacelle,PodTailConeMountedNacelle
         dv = vair - v1      # Mean air flow speed variation at y_elev
         return q0,q1,q2,v1,dv
 
-    def specific_air_flow(self,r,d,y):
-        """Specific air flows and speeds at rear end of a cylinder of radius r mouving at Vair in the direction of its axes,
-           y is the elevation upon the surface of the cylinder : 0 < y < inf
-        Qs = Q/(rho*Vair)
-        Vs = V/Vair
-        WARNING : even if all mass flows are positive,
-        Q0 and Q1 are going backward in fuselage frame, Q2 is going forward in ground frame
-        """
-        n = 1/7     # exponent in the formula of the speed profile inside a turbulent BL of thickness d : Vy/Vair = (y/d)^(1/7)
-        q0s = (2.*np.pi)*( r*y + 0.5*y**2 )     # Cumulated specific air flow at y, without BL, AIRPLANE FRAME
-        ym = min(y,d)
-        q1s = (2.*np.pi)*d*( (r/(n+1))*(ym/d)**(n+1) + (d/(n+2))*(ym/d)**(n+2) )    # Cumulated specific air flow at y inside of the BL, AIRPLANE FRAME
-        if y>d: q1s = q1s + q0s - (2.*np.pi)*( r*d + 0.5*d**2 )                     # Add to Q1 the specific air flow outside of the BL, AIRPLANE FRAME
-        q2s = q0s - q1s     # Cumulated specific air flow at y, inside the BL, GROUND FRAME (going speed wise)
-        v1s = (q1s/q0s)     # Averaged specific speed of Q1 air flow at y
-        dVs = (1. - v1s)    # Averaged specific air flow speed variation at y
-        return q0s,q1s,q2s,v1s,dVs
-
     def boundary_layer(self,re,x_length):
         """Thickness of a turbulent boundary layer which developped turbulently from its starting point
         """
         return (0.385*x_length)/(re*x_length)**(1./5.)
-
-    def tail_cone_boundary_layer(self,body_width,hub_width):
-        """Compute the increase of BL thickness due to the fuselage tail cone tapering
-        Compute the relation between d0 and d1
-        d0 : boundary layer thickness around a tube of constant diameter
-        d1 : boundary layer thickness around the tapered part of the tube, the nacelle hub in fact
-        """
-        r0 = 0.5 * body_width   # Radius of the fuselage, supposed constant
-        r1 = 0.5 * hub_width    # Radius of the hub of the efan nacelle
-
-        def fct(d1,r1,d0,r0):
-            q0s0,q1s0,q2s0,v1s0,dvs0 = self.specific_air_flow(r0,d0,d0)
-            q0s1,q1s1,q2s1,v1s1,dvs1 = self.specific_air_flow(r1,d1,d1)
-            y = q2s0 - q2s1
-            return y
-
-        n = 25
-        yVein = np.linspace(0.001,1.50,n)
-        body_bnd_layer = np.zeros((n,2))
-
-        for j in range (0, n-1):
-            fct1s = (r1,yVein[j],r0)
-            # computation of d1 theoretical thickness of the boundary layer that passes the same air flow around the hub
-            body_bnd_layer[j,0] = yVein[j]
-            body_bnd_layer[j,1] = fsolve(fct,yVein[j],fct1s)
-
-        return body_bnd_layer
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         if self.bli_effect=="yes":
@@ -825,6 +765,30 @@ class PodTailConeMountedTfNacelle(SemiEmpiricTfNacelle,PodTailConeMountedNacelle
 
         return {"thtl":thtl}
 
+class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(OutboardWingMountedTfNacelle, self).__init__(aircraft)
+
+class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(InboardWingMountedTfNacelle, self).__init__(aircraft)
+
+class RearFuselageMountedTfNacelle(SemiEmpiricTfNacelle,RearFuselageMountedNacelle):
+    def __init__(self, aircraft):
+        super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
+
+class BodyTailConeMountedTfNacelle(SemiEmpiricTfBliNacelle,BodyTailConeMountedNacelle):
+    def __init__(self, aircraft):
+        super(BodyTailConeMountedTfNacelle, self).__init__(aircraft)
+
+class PodTailConeMountedTfNacelle(SemiEmpiricTfBliNacelle,PodTailConeMountedNacelle):
+    def __init__(self, aircraft):
+        super(PodTailConeMountedTfNacelle, self).__init__(aircraft)
+
+class PiggyBackTailConeMountedTfNacelle(SemiEmpiricTfBliNacelle,PiggyBackTailConeMountedNacelle):
+    def __init__(self, aircraft):
+        super(PiggyBackTailConeMountedTfNacelle, self).__init__(aircraft)
+
 
 class SemiEmpiricTpNacelle(Component):
 
@@ -861,7 +825,6 @@ class SemiEmpiricTpNacelle(Component):
 
     def eval_geometry(self):
         reference_power = self.aircraft.power_system.reference_power
-        n_engine = self.aircraft.power_system.n_engine
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         mach = 0.25
@@ -878,7 +841,7 @@ class SemiEmpiricTpNacelle(Component):
         self.width = 0.25*(reference_power/1.e3)**0.2        # statistical regression
         self.length = 0.84*(reference_power/1.e3)**0.2       # statistical regression
 
-        self.gross_wet_area = 2.8*(self.width*self.length)*n_engine     # statistical regression
+        self.gross_wet_area = 2.8*(self.width*self.length)     # statistical regression
         self.net_wet_area = 0.80*self.gross_wet_area
         self.net_wet_area = self.gross_wet_area
         self.aero_length = self.length
@@ -888,10 +851,9 @@ class SemiEmpiricTpNacelle(Component):
 
     def eval_mass(self):
         reference_power = self.aircraft.power_system.reference_power
-        n_engine = self.aircraft.power_system.n_engine
 
-        self.engine_mass = (0.633*(reference_power/1.e3)**0.9)*n_engine       # statistical regression
-        self.propeller_mass = (165./1.5e6)*reference_power * n_engine
+        self.engine_mass = (0.633*(reference_power/1.e3)**0.9)       # statistical regression
+        self.propeller_mass = (165./1.5e6)*reference_power
         self.mass = self.engine_mass + self.propeller_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
@@ -972,7 +934,6 @@ class SemiEmpiricEpNacelle(Component):
 
     def eval_geometry(self):
         reference_power = self.aircraft.power_system.reference_power
-        n_engine = self.aircraft.power_system.n_engine
 
         # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
         mach = 0.25
@@ -989,7 +950,7 @@ class SemiEmpiricEpNacelle(Component):
         self.width = 0.15*(reference_power/1.e3)**0.2        # statistical regression
         self.length = 0.55*(reference_power/1.e3)**0.2       # statistical regression
 
-        self.gross_wet_area = 2.8*(self.width*self.length)*n_engine     # statistical regression
+        self.gross_wet_area = 2.8*(self.width*self.length)     # statistical regression
         self.net_wet_area = 0.80*self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.15
@@ -998,12 +959,11 @@ class SemiEmpiricEpNacelle(Component):
 
     def eval_mass(self):
         reference_power = self.aircraft.power_system.reference_power
-        n_engine = self.aircraft.power_system.n_engine
 
         self.engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
                             + 1./self.nacelle_pw_density
-                           ) * reference_power * n_engine
-        self.propeller_mass = (165./1.5e6)*reference_power * n_engine
+                           ) * reference_power
+        self.propeller_mass = (165./1.5e6)*reference_power
         self.mass = self.engine_mass + self.propeller_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
@@ -1080,7 +1040,7 @@ class SemiEmpiricEfNacelle(Component):
         return (self.vertical_margin - 0.45)*self.width
 
     def eval_geometry(self):
-        reference_power = self.aircraft.power_system.reference_power
+        reference_power = self.aircraft.power_system.get_reference_power()
 
         # Electric fan geometry is design for MCR in cruise condition
         disa = self.aircraft.requirement.cruise_disa
@@ -1101,20 +1061,17 @@ class SemiEmpiricEfNacelle(Component):
     def eval_mass(self):
         reference_power = self.aircraft.power_system.get_reference_power()
         reference_thrust = self.aircraft.power_system.get_reference_thrust()
-        n_engine = self.aircraft.power_system.n_engine
 
         self.engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
                             + 1./self.nacelle_pw_density
-                          ) * reference_power * n_engine
-        self.pylon_mass = 0.0031*reference_thrust*n_engine
+                          ) * reference_power
+        self.pylon_mass = 0.0031*reference_thrust
         self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
     def efan_nacelle_design(self,Pamb,Tamb,Mach,shaft_power):
         """Electrofan nacelle design
         """
-        n_engine = self.aircraft.power_system.n_engine
-
         r,gam,Cp,Cv = earth.gas_data()
         Vair = Mach * earth.sound_speed(Tamb)
 
@@ -1153,7 +1110,7 @@ class SemiEmpiricEfNacelle(Component):
         self.width = 1.15*fan_width      # Surrounding structure
         self.length = 1.50*self.width
 
-        self.gross_wet_area = np.pi*self.width*self.length*n_engine
+        self.gross_wet_area = np.pi*self.width*self.length
         self.net_wet_area = self.gross_wet_area
 
     def corrected_air_flow(self,Ptot,Ttot,Mach):
@@ -1270,60 +1227,9 @@ class SemiEmpiricEfNacelle(Component):
 
         return {"sec":sec, "thtl":throttle}
 
-class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboradWingMountedNacelle):
+class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
     def __init__(self, aircraft):
-        super(OutboardWingMountedEfNacelle, self).__init__(aircraft)
-
-class InboardWingMountedEfNacelle(SemiEmpiricEfNacelle,InboradWingMountedNacelle):
-    def __init__(self, aircraft):
-        super(InboardWingMountedEfNacelle, self).__init__(aircraft)
-
-class RearFuselageMountedEfNacelle(SemiEmpiricEfNacelle,RearFuselageMountedNacelle):
-    def __init__(self, aircraft):
-        super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
-
-class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMountedNacelle):
-    def __init__(self, aircraft):
-        super(FuselageTailConeMountedEfNacelle, self).__init__(aircraft)
-        self.n_engine = 1
-        self.reference_power = self.aircraft.airframe.system.chain_power
-        self.bli_effect = get_init("FuselageTailConeMountedNacelle","bli_effect")
-        self.hub_width = get_init("FuselageTailConeMountedNacelle","hub_width")
-        self.body_width = None
-        self.body_length = None
-        self.bnd_layer = None
-
-    def eval_geometry(self):
-        self.reference_power = self.aircraft.airframe.system.chain_power
-        self.body_width = self.aircraft.airframe.body.width
-        self.body_length = self.aircraft.airframe.body.length
-        self.bnd_layer = self.tail_cone_boundary_layer(self.body_width,self.hub_width)
-
-        # Electric fan geometry is design for MCR in cruise condition
-        disa = self.aircraft.requirement.cruise_disa
-        altp = self.aircraft.requirement.cruise_altp
-        mach = self.aircraft.requirement.cruise_mach
-
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-
-        shaft_power = self.reference_power*self.rating_factor.MCR
-
-        self.efan_nacelle_design(pamb,tamb,mach,shaft_power)
-
-        self.aero_length = self.length
-        self.form_factor = 1.15
-
-        self.frame_origin = self.locate_nacelle()
-
-        # info : reference_thrust is defined by thrust(mach=0.25, altp=0, disa=15) / 0.80
-        mach = 0.25
-        disa = 15.
-        altp = 0.
-
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-
-        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO")
-        self.reference_thrust = dict["fn"] / 0.80
+        super(SemiEmpiricEfBliNacelle, self).__init__(aircraft)
 
     def air_flow(self,rho,vair,r,d,y):
         """Air flows and averaged speed at rear end of a cylinder of radius r mouving at vair in the direction of its axes,
@@ -1339,55 +1245,10 @@ class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMoun
         dv = vair - v1      # Mean air flow speed variation at y_elev
         return q0,q1,q2,v1,dv
 
-    def specific_air_flow(self,r,d,y):
-        """Specific air flows and speeds at rear end of a cylinder of radius r mouving at Vair in the direction of its axes,
-           y is the elevation upon the surface of the cylinder : 0 < y < inf
-        Qs = Q/(rho*Vair)
-        Vs = V/Vair
-        WARNING : even if all mass flows are positive,
-        Q0 and Q1 are going backward in fuselage frame, Q2 is going forward in ground frame
-        """
-        n = 1/7     # exponent in the formula of the speed profile inside a turbulent BL of thickness d : Vy/Vair = (y/d)^(1/7)
-        q0s = (2.*np.pi)*( r*y + 0.5*y**2 )     # Cumulated specific air flow at y, without BL, AIRPLANE FRAME
-        ym = min(y,d)
-        q1s = (2.*np.pi)*d*( (r/(n+1))*(ym/d)**(n+1) + (d/(n+2))*(ym/d)**(n+2) )    # Cumulated specific air flow at y inside of the BL, AIRPLANE FRAME
-        if y>d: q1s = q1s + q0s - (2.*np.pi)*( r*d + 0.5*d**2 )                     # Add to Q1 the specific air flow outside of the BL, AIRPLANE FRAME
-        q2s = q0s - q1s     # Cumulated specific air flow at y, inside the BL, GROUND FRAME (going speed wise)
-        v1s = (q1s/q0s)     # Averaged specific speed of Q1 air flow at y
-        dVs = (1. - v1s)    # Averaged specific air flow speed variation at y
-        return q0s,q1s,q2s,v1s,dVs
-
     def boundary_layer(self,re,x_length):
         """Thickness of a turbulent boundary layer which developped turbulently from its starting point
         """
         return (0.385*x_length)/(re*x_length)**(1./5.)
-
-    def tail_cone_boundary_layer(self,body_width,hub_width):
-        """Compute the increase of BL thickness due to the fuselage tail cone tapering
-        Compute the relation between d0 and d1
-        d0 : boundary layer thickness around a tube of constant diameter
-        d1 : boundary layer thickness around the tapered part of the tube, the nacelle hub in fact
-        """
-        r0 = 0.5 * body_width   # Radius of the fuselage, supposed constant
-        r1 = 0.5 * hub_width    # Radius of the hub of the efan nacelle
-
-        def fct(d1,r1,d0,r0):
-            q0s0,q1s0,q2s0,v1s0,dvs0 = self.specific_air_flow(r0,d0,d0)
-            q0s1,q1s1,q2s1,v1s1,dvs1 = self.specific_air_flow(r1,d1,d1)
-            y = q2s0 - q2s1
-            return y
-
-        n = 25
-        yVein = np.linspace(0.001,1.50,n)
-        body_bnd_layer = np.zeros((n,2))
-
-        for j in range (0, n-1):
-            fct1s = (r1,yVein[j],r0)
-            # computation of d1 theoretical thickness of the boundary layer that passes the same air flow around the hub
-            body_bnd_layer[j,0] = yVein[j]
-            body_bnd_layer[j,1] = fsolve(fct,yVein[j],fct1s)
-
-        return body_bnd_layer
 
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         if self.bli_effect=="yes":
@@ -1413,7 +1274,8 @@ class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMoun
             q = CQoA1*self.nozzle_area
             return q1 - q
 
-        pw_shaft = self.reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
+        reference_power = self.aircraft.power_system.get_reference_power()
+        pw_shaft = reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
         pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
 
         Re = earth.reynolds_number(pamb,tamb,mach)
@@ -1468,6 +1330,8 @@ class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMoun
             eFn = q*(Vjet - Vinlet)
             return [q1-q, thrust-eFn]
 
+        reference_power = self.aircraft.power_system.get_reference_power()
+
         Re = earth.reynolds_number(pamb,tamb,mach)
         rho,sig = earth.air_density(pamb,tamb)
         Vair = mach * earth.sound_speed(tamb)
@@ -1482,7 +1346,7 @@ class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMoun
 
         CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
         q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
-        PWinit = self.reference_power*getattr(self.rating_factor,rating) - pw_offtake
+        PWinit = reference_power*getattr(self.rating_factor,rating) - pw_offtake
         x_init = [q0init,PWinit]
 
         # Computation of both air flow and shaft power
@@ -1502,6 +1366,23 @@ class FuselageTailConeMountedEfNacelle(SemiEmpiricEfNacelle,FuselageTailConeMoun
         sec = pw_elec/eFn
 
         return {"sec":sec, "thtl":throttle}
+
+class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(OutboardWingMountedEfNacelle, self).__init__(aircraft)
+
+class InboardWingMountedEfNacelle(SemiEmpiricEfNacelle,InboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(InboardWingMountedEfNacelle, self).__init__(aircraft)
+
+class RearFuselageMountedEfNacelle(SemiEmpiricEfNacelle,RearFuselageMountedNacelle):
+    def __init__(self, aircraft):
+        super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
+
+class BodyTailConeMountedEfNacelle(SemiEmpiricEfBliNacelle,BodyTailConeMountedNacelle):
+    def __init__(self, aircraft):
+        super(BodyTailConeMountedEfNacelle, self).__init__(aircraft)
+
 
 
 

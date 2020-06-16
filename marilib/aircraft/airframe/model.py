@@ -123,6 +123,51 @@ class Aerodynamics(object):
 
         return lodmax,cz_lodmax
 
+    def specific_air_flow(self,r,d,y):
+        """Specific air flows and speeds at rear end of a cylinder of radius r mouving at Vair in the direction of its axes,
+           y is the elevation upon the surface of the cylinder : 0 < y < inf
+        Qs = Q/(rho*Vair)
+        Vs = V/Vair
+        WARNING : even if all mass flows are positive,
+        Q0 and Q1 are going backward in fuselage frame, Q2 is going forward in ground frame
+        """
+        n = 1/7     # exponent in the formula of the speed profile inside a turbulent BL of thickness d : Vy/Vair = (y/d)^(1/7)
+        q0s = (2.*np.pi)*( r*y + 0.5*y**2 )     # Cumulated specific air flow at y, without BL, AIRPLANE FRAME
+        ym = min(y,d)
+        q1s = (2.*np.pi)*d*( (r/(n+1))*(ym/d)**(n+1) + (d/(n+2))*(ym/d)**(n+2) )    # Cumulated specific air flow at y inside of the BL, AIRPLANE FRAME
+        if y>d: q1s = q1s + q0s - (2.*np.pi)*( r*d + 0.5*d**2 )                     # Add to Q1 the specific air flow outside of the BL, AIRPLANE FRAME
+        q2s = q0s - q1s     # Cumulated specific air flow at y, inside the BL, GROUND FRAME (going speed wise)
+        v1s = (q1s/q0s)     # Averaged specific speed of Q1 air flow at y
+        dVs = (1. - v1s)    # Averaged specific air flow speed variation at y
+        return q0s,q1s,q2s,v1s,dVs
+
+    def tail_cone_boundary_layer(self,body_width,hub_width):
+        """Compute the increase of BL thickness due to the fuselage tail cone tapering
+        Compute the relation between d0 and d1
+        d0 : boundary layer thickness around a tube of constant diameter
+        d1 : boundary layer thickness around the tapered part of the tube, the nacelle hub in fact
+        """
+        r0 = 0.5 * body_width   # Radius of the fuselage, supposed constant
+        r1 = 0.5 * hub_width    # Radius of the hub of the efan nacelle
+
+        def fct(d1,r1,d0,r0):
+            q0s0,q1s0,q2s0,v1s0,dvs0 = self.specific_air_flow(r0,d0,d0)
+            q0s1,q1s1,q2s1,v1s1,dvs1 = self.specific_air_flow(r1,d1,d1)
+            y = q2s0 - q2s1
+            return y
+
+        n = 25
+        yVein = np.linspace(0.001,1.50,n)
+        body_bnd_layer = np.zeros((n,2))
+
+        for j in range (0, n-1):
+            fct1s = (r1,yVein[j],r0)
+            # computation of d1 theoretical thickness of the boundary layer that passes the same air flow around the hub
+            body_bnd_layer[j,0] = yVein[j]
+            body_bnd_layer[j,1] = fsolve(fct,yVein[j],fct1s)
+
+        return body_bnd_layer
+
 
 class OweBreakdown(object):
 
@@ -878,7 +923,7 @@ class PartialTurboElectric(PowerSystem, Flight):
 
         dict_tf = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
-        fn = dict_tf["fn"]*(n_engine-nei) + dict_ef["fn"]*self.aircraft.airframe.tail_nacelle.n_engine
+        fn = dict_tf["fn"]*(n_engine-nei) + dict_ef["fn"]
         ff = dict_tf["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
         sfc = ff / fn
         t41 = dict_tf["t4"]

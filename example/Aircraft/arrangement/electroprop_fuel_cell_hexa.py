@@ -23,24 +23,24 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",   # "wing_box", "piggy_back" or "pods"
-                   number_of_engine = "twin",        # "twin", "quadri" or "hexa"
+                   number_of_engine = "hexa",      # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
-                   power_architecture = "tp",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
-                   power_source = "fuel",            # "fuel", "battery", "fuel_cell"
-                   fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
+                   power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_source = "fuel_cell",     # "fuel", "battery", "fuel_cell"
+                   fuel_type = "liquid_h2")        # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 70.,
-                   design_range = unit.m_NM(600.),
+reqs = Requirement(n_pax_ref = 19.,
+                   design_range = unit.m_NM(380.),
                    cruise_mach = 0.55,
-                   cruise_altp = unit.m_ft(25000.))
+                   cruise_altp = unit.m_ft(20000.))
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(2500.)
-ac.airframe.wing.area = 65.
+ac.power_system.reference_power = unit.W_kW(530.)
+ac.airframe.wing.area = 74.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -51,8 +51,8 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 var = ["aircraft.power_system.reference_power",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
-           [100., 200.]]
+var_bnd = [[unit.W_kW(400.), unit.W_kW(800.)],       # Design space area where to look for an optimum solution
+           [50., 100.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
