@@ -155,24 +155,6 @@ if __name__ == "__main__":
     # io.to_json_file(new_dict,'temp')
 
 
-a = Node('a')
-b = Node('b',parent=a)
-c = Node('c',parent=a)
-d = Node('d',parent=b)
-e = Node('e',parent=b)
-f = Node('f',parent=c)
-
-print(RenderTree(a))
-
-for leaf in a.leaves:
-    if leaf.name == "f":
-        while len(leaf.parent.children) < 2:
-            leaf = leaf.parent
-        leaf.parent = None  # detach the branch from the tree
-
-print(RenderTree(a))
-
-
 class ArrangementTree(Node):
     """A custom anytree.Node object to describe all feasible arrangement"""
     def __init__(self,**kwargs):
@@ -216,7 +198,7 @@ class ArrangementTree(Node):
                     leaf.children = (Node(s) for s in settings if len(s) > 0 and self.is_feasible(self.path_of_node(leaf)+[s]))
 
 
-    def is_feasible(self,path): # TODO: work in progress !
+    def is_feasible(self,path):
         """Check that the last element of the path is compatible with all other elements in the path.
         :return: `True` if feasible, `False` if incompatible settings are found in the path
         """
@@ -261,10 +243,6 @@ class ArrangementTree(Node):
         for key,value in zip(dic.keys(), path):
             dic[key] = value
         return dic
-
-
-ar = ArrangementTree()
-print(ar.is_feasible(['fuselage','classic','low','classic','wing_box','twin','wing','ef','fuel_cell']))
 
 #-------------------------------------------------
 # Plot the table of Arrangement settings
