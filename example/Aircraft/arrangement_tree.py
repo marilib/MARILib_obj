@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 from anytree import Node, RenderTree, AsciiStyle, LevelOrderGroupIter
 
 ARRANGEMENT_DICT={
-          "body_type" :           ["fuselage", "blended"   , ""         , ""             , ""       , ""    , ""     ],
-          "wing_type" :           ["classic" , "blended"   , ""         , ""             , ""       , ""    , ""     ],
+# TODO : in Marilib 2.0, the body_type is always fixed to 'fuselage'
+          "body_type" :           ["fuselage", ""          , ""         , ""             , ""       , ""    , ""     ],
+# TODO : in Marilib 2.0, the wing_type is always fixed to 'classic'
+          "wing_type" :           ["classic" , ""          , ""         , ""             , ""       , ""    , ""     ],
           "wing_attachment":      ["low"     , "high"      , ""         , ""             , ""       , ""    , ""     ],
           "stab_architecture":    ["classic" , "t_tail"    , "h_tail"   , ""             , ""       , ""    , ""     ],
           "tank_architecture":    ["wing_box", "piggy_back", "pods"     , ""             , ""       , ""    , ""     ],
@@ -16,7 +18,82 @@ ARRANGEMENT_DICT={
           "fuel_type":            ["kerosene", "methane"   , "liquid_h2", "compressed_h2", "battery", ""    , ""     ]
           }
 
-INCOMPATIBILITY_DICT={
+"""The INCOMPATIBILITY_DICT stores all 'previous' incompatibilities for a given setting.
+The term "previous" refers to the order of the options as daclared in the ARRANGEMENT_DICT.
+For example, the option `nacelle_attachment` can not be `"rear", when the `stab_architecture` is set to `"classic"`
+or `"h_tail"`, because MARILIB does not handle such cases.
+
+>>> INCCOMPATIBILITY_DICT['nacelle_attachment']['rear'] = {'stab_architecture': ["classic","h_tail"]}
+"""
+INCOMPATIBILITY_DICT = {
+    "body_type": None,
+    "wing_type": {
+        "blended": {
+            "body_type": ["fuselage"]
+        },
+        "classic": {
+            "body_type": ["blended"]
+        }
+    },
+    "wing_attachement": None,
+    "stab_architecture": None,
+    "tank_architecture": {
+        "piggy_back": {
+            "stab_architecture": ["classic", "t_tail"]
+        }
+    },
+    "number_of_engine": {
+        "quadri": {
+            "tank_architecture": ["pods"]
+        },
+        "hexa": {
+            "tank_architecture": ["pods"]
+        }
+    },
+    "nacelle_attachment": {
+        "rear": {
+            "stab_architecture": ["classic", "h_tail"]
+        },
+        "pods": {
+            "tank_architecture": ["wing_box", "piggy_back"]
+        }
+    },
+    "power_architecture": None,
+    "power_source": {
+        "fuel_cell": {
+            "power_architecture": ["tf", "tp", "extf"]
+        },
+        "battery": {
+            "power_architecture": ["tf", "tp", "extf"]
+        },
+        "fuel": {
+            "power_architecture": ["ef", "ep", "exef"]
+        }
+    },
+    "fuel_type": {
+        "battery": {
+            "power_architecture": ["tf", "tp", "extf"],
+            "power_source": ["fuel", "fuel_cell"]
+        },
+        "kerosene": {
+            "power_architecture": ["ef", "ep", "exef"],
+            "power_source": ["fuel_cell", "battery"]
+        },
+        "methane": {
+            "power_architecture": ["ef", "ep", "exef"],
+            "power_source": ["fuel_cell", "battery"]
+        },
+        "liquid_h2": {
+            "power_source": ["battery"]
+        },
+        "compressed_h2": {
+            "power_source": ["battery"]
+        }
+    }
+}
+
+""""Same as INCOMPATIBILITY_DICT but in Downward order according to the order given by the ARRANGEMENT_DICT."""
+INCOMPATIBILITY_DICT_DOWNWARD={
         "body_type" : {"fuselage" : {"wing_type" : ["blended"]},
                        "blended" : {"wing_type": ["classic"]}
                        },
@@ -54,6 +131,48 @@ INCOMPATIBILITY_DICT={
         "fuel_type": None
 }
 
+
+if __name__ == "__main__":
+    """Convert the DOWNWARD incompatibility dict to the upward incompatibility dict"""
+    new_dict = dict.fromkeys(INCOMPATIBILITY_DICT_DOWNWARD)
+    for k in INCOMPATIBILITY_DICT_DOWNWARD.keys():
+        if INCOMPATIBILITY_DICT_DOWNWARD[k] == None:
+            continue
+
+        for setting_key,setting_dict in INCOMPATIBILITY_DICT_DOWNWARD[k].items():
+            for ikey,incompatible_settings in setting_dict.items():
+                if new_dict[ikey] == None:
+                    new_dict[ikey] = {} # init subdict
+                for s in incompatible_settings:
+                    try: new_dict[ikey][s]
+                    except KeyError: new_dict[ikey][s] = {} # init subsubdict
+                    try: new_dict[ikey][s][k]
+                    except KeyError: new_dict[ikey][s][k] = []  # init list
+                    new_dict[ikey][s][k].append(setting_key)
+
+    # from marilib.utils.read_write import MarilibIO
+    # io = MarilibIO()
+    # io.to_json_file(new_dict,'temp')
+
+
+a = Node('a')
+b = Node('b',parent=a)
+c = Node('c',parent=a)
+d = Node('d',parent=b)
+e = Node('e',parent=b)
+f = Node('f',parent=c)
+
+print(RenderTree(a))
+
+for leaf in a.leaves:
+    if leaf.name == "f":
+        while len(leaf.parent.children) < 2:
+            leaf = leaf.parent
+        leaf.parent = None  # detach the branch from the tree
+
+print(RenderTree(a))
+
+
 class ArrangementTree(Node):
     """A custom anytree.Node object to describe all feasible arrangement"""
     def __init__(self,**kwargs):
@@ -62,12 +181,10 @@ class ArrangementTree(Node):
                 tree = ArrangementTree(wing_type='classic')
         :return: the root node of the tree (anytree.Node)
         """
-        super().__init__("Arrangement")
+        super().__init__("Arrangement")  # intialize root node
 
-        # build a dict of 'fixed choices'
+        # build a dict of 'fixed settings' and check their validity.
         fixed_nodes = dict.fromkeys(ARRANGEMENT_DICT.keys())    # default init
-        fixed_nodes['body_type'] = 'fuselage'  # TODO : in Marilib 2.0, the body_type is always fixed to 'fuselage'
-        fixed_nodes['wing_type'] = 'classic'  # TODO : in Marilib 2.0, the wing_type is always fixed to 'classic'
         for key,val in kwargs.items():
             if key not in ARRANGEMENT_DICT.keys():
                 msg = "Arrangement has no entry named %s" % key
@@ -78,23 +195,50 @@ class ArrangementTree(Node):
                 else:
                     fixed_nodes[key] = val
 
-        # Construct the tree, step by step (depth by depth)
+        # Construct the tree, step by step (depth level by depth level)
         for key,settings in ARRANGEMENT_DICT.items():  # iterate over all arrangement options
             if fixed_nodes[key] is not None:
                 for leaf in self.leaves:  # iterate over the "leaves" of the tree
-                    leaf.children = (Node(s) for s in settings if (len(s) > 0 and s is fixed_nodes[key]))
+                    if self.is_feasible(self.path_of_node(leaf)+[fixed_nodes[key]]):
+                        leaf.children = (Node(fixed_nodes[key]),)
+                    else: # delete this branch
+                        try:
+                            while len(leaf.parent.children) < 2:  # find the fork at the origin of the branch
+                                leaf = leaf.parent
+                            leaf.parent = None  # detach the branch from the tree
+                        except AttributeError:
+                            print("The setting '%s' is not compatible with the other settings" %fixed_nodes[key])
+                            self.root.children =[]
+                            break
+
             else:
                 for leaf in self.leaves:
-                    leaf.children = (Node(s) for s in settings if len(s) > 0)
+                    leaf.children = (Node(s) for s in settings if len(s) > 0 and self.is_feasible(self.path_of_node(leaf)+[s]))
 
-        self.filter_feasible()
 
-    def filter_feasible(self):
+    def is_feasible(self,path): # TODO: work in progress !
+        """Check that the last element of the path is compatible with all other elements in the path.
+        :return: `True` if feasible, `False` if incompatible settings are found in the path
         """
-        TODO : filter for feasible arrangement choices
-        :return:
-        """
+        current_setting_value = path[-1]
+        current_setting_key = list(INCOMPATIBILITY_DICT.keys())[len(path)-1]
 
+        if new_dict[current_setting_key] == None:  # there is no icompatibility for this setting
+            return True
+        else:
+            try: # try to store the dict incompatibilities of the current_setting_value.
+                incompatibilities = new_dict[current_setting_key][current_setting_value] #
+            except KeyError:  # the current_setting_value has no incompatibility
+                incompatibilities = None
+                return True
+
+            pathdict = self.dict_from_path(path)
+            for key,incomp_list in incompatibilities.items():  # test for incompatibilitites in the current path
+                if pathdict[key] in incomp_list:
+                    return False
+            return True
+
+        raise ValueError("Unexpected behavior, should return True are False but found None.")
 
     def write_txt(self,filename,root_node):
         """Save the tree to text file
@@ -107,9 +251,20 @@ class ArrangementTree(Node):
                 content += "%s%s\n" %(pre, node.name)
             f.write(content)
 
-    def path_of_leaf(self,index):
-        leaf = self.leaves[index]
-        return [str(node.name) for node in leaf.path[1:]]
+    def path_of_node(self,node):
+        """convert the builtin node.path (list of node objects) to a list of node names (list of strings)"""
+        return [str(n.name) for n in node.path[1:]]
+
+    def dict_from_path(self,path):
+        """Convert a path to an arrangement dict, using the entries given by `ARRANGEMENT_DICT`"""
+        dic = dict.fromkeys(ARRANGEMENT_DICT.keys())
+        for key,value in zip(dic.keys(), path):
+            dic[key] = value
+        return dic
+
+
+ar = ArrangementTree()
+print(ar.is_feasible(['fuselage','classic','low','classic','wing_box','twin','wing','ef','fuel_cell']))
 
 #-------------------------------------------------
 # Plot the table of Arrangement settings
@@ -137,7 +292,7 @@ for k, cell in tab._cells.items():
 ax1 = ax.twiny()
 ax1.set_xlim([0,1])
 ax1.set_ylim([0,1])
-ax1.axis("off")
+ax1.xaxis.set_visible(False)
 
 arrangement_dict = {}
 
@@ -174,9 +329,12 @@ def update_tree():
     if N_conf <500:  # check for reasonable number of possible configurations
         tit.set_text("Number of configurations : %d" % N_conf)
         tit.set_color('k')
-        for k,leaf in enumerate(tree.leaves):
-            x,y = path_to_line(tree.path_of_leaf(k),len(cellText[0]),len(cellText))
-            ax1.plot(x,y,'-k',lw=3,alpha=1./len(tree.leaves))
+        for leaf in tree.leaves:
+            try:
+                x,y = path_to_line(tree.path_of_node(leaf),len(cellText[0]),len(cellText))
+                ax1.plot(x,y,'-k',lw=3,alpha=0.5) # 1./len(tree.leaves))
+            except ValueError:
+                tit.set_text("Your configuration is not feasible")
     else:
         tit.set_text("TOO MUCH CONFIGURATIONS TO PLOT : %d" % N_conf)
         tit.set_color("r")
