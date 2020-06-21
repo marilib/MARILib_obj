@@ -52,10 +52,12 @@ INCOMPATIBILITY_DICT = {
     },
     "nacelle_attachment": {
         "rear": {
-            "stab_architecture": ["classic", "h_tail"]
+            "stab_architecture": ["classic", "h_tail"],
+            "number_of_engine": ["quadri","hexa"]
         },
         "pods": {
-            "tank_architecture": ["wing_box", "piggy_back"]
+            "tank_architecture": ["wing_box", "piggy_back"],
+            "number_of_engine": ["quadri","hexa"]
         }
     },
     "power_architecture": None,
@@ -92,54 +94,15 @@ INCOMPATIBILITY_DICT = {
     }
 }
 
-""""Same as INCOMPATIBILITY_DICT but in Downward order according to the order given by the ARRANGEMENT_DICT."""
-INCOMPATIBILITY_DICT_DOWNWARD={
-        "body_type" : {"fuselage" : {"wing_type" : ["blended"]},
-                       "blended" : {"wing_type": ["classic"]}
-                       },
-        "wing_type" : None , # No incompatibility
-        "wing_attachement": None ,
-        "stab_architecture": {"classic" : {"nacelle_attachment":["rear"],
-                                           "tank_architecture": ["piggy_back"]},
-                              "h_tail"  : {"nacelle_attachment":["rear"]},
-                              "t_tail"  : {"tank_architecture": ["piggy_back"]}
-                              },
-        "tank_architecture": {"pods"      : {"number_of_engine":["quadri","hexa"]},
-                              "wing_box"  : {"nacelle_attachment":["pods"]},
-                              "piggy_back": {"nacelle_attachment":["pods"]}
-                              },
-        "number_of_engine": None, # already listed in tank_architecture
-        "nacelle_attachment": None, # already listed in stab_architecture and tank_architecture
-        "power_architecture": {"tf"  :{"power_source":["fuel_cell","battery"],
-                                       "fuel_type":["battery"]},
-                               "tp"  :{"power_source":["fuel_cell","battery"],
-                                       "fuel_type":["battery"]},
-                               "ef"  :{"power_source":["fuel"],
-                                       "fuel_type":["kerosene","methane"]},
-                               "ep"  :{"power_source":["fuel"],
-                                       "fuel_type":["kerosene","methane"]},
-                               "pte" :{"power_source":[]},                      # TODO: is pte compatible with all power sources ?
-                               "extf":{"power_source":["fuel_cell","battery"],
-                                       "fuel_type":["battery"]},
-                               "exef":{"power_source":["fuel"],
-                                       "fuel_type":["kerosene","methane"]},
-                               },
-        "power_source": {"fuel"     : {"fuel_type":["battery"]},
-                         "fuel_cell": {"fuel_type":["kerosene","methane","battery"]},
-                         "battery"  : {"fuel_type":["kerosene","methane","liquid_h2","compressed_h2"]}
-                         },
-        "fuel_type": None
-}
-
-
+"""
+# Convert the DOWNWARD incompatibility dict to the upward incompatibility dict
 if __name__ == "__main__":
-    """Convert the DOWNWARD incompatibility dict to the upward incompatibility dict"""
-    new_dict = dict.fromkeys(INCOMPATIBILITY_DICT_DOWNWARD)
-    for k in INCOMPATIBILITY_DICT_DOWNWARD.keys():
-        if INCOMPATIBILITY_DICT_DOWNWARD[k] == None:
+    new_dict = dict.fromkeys(INCOMPATIBILITY_DICT)
+    for k in INCOMPATIBILITY_DICT.keys():
+        if INCOMPATIBILITY_DICT[k] == None:
             continue
 
-        for setting_key,setting_dict in INCOMPATIBILITY_DICT_DOWNWARD[k].items():
+        for setting_key,setting_dict in INCOMPATIBILITY_DICT[k].items():
             for ikey,incompatible_settings in setting_dict.items():
                 if new_dict[ikey] == None:
                     new_dict[ikey] = {} # init subdict
@@ -150,13 +113,20 @@ if __name__ == "__main__":
                     except KeyError: new_dict[ikey][s][k] = []  # init list
                     new_dict[ikey][s][k].append(setting_key)
 
-    # from marilib.utils.read_write import MarilibIO
-    # io = MarilibIO()
-    # io.to_json_file(new_dict,'temp')
+    from marilib.utils.read_write import MarilibIO
+    io = MarilibIO()
+    io.to_json_file(new_dict,'temp')"""
 
 
 class ArrangementTree(Node):
-    """A custom anytree.Node object to describe all feasible arrangement"""
+    """A custom anytree.Node object to describe all feasible arrangement.
+    For example:
+
+    >>> tree = ArrangementTree(number_of_engine="quadri",power_source="fuel_cell")
+    >>> print(tree.leaves)
+
+    will display all feasible arrangement, for the specified `number_of_engine` and `power_source` settings.
+    """
     def __init__(self,**kwargs):
         """ Keep only the branches of the tree passing through the selected node(s)
         :param **kwargs: the Arrangement settings that are set to a desired value. Example::
@@ -179,23 +149,28 @@ class ArrangementTree(Node):
 
         # Construct the tree, step by step (depth level by depth level)
         for key,settings in ARRANGEMENT_DICT.items():  # iterate over all arrangement options
+            print("---------------  %s  --------------" %key)
             if fixed_nodes[key] is not None:
                 for leaf in self.leaves:  # iterate over the "leaves" of the tree
+                    print("current leaf ->>> ", leaf)
                     if self.is_feasible(self.path_of_node(leaf)+[fixed_nodes[key]]):
-                        leaf.children = (Node(fixed_nodes[key]),)
-                    else: # delete this branch
-                        try:
-                            while len(leaf.parent.children) < 2:  # find the fork at the origin of the branch
+                        leaf.children = [Node(fixed_nodes[key])]
+                    else:
+                        print(" > IS NOT feasible")
+                        try: # try to delete the branch
+                            # find the fork at the origin of the branch:
+                            while len(leaf.parent.children) < 2:  # raises AttributeError if leaf.parent is None -> root node
                                 leaf = leaf.parent
                             leaf.parent = None  # detach the branch from the tree
-                        except AttributeError:
+                        except AttributeError:  # the previous while loop reached the root node -> there is no feasible branch in the tree
+                            print("AttribiteError:",leaf,leaf.parent)
                             print("The setting '%s' is not compatible with the other settings" %fixed_nodes[key])
-                            self.root.children =[]
+                            self.root.children =[] # reset the tree
                             break
 
             else:
                 for leaf in self.leaves:
-                    leaf.children = (Node(s) for s in settings if len(s) > 0 and self.is_feasible(self.path_of_node(leaf)+[s]))
+                    leaf.children = [Node(s) for s in settings if len(s) > 0 and self.is_feasible(self.path_of_node(leaf)+[s])]
 
 
     def is_feasible(self,path):
@@ -205,11 +180,11 @@ class ArrangementTree(Node):
         current_setting_value = path[-1]
         current_setting_key = list(INCOMPATIBILITY_DICT.keys())[len(path)-1]
 
-        if new_dict[current_setting_key] == None:  # there is no icompatibility for this setting
+        if INCOMPATIBILITY_DICT[current_setting_key] == None:  # there is no icompatibility for this setting
             return True
         else:
             try: # try to store the dict incompatibilities of the current_setting_value.
-                incompatibilities = new_dict[current_setting_key][current_setting_value] #
+                incompatibilities = INCOMPATIBILITY_DICT[current_setting_key][current_setting_value] #
             except KeyError:  # the current_setting_value has no incompatibility
                 incompatibilities = None
                 return True
@@ -310,9 +285,10 @@ def update_tree():
         for leaf in tree.leaves:
             try:
                 x,y = path_to_line(tree.path_of_node(leaf),len(cellText[0]),len(cellText))
-                ax1.plot(x,y,'-k',lw=3,alpha=0.5) # 1./len(tree.leaves))
+                ax1.plot(x,y,'-k',lw=3,alpha=0.3)
             except ValueError:
-                tit.set_text("Your configuration is not feasible")
+                tit.set_text("Your configuration is NOT FEASIBLE")
+                tit.set_color("r")
     else:
         tit.set_text("TOO MUCH CONFIGURATIONS TO PLOT : %d" % N_conf)
         tit.set_color("r")
