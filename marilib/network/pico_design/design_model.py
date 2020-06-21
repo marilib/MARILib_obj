@@ -138,7 +138,7 @@ class Aircraft(object):
         fuel = (self.mtow - self.owe - self.payload_max) / (1.+self.kr)
         self.range_pl_max = self.mission(self.mtow, fuel)
 
-        self.payload_fuel_max = self.payload * 0.30
+        self.payload_fuel_max = self.payload * 0.60
         fuel_max = (self.mtow - self.owe - self.payload_fuel_max) / (1.+self.kr)
         self.range_fuel_max = self.mission(self.mtow, fuel_max)
 

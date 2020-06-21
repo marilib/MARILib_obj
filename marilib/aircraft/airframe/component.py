@@ -369,7 +369,7 @@ class Wing(Component):
           self.kink_c = A*self.root_c + B
           self.tip_c = self.taper_ratio*self.root_c
 
-        else:		# Without kink
+        else:   # Without kink
           self.root_c = 2.*self.area / (2.*y_root*(1.-self.taper_ratio) + (1.+self.taper_ratio)*np.sqrt(self.aspect_ratio*self.area))
           self.tip_c = self.taper_ratio*self.root_c
           self.kink_c = ((y_tip-y_kink)*self.root_c + (y_kink-y_root)*self.tip_c) / (y_tip-y_root)

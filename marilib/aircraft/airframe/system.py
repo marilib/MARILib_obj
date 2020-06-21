@@ -13,11 +13,8 @@ import numpy as np
 from scipy.optimize import fsolve
 
 from marilib.utils import earth, unit
-
 from marilib.aircraft.airframe.component import Component
-
 from marilib.aircraft.airframe.model import init_power
-
 from marilib.aircraft.model_config import get_init
 
 
