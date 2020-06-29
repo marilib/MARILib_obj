@@ -158,7 +158,6 @@ class AllMissionVarMass(AllMissions):
         self.aircraft.weight_cg.mtow = output_dict[0][0]
         self.aircraft.weight_cg.mass_pre_design()
 
-
 class MissionVarMassGeneric(Flight):
     """Define common features for all mission types.
     """
@@ -393,7 +392,6 @@ class AllMissionIsoMass(AllMissions):
         self.aircraft.weight_cg.mtow = output_dict[0][0]
         self.aircraft.weight_cg.mass_pre_design()
         self.aircraft.performance.mission.payload_range()
-
 
 class MissionIsoMassGeneric(Flight):
     """Define common features for all mission types.
