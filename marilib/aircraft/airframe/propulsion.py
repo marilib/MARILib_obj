@@ -205,6 +205,7 @@ class PiggyBackTailConeMountedNacelle(Component):
         return np.array([x_axe, y_axe, z_axe])
 
 
+
 class RatingFactor(object):
     def __init__(self, MTO=None, MCN=None, MCL=None, MCR=None, FID=None):
         self.MTO = MTO
@@ -212,6 +213,7 @@ class RatingFactor(object):
         self.MCL = MCL
         self.MCR = MCR
         self.FID = FID
+
 
 
 class SemiEmpiricTf0Nacelle(Component):
@@ -361,6 +363,7 @@ class InboardWingMountedTf0Nacelle(SemiEmpiricTf0Nacelle,InboradWingMountedNacel
 class RearFuselageMountedTf0Nacelle(SemiEmpiricTf0Nacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
         super(RearFuselageMountedTf0Nacelle, self).__init__(aircraft)
+
 
 
 class SemiEmpiricTfNacelle(Component):
@@ -635,6 +638,19 @@ class SemiEmpiricTfNacelle(Component):
 
         return {"sfc":sfc, "thtl":thtl, "t4":None}
 
+class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(OutboardWingMountedTfNacelle, self).__init__(aircraft)
+
+class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(InboardWingMountedTfNacelle, self).__init__(aircraft)
+
+class RearFuselageMountedTfNacelle(SemiEmpiricTfNacelle,RearFuselageMountedNacelle):
+    def __init__(self, aircraft):
+        super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
+
+
 class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
     def __init__(self, aircraft):
         super(SemiEmpiricTfBliNacelle, self).__init__(aircraft)
@@ -768,18 +784,6 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
 
         return {"thtl":thtl}
 
-class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboradWingMountedNacelle):
-    def __init__(self, aircraft):
-        super(OutboardWingMountedTfNacelle, self).__init__(aircraft)
-
-class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboradWingMountedNacelle):
-    def __init__(self, aircraft):
-        super(InboardWingMountedTfNacelle, self).__init__(aircraft)
-
-class RearFuselageMountedTfNacelle(SemiEmpiricTfNacelle,RearFuselageMountedNacelle):
-    def __init__(self, aircraft):
-        super(RearFuselageMountedTfNacelle, self).__init__(aircraft)
-
 class BodyTailConeMountedTfNacelle(SemiEmpiricTfBliNacelle,BodyTailConeMountedNacelle):
     def __init__(self, aircraft):
         super(BodyTailConeMountedTfNacelle, self).__init__(aircraft)
@@ -791,6 +795,7 @@ class PodTailConeMountedTfNacelle(SemiEmpiricTfBliNacelle,PodTailConeMountedNace
 class PiggyBackTailConeMountedTfNacelle(SemiEmpiricTfBliNacelle,PiggyBackTailConeMountedNacelle):
     def __init__(self, aircraft):
         super(PiggyBackTailConeMountedTfNacelle, self).__init__(aircraft)
+
 
 
 class SemiEmpiricEfNacelle(Component):
@@ -1022,6 +1027,19 @@ class SemiEmpiricEfNacelle(Component):
 
         return {"sec":sec, "thtl":throttle}
 
+class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(OutboardWingMountedEfNacelle, self).__init__(aircraft)
+
+class InboardWingMountedEfNacelle(SemiEmpiricEfNacelle,InboradWingMountedNacelle):
+    def __init__(self, aircraft):
+        super(InboardWingMountedEfNacelle, self).__init__(aircraft)
+
+class RearFuselageMountedEfNacelle(SemiEmpiricEfNacelle,RearFuselageMountedNacelle):
+    def __init__(self, aircraft):
+        super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
+
+
 class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
     def __init__(self, aircraft):
         super(SemiEmpiricEfBliNacelle, self).__init__(aircraft)
@@ -1162,21 +1180,10 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
 
         return {"sec":sec, "thtl":throttle}
 
-class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboradWingMountedNacelle):
-    def __init__(self, aircraft):
-        super(OutboardWingMountedEfNacelle, self).__init__(aircraft)
-
-class InboardWingMountedEfNacelle(SemiEmpiricEfNacelle,InboradWingMountedNacelle):
-    def __init__(self, aircraft):
-        super(InboardWingMountedEfNacelle, self).__init__(aircraft)
-
-class RearFuselageMountedEfNacelle(SemiEmpiricEfNacelle,RearFuselageMountedNacelle):
-    def __init__(self, aircraft):
-        super(RearFuselageMountedEfNacelle, self).__init__(aircraft)
-
 class BodyTailConeMountedEfNacelle(SemiEmpiricEfBliNacelle,BodyTailConeMountedNacelle):
     def __init__(self, aircraft):
         super(BodyTailConeMountedEfNacelle, self).__init__(aircraft)
+
 
 
 class SemiEmpiricTpNacelle(Component):
@@ -1282,6 +1289,7 @@ class OutboardWingMountedTpNacelle(SemiEmpiricTpNacelle,OutboradWingMountedNacel
 class InboardWingMountedTpNacelle(SemiEmpiricTpNacelle,InboradWingMountedNacelle):
     def __init__(self, aircraft):
         super(InboardWingMountedTpNacelle, self).__init__(aircraft)
+
 
 
 class SemiEmpiricEpNacelle(Component):
