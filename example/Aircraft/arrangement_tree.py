@@ -149,21 +149,17 @@ class ArrangementTree(Node):
 
         # Construct the tree, step by step (depth level by depth level)
         for key,settings in ARRANGEMENT_DICT.items():  # iterate over all arrangement options
-            print("---------------  %s  --------------" %key)
             if fixed_nodes[key] is not None:
                 for leaf in self.leaves:  # iterate over the "leaves" of the tree
-                    print("current leaf ->>> ", leaf)
                     if self.is_feasible(self.path_of_node(leaf)+[fixed_nodes[key]]):
                         leaf.children = [Node(fixed_nodes[key])]
                     else:
-                        print(" > IS NOT feasible")
                         try: # try to delete the branch
                             # find the fork at the origin of the branch:
                             while len(leaf.parent.children) < 2:  # raises AttributeError if leaf.parent is None -> root node
                                 leaf = leaf.parent
                             leaf.parent = None  # detach the branch from the tree
                         except AttributeError:  # the previous while loop reached the root node -> there is no feasible branch in the tree
-                            print("AttribiteError:",leaf,leaf.parent)
                             print("The setting '%s' is not compatible with the other settings" %fixed_nodes[key])
                             self.root.children =[] # reset the tree
                             break
@@ -252,14 +248,14 @@ arrangement_dict = {}
 def onclick(event):
     if tab.contains(event)[0]:
         for (row,col),cell in tab.get_celld().items(): # iterate over all cells
-            if cell.contains(event)[0] and cell.get_text().get_text() is not "" and row>0: # find the new selected cell
+            if cell.contains(event)[0] and cell.get_text().get_text() is not "" and row>0: # find the selected cell
                 if cell.get_facecolor()==(1,1,1,1): # if white :
                     i=1
                     while True:  # reset white color for all cells in the column
                         try:
                             tab[i,col].set_facecolor((1,1,1,1))
                             i+=1
-                        except KeyError:
+                        except KeyError: # reach the end of the column
                             break
                     cell.set_facecolor((1,0,0,0.5))  # set face color to red
                     arrangement_dict[tab[0, col].get_text().get_text()] = cell.get_text().get_text()  # add this setting
@@ -271,12 +267,12 @@ def onclick(event):
                         print("WARNING: KeyError '%s'" % tab[0, col].get_text().get_text())
 
                 ax1.clear()
-                update_tree()
+                draw_tree()
                 plt.draw()
                 break
 
 
-def update_tree():
+def draw_tree():
     tree = ArrangementTree(**arrangement_dict)
     N_conf = len(tree.leaves)
     if N_conf <500:  # check for reasonable number of possible configurations
@@ -294,6 +290,8 @@ def update_tree():
         tit.set_color("r")
 
 def path_to_line(path,n_x,n_y):
+    """Convert the path (list of string like ["my","path","to","leaf"]) to the list of x,y coordinates of the
+     cells center in the tabular."""
     points = []
     for j,setting in enumerate(path):  # iterate over all nodes of this tree branch
         for i in range(1,n_y+1):  # iterate over all lines of the table
