@@ -66,10 +66,10 @@ INCOMPATIBILITY_DICT = {
     "power_architecture": None,
     "power_source": {
         "fuel_cell": {
-            "power_architecture": ["tf", "tp", "extf"]
+            "power_architecture": ["tf", "tp", "extf","pte"]
         },
         "battery": {
-            "power_architecture": ["tf", "tp", "extf"]
+            "power_architecture": ["tf", "tp", "extf","pte"]
         },
         "fuel": {
             "power_architecture": ["ef", "ep", "exef"]
@@ -232,7 +232,7 @@ ax.set_xlim([0,1])
 ax.set_ylim([0,1])
 ax.axis("off")
 tit = ax.set_title("Select your settings")
-tab = ax.table(colLabels=colLabels, colColours=['g']*len(colLabels),
+tab = ax.table(colLabels=colLabels, colColours=[(0.5,0.5,0,0.5)]*len(colLabels),
                 cellText = cellText,rowLoc='center', cellLoc='center',
                 bbox=[0,0,1,1],fontsize=15,zorder=50)
 
