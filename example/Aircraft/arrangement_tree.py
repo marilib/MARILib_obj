@@ -1,7 +1,16 @@
-from marilib.aircraft import Arrangement
 import numpy as np
 import matplotlib.pyplot as plt
 from anytree import Node, RenderTree, AsciiStyle, LevelOrderGroupIter
+
+"""ARRANGEMENT_TREE.PY implements a tree algorithm to ceck the feasability of each Arrangement.
+
+The `INCOMPATIBILITY_DICT` stores all "previous" incompatibilities for a given setting.
+The term "previous" refers to the order of the options as declared in the `ARRANGEMENT_DICT`.
+For example, the option `nacelle_attachment` can not be `"rear", when the `stab_architecture` is set to `"classic"`
+or `"h_tail"`, because MARILIB does not handle such cases.
+
+>>> INCCOMPATIBILITY_DICT['nacelle_attachment']['rear'] = {'stab_architecture': ["classic","h_tail"]}
+"""
 
 ARRANGEMENT_DICT={
 # TODO : in Marilib 2.0, the body_type is always fixed to 'fuselage'
@@ -18,13 +27,7 @@ ARRANGEMENT_DICT={
           "fuel_type":            ["kerosene", "methane"   , "liquid_h2", "compressed_h2", "battery", ""    , ""     ]
           }
 
-"""The INCOMPATIBILITY_DICT stores all 'previous' incompatibilities for a given setting.
-The term "previous" refers to the order of the options as daclared in the ARRANGEMENT_DICT.
-For example, the option `nacelle_attachment` can not be `"rear", when the `stab_architecture` is set to `"classic"`
-or `"h_tail"`, because MARILIB does not handle such cases.
 
->>> INCCOMPATIBILITY_DICT['nacelle_attachment']['rear'] = {'stab_architecture': ["classic","h_tail"]}
-"""
 INCOMPATIBILITY_DICT = {
     "body_type": None,
     "wing_type": {
@@ -122,7 +125,7 @@ class ArrangementTree(Node):
     """A custom anytree.Node object to describe all feasible arrangement.
     For example:
 
-    >>> tree = ArrangementTree(number_of_engine="quadri",power_source="fuel_cell")
+    >>> tree = ArrangementTree(tank_architecture ="piggy_back", number_of_engine="quadri",power_source="fuel_cell")
     >>> print(tree.leaves)
 
     will display all feasible arrangement, for the specified `number_of_engine` and `power_source` settings.
@@ -231,9 +234,10 @@ ax.axis("off")
 tit = ax.set_title("Select your settings")
 tab = ax.table(colLabels=colLabels, colColours=['g']*len(colLabels),
                 cellText = cellText,rowLoc='center', cellLoc='center',
-                bbox=[0,0,1,1])
+                bbox=[0,0,1,1],fontsize=15,zorder=50)
+
 tab.auto_set_font_size(False)
-tab.set_fontsize = 12
+
 for k, cell in tab._cells.items():
     cell.set_edgecolor("silver")
 
@@ -249,7 +253,7 @@ def onclick(event):
     if tab.contains(event)[0]:
         for (row,col),cell in tab.get_celld().items(): # iterate over all cells
             if cell.contains(event)[0] and cell.get_text().get_text() is not "" and row>0: # find the selected cell
-                if cell.get_facecolor()==(1,1,1,1): # if white :
+                if cell.get_facecolor()!=(0,0,1,0.5): # if not blue :
                     i=1
                     while True:  # reset white color for all cells in the column
                         try:
@@ -257,7 +261,8 @@ def onclick(event):
                             i+=1
                         except KeyError: # reach the end of the column
                             break
-                    cell.set_facecolor((1,0,0,0.5))  # set face color to red
+                    cell.set_facecolor((0,0,1,0.5))  # set face color to blue
+                    cell.set_text_props(color=(0, 0, 0, 1))
                     arrangement_dict[tab[0, col].get_text().get_text()] = cell.get_text().get_text()  # add this setting
                 else: # if not white, then reset to white and delete dict entry
                     cell.set_facecolor('w')
@@ -271,17 +276,23 @@ def onclick(event):
                 plt.draw()
                 break
 
+def reset_tree_color():
+    for (i,j),cell in tab.get_celld().items():
+        if i>=1 and tab[i,j].get_facecolor() != (0,0,1.,0.5):
+            tab[i,j].set_facecolor('w')
+
 
 def draw_tree():
     tree = ArrangementTree(**arrangement_dict)
     N_conf = len(tree.leaves)
+    reset_tree_color()
     if N_conf <500:  # check for reasonable number of possible configurations
         tit.set_text("Number of configurations : %d" % N_conf)
         tit.set_color('k')
         for leaf in tree.leaves:
             try:
                 x,y = path_to_line(tree.path_of_node(leaf),len(cellText[0]),len(cellText))
-                ax1.plot(x,y,'-k',lw=3,alpha=0.3)
+                ax1.plot(x,y,':g',lw=1,zorder=1)
             except ValueError:
                 tit.set_text("Your configuration is NOT FEASIBLE")
                 tit.set_color("r")
@@ -297,7 +308,12 @@ def path_to_line(path,n_x,n_y):
         for i in range(1,n_y+1):  # iterate over all lines of the table
             if tab[i,j].get_text().get_text()==setting:
                 points.append((j,i))
-                break
+                if tab[i,j].get_facecolor() != (0,0,1,0.5):
+                    tab[i,j].set_facecolor((0,1,0,0.5))
+                    tab[i, j].set_text_props(color=(0, 0, 0, 1))
+            elif tab[i,j].get_facecolor() != (0,0,1,0.5) and tab[i,j].get_facecolor() != (0,1,0,0.5): # if not blue or green
+                tab[i,j].set_text_props(color=(0,0,0,0.2))
+
     x,y = zip(*points)
     x = (0.5 + np.array(x)) / n_x
     y = 1 - (np.array(y) + 0.5) / (n_y + 1)
