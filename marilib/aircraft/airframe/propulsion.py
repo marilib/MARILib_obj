@@ -17,7 +17,6 @@ from marilib.aircraft.airframe.component import Component
 from marilib.aircraft.model_config import get_init
 
 
-
 class InboradWingMountedNacelle(Component):
 
     def __init__(self, aircraft):
