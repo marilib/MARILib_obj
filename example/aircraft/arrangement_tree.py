@@ -66,10 +66,10 @@ INCOMPATIBILITY_DICT = {
     "power_architecture": None,
     "power_source": {
         "fuel_cell": {
-            "power_architecture": ["tf", "tp", "extf", "pte"]
+            "power_architecture": ["tf", "tp", "extf","pte"]
         },
         "battery": {
-            "power_architecture": ["tf", "tp", "extf", "pte"]
+            "power_architecture": ["tf", "tp", "extf","pte"]
         },
         "fuel": {
             "power_architecture": ["ef", "ep", "exef"]
