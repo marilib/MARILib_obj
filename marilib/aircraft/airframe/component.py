@@ -1184,9 +1184,7 @@ class TankWingPod(Component):
 
         shell_ratio = self.fuel_pressure/(self.shell_parameter*self.shell_density)
 
-        self.max_volume =   0.85 \
-                                 * 2.0*self.length*(0.25*np.pi*self.width**2) \
-                                 * (1. - shell_ratio)                             # for both pods
+        self.max_volume =   2.0 * 0.80 * self.length*(0.25*np.pi*self.width**2) / (1. + shell_ratio)  # for both pods
 
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type
@@ -1266,9 +1264,7 @@ class TankPiggyBack(Component):
 
         shell_ratio = self.fuel_pressure/(self.shell_parameter*self.shell_density)
 
-        self.max_volume =   0.85 \
-                                 * self.length*(0.25*np.pi*self.width**2) \
-                                 * (1. - shell_ratio)
+        self.max_volume =   0.80 * self.length*(0.25*np.pi*self.width**2) / (1. + shell_ratio)
 
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type

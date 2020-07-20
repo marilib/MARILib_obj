@@ -20,11 +20,11 @@ from marilib.aircraft.design import process
 # ---------------------------------------------------------------------------------------------------------------------
 agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
-                   wing_attachment = "high",       # "low" or "high"
+                   wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",   # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
-                   nacelle_attachment = "wing",      # "wing", "rear" or "pods"
+                   nacelle_attachment = "rear",      # "wing", "rear" or "pods"
                    power_architecture = "ef",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
                    power_source = "battery",       # "fuel", "battery", "fuel_cell"
                    fuel_type = "battery")          # "kerosene", "liquid_h2", "Compressed_h2", "battery"

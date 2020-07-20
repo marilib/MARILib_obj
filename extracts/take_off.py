@@ -199,7 +199,7 @@ def take_off(kvs1g,altp,disa,mass,hld_conf):
     cz_to = czmax / kvs1g**2
     mach = np.sqrt((mass*g)/(0.5*gam*pamb*wing_area*cz_to))
 
-    fn = to_thrust(pamb,tamb,mach)
+    fn = to_thrust(pamb,tamb,0.7*mach)
 
     ml_factor = mass**2 / (cz_to*fn*wing_area*sig**0.8 )  # Magic Line factor
 

@@ -20,22 +20,22 @@ from marilib.aircraft.design import process
 # ---------------------------------------------------------------------------------------------------------------------
 agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
-                   wing_attachment = "low",          # "low" or "high"
-                   stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
+                   wing_attachment = "high",          # "low" or "high"
+                   stab_architecture = "t_tail",    # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",   # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
-                   power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", "extf", "exef"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 
 # Select airplane main requirements
 # ---------------------------------------------------------------------------------------------------------------------
-reqs = Requirement(n_pax_ref = 150.,
-                   design_range = unit.m_NM(3000.),
-                   cruise_mach = 0.78,
-                   cruise_altp = unit.m_ft(35000.))
+reqs = Requirement(n_pax_ref = 19.,
+                   design_range = unit.m_NM(400.),
+                   cruise_mach = 0.55,
+                   cruise_altp = unit.m_ft(20000.))
 
 
 # Create an instance of Aircraft object
@@ -60,8 +60,8 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_outpout_data')      # Write all output data into a json readable format

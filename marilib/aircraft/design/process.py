@@ -85,14 +85,12 @@ def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
 
     return criterion,constraint
 
-
 def eval_optim_cst(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
     """Retrieve constraints
     """
     crit,cst = eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag)
     print("cst :",cst)
     return cst
-
 
 def eval_optim_crt(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
     """Retreve criteria
