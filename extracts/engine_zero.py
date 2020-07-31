@@ -228,11 +228,11 @@ def  off_design_tf(altp,disa,mach,rating,qfuel,fia,fna):
 fia = dict["fan_area"]
 fna = dict["fan_nozzle_area"]
 
-disa = 15.
-altp = unit.m_ft(0.)
-mach = 0.25
-rating = "MTO"
-qfuel = 2.0*qf
+disa = 0.
+altp = unit.m_ft(35000.)
+mach = 0.78
+rating = "MCR"
+qfuel = 0.9*qf
 dict1 =  off_design_tf(altp,disa,mach,rating,qfuel,fia,fna)
 
 print("")

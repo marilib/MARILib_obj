@@ -15,7 +15,8 @@ model_config = {
         "n_pax_front": ["function", "int", "Number of front seats in economic class (function)"],
         "n_aisle": ["function", "int", "Number of aisle in economic class (function)"],
         "m_pax_nominal": ["function", "kg", "Reference mass allowance per passenger for design (function)"],
-        "m_pax_max": ["function", "kg", "Maximum mass allowance per passenger for design (function)"]
+        "m_pax_max": ["function", "kg", "Maximum mass allowance per passenger for design (function)"],
+        "m_pax_cabin": [80., "kg", "Mean passenger mass in the cabin including its hand luggage"]
     },
     "Fuselage":{
         "forward_limit": [4., "m", "Distance between fuselage nose and forward cabin wall"],

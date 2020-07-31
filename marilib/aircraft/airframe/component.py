@@ -106,6 +106,7 @@ class Cabin(Component):
 
         self.m_pax_nominal = get_init(self,"m_pax_nominal", val=self.__m_pax_nominal())
         self.m_pax_max = get_init(self,"m_pax_max", val=self.__m_pax_max())
+        self.m_pax_cabin = get_init(self,"m_pax_cabin")
         self.m_furnishing = None
         self.m_op_item = None
         self.nominal_payload = None
@@ -114,10 +115,11 @@ class Cabin(Component):
         self.cg_furnishing = np.full(3,None)
         self.cg_op_item = np.full(3,None)
 
-        self.max_fwd_req_cg = np.full(3,None)
-        self.max_fwd_mass = None
-        self.max_bwd_req_cg = np.full(3,None)
-        self.max_bwd_mass = None
+        self.pax_max_fwd_cg = np.full(3,None)
+        self.pax_max_fwd_mass = None
+
+        self.pax_max_bwd_cg = np.full(3,None)
+        self.pax_max_bwd_mass = None
 
     def __n_pax_front(self):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
@@ -173,11 +175,14 @@ class Cabin(Component):
         self.nominal_payload = n_pax_ref * self.m_pax_nominal
         self.maximum_payload = n_pax_ref * self.m_pax_max
 
-        self.max_fwd_req_cg = cabin_frame_origin + 0.35*np.array([self.length, 0., 0.])        # Payload max forward CG
-        self.max_fwd_mass = 0.60*n_pax_ref*self.m_pax_max       # Payload mass for max forward CG
+        fwd_cabin_vec = self.aircraft.airframe.wing.mac_loc + np.array([0.25*self.aircraft.airframe.wing.mac, 0., 0.]) - cabin_frame_origin
+        bwd_cabin_vec = cabin_frame_origin + np.array([self.length, 0., 0.]) - fwd_cabin_vec
 
-        self.max_bwd_req_cg = cabin_frame_origin + 0.70*np.array([self.length, 0., 0.])        # Payload max backward CG
-        self.max_bwd_mass = 0.70*n_pax_ref*self.m_pax_max       # Payload mass for max backward CG
+        self.pax_max_fwd_cg = cabin_frame_origin + 0.50*fwd_cabin_vec                   # Payload max forward CG
+        self.pax_max_fwd_mass = n_pax_ref*self.m_pax_cabin * fwd_cabin_vec[0]/self.length   # Payload mass for max forward CG
+
+        self.pax_max_bwd_cg = cabin_frame_origin + fwd_cabin_vec + 0.50*bwd_cabin_vec   # Payload max backward CG
+        self.pax_max_bwd_mass = n_pax_ref*self.m_pax_cabin * bwd_cabin_vec[0]/self.length   # Payload mass for max backward CG
 
         x_cg_furnishing = self.frame_origin[0] + 0.55*self.length      # Rear cabin is heavier because of higher density
         x_cg_op_item = x_cg_furnishing    # Operator items cg
@@ -203,16 +208,27 @@ class Cargo(Component):
 
         self.container_pallet_mass = None
 
+        self.freight_max_fwd_cg = np.full(3,None)
+        self.freight_max_fwd_mass = None
+
+        self.freight_max_bwd_cg = np.full(3,None)
+        self.freight_max_bwd_mass = None
+
     def eval_geometry(self):
         self.frame_origin = self.aircraft.airframe.cabin.frame_origin
 
     def eval_mass(self):
+        n_pax_ref = self.aircraft.airframe.cabin.n_pax_ref
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
+        m_pax_max = self.aircraft.airframe.cabin.m_pax_max
+        m_pax_cabin = self.aircraft.airframe.cabin.m_pax_cabin
         body_width = self.aircraft.airframe.body.width
         body_length = self.aircraft.airframe.body.length
         wing_root_loc = self.aircraft.airframe.wing.root_loc
         wing_root_c = self.aircraft.airframe.wing.root_c
         cabin_length = self.aircraft.airframe.cabin.length
+
+        cargo_frame_origin = self.aircraft.airframe.cargo.frame_origin
 
         if (n_pax_front>=6):
             forward_hold_length = wing_root_loc[0] - self.frame_origin[0]
@@ -221,8 +237,16 @@ class Cargo(Component):
 
             self.container_pallet_mass = 4.36 * body_width * body_length        # Container and pallet mass
             self.mass = self.container_pallet_mass
-            self.cg =   (self.frame_origin + 0.5*np.array([forward_hold_length, 0., 0.]))*(forward_hold_length/hold_length) \
-                      + (wing_root_loc + np.array([wing_root_c+0.5*backward_hold_length, 0., 0.]))*(backward_hold_length/hold_length)
+
+            fwd_hold_vec = self.aircraft.airframe.wing.mac_loc + np.array([0.25*self.aircraft.airframe.wing.mac, 0., 0.]) - cargo_frame_origin
+            bwd_hold_vec = cargo_frame_origin + np.array([hold_length, 0., 0.]) - fwd_hold_vec
+
+            self.freight_max_fwd_cg = cargo_frame_origin + 0.50*fwd_hold_vec                   # Payload max forward CG
+            self.freight_max_fwd_mass = n_pax_ref*(m_pax_max-m_pax_cabin) * fwd_hold_vec[0]/hold_length   # Payload mass for max forward CG
+
+            self.freight_max_bwd_cg = cargo_frame_origin + fwd_hold_vec + 0.50*bwd_hold_vec   # Payload max backward CG
+            self.freight_max_bwd_mass = n_pax_ref*(m_pax_max-m_pax_cabin) * bwd_hold_vec[0]/hold_length   # Payload mass for max backward CG
+
         else:
             self.mass = 0.
             self.cg = np.array([0., 0., 0.])
@@ -1038,9 +1062,10 @@ class TankWingBox(Component):
         self.max_volume = None
         self.mfw_volume_limited = None
 
-        self.fuel_max_fwd_cg = None
+        self.fuel_max_fwd_cg = np.full(3,None)
         self.fuel_max_fwd_mass = None
-        self.fuel_max_bwd_cg = None
+
+        self.fuel_max_bwd_cg = np.full(3,None)
         self.fuel_max_bwd_mass = None
 
     def shell_parameter(self, aircraft):
@@ -1137,9 +1162,10 @@ class TankWingPod(Component):
         self.max_volume = None
         self.mfw_volume_limited = None
 
-        self.fuel_max_fwd_cg = None
+        self.fuel_max_fwd_cg = np.full(3,None)
         self.fuel_max_fwd_mass = None
-        self.fuel_max_bwd_cg = None
+
+        self.fuel_max_bwd_cg = np.full(3,None)
         self.fuel_max_bwd_mass = None
 
     def shell_parameter(self, aircraft):
@@ -1228,9 +1254,10 @@ class TankPiggyBack(Component):
         self.max_volume = None
         self.mfw_volume_limited = None
 
-        self.fuel_max_fwd_cg = None
+        self.fuel_max_fwd_cg = np.full(3,None)
         self.fuel_max_fwd_mass = None
-        self.fuel_max_bwd_cg = None
+
+        self.fuel_max_bwd_cg = np.full(3,None)
         self.fuel_max_bwd_mass = None
 
     def shell_parameter(self, aircraft):
