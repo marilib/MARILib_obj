@@ -12,209 +12,213 @@ from marilib.utils import earth, unit
 import numpy as np
 from scipy.optimize import fsolve
 
+from marilib.aircraft.performance import Flight
+from marilib.aircraft.model_config import get_init
+
 from marilib.utils.math import vander3, trinome, maximize_1d
 
 
-
-
-
-
-class HandlingQuality(object):
+class HandlingQuality(Flight):
     """
     Master class for all aircraft handling qualities
     """
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
+        self.static_stab_margin = get_init(self,"static_stab_margin")
+
+        self.forward_cg_mass = None
         self.forward_cg_req = None
         self.forward_cg_stall = None
 
+        self.backward_cg_mass = None
         self.backward_cg_req = None
         self.backward_cg_stab = None
-        self.backward_cg_oei = None
+
+        self.backward_cg_oei_trim = None
+        self.backward_cg_oei_mass = None
 
     def analysis(self):
         """Evaluate CG bounds according to HQ constraints
         """
         # Required forward CG position
         #------------------------------------------------------------------------------------------------------
-        self.forward_cg_req = (  self.aircraft.weight_cg.owe
-                               + self.aircraft.airframe.cabin.pax_max_fwd_cg * self.aircraft.airframe.cabin.pax_max_fwd_mass \
-                               + self.aircraft.airframe.cargo.freight_max_fwd_cg * self.aircraft.airframe.cargo.freight_max_fwd_mass \
-                               + self.aircraft.airframe.tank.fuel_max_fwd_cg * self.aircraft.airframe.cargo.fuel_max_fwd_mass )
-                             /(   self.aircraft.airframe.cabin.pax_max_fwd_mass \
-                                + self.aircraft.airframe.cargo.freight_max_fwd_mass \
-                                + self.aircraft.airframe.cargo.fuel_max_fwd_mass)
-
-
+        self.forward_cg_mass = (  self.aircraft.weight_cg.owe
+                                + self.aircraft.airframe.cabin.pax_max_fwd_mass
+                                + self.aircraft.airframe.cargo.freight_max_fwd_mass
+                                + self.aircraft.airframe.tank.fuel_max_fwd_mass)
+        self.forward_cg_req = (  self.aircraft.weight_cg.owe_cg * self.aircraft.weight_cg.owe
+                               + self.aircraft.airframe.cabin.pax_max_fwd_cg * self.aircraft.airframe.cabin.pax_max_fwd_mass
+                               + self.aircraft.airframe.cargo.freight_max_fwd_cg * self.aircraft.airframe.cargo.freight_max_fwd_mass
+                               + self.aircraft.airframe.tank.fuel_max_fwd_cg * self.aircraft.airframe.cargo.fuel_max_fwd_mass ) \
+                             /self.forward_cg_mass
 
         # Required backward CG position
         #------------------------------------------------------------------------------------------------------
-
-
-
-
+        self.backward_cg_mass = (  self.aircraft.weight_cg.owe
+                                 + self.aircraft.airframe.cabin.pax_max_bwd_mass
+                                 + self.aircraft.airframe.cargo.freight_max_bwd_mass
+                                 + self.aircraft.airframe.tank.fuel_max_bwd_mass)
+        self.backward_cg_req = (  self.aircraft.weight_cg.owe_cg * self.aircraft.weight_cg.owe
+                                + self.aircraft.airframe.cabin.pax_max_bwd_cg * self.aircraft.airframe.cabin.pax_max_bwd_mass
+                                + self.aircraft.airframe.cargo.freight_max_bwd_cg * self.aircraft.airframe.cargo.freight_max_bwd_mass
+                                + self.aircraft.airframe.tank.fuel_max_bwd_cg * self.aircraft.airframe.cargo.fuel_max_bwd_mass ) \
+                              /self.backward_cg_mass
 
         # Forward limit : trim landing
         #------------------------------------------------------------------------------------------------------
         altp = unit.m_ft(0.)
         disa = 0.
         nei = 0
-        speed_mode = 1
+        speed_mode = "mach"
         hld_conf = self.aircraft.aerodynamics.hld_conf_ld
-        mass = c_g.max_fwd_mass
+        mass = self.forward_cg_mass
 
-        cg_max_fwd_stall,speed,fn,aoa,ih,c_z,cx_trimmed = self.forward_cg_stall(aircraft,altp,disa,nei,hld_conf,speed_mode,mass)
+        forward_cg_stall, speed, fn, aoa, ih, c_z, cx_trimmed = self.max_fwd_cg_stall(altp,disa,nei,hld_conf,speed_mode,mass)
 
-        c_g.max_fwd_trim_cg = cg_max_fwd_stall         # Forward cg limit
-
-        c_g.cg_constraint_1 = (c_g.max_fwd_req_cg - c_g.max_fwd_trim_cg) / c_g.max_fwd_req_cg
+        self.forward_cg_stall = forward_cg_stall    # Forward cg limit
 
         # Backward limit : static stability
         #------------------------------------------------------------------------------------------------------
-        stability_margin = regul.static_stability_margin()
+        altp = unit.m_ft(0.)
+        disa = 0.
+        speed = 0.25
+        speed_mode = "mach"
+        hld_conf = self.aircraft.aerodynamics.hld_conf_clean
 
-        cg_max_bwd_stab = self.backward_cg_stab(aircraft,stability_margin)
+        self.backward_cg_stab = self.max_bwd_cg_stab(altp,disa,hld_conf,speed_mode,speed)
 
-        c_g.max_bwd_stab_cg = cg_max_bwd_stab          # Backward cg limit
-
-        c_g.cg_constraint_2 = (c_g.max_bwd_stab_cg - c_g.max_bwd_req_cg) / c_g.max_bwd_req_cg
-
-        # Vertical tail sizing
+        # Backward limit : engine failure control
         #------------------------------------------------------------------------------------------------------
+        altp = unit.m_ft(0.)
+        disa = 15.
 
-        self.vertical_tail_sizing(aircraft)
+        backward_cg_oei_trim, backward_cg_oei_mass = self.max_bwd_cg_oei(altp, disa)
 
-        c_g.cg_constraint_3 = (c_g.max_bwd_oei_cg - c_g.max_bwd_oei_req_cg) / c_g.max_bwd_oei_req_cg
+        self.backward_cg_oei_trim = backward_cg_oei_trim
+        self.backward_cg_oei_mass = backward_cg_oei_mass
 
         return
 
-    def forward_cg_stall(aircraft,altp,disa,nei,hld_conf,speed_mode,mass):
+    def max_fwd_cg_stall(self,altp,disa,nei,hld_conf,speed_mode,mass):
         """Computes max forward trimmable CG position at stall speed
         """
-        wing = aircraft.wing
-        htp = aircraft.horizontal_tail
+        htp_area = self.aircraft.airframe.horizontal_stab.area
+        wing_area = self.aircraft.airframe.wing.area
+        wing_setting = self.aircraft.airframe.wing.setting
 
         r,gam,Cp,Cv = earth.gas_data()
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
 
-        [pamb,tamb,tstd,dtodz] = earth.atmosphere(altp,disa)
-
-        [cz_max_wing,cz0] = airplane_aero.high_lift(wing, hld_conf)     # Wing maximum lift coefficient without margin
-
-        [cza_htp,xlc_htp,aoa_max_htp,ki_htp] = frame_aero.htp_aero_data(aircraft)
-
+        cz_max_wing,cz0 = self.aircraft.airframe.wing.high_lift(hld_conf)     # Wing maximum lift coefficient without margin
+        cza_htp, xlc_htp, aoa_max_htp, ki_htp = self.aircraft.airframe.horizontal_stab.eval_aero_data()
         cz_max_htp = cza_htp*aoa_max_htp
-
         c_z = cz_max_wing - cz_max_htp      # Max forward Cg assumed, HTP has down lift
-
-        mach = flight.speed_from_lift(aircraft,pamb,tamb,c_z,mass)
-
-        [cza_wo_htp,xlc_wo_htp,ki_wing] = frame_aero.wing_aero_data(aircraft,mach,hld_conf)
+        mach = self.speed_from_lift(pamb, tamb, c_z, mass)
+        cza_wo_htp, xlc_wo_htp, ki_wing = self.aircraft.airframe.wing.eval_aero_data(mach,hld_conf)
 
         if(nei>0):
-            dcx_oei = nei*propu.oei_drag(pamb,mach)
+            dcx_oei = self.aircraft.power_system.oei_drag(pamb,mach)
         else:
             dcx_oei = 0.
 
-        dw_angle = frame_aero.wing_downwash(aircraft,cz_max_wing)    # Downwash angle due to the wing
-        cx_basic,lod_trash = airplane_aero.drag(aircraft,pamb,tamb,mach,cz_max_wing)    # By definition of the drag_ function
-        cxi_htp = (ki_htp*cz_max_htp**2)*(htp.area/wing.area)   # Induced drag generated by HTP
-        cx_inter = cz_max_htp*dw_angle      # Interaction drag (due to downwash)
+        dw_angle = self.aircraft.airframe.wing.downwash_angle(ki_wing,cz_max_wing)          # Downwash angle due to the wing
+        cx_basic,lod_trash = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz_max_wing)    # By definition of the drag_ function
+        cxi_htp = (ki_htp*cz_max_htp**2)*(htp_area/wing_area)   # Induced drag generated by HTP
+        cx_inter = cz_max_htp*dw_angle                          # Interaction drag (due to downwash)
         cx_trimmed = cx_basic + cxi_htp + cx_inter + dcx_oei
-
-        fn = 0.5*gam*pamb*mach**2*wing.area*cx_trimmed
-
-        cm_prop = propu.thrust_pitch_moment(aircraft,fn,pamb,mach,dcx_oei)
-
+        fn = 0.5*gam*pamb*mach**2*wing_area*cx_trimmed
+        cm_prop = self.thrust_pitch_moment(fn,pamb,mach,dcx_oei)
         cg_max_fwd_stall = (cm_prop + xlc_wo_htp*cz_max_wing - xlc_htp*cz_max_htp)/(cz_max_wing - cz_max_htp)
-
         aoa_wing = (cz_max_wing-cz0) / cza_wo_htp   # Wing angle of attack
-        aoa = aoa_wing - wing.setting               # Reference angle of attack (fuselage axis versus air speed)
+        aoa = aoa_wing - wing_setting               # Reference angle of attack (fuselage axis versus air speed)
         ih = - aoa + dw_angle - aoa_max_htp         # HTP trim setting
+        speed = self.get_speed(pamb,speed_mode,mach)
 
-        speed = flight.get_speed(pamb,speed_mode,mach)
+        return cg_max_fwd_stall, speed, fn, aoa, ih, c_z, cx_trimmed
 
-        return cg_max_fwd_stall,speed,fn,aoa,ih,c_z,cx_trimmed
-
-    def backward_cg_stab(aircraft,stability_margin):
+    def max_bwd_cg_stab(self, altp, disa, hld_conf, speed_mode, speed):
         """Computes max backward CG position according to static stability (neutral point position)
         """
-        aerodynamics = aircraft.aerodynamics
-        wing = aircraft.wing
+        wing_mac = self.aircraft.airframe.wing.mac
+        stability_margin = self.static_stab_margin
 
-        mach = 0.25
-        hld_conf = aerodynamics.hld_conf_clean
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        mach = self.get_mach(pamb,speed_mode,speed)
 
-        [cza_wo_htp,xlc_wo_htp,ki_wing] = frame_aero.wing_aero_data(aircraft,mach,hld_conf)
-
-        [cza_htp,xlc_htp,aoa_max_htp,ki_htp] = frame_aero.htp_aero_data(aircraft)
-
+        cza_wo_htp, xlc_wo_htp, ki_wing = self.aircraft.airframe.wing.eval_aero_data(mach,hld_conf)
+        cza_htp, xlc_htp, aoa_max_htp, ki_htp = self.aircraft.airframe.horizontal_stab.eval_aero_data()
         cg_max_bwd_stab =  (xlc_wo_htp*cza_wo_htp + xlc_htp*cza_htp*(1-ki_wing*cza_wo_htp)) \
                          / (cza_wo_htp + cza_htp*(1-ki_wing*cza_wo_htp)) \
-                         - stability_margin*wing.mac
+                         - stability_margin*wing_mac
 
         return cg_max_bwd_stab
 
-    def vertical_tail_sizing(aircraft):
+    def max_bwd_cg_oei(self, altp, disa):
         """Computes maximum backward CG position to meet engine failure case constraint
         WARNING : Influence of CG position is ignored
         """
-        design_driver = aircraft.design_driver
-        propulsion = aircraft.propulsion
-        wing = aircraft.wing
-        vtp = aircraft.vertical_tail
-        aerodynamics = aircraft.aerodynamics
-        payload = aircraft.payload
-        c_of_g = aircraft.center_of_gravity
+        wing_mac = self.aircraft.airframe.wing.mac
+        owe = self.aircraft.weight_cg.owe
+        cyb_vtp, xlc_vtp, aoa_max_vtp, ki_vtp = self.aircraft.airframe.vertical_stab.eval_aero_data()
 
-        (MTO,MCN,MCL,MCR,FID) = propulsion.rating_code
+        payload = 0.5*self.aircraft.airframe.cabin.nominal_payload      # Light payload
+        range = self.aircraft.requirement.design_range/15.              # Short mission
+        altp = self.aircraft.requirement.cruise_altp                    # Nominal altitude
+        mach = self.aircraft.requirement.cruise_mach                    # Nominal speed
+        disa = self.aircraft.requirement.cruise_disa                    # Nominal temperature
 
-        cyb_vtp,xlc_vtp,aoa_max_vtp,ki_vtp = frame_aero.vtp_aero_data(aircraft)
-
-        payload = 0.5*payload.nominal               # Light payload
-        range = design_driver.design_range/15.      # Short mission
-        altp = design_driver.ref_cruise_altp
-        mach = design_driver.cruise_mach
-        disa = 30.                                  # Hot condition
-
-        tow,block_fuel,block_time,total_fuel = mission.mission_tow(aircraft,payload,range,altp,mach,disa)
-
-        altp = 0.
-        disa = 15.
+        self.aircraft.performance.mission.toy.eval(owe,altp,mach,disa, range=range, payload=payload)
+        tow = self.aircraft.performance.mission.toy.tow
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-
-        stall_margin = regul.kvs1g_min_take_off()
-
-        czmax_to = aerodynamics.cz_max_to
-
-        mach_s1g = flight.speed_from_lift(aircraft,pamb,tamb,czmax_to,tow)
-
+        stall_margin = self.aircraft.requirement.take_off.kvs1g
+        czmax_to = self.aircraft.aerodynamics.cz_max_conf_to
+        mach_s1g = self.speed_from_lift(pamb,tamb,czmax_to,tow)
         mach_35ft = stall_margin*mach_s1g       # V2 speed
-
-        mach_mca = mach_35ft/1.1      #Approximation of required VMCA
-
-        altp = 0.
-        disa = 15.
+        mach_mca = mach_35ft/1.1                # Approximation of required VMCA
 
         throttle = 1.
         nei = 1
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        dict = self.aircraft.power_system.thrust(pamb, tamb, mach_mca, "MTO", throttle, nei)
+        fn = dict["fn"]
+        dcx_oei = self.aircraft.power_system.oei_drag(pamb,mach)
+        cn_prop = self.thrust_yaw_moment(fn,pamb,mach_mca,dcx_oei)
+        backward_cg_oei = xlc_vtp - (cn_prop*wing_mac)/(cyb_vtp*aoa_max_vtp)
 
-        fn,sfc,sec,data = propu.thrust(aircraft,pamb,tamb,mach_mca,MTO,throttle,nei)
+        return backward_cg_oei, tow
 
-        dcx_oei = propu.oei_drag(aircraft,pamb,tamb)
+    def thrust_pitch_moment(aircraft,fn,pamb,mach,dcx_oei):
 
-        cn_prop = thrust_yaw_moment(aircraft,fn,pamb,mach_mca,dcx_oei)
+        propulsion = aircraft.propulsion
+        wing = aircraft.wing
 
-        max_bwd_req_cg = xlc_vtp - (cn_prop*wing.mac)/(cyb_vtp*aoa_max_vtp)
+        r,gam,Cp,Cv = earth.gas_data()
 
-        c_of_g.max_bwd_oei_req_cg = c_of_g.max_bwd_req_cg
-        c_of_g.max_bwd_oei_cg = max_bwd_req_cg
-        c_of_g.max_bwd_oei_mass = tow
+        if (propulsion.architecture=="TF"):
+            nacelle = aircraft.turbofan_nacelle
+        elif (propulsion.architecture=="TP"):
+            nacelle = aircraft.turboprop_nacelle
+        elif (propulsion.architecture=="PTE1"):
+            nacelle = aircraft.turbofan_nacelle
+        elif (propulsion.architecture=="EF1"):
+            nacelle = aircraft.electrofan_nacelle
+        elif (propulsion.architecture=="EP1"):
+            nacelle = aircraft.electroprop_nacelle
+        else:
+            raise Exception("propulsion.architecture index is out of range")
 
-        return
+        if (nacelle.n_engine==2):
+            cm_prop = nacelle.z_ext*(dcx_oei - fn/(0.5*gam*pamb*mach**2*wing.area))
+        elif (nacelle.n_engine==4):
+            cm_prop =   nacelle.z_ext*(dcx_oei - (fn/3.)/(0.5*gam*pamb*mach**2*wing.area)) \
+                      - nacelle.z_int*(2.*fn/3.)/(0.5*gam*pamb*mach**2*wing.area)
+        else:
+            raise Exception("thrust_pitch_moment, Number of engine is not supported")
+
+        return cm_prop
 
     def thrust_yaw_moment(aircraft,fn,pamb,mach,dcx_oei):
         """Computes the yaw moment due to most outboard engine failure

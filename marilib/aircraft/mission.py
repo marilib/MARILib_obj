@@ -30,6 +30,7 @@ class AllMissions(Flight):
         self.max_fuel = None
         self.zero_payload = None
         self.cost = None
+        self.toy = None
 
         self.disa = None
         self.altp = None
@@ -75,6 +76,7 @@ class AllMissionVarMass(AllMissions):
         self.max_fuel = MissionVarMassGeneric(aircraft)
         self.zero_payload = MissionVarMassGeneric(aircraft)
         self.cost = MissionVarMassGeneric(aircraft)
+        self.toy = MissionVarMassGeneric(aircraft)
 
         self.ktow = get_init(self,"ktow")
 
@@ -319,6 +321,7 @@ class AllMissionIsoMass(AllMissions):
         self.max_fuel = MissionIsoMassGeneric(aircraft)
         self.zero_payload = MissionIsoMassGeneric(aircraft)
         self.cost = MissionIsoMassGeneric(aircraft)
+        self.toy = MissionIsoMassGeneric(aircraft)
 
         self.crz_esar = None
         self.crz_cz = None

@@ -212,6 +212,9 @@ model_config = {
         "reserve_enrg_ratio": ["function", "no_dim", "Fraction of mission fuel for reserve fuel evaluation (function)"],
         "diversion_range": ["function", "NM", "Range of diversion mission for reserve fuel evaluation (function)"]
     },
+    "HandlingQuality":{
+        "static_stab_margin": [0.05, "no_dim", "CG margin to neutral point"]
+    },
     "Requirement":{
         "cost_range": ["function", "NM", "Reference range for cost evaluation (function)"]
     },

@@ -93,7 +93,8 @@ class Aerodynamics(object):
 
         # Induced drag
         #-----------------------------------------------------------------------------------------------------------
-        cxi = self.aircraft.airframe.wing.induced_drag_factor*cz**2  # Induced drag
+        cza_wo_htp, xlc_wo_htp, ki_wing = self.aircraft.airframe.wing.eval_aero_data(self.hld_conf_clean, mach)
+        cxi = ki_wing*cz**2  # Induced drag
 
         # Compressibility drag
         #-----------------------------------------------------------------------------------------------------------
@@ -205,6 +206,8 @@ class WeightCg(object):
 
         self.breakdown = OweBreakdown(aircraft)
 
+        self.owe_cg = None
+
     def __mtow_init__(self):
         return 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
 
@@ -228,6 +231,12 @@ class WeightCg(object):
             owe += comp.get_mass_owe()
         self.mwe = mwe
         self.owe = owe
+
+        # sum all CG OWE contributions
+        owe_cg = 0.
+        for comp in self.aircraft.airframe.mass_iter():
+            owe_cg += (comp.get_cg_owe() * comp.get_mass_owe()) / self.owe
+        self.owe_cg = owe_cg
 
         self.breakdown.owe = self.owe
         self.breakdown.op_item_mass = self.aircraft.airframe.cabin.m_op_item

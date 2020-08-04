@@ -321,7 +321,6 @@ class Wing(Component):
         self.dihedral = None
         self.setting = None
         self.hld_type = get_init(self,"hld_type", val=self.high_lift_type())
-        self.induced_drag_factor = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
         self.root_toc = None                # thickness over chord ratio of root chord
@@ -443,8 +442,6 @@ class Wing(Component):
         self.aero_length = self.mac
         self.form_factor = 1.40
 
-        self.induced_drag_factor = (1.05 + (body_width / self.span)**2)  / (np.pi * self.aspect_ratio)
-
         # Wing setting
         #-----------------------------------------------------------------------------------------------------------
         g = earth.gravity()
@@ -457,51 +454,37 @@ class Wing(Component):
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(rca, disa)
 
-        cza_wing = self.cza(mach)
+        hld_conf = 0.
+        cza_wo_htp, xlc_wo_htp, ki_wing = self.eval_aero_data(hld_conf, mach)
+        cza_wing = cza_wo_htp
 
         # AoA = 2.5° at cruise start
         self.setting = (0.97*mass*g) / (0.5*gam*pamb*mach**2*self.area*cza_wing) - unit.rad_deg(2.5)
 
-    def eval_mass(self):
-        mtow = self.aircraft.weight_cg.mtow
-        mzfw = self.aircraft.weight_cg.mzfw
-        hld_conf_ld = self.aircraft.aerodynamics.hld_conf_ld
+    def downwash_angle(self, ki_wing, cz):
+        """Estimate downwash angle due to the wing
+        """
+        return cz * ki_wing
 
-        (cz_max_ld,cz0) = self.high_lift(hld_conf_ld)
-
-        A = 32*self.area**1.1
-        B = 4.*self.span**2 * np.sqrt(mtow*mzfw)
-        C = 1.1e-6*(1.+2.*self.aspect_ratio)/(1.+self.aspect_ratio)
-        D = (0.6*self.root_toc+0.3*self.kink_toc+0.1*self.tip_toc) * (self.area/self.span)
-        E = np.cos(self.sweep25)**2
-        F = 1200.*(cz_max_ld - 1.8)**1.5
-
-        self.mass = A + (B*C)/(D*E) + F   # Shevell formula + high lift device regression
-
-        self.cg =  0.25*(self.root_loc + 0.40*np.array([self.root_c, 0., 0.])) \
-                 + 0.55*(self.kink_loc + 0.40*np.array([self.kink_c, 0., 0.])) \
-                 + 0.20*(self.tip_loc + 0.40*np.array([self.tip_c, 0., 0.]))
-
-    def cza(self, mach):
-        """Polhamus formula
+    def eval_aero_data(self, hld_conf, mach):
+        """Estimate wing aerodynamic characteristics
         """
         body_width = self.aircraft.airframe.body.width
         wing_span = self.aircraft.airframe.wing.span
         wing_ar = self.aircraft.airframe.wing.aspect_ratio
         sweep25 = self.aircraft.airframe.wing.sweep25
-
-        cza =  (np.pi*wing_ar*(1.07*(1+body_width/wing_span)**2)*(1.-body_width/wing_span)) \
-             / (1+np.sqrt(1.+0.25*wing_ar**2*(1+np.tan(sweep25)**2-mach**2)))
-        return cza
-
-    def wing_np(self, hld_conf):
-        """Wing neutral point
-        """
         wing_c_mac = self.aircraft.airframe.wing.mac
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
 
-        loc_np = wing_mac_loc + (0.25+0.10*hld_conf)*np.array([wing_c_mac, 0., 0.])
-        return loc_np
+        # Polhamus formula, lift gradiant without HTP
+        cza_wo_htp =  (np.pi*wing_ar*(1.07*(1+body_width/wing_span)**2)*(1.-body_width/wing_span)) \
+                    / (1+np.sqrt(1.+0.25*wing_ar**2*(1+np.tan(sweep25)**2-mach**2)))
+
+        xlc_wo_htp = wing_mac_loc + (0.25+0.10*hld_conf)*np.array([wing_c_mac, 0., 0.]) # Neutral point
+
+        ki_wing = (1.05 + (body_width / self.span)**2)  / (np.pi * self.aspect_ratio)
+
+        return cza_wo_htp, xlc_wo_htp, ki_wing
 
     def high_lift(self, hld_conf):
         """Retrieves max lift and zero aoa lift of a given (flap/slat) deflection (from 0 to 1).
@@ -548,6 +531,26 @@ class Wing(Component):
         cz0 = cz0_2d
 
         return czmax, cz0
+
+    def eval_mass(self):
+        mtow = self.aircraft.weight_cg.mtow
+        mzfw = self.aircraft.weight_cg.mzfw
+        hld_conf_ld = self.aircraft.aerodynamics.hld_conf_ld
+
+        (cz_max_ld,cz0) = self.high_lift(hld_conf_ld)
+
+        A = 32*self.area**1.1
+        B = 4.*self.span**2 * np.sqrt(mtow*mzfw)
+        C = 1.1e-6*(1.+2.*self.aspect_ratio)/(1.+self.aspect_ratio)
+        D = (0.6*self.root_toc+0.3*self.kink_toc+0.1*self.tip_toc) * (self.area/self.span)
+        E = np.cos(self.sweep25)**2
+        F = 1200.*(cz_max_ld - 1.8)**1.5
+
+        self.mass = A + (B*C)/(D*E) + F   # Shevell formula + high lift device regression
+
+        self.cg =  0.25*(self.root_loc + 0.40*np.array([self.root_c, 0., 0.])) \
+                 + 0.55*(self.kink_loc + 0.40*np.array([self.kink_c, 0., 0.])) \
+                 + 0.20*(self.tip_loc + 0.40*np.array([self.tip_c, 0., 0.]))
 
 
 class VtpClassic(Component):
@@ -618,6 +621,16 @@ class VtpClassic(Component):
 
         self.aero_length = self.mac
         self.form_factor = 1.40
+
+    def eval_aero_data(self):
+        """WARNING : output values are in Wing reference area
+        """
+        wing_area = self.aircraft.airframe.wing.area
+        cyb_vtp =  (np.pi*self.aspect_ratio)/(1+np.sqrt(1+(self.aspect_ratio/2)**2))*(self.area/wing_area)   # Helmbold formula
+        xlc_vtp = self.mac_loc[0] + 0.25*self.mac   # Position of VTP center of lift
+        aoa_max_vtp = unit.rad_deg(35.)             # Maximum angle of attack allowed for VTP
+        ki_vtp = 1.3/(np.pi*self.aspect_ratio)      # VTP induced drag coefficient
+        return cyb_vtp, xlc_vtp, aoa_max_vtp, ki_vtp
 
     def eval_mass(self):
         self.mass = 25. * self.area
@@ -702,6 +715,17 @@ class VtpTtail(Component):
         self.aero_length = self.mac
         self.form_factor = 1.40
 
+    def eval_aero_data(self):
+        """WARNING : output values are in Wing reference area
+        """
+        wing_area = self.aircraft.airframe.wing.area
+        # Helmbold formula corrected with endplate effect
+        cyb_vtp =  1.2*(np.pi*self.aspect_ratio)/(1+np.sqrt(1+(self.aspect_ratio/2)**2))*(self.area/wing_area)
+        xlc_vtp = self.mac_loc[0] + 0.25*self.mac   # Position of VTP center of lift
+        aoa_max_vtp = unit.rad_deg(35.)             # Maximum angle of attack allowed for VTP
+        ki_vtp = 1.1/(np.pi*self.aspect_ratio)      # VTP induced drag coefficient
+        return cyb_vtp, xlc_vtp, aoa_max_vtp, ki_vtp
+
     def eval_mass(self):
         self.mass = 28. * self.area
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
@@ -781,6 +805,16 @@ class VtpHtail(Component):
 
         self.aero_length = self.mac
         self.form_factor = 1.40
+
+    def eval_aero_data(self):
+        """WARNING : output values are in Wing reference area
+        """
+        wing_area = self.aircraft.airframe.wing.area
+        cyb_vtp =  (np.pi*self.aspect_ratio)/(1+np.sqrt(1+(self.aspect_ratio/2)**2))*(self.area/wing_area)   # Helmbold formula
+        xlc_vtp = self.mac_loc[0] + 0.25*self.mac   # Position of VTP center of lift
+        aoa_max_vtp = unit.rad_deg(35.)             # Maximum angle of attack allowed for VTP
+        ki_vtp = 1.3/(np.pi*self.aspect_ratio)      # VTP induced drag coefficient
+        return cyb_vtp, xlc_vtp, aoa_max_vtp, ki_vtp
 
     def eval_mass(self):
         self.mass = 25. * self.area
@@ -868,6 +902,16 @@ class HtpClassic(Component):
         self.aero_length = self.mac
         self.form_factor = 1.40
 
+    def eval_aero_data(self):
+        """WARNING : output values are in Wing reference area
+        """
+        wing_area = self.aircraft.airframe.wing.area
+        cza_htp =  (np.pi*self.aspect_ratio)/(1+np.sqrt(1+(self.aspect_ratio/2)**2))*(self.area/wing_area)  # Helmbold formula
+        xlc_htp = self.mac_loc[0] + 0.25*self.mac   # Position of HTP center of lift
+        aoa_max_htp = unit.rad_deg(9.)              # Maximum angle of attack allowed for HTP
+        ki_htp = 1.2/(np.pi*self.aspect_ratio)      # HTP induced drag coefficient
+        return cza_htp, xlc_htp, aoa_max_htp, ki_htp
+
     def eval_mass(self):
         self.mass = 22. * self.area
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
@@ -952,6 +996,16 @@ class HtpTtail(Component):
         self.aero_length = self.mac
         self.form_factor = 1.40
 
+    def eval_aero_data(self):
+        """WARNING : output values are in Wing reference area
+        """
+        wing_area = self.aircraft.airframe.wing.area
+        cza_htp =  (np.pi*self.aspect_ratio)/(1+np.sqrt(1+(self.aspect_ratio/2)**2))*(self.area/wing_area)  # Helmbold formula
+        xlc_htp = self.mac_loc[0] + 0.25*self.mac   # Position of HTP center of lift
+        aoa_max_htp = unit.rad_deg(9.)              # Maximum angle of attack allowed for HTP
+        ki_htp = 1.2/(np.pi*self.aspect_ratio)      # HTP induced drag coefficient
+        return cza_htp, xlc_htp, aoa_max_htp, ki_htp
+
     def eval_mass(self):
         self.mass = 22. * self.area
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
@@ -1035,6 +1089,17 @@ class HtpHtail(Component):
 
         self.aero_length = self.mac
         self.form_factor = 1.40
+
+    def eval_aero_data(self):
+        """WARNING : output values are in Wing reference area
+        """
+        wing_area = self.aircraft.airframe.wing.area
+        # Helmbold formula corrected with endplate effect
+        cza_htp =  1.2*(np.pi*self.aspect_ratio)/(1+np.sqrt(1+(self.aspect_ratio/2)**2))*(self.area/wing_area)
+        xlc_htp = self.mac_loc[0] + 0.25*self.mac   # Position of HTP center of lift
+        aoa_max_htp = unit.rad_deg(9.)              # Maximum angle of attack allowed for HTP
+        ki_htp = 1.1/(np.pi*self.aspect_ratio)      # HTP induced drag coefficient
+        return cza_htp, xlc_htp, aoa_max_htp, ki_htp
 
     def eval_mass(self):
         self.mass = 22. * self.area
