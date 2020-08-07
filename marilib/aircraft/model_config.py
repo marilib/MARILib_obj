@@ -212,11 +212,18 @@ model_config = {
         "reserve_enrg_ratio": ["function", "no_dim", "Fraction of mission fuel for reserve fuel evaluation (function)"],
         "diversion_range": ["function", "NM", "Range of diversion mission for reserve fuel evaluation (function)"]
     },
-    "HandlingQuality":{
-        "static_stab_margin": [0.05, "no_dim", "CG margin to neutral point"]
-    },
     "Requirement":{
         "cost_range": ["function", "NM", "Reference range for cost evaluation (function)"]
+    },
+    "Aerodynamics":{
+        "cx_correction": [0., "no_dim", "Drag correction on cx coefficient"],
+        "cruise_lodmax": [16., "no_dim", "Assumption on L/D max for some initializations"],
+        "hld_conf_clean": [0., "no_dim", "High lift device setting for clean wing, must be 0."],
+        "hld_conf_to": [0.30, "no_dim", "High lift device setting for take off, between 0. and 0.5"],
+        "hld_conf_ld": [1.00, "no_dim", "High lift device setting for landing, typically 1. for full deflection"]
+    },
+    "HandlingQuality":{
+        "static_stab_margin": [0.05, "no_dim", "CG margin to neutral point"]
     },
     "TakeOffReq":{
         "disa": [15., "degK", "Temperature shift for take off evaluation"],

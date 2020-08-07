@@ -97,6 +97,7 @@ class Cabin(Component):
     def __init__(self, aircraft):
         super(Cabin, self).__init__(aircraft)
 
+        self.n_pax_ref = self.aircraft.requirement.n_pax_ref
         self.n_pax_front = get_init(self,"n_pax_front", val=self.__n_pax_front())
         self.n_aisle = get_init(self,"n_aisle", val=self.__n_aisle())
 
@@ -156,33 +157,29 @@ class Cabin(Component):
         return m_pax_max
 
     def eval_geometry(self):
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
-
         self.width = 0.38*self.n_pax_front + 1.05*self.n_aisle + 0.15     # Statistical regression
-        self.length = 6.3*(self.width - 0.24) + 0.005*(n_pax_ref/self.n_pax_front)**2.25     # Statistical regression
+        self.length = 6.3*(self.width - 0.24) + 0.005*(self.n_pax_ref/self.n_pax_front)**2.25     # Statistical regression
 
         self.projected_area = 0.95*self.length*self.width       # Factor 0.95 accounts for tapered parts
 
     def eval_mass(self):
         design_range = self.aircraft.requirement.design_range
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
-
         cabin_frame_origin = self.aircraft.airframe.cabin.frame_origin
 
-        self.m_furnishing = (0.063*n_pax_ref**2 + 9.76*n_pax_ref)       # Furnishings mass
-        self.m_op_item = 5.2*(n_pax_ref*design_range*1e-6)          # Operator items mass
+        self.m_furnishing = (0.063*self.n_pax_ref**2 + 9.76*self.n_pax_ref)       # Furnishings mass
+        self.m_op_item = 5.2*(self.n_pax_ref*design_range*1e-6)          # Operator items mass
 
-        self.nominal_payload = n_pax_ref * self.m_pax_nominal
-        self.maximum_payload = n_pax_ref * self.m_pax_max
+        self.nominal_payload = self.n_pax_ref * self.m_pax_nominal
+        self.maximum_payload = self.n_pax_ref * self.m_pax_max
 
-        fwd_cabin_vec = self.aircraft.airframe.wing.mac_loc + np.array([0.25*self.aircraft.airframe.wing.mac, 0., 0.]) - cabin_frame_origin
+        fwd_cabin_vec = np.array([self.aircraft.airframe.wing.mac_loc[0], 0., 0.]) + np.array([0.25*self.aircraft.airframe.wing.mac, 0., 0.]) - cabin_frame_origin
         bwd_cabin_vec = cabin_frame_origin + np.array([self.length, 0., 0.]) - fwd_cabin_vec
 
         self.pax_max_fwd_cg = cabin_frame_origin + 0.50*fwd_cabin_vec                   # Payload max forward CG
-        self.pax_max_fwd_mass = n_pax_ref*self.m_pax_cabin * fwd_cabin_vec[0]/self.length   # Payload mass for max forward CG
+        self.pax_max_fwd_mass = self.n_pax_ref*self.m_pax_cabin * fwd_cabin_vec[0]/self.length   # Payload mass for max forward CG
 
         self.pax_max_bwd_cg = cabin_frame_origin + fwd_cabin_vec + 0.50*bwd_cabin_vec   # Payload max backward CG
-        self.pax_max_bwd_mass = n_pax_ref*self.m_pax_cabin * bwd_cabin_vec[0]/self.length   # Payload mass for max backward CG
+        self.pax_max_bwd_mass = self.n_pax_ref*self.m_pax_cabin * bwd_cabin_vec[0]/self.length   # Payload mass for max backward CG
 
         x_cg_furnishing = self.frame_origin[0] + 0.55*self.length      # Rear cabin is heavier because of higher density
         x_cg_op_item = x_cg_furnishing    # Operator items cg
@@ -237,8 +234,9 @@ class Cargo(Component):
 
             self.container_pallet_mass = 4.36 * body_width * body_length        # Container and pallet mass
             self.mass = self.container_pallet_mass
+            self.cg = np.array([0., 0., 0.])
 
-            fwd_hold_vec = self.aircraft.airframe.wing.mac_loc + np.array([0.25*self.aircraft.airframe.wing.mac, 0., 0.]) - cargo_frame_origin
+            fwd_hold_vec = np.array([self.aircraft.airframe.wing.mac_loc[0], 0., 0.]) + np.array([0.25*self.aircraft.airframe.wing.mac, 0., 0.]) - cargo_frame_origin
             bwd_hold_vec = cargo_frame_origin + np.array([hold_length, 0., 0.]) - fwd_hold_vec
 
             self.freight_max_fwd_cg = cargo_frame_origin + 0.50*fwd_hold_vec                   # Payload max forward CG
@@ -246,6 +244,9 @@ class Cargo(Component):
 
             self.freight_max_bwd_cg = cargo_frame_origin + fwd_hold_vec + 0.50*bwd_hold_vec   # Payload max backward CG
             self.freight_max_bwd_mass = n_pax_ref*(m_pax_max-m_pax_cabin) * bwd_hold_vec[0]/hold_length   # Payload mass for max backward CG
+
+            self.cg =   (self.freight_max_fwd_cg*self.freight_max_fwd_mass + self.freight_max_bwd_cg*self.freight_max_bwd_mass) \
+                      / (self.freight_max_fwd_mass + self.freight_max_bwd_mass)
 
         else:
             self.mass = 0.
@@ -322,11 +323,11 @@ class Wing(Component):
         self.setting = None
         self.hld_type = get_init(self,"hld_type", val=self.high_lift_type())
 
+        self.x_rout = None      # Design variable for hq_optim
+
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
         self.root_toc = None                # thickness over chord ratio of root chord
         self.root_c = None                  # root chord length
-
-        y_kink = 1.75*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
         self.kink_loc =  np.full(3,None)    # Position of kink chord leading edge
         self.kink_toc = None                # thickness over chord ratio of kink chord
@@ -353,7 +354,7 @@ class Wing(Component):
         else: raise Exception("propulsion.architecture index is out of range")
         return hld_type
 
-    def eval_geometry(self):
+    def eval_geometry(self, hq_optim=False):
         wing_attachment = self.aircraft.arrangement.wing_attachment
         cruise_mach = self.aircraft.requirement.cruise_mach
         body_width = self.aircraft.airframe.body.width
@@ -414,7 +415,9 @@ class Wing(Component):
                        +(y_tip-y_kink)*(self.kink_c*2.+self.tip_c))+(y_tip-y_root)*tan_phi0*(y_tip-y_kink)*(self.tip_c*2.+self.kink_c) \
                       )/(3*self.area)
 
-        x_root = 0.33*body_length**1.1 - (x_mac_local + 0.25*self.mac)
+        if (not hq_optim):
+             self.x_root = 0.33*body_length**1.1 - (x_mac_local + 0.25*self.mac)
+        x_root = self.x_root
         x_kink = x_root + (y_kink-y_root)*tan_phi0
         x_tip = x_root + (y_tip-y_root)*tan_phi0
 
@@ -474,13 +477,13 @@ class Wing(Component):
         wing_ar = self.aircraft.airframe.wing.aspect_ratio
         sweep25 = self.aircraft.airframe.wing.sweep25
         wing_c_mac = self.aircraft.airframe.wing.mac
-        wing_mac_loc = self.aircraft.airframe.wing.mac_loc
+        wing_mac_loc = self.aircraft.airframe.wing.mac_loc[0]
 
         # Polhamus formula, lift gradiant without HTP
         cza_wo_htp =  (np.pi*wing_ar*(1.07*(1+body_width/wing_span)**2)*(1.-body_width/wing_span)) \
                     / (1+np.sqrt(1.+0.25*wing_ar**2*(1+np.tan(sweep25)**2-mach**2)))
 
-        xlc_wo_htp = wing_mac_loc + (0.25+0.10*hld_conf)*np.array([wing_c_mac, 0., 0.]) # Neutral point
+        xlc_wo_htp = wing_mac_loc + (0.25+0.10*hld_conf)*wing_c_mac # Neutral point
 
         ki_wing = (1.05 + (body_width / self.span)**2)  / (np.pi * self.aspect_ratio)
 
@@ -544,7 +547,7 @@ class Wing(Component):
         C = 1.1e-6*(1.+2.*self.aspect_ratio)/(1.+self.aspect_ratio)
         D = (0.6*self.root_toc+0.3*self.kink_toc+0.1*self.tip_toc) * (self.area/self.span)
         E = np.cos(self.sweep25)**2
-        F = 1200.*(cz_max_ld - 1.8)**1.5
+        F = 1200.*max(0., cz_max_ld - 1.8)**1.5
 
         self.mass = A + (B*C)/(D*E) + F   # Shevell formula + high lift device regression
 
@@ -560,7 +563,7 @@ class VtpClassic(Component):
 
         wing_area = aircraft.airframe.wing.area
 
-        self.area = 0.20*wing_area  # Coupling variable
+        self.area = 0.20*wing_area  # Design variable for hq_optim
         self.height = None
         self.aspect_ratio = get_init(self,"aspect_ratio")
         self.taper_ratio = get_init(self,"taper_ratio")
@@ -628,7 +631,7 @@ class VtpClassic(Component):
         wing_area = self.aircraft.airframe.wing.area
         cyb_vtp =  (np.pi*self.aspect_ratio)/(1+np.sqrt(1+(self.aspect_ratio/2)**2))*(self.area/wing_area)   # Helmbold formula
         xlc_vtp = self.mac_loc[0] + 0.25*self.mac   # Position of VTP center of lift
-        aoa_max_vtp = unit.rad_deg(35.)             # Maximum angle of attack allowed for VTP
+        aoa_max_vtp = unit.rad_deg(30.)             # Maximum angle of attack allowed for VTP
         ki_vtp = 1.3/(np.pi*self.aspect_ratio)      # VTP induced drag coefficient
         return cyb_vtp, xlc_vtp, aoa_max_vtp, ki_vtp
 
@@ -653,7 +656,7 @@ class VtpTtail(Component):
 
         wing_area = aircraft.airframe.wing.area
 
-        self.area = 0.20*wing_area  # Coupling variable
+        self.area = 0.20*wing_area  # Design variable for hq_optim
         self.height = None
         self.aspect_ratio = get_init(self,"aspect_ratio")
         self.taper_ratio = get_init(self,"taper_ratio")
@@ -747,7 +750,7 @@ class VtpHtail(Component):
 
         wing_area = aircraft.airframe.wing.area
 
-        self.area = 0.20*wing_area  # Coupling variable
+        self.area = 0.20*wing_area  # Design variable for hq_optim
         self.height = None
         self.aspect_ratio = get_init(self,"aspect_ratio")
         self.taper_ratio = get_init(self,"taper_ratio")
@@ -837,7 +840,7 @@ class HtpClassic(Component):
 
         wing_area = aircraft.airframe.wing.area
 
-        self.area = 0.33*wing_area  # Coupling variable
+        self.area = 0.33*wing_area  # Design variable for hq_optim
         self.span = None
         self.aspect_ratio = get_init(self,"aspect_ratio")
         self.taper_ratio = get_init(self,"taper_ratio")
@@ -930,7 +933,7 @@ class HtpTtail(Component):
 
         wing_area = aircraft.airframe.wing.area
 
-        self.area = 0.33*wing_area  # Coupling variable
+        self.area = 0.33*wing_area  # Design variable for hq_optim
         self.span = None
         self.aspect_ratio = get_init(self,"aspect_ratio")
         self.taper_ratio = get_init(self,"taper_ratio")
@@ -1024,7 +1027,7 @@ class HtpHtail(Component):
 
         wing_area = aircraft.airframe.wing.area
 
-        self.area = 0.33*wing_area  # Coupling variable
+        self.area = 0.33*wing_area  # Design variable for hq_optim
         self.span = None
         self.aspect_ratio = get_init(self,"aspect_ratio")
         self.taper_ratio = get_init(self,"taper_ratio")

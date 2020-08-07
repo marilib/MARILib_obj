@@ -89,7 +89,7 @@ class Economics():
     def operating_cost_analysis(self):
         """Computes Cash and Direct Operating Costs per flight (based on AAE 451 Spring 2004)
         """
-        n_pax_ref = self.aircraft.requirement.n_pax_ref
+        n_pax_ref = self.aircraft.airframe.cabin.n_pax_ref
 
         fuel_type = self.aircraft.arrangement.fuel_type
         power_architecture = self.aircraft.arrangement.power_architecture

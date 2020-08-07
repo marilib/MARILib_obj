@@ -9,12 +9,12 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 from scipy.optimize import fsolve
+from marilib.utils.math import lin_interp_1d, maximize_1d
 
 from marilib.utils import earth
 
+from marilib.aircraft.model_config import get_init
 from marilib.aircraft.performance import Flight
-
-from marilib.utils.math import lin_interp_1d, maximize_1d
 
 
 # -----------------------------------------------------------------------------------
@@ -26,17 +26,17 @@ class Aerodynamics(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.cx_correction = 0.     # drag correction on cx coefficient
-        self.cruise_lodmax = 16.    # Assumption on L/D max for some initializations
+        self.cx_correction = get_init(self,"cx_correction")  # Drag correction on cx coefficient
+        self.cruise_lodmax = get_init(self,"cruise_lodmax")  # Assumption on L/D max for some initializations
         self.cz_cruise_lodmax = None
 
-        self.hld_conf_clean = 0.
+        self.hld_conf_clean = get_init(self,"hld_conf_clean")
         self.czmax_conf_clean = None
 
-        self.hld_conf_to = 0.30
+        self.hld_conf_to = get_init(self,"hld_conf_to")
         self.czmax_conf_to = None
 
-        self.hld_conf_ld = 1.00
+        self.hld_conf_ld = get_init(self,"hld_conf_ld")
         self.czmax_conf_ld = None
 
     def aerodynamic_analysis(self):
@@ -262,7 +262,7 @@ class WeightCg(object):
         if (self.aircraft.arrangement.power_source=="battery"):
             self.mlw = self.mtow
         else:
-            if (self.aircraft.requirement.n_pax_ref>100):
+            if (self.aircraft.airframe.cabin.n_pax_ref>100):
                 self.mlw = min(self.mtow , (1.07*self.mzfw))
             else:
                 self.mlw = self.mtow
@@ -456,7 +456,7 @@ class Turbofan(PowerSystem, Flight):
         sfc = ff / fn
         t41 = dict["t4"]
 
-        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41}
+        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41, "fn1":fn}
 
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
@@ -559,7 +559,7 @@ class Turboprop(PowerSystem, Flight):
         sfc = ff / pw
         t41 = dict["t4"]
 
-        return {"fn":fn, "ff":ff, "pw":pw, "sfc":sfc, "t4":t41}
+        return {"fn":fn, "ff":ff, "pw":pw, "sfc":sfc, "t4":t41, "fn1":fn}
 
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine
@@ -663,7 +663,7 @@ class Electroprop(PowerSystem, Flight):
         pw_net = pw / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
         sec = pw_net / fn
 
-        dict = {"fn":fn, "pw":pw_net, "sec":sec}
+        dict = {"fn":fn, "pw":pw_net, "sec":sec, "fn1":fn}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             fuel_heat = earth.fuel_heat(fuel_type)
@@ -794,7 +794,7 @@ class Electrofan(PowerSystem, Flight):
         pw_net = pw / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
         sec = pw_net / fn
 
-        dict = {"fn":fn, "pw":pw_net, "sec":sec}
+        dict = {"fn":fn, "pw":pw_net, "sec":sec, "fn1":fn}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             fuel_heat = earth.fuel_heat(fuel_type)
@@ -932,14 +932,15 @@ class PartialTurboElectric(PowerSystem, Flight):
 
         dict_tf = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
-        fn = dict_tf["fn"]*(n_engine-nei) + dict_ef["fn"]
+        fn1 = dict_tf["fn"]*(n_engine-nei)
+        fn = fn1 + dict_ef["fn"]
         ff = dict_tf["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
         sfc = ff / fn
         t41 = dict_tf["t4"]
         efn = dict_ef["fn"]
         epw = dict_ef["pw"]
 
-        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41, "efn":efn, "epw":epw}
+        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41, "fn1":fn1, "efn":efn, "epw":epw}
 
     def sc(self,pamb,tamb,mach,rating, thrust, nei=0):
         """Total thrust of a pure turbofan engine

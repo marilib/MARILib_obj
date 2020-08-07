@@ -43,7 +43,7 @@ ac.power_system.reference_thrust = unit.N_kN(160.)
 ac.airframe.wing.area = 128.
 
 
-process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+process.mda_hq(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 
 
 # Configure optimization problem
@@ -90,7 +90,7 @@ json = io.to_json_file(ac,'aircraft_outpout_data')      # Write all output data 
 io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
 # ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
 
-
+raise Exception()
 # Configure design space exploration
 # ---------------------------------------------------------------------------------------------------------------------
 step = [0.05,

@@ -16,6 +16,8 @@ class Airframe(object):
 
     def __init__(self, aircraft):
         self.aircraft = aircraft
+
+        self.engine_analysis_order = []
         self.mass_analysis_order = []
 
     def __iter__(self):
@@ -28,7 +30,7 @@ class Airframe(object):
             component_list.append(self.__dict__[name])
         return iter(component_list)
 
-    def geometry_analysis(self):
+    def geometry_analysis(self, hq_optim=False):
         """Crude geometry analysis of each component independantly by calling component.eval_geometry()
         """
         stab_architecture = self.aircraft.arrangement.stab_architecture
@@ -37,7 +39,7 @@ class Airframe(object):
 
         self.aircraft.airframe.cabin.eval_geometry()
         self.aircraft.airframe.body.eval_geometry()
-        self.aircraft.airframe.wing.eval_geometry()
+        self.aircraft.airframe.wing.eval_geometry(hq_optim)
         self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
         self.aircraft.airframe.nacelle.eval_geometry()
@@ -59,9 +61,6 @@ class Airframe(object):
         elif (stab_architecture=="h_tail"):
             self.aircraft.airframe.horizontal_stab.eval_geometry()
             self.aircraft.airframe.vertical_stab.eval_geometry()
-
-        self.aircraft.airframe.vertical_stab.eval_area()
-        self.aircraft.airframe.horizontal_stab.eval_area()
 
         self.aircraft.airframe.landing_gear.eval_geometry()
         self.aircraft.airframe.system.eval_geometry()

@@ -52,13 +52,43 @@ def mda(aircraft):
     # aircraft.weight_cg.mass_analysis()
     aircraft.weight_cg.mass_pre_design()
 
+    aircraft.aerodynamics.aerodynamic_analysis()
+
+    aircraft.handling_quality.analysis()
+
     aircraft.performance.mission.mass_mission_adaptation()
 
     aircraft.performance.mission.payload_range()
 
     aircraft.performance.analysis()
 
+    aircraft.economics.operating_cost_analysis()
+
+    aircraft.environment.fuel_efficiency_metric()
+
+    aircraft.power_system.thrust_analysis()
+
+
+
+def mda_hq(aircraft):
+    """Perform Multidsciplinary_Design_Analysis
+    All coupling constraints are solved in a relevent order
+    """
+    # aircraft.airframe.geometry_analysis()
+    aircraft.airframe.statistical_pre_design()
+
+    # aircraft.weight_cg.mass_analysis()
+    aircraft.weight_cg.mass_pre_design()
+
     aircraft.aerodynamics.aerodynamic_analysis()
+
+    aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
+
+    aircraft.performance.mission.mass_mission_adaptation()
+
+    aircraft.performance.mission.payload_range()
+
+    aircraft.performance.analysis()
 
     aircraft.economics.operating_cost_analysis()
 
