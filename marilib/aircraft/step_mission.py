@@ -29,12 +29,13 @@ class StepMission(Flight):
 
         self.event_altp.terminal = True
         self.event_mach.terminal = True
+        self.event_vcas.terminal = True
         self.event_vz_mcr.terminal = True
         self.event_vz_mcl.terminal = True
 
         self.event_speed.terminal = True
 
-    def climb_path(self,t,state, nei,disa,speed_mode,speed, mach_max,altp_max,vz_mcr,vz_mcl):
+    def climb_path(self,t,state, nei,disa,speed_mode,speed, speed_max,altp_stop,vz_mcr,vz_mcl):
         """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
         state = [x,zp,mass]
         """
@@ -54,23 +55,51 @@ class StepMission(Flight):
 
         return state_d
 
-    def event_altp(self,t,state, nei,disa,speed_mode,speed, mach_max,altp_max,vz_mcr,vz_mcl):
+    def descent_path(self,t,state, nei,disa,speed_mode,speed,vz, speed_max,altp_stop,vz_mcr,vz_mcl):
+        """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
+        state = [x,zp,mass]
+        """
+        altp = state[1]
+        mass = state[2]
+
+        path,thtl,fn,ff,cz,cx,pamb,tamb = Flight.descent(self,nei,altp,disa,speed_mode,speed,vz,mass)
+
+        mach = Flight.get_mach(pamb,speed_mode,speed)
+        vtas = earth.vtas_from_mach(altp,disa,mach)
+
+        state_d = np.zeros(3)
+        state_d[0] = vtas*np.cos(path)
+        state_d[1] = vz
+        state_d[2] = -ff
+
+        return state_d
+
+    def event_altp(self,t,state, nei,disa,speed_mode,speed, speed_max,altp_stop,vz_mcr,vz_mcl):
         """Detect altitude crossing
         state = [x,zp,mass]
         """
         altp = state[1]
-        return altp_max-altp
+        return altp_stop-altp
 
-    def event_mach(self,t,state, nei,disa,speed_mode,speed, mach_max,altp_max,vz_mcr,vz_mcl):
+    def event_mach(self,t,state, nei,disa,speed_mode,speed, speed_max,altp_stop,vz_mcr,vz_mcl):
         """Detect max Mach crossing
         state = [x,zp,mass]
         """
         altp = state[1]
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
         mach = Flight.get_mach(pamb,speed_mode,speed)
-        return mach_max-mach
+        return speed_max-mach
 
-    def event_vz_mcr(self,t,state, nei,disa,speed_mode,speed, mach_max,altp_max,vz_mcr,vz_mcl):
+    def event_vcas(self,t,state, nei,disa,speed_mode,speed, speed_max,altp_stop,vz_mcr,vz_mcl):
+        """Detect max CAS crossing
+        state = [x,zp,mass]
+        """
+        altp = state[1]
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+        vcas = Flight.get_vcas(pamb,speed_mode,speed)
+        return speed_max-vcas
+
+    def event_vz_mcr(self,t,state, nei,disa,speed_mode,speed, speed_max,altp_stop,vz_mcr,vz_mcl):
         """Detect max cruise ceiling
         state = [x,zp,mass]
         """
@@ -80,7 +109,7 @@ class StepMission(Flight):
         path,vz,fn,ff,cz,cx,pamb,tamb = Flight.air_path(nei,altp,disa,speed_mode,speed,mass,"MCR",kfn, full_output=True)
         return vz-vz_mcr
 
-    def event_vz_mcl(self,t,state, nei,disa,speed_mode,speed, mach_max,altp_max,vz_mcr,vz_mcl):
+    def event_vz_mcl(self,t,state, nei,disa,speed_mode,speed, speed_max,altp_stop,vz_mcr,vz_mcl):
         """Detect max climb ceiling
         state = [x,zp,mass]
         """

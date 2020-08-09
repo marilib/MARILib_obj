@@ -160,6 +160,14 @@ class Flight(object):
                 }.get(speed_mode, "Erreur: select speed_mode equal to cas or mach")
         return mach
 
+    def get_vcas(self,pamb,speed_mode,speed):
+        """Retrieve CAS from Mach or CAS depending on speed_mode
+        """
+        cas = {"mach" : earth.vcas_from_mach(pamb, speed),  # Input is CAS
+                "cas" : speed  # Input is mach
+                }.get(speed_mode, "Erreur: select speed_mode equal to cas or mach")
+        return cas
+
     def speed_from_lift(self,pamb,tamb,cz,mass):
         """Retrieve mach from cz using simplified lift equation
         """
