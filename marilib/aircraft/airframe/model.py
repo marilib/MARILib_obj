@@ -442,7 +442,7 @@ class Turbofan(PowerSystem, Flight):
             self.data[rating].tsfc = dict["sfc"]
             self.data[rating].T41 = dict["t4"]
 
-    def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
+    def  thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
         """Total thrust of a pure turbofan engine
         """
         n_engine = self.aircraft.power_system.n_engine

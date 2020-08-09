@@ -195,7 +195,7 @@ class Flight(object):
         dict["sar"] = self.aircraft.power_system.specific_air_range(mass,tas,dict)
         return dict
 
-    def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating,kfn):
+    def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating,kfn, full_output=False):
         """Retrieve air path in various conditions
         """
         g = earth.gravity()
@@ -204,6 +204,9 @@ class Flight(object):
 
         dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating)
         fn = dict["fn"]*kfn
+        ff = dict["ff"]*kfn
+        if kfn!=1. and full_output:
+            print("WARNING, air_path method, kfn is different from 1, fuel flow may not be accurate")
         cz = self.lift_from_speed(pamb,tamb,mach,mass)
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
 
@@ -215,7 +218,10 @@ class Flight(object):
         acc_factor = earth.climb_mode(speed_mode, mach, dtodz, tstd, disa)
         slope = ( fn/(mass*g) - 1./lod ) / acc_factor
         vz = slope * mach * earth.sound_speed(tamb)
-        return slope,vz
+        if full_output:
+            return slope,vz,fn,ff,cz,cx,pamb,tamb
+        else:
+            return slope,vz
 
     def max_air_path(self,nei,altp,disa,speed_mode,mass,rating,kfn):
         """Optimize the speed of the aircraft to maximize the air path
@@ -242,7 +248,7 @@ class Flight(object):
         """Optimize the speed of the aircraft to maximize the air path
         """
         def fct_prop_ceiling(altp,nei,vzreq,disa,speed_mode,speed,mass,rating):
-            [slope,vz] = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,throttle)
+            slope,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,throttle)
             delta_vz = vz - vzreq
             return delta_vz
 
@@ -291,7 +297,7 @@ class Flight(object):
         dict["altp"] = altp_sar_max
         return dict
 
-    def acceleration(self,nei,altp,disa,speed_mode,speed,mass,rating,throttle):
+    def acceleration(self,nei,altp,disa,speed_mode,speed,mass,rating,throttle, full_output=False):
         """Aircraft acceleration on level flight
         """
         r,gam,Cp,Cv = earth.gas_data()
@@ -300,6 +306,8 @@ class Flight(object):
         mach = self.get_mach(pamb,speed_mode,speed)
 
         dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,throttle=throttle,nei=nei)
+        fn = dict["fn"]
+        ff = dict["ff"]
 
         cz = self.lift_from_speed(pamb,tamb,mach,mass)
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
@@ -308,8 +316,32 @@ class Flight(object):
             dcx = self.aircraft.power_system.oei_drag(pamb,mach)
             cx = cx + dcx*nei
 
-        acc = (dict["fn"] - 0.5*gam*pamb*mach**2*self.aircraft.airframe.wing.area*cx) / mass
-        return acc
+        acc = (fn - 0.5*gam*pamb*mach**2*self.aircraft.airframe.wing.area*cx) / mass
+
+        if full_output:
+            return acc,fn,ff,cz,cx,pamb,tamb
+        else:
+            return acc
+
+    def descent(self,nei,altp,disa,speed_mode,speed,vz,mass):
+        """Retrieve air path in various conditions
+        """
+        g = earth.gravity()
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        mach = self.get_mach(pamb,speed_mode,speed)
+
+        slope = vz / (mach * earth.sound_speed(tamb))
+        acc_factor = earth.climb_mode(speed_mode, mach, dtodz, tstd, disa)
+
+        cz = self.lift_from_speed(pamb,tamb,mach,mass)
+        cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
+
+        fn = (slope * acc_factor + 1./lod) * (mass*g)
+        dict = self.aircraft.power_system.sc(self,pamb,tamb,mach,"FID", fn, nei)
+        ff = dict["sfc"]*fn
+        thtl = dict["thtl"]
+
+        return slope,thtl,fn,ff,cz,cx,pamb,tamb
 
     def breguet_range(self,range,tow,ktow,altp,mach,disa):
         """Breguet range equation is dependant from power architecture
