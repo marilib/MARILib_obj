@@ -7,6 +7,7 @@
 """
 
 DATA_DICT = {
+    "eis_date": {"unit":"int", "mag":1e3, "txt":"Entry into service date"},
     "body_type": {"unit":"string", "mag":8, "txt":"Type of main body, 'fuselage' or 'blended'"},
     "wing_type": {"unit":"string", "mag":6, "txt":"Type of lifting body, 'classic' or 'blended'"},
     "wing_attachment": {"unit":"string", "mag":4, "txt":"Position of wing attachment, 'low' or 'high'"},
@@ -140,6 +141,7 @@ DATA_DICT = {
     "FID": {"unit":"no_dim", "mag":1e0, "txt":"Flight idle rating factor"},
     "tune_factor": {"unit":"no_dim", "mag":1e0, "txt":"Factor on unitary engine thrust to match with reference thrust definition"},
     "engine_bpr": {"unit":"no_dim", "mag":1e0, "txt":"Reference By Pass Ratio of the engine"},
+    "engine_opr": {"unit":"no_dim", "mag":1e0, "txt":"Reference Overall Pressure Ratio of the engine"},
     "engine_fpr": {"unit":"no_dim", "mag":1e0, "txt":"Reference Fan Pressure Ratio of the engine"},
     "core_thrust_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Reference ratio of the total thrust delivered by the core"},
     "fan_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Fan efficiency, Kinetic power delivered to the air flow devided by shaft power"},

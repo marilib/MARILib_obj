@@ -11,6 +11,8 @@ from scipy.optimize import fsolve
 
 from marilib.utils import earth
 
+from marilib.aircraft.model_config import get_init
+
 from marilib.engine.ExergeticEngine import Turbofan, ElectricFan
 
 from marilib.aircraft.airframe.component import Component
@@ -18,21 +20,22 @@ from marilib.aircraft.airframe.component import Component
 from marilib.aircraft.airframe.model import number_of_engine
 
 from marilib.aircraft.airframe.propulsion import RatingFactor, \
-                                                 InboradWingMountedNacelle,\
-                                                 OutboradWingMountedNacelle,\
+                                                 InboardWingMountedNacelle,\
+                                                 OutboardWingMountedNacelle,\
                                                  RearFuselageMountedNacelle
 
 
-class Exergetic_tf_nacelle(Component):
+class ExergeticTfNacelle(Component):
 
     def __init__(self, aircraft):
-        super(Exergetic_tf_nacelle, self).__init__(aircraft)
+        super(ExergeticTfNacelle, self).__init__(aircraft)
+
+        class_name = "ExergeticTfNacelle"
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.n_engine = number_of_engine(aircraft)
         self.cruise_thrust = self.__cruise_thrust()
         self.reference_thrust = None
         self.reference_offtake = 0.
@@ -43,8 +46,12 @@ class Exergetic_tf_nacelle(Component):
         self.engine_fpr = 1.15
         self.engine_lpc_pr = 3.0
         self.engine_hpc_pr = 14.0
+        self.engine_opr = None
         self.engine_T4max = 1700.
         self.cooling_flow = 0.1
+        self.lateral_margin = get_init(class_name,"lateral_margin")
+        self.vertical_margin = get_init(class_name,"vertical_margin")
+        self.hub_width = get_init(class_name,"hub_width")
 
         self.TF_model = Turbofan()
 
@@ -79,17 +86,22 @@ class Exergetic_tf_nacelle(Component):
     def __cruise_thrust(self):
         g = earth.gravity()
         mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
-        lod = 16.
-        fn = 1.6*(mass*g/lod)/self.n_engine
+        lod = 17.
+        fn = 1.4*(mass*g/lod)/self.aircraft.power_system.n_engine
         return fn
 
-    def lateral_margin(self):
-        return 1.5*self.width
+    def y_wise_margin(self, n):
+        if n==1: return 1.5 * self.lateral_margin * self.width
+        elif n==2:  return 3.0 * self.lateral_margin * self.width
+        elif n==3:  return 4.5 * self.lateral_margin * self.width
 
-    def vertical_margin(self):
-        return 0.55*self.width
+    def z_wise_margin(self):
+        return (self.vertical_margin - 0.45)*self.width
 
     def eval_geometry(self):
+        n_engine = self.aircraft.power_system.n_engine
+
+        self.engine_opr = self.engine_fpr * self.engine_lpc_pr * self.engine_hpc_pr
 
         disa = self.aircraft.requirement.cruise_disa
         altp = self.aircraft.requirement.cruise_altp
@@ -129,7 +141,7 @@ class Exergetic_tf_nacelle(Component):
         self.length = 0.86*self.width + self.engine_bpr**0.37      # statistical regression
 
         knac = np.pi * self.width * self.length
-        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*self.n_engine       # statistical regression, all engines
+        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*n_engine       # statistical regression, all engines
         self.net_wet_area = self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.15
@@ -137,8 +149,9 @@ class Exergetic_tf_nacelle(Component):
         self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
-        self.engine_mass = (1250. + 0.021*self.reference_thrust)*self.n_engine       # statistical regression, all engines
-        self.pylon_mass = 0.0031*self.reference_thrust*self.n_engine
+        n_engine = self.aircraft.power_system.n_engine
+        self.engine_mass = (1250. + 0.021*self.reference_thrust)*n_engine       # statistical regression, all engines
+        self.pylon_mass = 0.0031*self.reference_thrust*n_engine
         self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
@@ -206,30 +219,29 @@ class Exergetic_tf_nacelle(Component):
         return sfc, kT4
 
 
-class Outboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,OutboradWingMountedNacelle):
+class Outboard_wing_mounted_extf_nacelle(ExergeticTfNacelle,OutboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
 
-class Inboard_wing_mounted_extf_nacelle(Exergetic_tf_nacelle,InboradWingMountedNacelle):
+class Inboard_wing_mounted_extf_nacelle(ExergeticTfNacelle,InboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
 
-class Rear_fuselage_mounted_extf_nacelle(Exergetic_tf_nacelle,RearFuselageMountedNacelle):
+class Rear_fuselage_mounted_extf_nacelle(ExergeticTfNacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
         super(Rear_fuselage_mounted_extf_nacelle, self).__init__(aircraft)
 
 
 
-class Exergetic_ef_nacelle(Component):
+class ExergeticEfNacelle(Component):
 
     def __init__(self, aircraft):
-        super(Exergetic_ef_nacelle, self).__init__(aircraft)
+        super(ExergeticEfNacelle, self).__init__(aircraft)
 
         ne = self.aircraft.arrangement.number_of_engine
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.n_engine = {"twin":2, "quadri":4}.get(ne, "number of engine is unknown")
         self.cruise_thrust = self.__cruise_thrust()
         self.reference_thrust = None
         self.reference_power = None
@@ -265,7 +277,7 @@ class Exergetic_ef_nacelle(Component):
         g = earth.gravity()
         mass = 20500. + 67.e-6*self.aircraft.requirement.n_pax_ref*self.aircraft.requirement.design_range
         lod = 16.
-        fn = 2.0*(mass*g/lod)/self.n_engine
+        fn = 2.0*(mass*g/lod)/self.aircraft.power_system.n_engine
         return fn
 
     def lateral_margin(self):
@@ -275,6 +287,7 @@ class Exergetic_ef_nacelle(Component):
         return 0.55*self.width
 
     def eval_geometry(self):
+        n_engine = self.aircraft.power_system.n_engine
 
         disa = self.aircraft.requirement.cruise_disa
         altp = self.aircraft.requirement.cruise_altp
@@ -319,7 +332,7 @@ class Exergetic_ef_nacelle(Component):
         self.length = 1.50*self.width
 
         knac = np.pi * self.width * self.length
-        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*self.n_engine       # statistical regression, all engines
+        self.gross_wet_area = knac*(1.48 - 0.0076*knac)*n_engine       # statistical regression, all engines
         self.net_wet_area = self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.15
@@ -327,11 +340,12 @@ class Exergetic_ef_nacelle(Component):
         self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
+        n_engine = self.aircraft.power_system.n_engine
         shaft_power_max = self.aircraft.airframe.nacelle.reference_power
         self.engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
                        + 1./self.nacelle_pw_density
-                      ) * shaft_power_max * self.n_engine
-        self.pylon_mass = 0.0031*self.reference_thrust*self.n_engine
+                      ) * shaft_power_max * n_engine
+        self.pylon_mass = 0.0031*self.reference_thrust*n_engine
         self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.])      # statistical regression
 
@@ -375,15 +389,15 @@ class Exergetic_ef_nacelle(Component):
         return {"sec":sec, "thtl":throttle}
 
 
-class Outboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,OutboradWingMountedNacelle):
+class Outboard_wing_mounted_exef_nacelle(ExergeticEfNacelle,OutboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(Outboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
 
-class Inboard_wing_mounted_exef_nacelle(Exergetic_ef_nacelle,InboradWingMountedNacelle):
+class Inboard_wing_mounted_exef_nacelle(ExergeticEfNacelle,InboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(Inboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
 
-class Rear_fuselage_mounted_exef_nacelle(Exergetic_ef_nacelle,RearFuselageMountedNacelle):
+class Rear_fuselage_mounted_exef_nacelle(ExergeticEfNacelle,RearFuselageMountedNacelle):
     def __init__(self, aircraft):
         super(Rear_fuselage_mounted_exef_nacelle, self).__init__(aircraft)
 

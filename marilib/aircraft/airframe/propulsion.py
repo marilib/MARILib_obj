@@ -17,10 +17,10 @@ from marilib.aircraft.airframe.component import Component
 from marilib.aircraft.model_config import get_init
 
 
-class InboradWingMountedNacelle(Component):
+class InboardWingMountedNacelle(Component):
 
     def __init__(self, aircraft):
-        super(InboradWingMountedNacelle, self).__init__(aircraft)
+        super(InboardWingMountedNacelle, self).__init__(aircraft)
 
     def locate_nacelle(self):
         body_width = self.aircraft.airframe.body.width
@@ -40,10 +40,10 @@ class InboradWingMountedNacelle(Component):
 
         return np.array([x_int, y_int, z_int])
 
-class OutboradWingMountedNacelle(Component):
+class OutboardWingMountedNacelle(Component):
 
     def __init__(self, aircraft):
-        super(OutboradWingMountedNacelle, self).__init__(aircraft)
+        super(OutboardWingMountedNacelle, self).__init__(aircraft)
 
     def locate_nacelle(self):
         body_width = self.aircraft.airframe.body.width
@@ -226,10 +226,12 @@ class SemiEmpiricTf0Nacelle(Component):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
+        self.eis_date = get_init(class_name,"eis_date")
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
         self.reference_offtake = 0.
         self.tune_factor = 1.
         self.engine_bpr = get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
+        self.engine_opr = get_init(class_name,"engine_opr", val=self.__turbofan_opr())
         self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.lateral_margin = get_init(class_name,"lateral_margin")
@@ -252,6 +254,10 @@ class SemiEmpiricTf0Nacelle(Component):
         else:
             bpr = 5.
         return bpr
+
+    def __turbofan_opr(self):
+        opr = 50.
+        return opr
 
     def y_wise_margin(self, n):
         if n==1: return 1.5 * self.lateral_margin * self.width
@@ -351,11 +357,11 @@ class SemiEmpiricTf0Nacelle(Component):
         t41 = dict["t4"]
         return {"sfc":sfc, "thtl":throttle, "t4":t41}
 
-class OutboardWingMountedTf0Nacelle(SemiEmpiricTf0Nacelle,OutboradWingMountedNacelle):
+class OutboardWingMountedTf0Nacelle(SemiEmpiricTf0Nacelle,OutboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(OutboardWingMountedTf0Nacelle, self).__init__(aircraft)
 
-class InboardWingMountedTf0Nacelle(SemiEmpiricTf0Nacelle,InboradWingMountedNacelle):
+class InboardWingMountedTf0Nacelle(SemiEmpiricTf0Nacelle,InboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(InboardWingMountedTf0Nacelle, self).__init__(aircraft)
 
@@ -372,10 +378,12 @@ class SemiEmpiricTfNacelle(Component):
 
         class_name = "SemiEmpiricTfNacelle"
 
+        self.eis_date = get_init(class_name,"eis_date")
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
         self.reference_offtake = 0.
         self.tune_factor = 1.
         self.engine_bpr = get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
+        self.engine_opr = get_init(class_name,"engine_opr", val=self.__turbofan_opr())
         self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.fan_efficiency = get_init(class_name,"fan_efficiency")
@@ -402,6 +410,10 @@ class SemiEmpiricTfNacelle(Component):
         else:
             bpr = 5.
         return bpr
+
+    def __turbofan_opr(self):
+        opr = 50.
+        return opr
 
     def y_wise_margin(self, n):
         if n==1: return 1.5 * self.lateral_margin * self.width
@@ -637,11 +649,11 @@ class SemiEmpiricTfNacelle(Component):
 
         return {"sfc":sfc, "thtl":thtl, "t4":None}
 
-class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboradWingMountedNacelle):
+class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(OutboardWingMountedTfNacelle, self).__init__(aircraft)
 
-class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboradWingMountedNacelle):
+class InboardWingMountedTfNacelle(SemiEmpiricTfNacelle,InboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(InboardWingMountedTfNacelle, self).__init__(aircraft)
 
@@ -804,6 +816,7 @@ class SemiEmpiricEfNacelle(Component):
 
         class_name = "SemiEmpiricEfNacelle"
 
+        self.eis_date = 2020
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.fan_efficiency = get_init(class_name,"fan_efficiency")
@@ -1026,11 +1039,11 @@ class SemiEmpiricEfNacelle(Component):
 
         return {"sec":sec, "thtl":throttle}
 
-class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboradWingMountedNacelle):
+class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(OutboardWingMountedEfNacelle, self).__init__(aircraft)
 
-class InboardWingMountedEfNacelle(SemiEmpiricEfNacelle,InboradWingMountedNacelle):
+class InboardWingMountedEfNacelle(SemiEmpiricEfNacelle,InboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(InboardWingMountedEfNacelle, self).__init__(aircraft)
 
@@ -1192,6 +1205,7 @@ class SemiEmpiricTpNacelle(Component):
 
         class_name = "SemiEmpiricTpNacelle"
 
+        self.eis_date = 2020
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.95, MCL=0.90, MCR=0.70, FID=0.10)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
@@ -1281,11 +1295,11 @@ class SemiEmpiricTpNacelle(Component):
         t41 = dict["t4"]
         return {"sfc":sfc, "thtl":throttle, "t4":t41}
 
-class OutboardWingMountedTpNacelle(SemiEmpiricTpNacelle,OutboradWingMountedNacelle):
+class OutboardWingMountedTpNacelle(SemiEmpiricTpNacelle,OutboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(OutboardWingMountedTpNacelle, self).__init__(aircraft)
 
-class InboardWingMountedTpNacelle(SemiEmpiricTpNacelle,InboradWingMountedNacelle):
+class InboardWingMountedTpNacelle(SemiEmpiricTpNacelle,InboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(InboardWingMountedTpNacelle, self).__init__(aircraft)
 
@@ -1298,6 +1312,7 @@ class SemiEmpiricEpNacelle(Component):
 
         class_name = "SemiEmpiricEpNacelle"
 
+        self.eis_date = 2020
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
@@ -1388,11 +1403,11 @@ class ExternalWingMountedEpNacelle(SemiEmpiricEpNacelle,ExternalWingMountedNacel
     def __init__(self, aircraft):
         super(ExternalWingMountedEpNacelle, self).__init__(aircraft)
 
-class OutboardWingMountedEpNacelle(SemiEmpiricEpNacelle,OutboradWingMountedNacelle):
+class OutboardWingMountedEpNacelle(SemiEmpiricEpNacelle,OutboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(OutboardWingMountedEpNacelle, self).__init__(aircraft)
 
-class InboardWingMountedEpNacelle(SemiEmpiricEpNacelle,InboradWingMountedNacelle):
+class InboardWingMountedEpNacelle(SemiEmpiricEpNacelle,InboardWingMountedNacelle):
     def __init__(self, aircraft):
         super(InboardWingMountedEpNacelle, self).__init__(aircraft)
 

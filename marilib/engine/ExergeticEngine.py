@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-:author: TODO
+:author: M. BELLEVILLE, mathieu.belleville@airbus.com
 
 The ExergeticEngine module contains the base classes to simulate aircraft engines.
 
@@ -825,7 +825,7 @@ class ExergeticEngine(object):
         y = [r['9']['A'] / self.design_state['9']['A'] - 1., shaft_speed['HPT'] / shaft_speed['HPC'] - 1.]
         targets = {"wfe": p['wfe'], "Fnet" : p['Fnet'], 'N1': shaft_speed['HPC'], 'Ttmax': r['4']['Tmax']}
         y.append([targets[k]-args[0][k] for k in sorted(targets.keys()) if k in args[0].keys()][0])
-        # print(x, y)
+        #print(x, y)
         return y
 
     def off_design(self, **kwargs):
@@ -864,6 +864,9 @@ class ExergeticEngine(object):
         # In case of successful solving, report the result
         if res.success:
             xx = res.x * self.dp
+            coeff = math.sqrt(self.dp_flight[0]/self.Tt0)/(self.dp_flight[1]/self.Pt0)
+            xx[0] = xx[0] * coeff
+            xx[-1] = xx[-1] * coeff
             other_kwargs = {k: kwargs[k] for k in kwargs.keys() if k not in ['guess', 'Ttmax', 'wfe', 'Fnet', 'N1']}
             other_kwargs['dHf'] = xx[-1] * flhv
             xxx = xx[:-1]

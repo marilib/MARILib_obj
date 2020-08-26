@@ -97,9 +97,9 @@ model_config = {
     },
     "LandingGear":{
     },
-    "InboradWingMountedNacelle":{
+    "InboardWingMountedNacelle":{
     },
-    "OutboradWingMountedNacelle":{
+    "OutboardWingMountedNacelle":{
     },
     "RearFuselageMountedNacelle":{
     },
@@ -135,28 +135,46 @@ model_config = {
         "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
     },
     "SemiEmpiricTf0Nacelle":{
+        "eis_date": [2020., "year", "Entry into service date"],
         "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
         "vertical_margin": [1., "no_dim", "vertical margin as a fraction of nacelle width"],
         "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
+        "engine_opr": [50., "no_dim", "Reference Overall Pressure Ratio of the engine"],
         "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"]
     },
     "SemiEmpiricTfNacelle":{
+        "eis_date": [2020., "year", "Entry into service date"],
         "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
         "vertical_margin": [1., "no_dim", "vertical margin as a fraction of nacelle width"],
         "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
+        "engine_opr": [50., "no_dim", "Reference Overall Pressure Ratio of the engine"],
         "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
         "hub_width": [0.4, "m", "Fan hub diameter"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
         "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"]
     },
+    "ExergeticTfNacelle":{
+        "eis_date": [2020., "year", "Entry into service date"],
+        "engine_bpr": [14., "no_dim", "Reference By Pass Ratio of the engine"],
+        "engine_fpr": [1.15, "no_dim", "Reference Fan Pressure Ratio of the engine"],
+        "engine_lpc_pr": [3., "no_dim", "Reference Low Pressure Compressor Ratio of the engine"],
+        "engine_hpc_pr": [14., "no_dim", "Reference High  Pressure Compressor Ratio of the engine"],
+        "engine_T4_max": [1700., "K", "Entry turbine maximum temperature"],
+        "cooling_flow": [0.1, "kg/s", "Reference cooling flow"],
+        "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
+        "vertical_margin": [1., "no_dim", "vertical margin as a fraction of nacelle width"],
+        "hub_width": [0.4, "m", "Fan hub diameter"],
+    },
     "SemiEmpiricTpNacelle":{
+        "eis_date": [2020., "year", "Entry into service date"],
         "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
         "hub_width": [0.2, "m", "Propeller hub diameter"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
         "propeller_disk_load": [3000., "N/m2", "Propeller disk load"]
     },
     "SemiEmpiricEpNacelle":{
+        "eis_date": [2020., "year", "Entry into service date"],
         "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
         "propeller_disk_load": [3000., "N/m2", "Propeller disk load"],
@@ -168,6 +186,7 @@ model_config = {
         "controller_pw_density": [20., "kW/kg", "Electric controller power density"]
     },
     "SemiEmpiricEfNacelle":{
+        "eis_date": [2020., "year", "Entry into service date"],
         "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
         "vertical_margin": [1., "no_dim", "vertical margin as a fraction of nacelle width"],
         "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
