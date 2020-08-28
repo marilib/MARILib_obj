@@ -981,7 +981,7 @@ class SemiEmpiricEfNacelle(Component):
         Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
         eFn = q0*(Vjet - Vinlet)
 
-        return {"fn":eFn, "pw":pw_elec}
+        return {"fn":eFn, "pw":pw_elec, "sec":pw_elec/eFn}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         return self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
@@ -1126,7 +1126,7 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
         Vjet = np.sqrt(2.*pw_input/q1 + Vinlet**2)
         eFn = q1*(Vjet - Vinlet)
 
-        return {"fn":eFn, "pw":pw_elec, "dv_bli":dVbli}
+        return {"fn":eFn, "pw":pw_elec, "sec":pw_elec/eFn, "dv_bli":dVbli}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         if self.bli_effect=="yes":
@@ -1387,7 +1387,7 @@ class SemiEmpiricEpNacelle(Component):
         pw_shaft = reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
         pw_elec = pw_shaft / (self.motor_efficiency*self.controller_efficiency)
         fn = self.propeller_efficiency*pw_shaft/Vair
-        return {"fn":fn, "pw":pw_elec}
+        return {"fn":fn, "pw":pw_elec, "sec":pw_elec/fn}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)

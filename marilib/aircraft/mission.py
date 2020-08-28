@@ -112,7 +112,6 @@ class AllMissionVarMass(AllMissions):
         pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
 
         lf_dict = self.level_flight(pamb,tamb,self.mach,self.mass)
-        sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
 
         self.crz_sar = lf_dict["sar"]
         self.crz_cz = lf_dict["cz"]
@@ -123,6 +122,10 @@ class AllMissionVarMass(AllMissions):
             self.crz_tsfc = lf_dict["sfc"]
         elif self.aircraft.power_system.sfc_type=="power":
             self.crz_psfc = lf_dict["sfc"]
+        if "sec" in lf_dict.keys():
+            self.crz_sec = lf_dict["sec"]
+
+        sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
 
         self.max_sar_altp = sm_dict["altp"]
         self.max_sar = sm_dict["sar"]
@@ -134,6 +137,8 @@ class AllMissionVarMass(AllMissions):
             self.max_sar_tsfc = sm_dict["sfc"]
         elif self.aircraft.power_system.sfc_type=="power":
             self.max_sar_psfc = sm_dict["sfc"]
+        if "sec" in lf_dict.keys():
+            self.crz_sec = lf_dict["sec"]
 
     def mass_mission_adaptation(self):
         """Solves coupling between MTOW and OWE

@@ -88,13 +88,13 @@ print("Turbofan nacelle mass = ","%.1f"%ac.airframe.nacelle.mass," kg")
 if (ac.arrangement.power_architecture=="pte"):
     print("Electric nacelle mass = ","%.1f"%ac.airframe.tail_nacelle.mass," kg")
     print("Power electric mass = ","%.1f"%ac.airframe.system.power_chain_mass," kg")
-    if (aircraft.pte1_battery.strategy>0):
-        print("Battery mass = ","%.1f"%aircraft.pte1_battery.mass," kg")
+    # if (aircraft.pte1_battery.strategy>0):
+    #     print("Battery mass = ","%.1f"%aircraft.pte1_battery.mass," kg")
 
 print("")
 print("LoD cruise = ","%.2f"%ac.performance.mission.crz_lod," no_dim")
 print("TSFC cruise = ","%.3f"%(ac.performance.mission.crz_tsfc*36000)," kg/daN/h")
-print("SEC cruise = ","%.3f"%(aircraft.propulsion.sec_cruise_ref/100)," kW/daN")
+print("SEC cruise = ","%.3f"%(ac.performance.mission.crz_sec/100)," kW/daN (tail engine only)")
 print("Nominal mission fuel = ","%.1f"%(ac.performance.mission.nominal.fuel_block)," kg")
 
 print("")
