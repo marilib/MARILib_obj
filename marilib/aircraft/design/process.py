@@ -42,21 +42,22 @@ def eval_this(aircraft,design_variables):
 
 
 
-def mda(aircraft):
+def mda(aircraft, mass_mission_matching=True):
     """Perform Multidsciplinary_Design_Analysis
     All coupling constraints are solved in a relevent order
     """
-    # aircraft.airframe.geometry_analysis()
-    aircraft.airframe.statistical_pre_design()
+    # aircraft.airframe.geometry_analysis()     # Without statistical empennage sizing
+    aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
 
-    # aircraft.weight_cg.mass_analysis()
-    aircraft.weight_cg.mass_pre_design()
+    # aircraft.weight_cg.mass_analysis()      # Without MZFW - MLW coupling
+    aircraft.weight_cg.mass_pre_design()    # With MZFW - MLW coupling
 
     aircraft.aerodynamics.aerodynamic_analysis()
 
-    aircraft.handling_quality.analysis()
+#    aircraft.handling_quality.analysis()
 
-    aircraft.performance.mission.mass_mission_adaptation()
+    if mass_mission_matching:
+        aircraft.performance.mission.mass_mission_adaptation()
 
     aircraft.performance.mission.payload_range()
 

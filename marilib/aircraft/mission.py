@@ -55,7 +55,7 @@ class AllMissions(Flight):
 
         self.max_payload.eval(owe,altp,mach,disa, payload=payload_max, tow=mtow)
 
-        self.nominal.eval(owe,altp,mach,disa, range=design_range, tow=mtow)
+        self.nominal.eval(owe,altp,mach,disa, range=design_range, payload=nominal_payload)
 
         self.max_fuel.eval(owe,altp,mach,disa, fuel_total=fuel_max, tow=mtow)
 

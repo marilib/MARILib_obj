@@ -80,11 +80,11 @@ crt = "aircraft.weight_cg.mtow"
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 io = MarilibIO()
-json = io.to_json_file(ac,'aircraft_outpout_data')      # Write all output data into a json readable format
+json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 # dico = io.from_string(json)
 
 io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file

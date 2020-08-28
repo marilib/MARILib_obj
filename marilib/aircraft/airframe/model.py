@@ -251,8 +251,8 @@ class WeightCg(object):
         self.breakdown.ldg_mass = self.aircraft.airframe.landing_gear.mass
         self.breakdown.system_mass = self.aircraft.airframe.system.mass
         self.breakdown.propeller_mass = self.aircraft.airframe.nacelle.propeller_mass
-        self.breakdown.engine_mass = self.aircraft.airframe.nacelle.engine_mass
-        self.breakdown.pylon_mass = self.aircraft.airframe.nacelle.pylon_mass
+        self.breakdown.engine_mass = self.aircraft.airframe.nacelle.engine_mass * self.aircraft.power_system.n_engine
+        self.breakdown.pylon_mass = self.aircraft.airframe.nacelle.pylon_mass * self.aircraft.power_system.n_engine
 
         if (self.aircraft.arrangement.power_source=="battery"):
             self.mzfw = self.mtow
@@ -668,6 +668,7 @@ class Electroprop(PowerSystem, Flight):
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
+            dict["ff"] = dict["sfc"] * dict["fn"]
 
         return dict
 
@@ -685,6 +686,7 @@ class Electroprop(PowerSystem, Flight):
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
+            dict["ff"] = dict["sfc"] * thrust
 
         return dict
 
@@ -799,6 +801,7 @@ class Electrofan(PowerSystem, Flight):
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = sec / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
+            dict["ff"] = dict["sfc"] * dict["fn"]
 
         return dict
 
@@ -816,6 +819,7 @@ class Electrofan(PowerSystem, Flight):
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
             fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = dict["sec"] / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
+            dict["ff"] = dict["sfc"] * thrust
 
         return dict
 
