@@ -43,7 +43,13 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 ac.power_system.reference_thrust = unit.N_kN(155.)
 ac.airframe.wing.area = 130.
 
-ac.airframe.system.chain_power = unit.W_MW(1.)
+ac.airframe.system.battery = "no"
+ac.airframe.system.battery_energy_density = unit.J_kWh(0.2) # J/kg, # Battery energy density
+ac.airframe.system.cruise_energy = unit.J_kWh(140)          # J, energy stored in the battery dedicated to the cruise
+
+ac.airframe.system.chain_power = unit.W_MW(1.)      # Shaft power of the electric motor
+
+ac.airframe.tail_nacelle.bli_effect = "yes"         # Include BLI effect in thrust computation
 
 ac.airframe.system.generator_efficiency = 0.95
 ac.airframe.system.rectifier_efficiency = 0.98
@@ -66,7 +72,7 @@ ac.draw.payload_range("This_plot")                      # Draw a payload range d
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 
-# Print relevant output
+# Print some relevant output
 #------------------------------------------------------------------------------------------------------
 altp = ac.performance.mission.altp
 disa = ac.performance.mission.disa
@@ -88,14 +94,15 @@ print("Turbofan nacelle mass = ","%.1f"%ac.airframe.nacelle.mass," kg")
 if (ac.arrangement.power_architecture=="pte"):
     print("Electric nacelle mass = ","%.1f"%ac.airframe.tail_nacelle.mass," kg")
     print("Power electric mass = ","%.1f"%ac.airframe.system.power_chain_mass," kg")
-    # if (aircraft.pte1_battery.strategy>0):
-    #     print("Battery mass = ","%.1f"%aircraft.pte1_battery.mass," kg")
+    print("Power chain efficiency = ","%.3f"%ac.airframe.system.power_chain_efficiency)
+    if (ac.airframe.system.battery=="yes"):
+        print("Battery mass = ","%.1f"%ac.airframe.system.battery_mass," kg")
 
 print("")
 print("LoD cruise = ","%.2f"%ac.performance.mission.crz_lod," no_dim")
 print("TSFC cruise = ","%.3f"%(ac.performance.mission.crz_tsfc*36000)," kg/daN/h")
 print("SEC cruise = ","%.3f"%(ac.performance.mission.crz_sec/100)," kW/daN (tail engine only)")
-print("Nominal mission fuel = ","%.1f"%(ac.performance.mission.nominal.fuel_block)," kg")
+print("Design mission block fuel = ","%.1f"%(ac.performance.mission.nominal.fuel_block)," kg")
 
 print("")
 print("Take off field length required = "+"%.1f"%ac.performance.take_off.tofl_req+" m")

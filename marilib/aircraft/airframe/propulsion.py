@@ -438,7 +438,7 @@ class SemiEmpiricTfNacelle(Component):
         self.tune_factor = 1.
 
         # Get fan shaft power in cruise condition
-        shaft_power,core_thrust = self.fan_shaft_power(pamb,tamb,mach,"MCR",throttle=1.,pw_offtake=self.reference_offtake)
+        shaft_power,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,"MCR",throttle=1.,pw_offtake=self.reference_offtake)
 
         # Design nacelle according to this shaft power in cruise condition
         self.turbofan_nacelle_design(pamb,tamb,mach,shaft_power)
@@ -459,6 +459,8 @@ class SemiEmpiricTfNacelle(Component):
     def fan_shaft_power(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Fan shaft power of a pure turbofan engine (semi-empirical model)
         """
+        sfc_ref = ( 0.4 + 1./self.engine_bpr**0.895 )/36000.
+
         reference_thrust = self.aircraft.power_system.reference_thrust
         kth =  0.475*mach**2 + 0.091*(self.engine_bpr/10.)**2 \
              - 0.283*mach*self.engine_bpr/10. \
@@ -473,11 +475,12 @@ class SemiEmpiricTfNacelle(Component):
                         * getattr(self.rating_factor,rating) \
                         * throttle \
                         * sig**0.75
-        core_thrust0 = total_thrust0 * self.core_thrust_ratio        # Core thrust
+        fuel_flow = sfc_ref * total_thrust0                         # Fuel flow
+        core_thrust0 = total_thrust0 * self.core_thrust_ratio       # Core thrust
         fan_thrust0 = total_thrust0 * (1.-self.core_thrust_ratio)   # Fan thrust
         fan_power0 = fan_thrust0*vair/self.propeller_efficiency     # Available total shaft power for one engine
 
-        return fan_power0-pw_offtake, core_thrust0
+        return fan_power0-pw_offtake, core_thrust0, fuel_flow
 
     def turbofan_nacelle_design(self,Pamb,Tamb,Mach,shaft_power):
         """Electrofan nacelle design
@@ -571,7 +574,7 @@ class SemiEmpiricTfNacelle(Component):
             y = q0 - qf
             return y
 
-        pw_shaft,core_thrust = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+        pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
         Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
         Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
@@ -596,9 +599,6 @@ class SemiEmpiricTfNacelle(Component):
 
         total_thrust = fan_thrust + core_thrust
 
-        sfc_ref = ( 0.4 + 1./self.engine_bpr**0.895 )/36000.
-        fuel_flow = sfc_ref * total_thrust
-
         return {"fn":total_thrust, "ff":fuel_flow, "t4":None}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
@@ -612,7 +612,7 @@ class SemiEmpiricTfNacelle(Component):
         def fct(x_in,thrust,pamb,Ttot,Vair):
             q = x_in[0]
             throttle = x_in[1]
-            pw_shaft,core_thrust = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+            pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
             Vinlet = Vair
             pw_input = self.fan_efficiency*pw_shaft
             Vjet = np.sqrt(2.*pw_input/q + Vinlet**2)   # Supposing adapted nozzle
@@ -643,11 +643,13 @@ class SemiEmpiricTfNacelle(Component):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         q0 = output_dict[0][0]
-        thtl = output_dict[0][1]
+        throttle = output_dict[0][1]
 
-        sfc = ( 0.4 + 1./self.engine_bpr**0.895 )/36000.
+        pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
-        return {"sfc":sfc, "thtl":thtl, "t4":None}
+        sfc = fuel_flow / thrust
+
+        return {"sfc":sfc, "thtl":throttle, "t4":None}
 
 class OutboardWingMountedTfNacelle(SemiEmpiricTfNacelle,OutboardWingMountedNacelle):
     def __init__(self, aircraft):
@@ -712,7 +714,7 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
             qf = q1 * self.engine_bpr/(1.+self.engine_bpr)               # Here, it is fan air flow only
             return q - qf
 
-        pw_shaft,core_thrust = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+        pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
         Re = earth.reynolds_number(pamb,tamb,mach)
         rho,sig = earth.air_density(pamb,tamb)
@@ -739,7 +741,7 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
 
         total_thrust = fan_thrust + core_thrust
 
-        return {"fn":total_thrust}
+        return {"fn":total_thrust, "ff":fuel_flow, "t4":None}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         if self.bli_effect=="yes":
@@ -759,7 +761,7 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
             y = x_in[0]
             throttle = x_in[1]
             q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y)
-            pw_shaft,core_thrust = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+            pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
             pw_input = self.fan_efficiency*pw_shaft
             Vjet = np.sqrt(2.*pw_input/q1 + Vinlet**2)  # Supposing adapted nozzle
             TtotJet = Ttot + pw_shaft/(q1*Cp)           # Stagnation temperature increases due to introduced work
@@ -791,9 +793,13 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         y1 = output_dict[0][0]
-        thtl = output_dict[0][1]
+        throttle = output_dict[0][1]
 
-        return {"thtl":thtl}
+        pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+
+        sfc = fuel_flow / thrust
+
+        return {"sfc":sfc, "thtl":throttle, "t4":None}
 
 class BodyTailConeMountedTfNacelle(SemiEmpiricTfBliNacelle,BodyTailConeMountedNacelle):
     def __init__(self, aircraft):

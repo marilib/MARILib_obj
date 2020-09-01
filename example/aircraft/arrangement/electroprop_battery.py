@@ -39,8 +39,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(2700.)      # twin
-ac.airframe.wing.area = 74.                             # twin
+ac.power_system.reference_power = unit.W_kW(1500.)      # twin
+ac.airframe.wing.area = 80.                             # twin
 # ac.power_system.reference_power = unit.W_kW(1550.)      # quadri
 # ac.airframe.wing.area = 83.                             # quadri
 # ac.power_system.reference_power = unit.W_kW(1150.)      # hexa

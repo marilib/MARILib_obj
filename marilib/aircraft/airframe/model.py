@@ -669,6 +669,9 @@ class Electroprop(PowerSystem, Flight):
             fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
             dict["ff"] = dict["sfc"] * dict["fn"]
+        elif (self.aircraft.arrangement.power_source == "battery"):
+            dict["sfc"] = 0.
+            dict["ff"] = 0.
 
         return dict
 
@@ -687,6 +690,9 @@ class Electroprop(PowerSystem, Flight):
             fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
             dict["ff"] = dict["sfc"] * thrust
+        elif (self.aircraft.arrangement.power_source == "battery"):
+            dict["sfc"] = 0.
+            dict["ff"] = 0.
 
         return dict
 
@@ -802,6 +808,9 @@ class Electrofan(PowerSystem, Flight):
             fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = sec / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
             dict["ff"] = dict["sfc"] * dict["fn"]
+        elif (self.aircraft.arrangement.power_source == "battery"):
+            dict["sfc"] = 0.
+            dict["ff"] = 0.
 
         return dict
 
@@ -820,6 +829,9 @@ class Electrofan(PowerSystem, Flight):
             fuel_heat = earth.fuel_heat(fuel_type)
             dict["sfc"] = dict["sec"] / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
             dict["ff"] = dict["sfc"] * thrust
+        elif (self.aircraft.arrangement.power_source == "battery"):
+            dict["sfc"] = 0.
+            dict["ff"] = 0.
 
         return dict
 
@@ -919,27 +931,31 @@ class PartialTurboElectric(PowerSystem, Flight):
             self.data[rating].T41 = dict["t4"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
-        """Total thrust of a pure turbofan engine
+        """Total thrust of a series architecture of turbofan engine and electrofan
         """
         n_engine = self.aircraft.power_system.n_engine
         fuel_type = self.aircraft.arrangement.fuel_type
         fuel_heat = earth.fuel_heat(fuel_type)
 
+        # Compute power required by electrofan
         dict_ef = self.aircraft.airframe.tail_nacelle.unitary_thrust(pamb,tamb,mach,rating)
 
         pw_elec = dict_ef["pw"]
+
+        # Power offtake for one single engine
         pw_offtake =    pw_elec \
                      / self.aircraft.airframe.system.wiring_efficiency \
                      / self.aircraft.airframe.system.rectifier_efficiency \
                      / self.aircraft.airframe.system.generator_efficiency \
                      / (n_engine - nei)
 
+        # Then, compute turbofan thrust according to required power offtake
         dict_tf = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
-        fn1 = dict_tf["fn"]*(n_engine-nei)
-        fn = fn1 + dict_ef["fn"]
+        fn1 = dict_tf["fn"]*(n_engine-nei)  # All turbofan thrust
+        fn = fn1 + dict_ef["fn"]            # Total thrust
         ff = dict_tf["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
-        sfc = ff / fn
+        sfc = ff / fn                       # Global SFC
         t41 = dict_tf["t4"]
         efn = dict_ef["fn"]
         epw = dict_ef["pw"]
@@ -989,7 +1005,9 @@ class PartialTurboElectric(PowerSystem, Flight):
 
     def specific_breguet_range(self,tow,range,tas,dict):
         g = earth.gravity()
-        return tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
+        fuel =   tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"]))) \
+               - (dict["sfc"]/dict["sec"])*self.aircraft.airframe.system.cruise_energy
+        return fuel
 
     def specific_holding(self,mass,time,tas,dict):
         g = earth.gravity()

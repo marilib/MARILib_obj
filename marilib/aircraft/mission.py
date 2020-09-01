@@ -109,10 +109,11 @@ class AllMissionVarMass(AllMissions):
         self.mach = self.aircraft.requirement.cruise_mach
         self.mass = self.ktow*self.aircraft.weight_cg.mtow
 
-        pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
+        crz_pamb,crz_tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
 
-        lf_dict = self.level_flight(pamb,tamb,self.mach,self.mass)
+        lf_dict = self.level_flight(crz_pamb,crz_tamb,self.mach,self.mass)
 
+        self.crz_tas = self.mach*earth.sound_speed(crz_tamb)
         self.crz_sar = lf_dict["sar"]
         self.crz_cz = lf_dict["cz"]
         self.crz_lod = lf_dict["lod"]
@@ -127,7 +128,10 @@ class AllMissionVarMass(AllMissions):
 
         sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
 
+        pamb,tamb,tstd,dtodz = earth.atmosphere(sm_dict["altp"], self.disa)
+
         self.max_sar_altp = sm_dict["altp"]
+        self.max_sar_tas = self.mach*earth.sound_speed(tamb)
         self.max_sar = sm_dict["sar"]
         self.max_sar_cz = sm_dict["cz"]
         self.max_sar_lod = sm_dict["lod"]

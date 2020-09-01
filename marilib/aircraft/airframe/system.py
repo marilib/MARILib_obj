@@ -160,6 +160,13 @@ class SystemPartialTurboElectric(Component):
 
         self.chain_power = get_init(self,"chain_power", val=0.2*init_power(aircraft))
 
+        self.battery = get_init(self,"battery")
+        self.battery_density = get_init(self,"battery_density")
+        self.battery_energy_density = get_init(self,"battery_energy_density")
+        self.lto_power = get_init(self,"lto_power")
+        self.lto_time = get_init(self,"lto_time")
+        self.cruise_energy = get_init(self,"cruise_energy")
+
         self.generator_efficiency = get_init(self,"generator_efficiency")
         self.generator_pw_density = get_init(self,"generator_pw_density")
 
@@ -174,6 +181,7 @@ class SystemPartialTurboElectric(Component):
 
         self.power_chain_efficiency = None
 
+        self.battery_mass = None
         self.power_chain_mass = None
 
     def eval_geometry(self):
@@ -195,7 +203,16 @@ class SystemPartialTurboElectric(Component):
 
         elec_power_max = self.chain_power / self.power_chain_efficiency
 
-        self.power_chain_mass = (1./self.generator_pw_density + 1./self.rectifier_pw_density + 1./self.wiring_pw_density + 1./self.cooling_pw_density) * (elec_power_max * n_engine)
+        # Power chain is designed assuming each turbofan can feed the total power if required
+        self.power_chain_mass = (  1./self.generator_pw_density
+                                 + 1./self.rectifier_pw_density
+                                 + 1./self.wiring_pw_density
+                                 + 1./self.cooling_pw_density) * (elec_power_max * n_engine)
+        if self.battery=="yes":
+            self.battery_mass = (self.lto_power * self.lto_time + self.cruise_energy) / self.battery_energy_density
+            self.power_chain_mass += self.battery_mass
+        else:
+            self.battery_mass = 0.
 
         power_elec_cg = 0.70*nacelle_cg + 0.30*body_cg
 

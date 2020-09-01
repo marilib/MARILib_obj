@@ -123,6 +123,12 @@ model_config = {
     },
     "SystemPartialTurboElectric":{
         "chain_power": ["function", "kW", "Electric chain power"],
+        "battery": ["no", "string", "Use of battery, 'yes', 'no'"],
+        "battery_density": [2800., "kg/m3", "Battery density"],
+        "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"],
+        "lto_power": [1., "MW", "Battery power reserve for take off and landing"],
+        "lto_time": [0., "min", "Duration of availability of the power reserve"],
+        "cruise_energy": [0., "kWh", "Energy booked for cruise"],
         "generator_efficiency": [0.95, "no_dim", "Electric generator efficiency"],
         "generator_pw_density": [10., "kW/kg", "Electric generator power density"],
         "rectifier_efficiency": [0.98, "no_dim", "Rectifier efficiency"],
@@ -130,9 +136,7 @@ model_config = {
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
         "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
         "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
-        "cooling_pw_density": [10., "kW/kg", "Cooling power density"],
-        "battery_density": [2800., "kg/m3", "Battery density"],
-        "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
+        "cooling_pw_density": [20., "kW/kg", "Cooling power density"]
     },
     "SemiEmpiricTf0Nacelle":{
         "eis_date": [2020., "year", "Entry into service date"],

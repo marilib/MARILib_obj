@@ -234,7 +234,6 @@ class Cargo(Component):
 
             self.container_pallet_mass = 4.36 * body_width * body_length        # Container and pallet mass
             self.mass = self.container_pallet_mass
-            self.cg = np.array([0., 0., 0.])
 
             fwd_hold_vec = np.array([self.aircraft.airframe.wing.mac_loc[0], 0., 0.]) + np.array([0.25*self.aircraft.airframe.wing.mac, 0., 0.]) - cargo_frame_origin
             bwd_hold_vec = cargo_frame_origin + np.array([hold_length, 0., 0.]) - fwd_hold_vec
@@ -249,6 +248,12 @@ class Cargo(Component):
                       / (self.freight_max_fwd_mass + self.freight_max_bwd_mass)
 
         else:
+            self.freight_max_fwd_cg = np.array([0., 0., 0.])
+            self.freight_max_fwd_mass = 0.
+
+            self.freight_max_bwd_cg = np.array([0., 0., 0.])
+            self.freight_max_bwd_mass = 0.
+
             self.mass = 0.
             self.cg = np.array([0., 0., 0.])
 
