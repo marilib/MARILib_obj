@@ -16,52 +16,53 @@ def bar_Pa(Pa): return Pa/1.e5   # Translate Pascal into bar
 
 # Data
 #-----------------------------------------------------------------------------------------------
-sp = Pam3pkg_barLpkg(250.)      # bar.L/kg,  pressurized tank efficiency
+tank_efficiency = Pam3pkg_barLpkg(250.)      # bar.L/kg,  pressurized tank efficiency
 
-sm = 1400.                      # kg/m3, pressure material density
+shield_density = 1400.          # kg/m3, pressure material density
 
-sim = 5.                        # kg/m2, insulation material surface mass
-sit = 0.06                      # m, insulation thickness
+insul_density = 100.            # kg/m3, insulation material density
+insul_thick = 0.06              # m, insulation thickness
 
-dlh2 = 71.                      # kg/m3, liquid H2 density
+lh2_density = 71.               # kg/m3, liquid H2 density
 
-dp = Pa_bar(11.)                # bar, fuel delta pressure
+over_pressure = Pa_bar(11.)     # bar, fuel delta pressure
 
 length = 12.    # m, tank length
 width = 2.5     # m, tank diameter
 
 # Model
 #-----------------------------------------------------------------------------------------------
-vext = 0.80 * length * (0.25*np.pi*width**2)    # tank external volume
-sext = 0.80 * length * (np.pi*width)            # tank external area
+ext_volume = 0.80 * length * (0.25*np.pi*width**2)  # tank external volume
+ext_area = 0.80 * length * (np.pi*width)            # tank external area
 
-vp = vext / (1. + dp/(sp*sm))   # pressurized volume
+# pressurized volume, assuming insulation is inside the volume
+press_volume = ext_volume / (1. + over_pressure/(tank_efficiency*shield_density))
 
-mp = dp * vp / sp               # pressure structural mass
+psm = over_pressure * press_volume / tank_efficiency    # pressure structural mass
 
-pt = (mp / sm) / sext           # pressure structural thickness
+pst = (psm / shield_density) / ext_area                 # pressure structural thickness
 
-sp = sext * (1.-2.*pt/length) * (1.-2.*pt/width)    # pressurized external area
+pia = ext_area * (1.-2.*pst/length) * (1.-2.*pst/width) # pressurized insulated area
 
-vlh2 = vp - sp*sit      # LH2 volume
-mlh2 = vlh2 * dlh2      # LH2 mass
+lh2_volume = press_volume - pia*insul_thick     # LH2 volume
+lh2_mass = lh2_volume * lh2_density             # LH2 mass
 
-mi = sp * sim           # insulation structural mass
-mpi = mp + mi           # total mass
+ism = pia * insul_thick * insul_density         # insulation structural mass
+total_mass = psm + ism           # total mass
 
-mr = mpi / mlh2         # tank mass per lh2 mass (without carrying structure)
+rtm = total_mass / lh2_mass         # relative tank mass, tank mass per lh2 mass (without carrying structure)
 
 # Print
 #-----------------------------------------------------------------------------------------------
-print("tank external volume = ", "%0.1f"%vext, " m3")
-print("tank external area = ", "%0.1f"%sext, " m2")
-print("pressurized volume = ", "%0.1f"%vp, " m3")
-print("liquid H2 volume = ", "%0.1f"%vlh2, " m3")
-print("liquid H2 mass = ", "%0.1f"%mlh2, " kg")
-print("pressure structural mass = ", "%0.1f"%mp, " kg")
-print("pressure structural thickness = ", "%0.3f"%pt, " m")
-print("insulation structural mass = ", "%0.1f"%mi, " kg")
-print("tank mass = ", "%0.1f"%mpi, " kg")
-print("tank mass over LH2 mass = ", "%0.3f"%mr, " kg/kg")
+print("tank external volume = ", "%0.1f"%ext_volume, " m3")
+print("tank external area = ", "%0.1f"%ext_area, " m2")
+print("pressurized volume = ", "%0.1f"%press_volume, " m3")
+print("liquid H2 volume = ", "%0.1f"%lh2_volume, " m3")
+print("liquid H2 mass = ", "%0.1f"%lh2_mass, " kg")
+print("pressure structural mass = ", "%0.1f"%psm, " kg")
+print("pressure structural thickness = ", "%0.3f"%pst, " m")
+print("insulation structural mass = ", "%0.1f"%ism, " kg")
+print("tank mass = ", "%0.1f"%total_mass, " kg")
+print("tank mass over LH2 mass = ", "%0.3f"%rtm, " kg/kg")
 
 
