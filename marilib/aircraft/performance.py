@@ -226,8 +226,9 @@ class Flight(object):
         acc_factor = earth.climb_mode(speed_mode, mach, dtodz, tstd, disa)
         slope = ( fn/(mass*g) - 1./lod ) / acc_factor
         vz = slope * mach * earth.sound_speed(tamb)
+        acc = (acc_factor-1.)*g*slope
         if full_output:
-            return slope,vz,fn,ff,cz,cx,pamb,tamb
+            return slope,vz,fn,ff,acc,cz,cx,pamb,tamb
         else:
             return slope,vz
 
@@ -332,7 +333,7 @@ class Flight(object):
             return acc
 
     def descent(self,nei,altp,disa,speed_mode,speed,vz,mass):
-        """Retrieve air path in various conditions
+        """Retrieve air path and flight characteristics in various conditions
         """
         g = earth.gravity()
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
