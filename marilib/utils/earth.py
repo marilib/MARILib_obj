@@ -346,7 +346,7 @@ def vcas_from_mach(pamb,mach):
     P0 = sea_level_pressure()
     vc0 = sea_level_sound_speed()
     fac = gam/(gam-1.)
-    vcas = vc0*numpy.sqrt(5.*((((pamb/P0)*((1.+((gam-1.)/2.)*mach**2)**fac-1.))+1.)**(1./fac)-1.))
+    vcas = vc0*numpy.sqrt((2./(gam-1.))*((((pamb/P0)*((1.+((gam-1.)/2.)*mach**2)**fac-1.))+1.)**(1./fac)-1.))
     return vcas
 
 def vtas_from_vcas(altp,disa,vcas):

@@ -41,62 +41,80 @@ class StepMission(Flight):
         altp0 = unit.m_ft(1500.)
         altp1 = unit.m_ft(50000.)
         n_altp = 8
-
         altp_list = np.linspace(altp0, altp1, n_altp)
-        altp_list = np.append(altp_list, [altpx, altpy])
-        altp_list.sort()
 
         n_mass = 4
         mass_list = np.linspace(zfw,tow,n_mass)
 
         g = earth.gravity()
+        nei = 0
 
-        data_list = {"mcr":[], "mcl":[], "lod":[], "fac":[]}
+        data_dict1 = {}
+        data_dict2 = {}
+        data_dict3 = {}
+
         for altp in altp_list:
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+
             if altp<=altpx:
-                mach = earth.mach_from_vcas(pamb,cas1)
-                fac = earth.climb_mode("cas", mach, dtodz, tstd, disa)
-            elif altp<=altpy:
-                mach = earth.mach_from_vcas(pamb,cas2)
-                fac = earth.climb_mode("cas", mach, dtodz, tstd, disa)
-            else:
-                mach = cruise_mach
-                fac = earth.climb_mode("mach", mach, dtodz, tstd, disa)
 
-            tas = mach*earth.sound_speed(tamb)
+                data_dict1[altp] = self._fill_table(self,nei,pamb,tamb,dtodz,tstd,disa,mass_list,g,"cas",cas1)
 
-            dict_mcr = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCR")
-            ff_mcr = dict_mcr["ff"]
-            dict_mcl = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCL")
-            ff_mcl = dict_mcl["ff"]
+            if altpx<=altp and altp<=altpy:
 
-            for mass in mass_list:
-                cz = self.lift_from_speed(pamb,tamb,mach,mass)
-                cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
+                data_dict2[altp] = self._fill_table(self,nei,pamb,tamb,dtodz,tstd,disa,mass_list,g,"cas",cas2)
 
-                path_mcr = ( dict_mcr["fn"]/(mass*g) - 1./lod ) / fac
-                acc_mcr = (fac-1.)*g*path_mcr
-                vz_mcr = path_mcr * tas
+            if altpy<=altp:
 
-                path_mcl = ( dict_mcl["fn"]/(mass*g) - 1./lod ) / fac
-                acc_mcl = (fac-1.)*g*path_mcl
-                vz_mcl = path_mcl * tas
-
-                nei = 0
-                fn_cruise = mass*g / lod
-                dict_cruise = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",fn_cruise,nei)
-                dict_cruise["lod"] = lod
-                sar = self.aircraft.power_system.specific_air_range(mass,tas,dict_cruise)
+                data_dict3[altp] = self._fill_table(self,nei,pamb,tamb,dtodz,tstd,disa,mass_list,g,"mach",cruise_mach)
 
 
 
+    def _fill_table(self,nei,pamb,tamb,dtodz,tstd,disa,mass_list,g,speed_mode,speed):
 
+        mach = Flight.get_mach(pamb,speed_mode,speed)
+        tas = mach * earth.sound_speed(tamb)
+        fac = earth.climb_mode(speed_mode, mach, dtodz, tstd, disa)
 
+        dict_mcr = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCR")
+        dict_mcl = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCL")
 
+        for mass in mass_list:
 
+            cz = self.lift_from_speed(pamb,tamb,mach,mass)
+            cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
 
+            sin_path_mcr = (dict_mcr["fn"]/(mass*g) - 1./lod) / fac
+            vz_mcr = tas * sin_path_mcr
 
+            sin_path_mcl = ( dict_mcl["fn"]/(mass*g) - 1./lod ) / fac   # Flight path air path sine
+            xdot_mcl = tas * np.sqrt(1.-sin_path_mcl**2)    # Acceleration in climb
+            vz_mcl = tas * sin_path_mcl
+            mdot_mcl = dict_mcl["ff"]
+
+            xacc_lvf = dict_mcl["fn"]/mass - g/lod
+
+            fn_cruise = mass*g / lod
+            dict_cruise = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",fn_cruise,nei)
+            dict_cruise["lod"] = lod
+            sar = self.aircraft.power_system.specific_air_range(mass,tas,dict_cruise)
+            ff = tas / sar
+
+            dict = {}
+
+            dict["vz_mcr"].append(vz_mcr)
+            dict["xacc_lvf"].append(xacc_lvf)
+            dict["sar"].append(sar)
+
+            dict["xdot_mcl"].append(xdot_mcl)
+            dict["vz_mcl"].append(vz_mcl)
+            dict["mdot_mcl"].append(mdot_mcl)
+
+            dict["mass"].append(mass)
+            dict["tas"].append(tas)
+            dict["ff"].append(ff)
+
+        return dict
 
 
 

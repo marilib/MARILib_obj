@@ -97,22 +97,33 @@ def mda_hq(aircraft):
 
     aircraft.power_system.thrust_analysis()
 
-
+already_done = {}
 
 def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
     """Compute criterion and constraints
     """
-    for k,key in enumerate(var):    #  Put optimization variables in aircraft object
-        exec(key+" = x_in[k]")
+    in_key = str(x_in)
 
-    mda(aircraft)                   #  Run MDA
+    if in_key not in already_done.keys():
 
-    constraint = np.zeros(len(cst))
-    for k,key in enumerate(cst):    # put optimization variables in aircraft object
-        exec("constraint[k] = eval(key)/eval(cst_mag[k])")
-        print(constraint[k])
+        for k,key in enumerate(var):    #  Put optimization variables in aircraft object
+            exec(key+" = x_in[k]")
 
-    criterion = eval(crt) * (20./crt_mag)
+        mda(aircraft)                   #  Run MDA
+
+        constraint = np.zeros(len(cst))
+        for k,key in enumerate(cst):    # put optimization variables in aircraft object
+            exec("constraint[k] = eval(key)/eval(cst_mag[k])")
+            print(constraint[k])
+
+        criterion = eval(crt) * (20./crt_mag)
+
+        already_done[in_key] = [criterion,constraint]
+
+    else:
+
+        criterion = already_done[in_key][0]
+        constraint = already_done[in_key][1]
 
     return criterion,constraint
 

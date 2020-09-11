@@ -75,7 +75,7 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 # Optimization criteria
 crt = "aircraft.weight_cg.mtow"
 
-# process.mdf(ac, var,var_bnd, cst,cst_mag, crt)        # Perform an MDF optimization process
+process.mdf(ac, var,var_bnd, cst,cst_mag, crt)        # Perform an MDF optimization process
 
 
 # Main output
