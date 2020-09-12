@@ -173,6 +173,8 @@ def altg_from_altp(altp,disa):
     output_dict = fsolve(fct, x0=altp, args=(altp,disa), full_output=True)
 
     altg = output_dict[0][0]
+    if (output_dict[2]!=1): raise Exception("Convergence problem")
+
     return altg
 
 

@@ -48,33 +48,54 @@ class StepMission(Flight):
 
         g = earth.gravity()
         nei = 0
+        daltg = 10.
 
         data_dict1 = {}
         data_dict2 = {}
         data_dict3 = {}
 
         for altp in altp_list:
-            pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+            pamb, tamb, tstd, dtodz = earth.atmosphere(altp,disa)
+            altg  = earth.altg_from_altp(altp,disa)
+            pamb_,tamb_,tstd_,dtodz_ = earth.atmosphere_geo(altg+daltg,disa)
 
             if altp<=altpx:
 
-                data_dict1[altp] = self._fill_table(self,nei,pamb,tamb,dtodz,tstd,disa,mass_list,g,"cas",cas1)
+                speed_mode = "cas"
+                speed = cas1
+                mach = Flight.get_mach(pamb,speed_mode,speed)
+                tas  = mach * earth.sound_speed(tamb)
+                tas_ = Flight.get_mach(pamb_,speed_mode,speed) * earth.sound_speed(tamb_)
+                dtas_o_dh = (tas_-tas) / daltg
+                fac = (1. + (tas/g)*dtas_o_dh)
+                data_dict1[altp] = self._fill_table(g,nei,pamb,tamb,mach,fac,mass_list)
 
             if altpx<=altp and altp<=altpy:
 
-                data_dict2[altp] = self._fill_table(self,nei,pamb,tamb,dtodz,tstd,disa,mass_list,g,"cas",cas2)
+                speed_mode = "cas"
+                speed = cas2
+                mach = Flight.get_mach(pamb,speed_mode,speed)
+                tas  = mach * earth.sound_speed(tamb)
+                tas_ = Flight.get_mach(pamb_,speed_mode,speed) * earth.sound_speed(tamb_)
+                dtas_o_dh = (tas_-tas) / daltg
+                fac = (1. + (tas/g)*dtas_o_dh)
+                data_dict2[altp] = self._fill_table(g,nei,pamb,tamb,mach,fac,mass_list)
 
             if altpy<=altp:
 
-                data_dict3[altp] = self._fill_table(self,nei,pamb,tamb,dtodz,tstd,disa,mass_list,g,"mach",cruise_mach)
+                speed_mode = "mach"
+                mach = cruise_mach
+                tas  = mach * earth.sound_speed(tamb)
+                tas_ = mach * earth.sound_speed(tamb_)
+                dtas_o_dh = (tas_-tas) / daltg
+                fac = (1. + (tas/g)*dtas_o_dh)
+                data_dict3[altp] = self._fill_table(g,nei,pamb,tamb,mach,fac,mass_list)
 
 
 
-    def _fill_table(self,nei,pamb,tamb,dtodz,tstd,disa,mass_list,g,speed_mode,speed):
+    def _fill_table(self,g,nei,pamb,tamb,mach,fac,mass_list):
 
-        mach = Flight.get_mach(pamb,speed_mode,speed)
         tas = mach * earth.sound_speed(tamb)
-        fac = earth.climb_mode(speed_mode, mach, dtodz, tstd, disa)
 
         dict_mcr = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCR")
         dict_mcl = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCL")
