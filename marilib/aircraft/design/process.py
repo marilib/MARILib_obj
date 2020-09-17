@@ -113,10 +113,10 @@ def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
 
         constraint = np.zeros(len(cst))
         for k,key in enumerate(cst):    # put optimization variables in aircraft object
-            exec("constraint[k] = eval(key)/eval(cst_mag[k])")
-            print(constraint[k])
+            constraint[k] = eval(key)/eval(cst_mag[k])
 
-        criterion = eval(crt) * (20./crt_mag)
+        #criterion = eval(crt) * (20./crt_mag)
+        criterion = eval(crt)
 
         already_done[in_key] = [criterion,constraint]
 
@@ -128,14 +128,14 @@ def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
     return criterion,constraint
 
 def eval_optim_cst(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
-    """Retrieve constraints
+    """Retrieve the constraints that bounds the optimization
     """
     crit,cst = eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag)
     print("cst :",cst)
     return cst
 
 def eval_optim_crt(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
-    """Retreve criteria
+    """Retrieve the cost function to be minimized (the "criterion")
     """
     crit,cst = eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,crt_mag)
     print("Design :",x_in)
@@ -177,6 +177,111 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
     print(res)
 
     return res
+
+# -------------------- CUSTOM OPTIMIZATION -------------------
+def custom_eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, crt_mag):
+    """Compute criterion and constraints
+    """
+    in_key = str(x_in)
+
+    for k, key in enumerate(var):  # Put optimization variables in aircraft object
+        exec(key + " = x_in[k]")
+
+    mda(aircraft)  # Run MDA
+
+    constraint = np.zeros(len(cst))
+    for k, key in enumerate(cst):  # put optimization variables in aircraft object
+        constraint[k] = eval(key) / eval(cst_mag[k])
+
+    # criterion = eval(crt) * (20./crt_mag)
+    criterion = eval(crt)/crt_mag
+
+
+    return criterion, constraint
+
+def custom_mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
+
+    start_value = np.zeros(len(var))
+    for k, key in enumerate(var):  # put optimization variables in aircraft object
+        exec("start_value[k] = eval(key)")
+
+    cost_fun = lambda x_in: custom_eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,1.)
+
+    res = custom_minimum_search(cost_fun,start_value)
+
+
+def custom_minimum_search(cost_fun,x0,delta=0.05,pen=10):
+    """ A custom minimization method limited to 2 parameters problems (x1,x2).
+    This method uses a custom pattern search algorithm that requires a minimum number of call to the cost function.
+    It takes advantage of the prior knowledge of the problem:
+
+        1. Evaluate cost function (with constraint penalisation) at current point : coordinate (0,0)
+        2. Evaluate, if not already done, the cost function in three other points to draw a square area of side1 :
+           coordinates (-1,0), (0,-1) relatively to current point
+        3. Build a linear approximation of the cost function based on the the 3 previous points.
+        4. Extrapolate the cost function on the surrounding points:
+
+o------o-------o------o
+|                     |     o : extrapolated points
+|   (-1,0)   (0,0)    |     + : computed points
+o      +-------+      o
+|      |       |      |
+|      |       |      |
+o      o-------+      o
+|            (0,-1)   |
+|                     |
+o------o-------o------o
+
+        5. Find the square cell (among the 9 cells defined by computed and extrapolated points)
+        with minimal average criterion value
+        Crt  = cost_function(x1,y1) - sum(unsatisfied constraints)
+            * If current cell is minimum : STOP (or refine of asked so)
+            * Else : move current point to the top right corner of the new candidate cell and go back to step 1.
+
+    :param cost_fun: a function that returns the criterion to be minimized and the constraints value for given
+                    value of the parameters : length-2 tuple (x1,x2).
+    :param x0: a list of the two initial parameter values (x1,x2).
+    :param args: list of additional argument for cost_fun.
+    :param delta: the relative step for initial pattern size : 0< delta < 1.
+        :Example: If delta = 0.05, the pattern size will be 5% of the magnitude of x0 values.
+    :param pen: penalisation factor to multiply the constraint value. The constraint is negative when unsatisfied.
+        :Example: This algorythm minimizes the modified cost function : criterion + pen*constraint
+    """
+    points = {}  # initialize the list of computed points (delta unit coordinate)
+
+    if not isinstance(x0,type(np.array)):
+        x0 = np.array(list(x0))
+
+    def custom_cost(x):
+        crt,cst = cost_fun(x)
+        return crt - pen*sum([c for c in cst if c<0])
+
+    xx = np.array([0,0])  # set initial value in delta coordinates
+    points[(0,0)] = custom_cost(x0)  # put initial point in the points dict
+    stepsize = delta*x0
+
+    current_points = []
+    for step in [(0,0),(-1,0),(0,-1)]:
+        xx = xx + np.array(step)  # move current location by a step
+        x = x0 + xx * stepsize
+        if tuple(xx) not in points.keys(): # this value is not already computed
+            crt = custom_cost(x)
+            points[tuple(xx)] = crt
+            current_points.append([xx[0],xx[1],crt])
+        else:
+            current_points.append([xx[0],xx[1],points[tuple(xx)]])
+
+    # Find the equation of the plan passing through the 3 points
+    print(current_points)
+    plane_equation = np.linalg.solve(current_points,[1,1,1]) # find the coefficient of the plan passing through the 3 points
+    print(plane_equation)
+    def extrapolator(xx):
+        return (1-plane_equation[0]*xx[0] + plane_equation[1]*xx[1])/plane_equation[2]
+    print(extrapolator((0,0)))
+    # TODO : extrapolate plane equation to retrieve z of other points
+
+    return points
+
 
 
 def explore_design_space(ac, var, step, data, file):
