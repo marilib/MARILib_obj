@@ -57,13 +57,17 @@ cas1 = unit.mps_kt(250.)
 cas2 = unit.mps_kt(300.)
 cruise_mach = 0.78
 
-miss.set_flight_domain(disa,tow,zfw,cas1,cas2,cruise_mach)
+vz_mcr = unit.mps_ftpmin(0.)
+vz_mcl = unit.mps_ftpmin(300.)
 
-f_key = "vz_mcl"
-mass = 62000.
-altp = unit.m_ft(10000.)
+miss.fly_mission(disa,tow,zfw,cas1,cas2,cruise_mach,vz_mcr,vz_mcl)
 
-print(miss.get_val(f_key,mass,altp))
+print(miss.change_altp)
+print(miss.change_mass)
+print(miss.change_cstr)
+
+
+
 
 raise Exception("ici")
 

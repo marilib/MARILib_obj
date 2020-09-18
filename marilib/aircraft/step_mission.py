@@ -12,7 +12,8 @@ from marilib.utils import earth, unit
 
 import numpy as np
 from scipy.optimize import fsolve
-from scipy.interpolate import interp2d
+from scipy.interpolate import interp1d, interp2d
+from scipy.integrate import solve_ivp
 
 from marilib.aircraft.performance import Flight
 
@@ -42,9 +43,12 @@ class StepMission(Flight):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.heading_altp = {}
-        self.heading_altp["west"] = np.concatenate((np.arange(2000.,41000.,2000.),np.arange(43000.,85000.,4000.)))
-        self.heading_altp["east"] = np.concatenate((np.arange(1000.,42000.,2000.),np.arange(45000.,87000.,4000.)))
+        altp_west = np.concatenate((np.arange(2000.,41000.,2000.),np.arange(43000.,85000.,4000.)))
+        altp_east = np.concatenate((np.arange(1000.,42000.,2000.),np.arange(45000.,87000.,4000.)))
+
+        self.heading_altp = {"west":[], "east":[]}
+        self.heading_altp["west"] = [unit.m_ft(zp) for zp in altp_west]
+        self.heading_altp["east"] = [unit.m_ft(zp) for zp in altp_east]
 
         self.altpx = unit.m_ft(10000.)
         self.altpz = unit.m_ft(51000.)
@@ -54,13 +58,6 @@ class StepMission(Flight):
                                              11000.,
                                              unit.m_ft(41000.),
                                              self.altpz]
-        self.altpy = None
-        self.cas1 = None
-        self.cas2 = None
-        self.tas2 = None
-        self.mach = None
-
-        self.heading = None
 
         self.f_key_list = ["vz_mcr", "acc_lvf", "dec_lvf", "xdot_mcl", "vz_mcl", "ff_mcl", "xdot_fid", "vz_fid", "ff_fid", "mach", "tas", "sar", "ff"]
 
@@ -73,6 +70,19 @@ class StepMission(Flight):
         self.data_dict["altp"] = {"low":[],"medium":[],"high":[]}
         self.data_dict["mass"] = {"low":[],"medium":[],"high":[]}
 
+        self.heading = None
+
+        self.altpy = None
+        self.cas1 = None
+        self.cas2 = None
+        self.tas2 = None
+        self.mach = None
+
+        self.mass_list = None
+
+        self.change_altp = None
+        self.change_mass = None
+        self.change_cstr = None
 
     def set_flight_domain(self,disa,tow,owe,cas1,cas2,cruise_mach):
         """Precomputation of all relevant quantities into a grid vs mass and altitude
@@ -93,9 +103,9 @@ class StepMission(Flight):
             raise Exception("Cross over altitude must be higher than 10000 ft")
 
         n_mass = 4
-        mass_list = np.linspace(owe,tow,n_mass)
+        self.mass_list = np.linspace(owe,tow,n_mass)
         for layer in self.data_dict["altp"].keys():
-            self.data_dict["mass"][layer] = mass_list
+            self.data_dict["mass"][layer] = self.mass_list
 
         g = earth.gravity()
         nei = 0
@@ -115,7 +125,7 @@ class StepMission(Flight):
                 tas_ = self.get_mach(pamb_,speed_mode,speed) * earth.sound_speed(tamb_)
                 dtas_o_dh = (tas_-tas) / daltg
                 fac = (1. + (tas/g)*dtas_o_dh)
-                self._fill_table(g,nei,pamb,tamb,mach,fac,mass_list,layer)
+                self._fill_table(g,nei,pamb,tamb,mach,fac,layer)
                 self.data_dict["altp"][layer].append(altp)
 
             if self.altpx<=altp and altp<=self.altpy:
@@ -127,7 +137,7 @@ class StepMission(Flight):
                 tas_ = self.get_mach(pamb_,speed_mode,speed) * earth.sound_speed(tamb_)
                 dtas_o_dh = (tas_-tas) / daltg
                 fac = (1. + (tas/g)*dtas_o_dh)
-                self._fill_table(g,nei,pamb,tamb,mach,fac,mass_list,layer)
+                self._fill_table(g,nei,pamb,tamb,mach,fac,layer)
                 self.data_dict["altp"][layer].append(altp)
 
             if self.altpy<=altp:
@@ -137,7 +147,7 @@ class StepMission(Flight):
                 tas_ = mach * earth.sound_speed(tamb_)
                 dtas_o_dh = (tas_-tas) / daltg
                 fac = (1. + (tas/g)*dtas_o_dh)
-                self._fill_table(g,nei,pamb,tamb,mach,fac,mass_list,layer)
+                self._fill_table(g,nei,pamb,tamb,mach,fac,layer)
                 self.data_dict["altp"][layer].append(altp)
 
         # Build interpolation functions
@@ -150,11 +160,11 @@ class StepMission(Flight):
                                                         self.data_dict[f_key][layer],
                                                         kind="linear")
 
-    def _fill_table(self,g,nei,pamb,tamb,mach,fac,mass_range,layer):
+    def _fill_table(self,g,nei,pamb,tamb,mach,fac,layer):
         """Generic function to build performance tables
         """
+        kf = 0.56
         tas = mach * earth.sound_speed(tamb)
-
         dict_fid = self.aircraft.power_system.thrust(pamb,tamb,mach,"FID")
         dict_mcr = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCR")
         dict_mcl = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCL")
@@ -163,25 +173,25 @@ class StepMission(Flight):
         for key in self.f_key_list:
             data[key] = []
 
-        for mass in mass_range:
+        for mass in self.mass_list:
             cz = self.lift_from_speed(pamb,tamb,mach,mass)
             cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
 
-            sin_path_mcr = (dict_mcr["fn"]/(mass*g) - 1./lod) / fac
+            sin_path_mcr = (kf*dict_mcr["fn"]/(mass*g) - 1./lod) / fac
             vz_mcr = tas * sin_path_mcr
 
-            sin_path_mcl = ( dict_mcl["fn"]/(mass*g) - 1./lod ) / fac   # Flight path air path sine
+            sin_path_mcl = (kf*dict_mcl["fn"]/(mass*g) - 1./lod) / fac   # Flight path air path sine
             xdot_mcl = tas * np.sqrt(1.-sin_path_mcl**2)                # Acceleration in climb
             vz_mcl = tas * sin_path_mcl
             ff_mcl = -dict_mcl["ff"]
 
-            sin_path_fid = ( dict_fid["fn"]/(mass*g) - 1./lod ) / fac   # Flight path air path sine
+            sin_path_fid = (dict_fid["fn"]/(mass*g) - 1./lod) / fac   # Flight path air path sine
             xdot_fid = tas * np.sqrt(1.-sin_path_fid**2)                # Acceleration in climb
             vz_fid = tas * sin_path_fid
             ff_fid = -dict_fid["ff"]
 
-            acc_lvf = dict_mcl["fn"]/mass - g/lod
-            dec_lvf = dict_fid["fn"]/mass - g/lod
+            acc_lvf = kf*dict_mcl["fn"]/mass - g/lod
+            dec_lvf = kf*dict_fid["fn"]/mass - g/lod
 
             if layer=="high":
                 fn_cruise = mass*g / lod
@@ -198,6 +208,93 @@ class StepMission(Flight):
 
         for key in self.f_key_list:
             self.data_dict[key][layer].append(data[key])
+
+        return
+
+    def cruise_profile(self,mass,vz_mcr,vz_mcl,heading="east"):
+        rev_mass_list = [mass]
+        for m in reversed(self.mass_list):
+            if m<mass: rev_mass_list.append(m)
+        altp_list = [zp for zp in self.heading_altp[heading] if self.altpy<=zp<=self.altpz]
+
+        rev_mass_list = list(reversed(self.mass_list))
+        k_altp = np.argmax([self.get_val("sar",z,rev_mass_list[0])[0] for z in altp_list])
+
+        best_sar_altp = [altp_list[k_altp]]
+        best_sar_mass = [mass]
+        sar_tab = [[]]
+
+        max_mcr_mass = []
+        mcr_tab = [[]]
+
+        max_mcl_mass = []
+        mcl_tab = [[]]
+
+        for k,m in enumerate(rev_mass_list):
+            mcr_tab[0].append(self.get_val("vz_mcr",altp_list[k_altp],m)[0]-vz_mcr)
+            mcl_tab[0].append(self.get_val("vz_mcl",altp_list[k_altp],m)[0]-vz_mcl)
+            sar_tab[0].append(self.get_val("sar",altp_list[k_altp],m)[0])
+
+        # Computing maximum mass for first altitude versus MCR
+        f_mcr = interp1d(mcr_tab[0],rev_mass_list,kind="linear", fill_value="extrapolate")
+        mcr = f_mcr(0.)
+        max_mcr_mass.append(mcr.tolist())
+
+        # Computing maximum mass for first altitude versus MCL
+        f_mcl = interp1d(mcl_tab[0],rev_mass_list,kind="linear", fill_value="extrapolate")
+        mcl = f_mcl(0.)
+        max_mcl_mass.append(mcl.tolist())
+
+        dsar = np.zeros(len(rev_mass_list))
+        while k_altp<len(altp_list)-1:
+            sar_tab.append([])
+            mcr_tab.append([])
+            mcl_tab.append([])
+            for k,m in enumerate(rev_mass_list):
+                mcr_tab[-1].append(self.get_val("vz_mcr",altp_list[k_altp+1],m)[0]-vz_mcr)
+                mcl_tab[-1].append(self.get_val("vz_mcl",altp_list[k_altp+1],m)[0]-vz_mcl)
+                sar_tab[-1].append(self.get_val("sar",altp_list[k_altp+1],m)[0])
+                dsar[k] = sar_tab[-1][k] - sar_tab[-2][k]
+
+            # Computing maximum mass for current altitude versus MCR
+            f_mcr = interp1d(mcr_tab[-1],rev_mass_list,kind="linear", fill_value="extrapolate")
+            mcr = f_mcr(0.)
+
+            # Computing maximum mass for current altitude versus MCL
+            f_mcl = interp1d(mcl_tab[-1],rev_mass_list,kind="linear", fill_value="extrapolate")
+            mcl = f_mcl(0.)
+
+            # Computing change altitude mass versus SAR
+            f_dsar = interp1d(dsar,rev_mass_list,kind="linear", fill_value="extrapolate")
+            msr = f_dsar(0.)
+
+            if msr>min(rev_mass_list):
+                best_sar_altp.append(altp_list[k_altp+1])
+                best_sar_mass.append(msr.tolist())
+                max_mcr_mass.append(mcr.tolist())
+                max_mcl_mass.append(mcl.tolist())
+            else:
+                break
+
+            k_altp += 1
+
+        # Computing effetive changing mass according to SAR and climb capabilities
+        constraint = ["sar","mcr","mcl"]
+        self.change_altp = [best_sar_altp[0]]
+        self.change_mass = [min([best_sar_mass[0], max_mcr_mass[0], max_mcl_mass[0]])]
+        kc = np.argmin([best_sar_mass[0], max_mcr_mass[0], max_mcl_mass[0]])
+        self.change_cstr = [constraint[kc]]
+        for k in range(len(best_sar_altp)-1):
+            mass = min([best_sar_mass[1+k], max_mcr_mass[1+k], max_mcl_mass[1+k]])
+            kc = np.argmin([best_sar_mass[1+k], max_mcr_mass[1+k], max_mcl_mass[1+k]])
+            if abs(mass-self.change_mass[-1])<100.:
+                self.change_altp[-1] = best_sar_altp[1+k]
+                self.change_mass[-1] = mass
+                self.change_cstr[-1] = constraint[kc]
+            else:
+                self.change_altp.append(best_sar_altp[1+k])
+                self.change_mass.append(mass)
+                self.change_cstr.append(constraint[kc])
 
         return
 
@@ -220,37 +317,50 @@ class StepMission(Flight):
         # Climbing or cruising at constant Mach inside upper layer
             return self.data_func[f_key]["high"](mass,altp)
 
-    def transition_path(self,t,state, disa,vz_min_mcr,vz_min_mcl,rating):
+    def climb_path(self,t,state):
         """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
         state = [x,z,mass]
         """
-        if rating=="MCL":
-            return [self.get_val("xdot_mcl",state[1], state[2]),
-                    self.get_val("vz_mcl",state[1], state[2]),
-                    self.get_val("ff_mcl",state[1], state[2])]
-        elif rating=="FID":
-            return [self.get_val("xdot_fid",state[1], state[2]),
-                    self.get_val("vz_fid",state[1], state[2]),
-                    self.get_val("ff_fid",state[1], state[2])]
+        altp = state[1]
+        mass = state[2]
+        n = np.size(altp)
+        if n==1:
+            return [self.get_val("xdot_mcl",altp,mass),
+                    self.get_val("vz_mcl",altp,mass),
+                    self.get_val("ff_mcl",altp,mass)]
         else:
-            raise Exception("Rating not allowed, must be MCL or FID")
+            y = np.zeros((n,3))
+            for i in range(n):
+                y[i,:] = [self.get_val("xdot_mcl",altp[i],mass[i]),
+                          self.get_val("vz_mcl",altp[i],mass[i]),
+                          self.get_val("ff_mcl",altp[i],mass[i])]
+            return y
 
-    def acceleration(self,t,state, disa,rating):
+    def descent_path(self,t,state):
+        """Perform descent trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
+        state = [x,z,mass]
+        """
+        return [self.get_val("xdot_fid",state[1], state[2]),
+                self.get_val("vz_fid",state[1], state[2]),
+                self.get_val("ff_fid",state[1], state[2])]
+
+    def acceleration(self,t,state):
         """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
         state = [x,xdot,mass]
         """
-        if rating=="MCL":
-            return [state[1],
-                    self.get_val("acc_lvf",self.altpx, state[2]),
-                    self.get_val("ff_mcl",self.altpx, state[2])]
-        elif rating=="FID":
-            return [state[1],
-                    self.get_val("dec_lvf",self.altpx, state[2]),
-                    self.get_val("ff_fid",self.altpx, state[2])]
-        else:
-            raise Exception("Rating not allowed, must be MCL or FID")
+        return [state[1],
+                self.get_val("acc_lvf",self.altpx, state[2]),
+                self.get_val("ff_mcl",self.altpx, state[2])]
 
-    def cruise(self,t,state, disa):
+    def deceleration(self,t,state):
+        """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
+        state = [x,xdot,mass]
+        """
+        return [state[1],
+                self.get_val("dec_lvf",self.altpx, state[2]),
+                self.get_val("ff_fid",self.altpx, state[2])]
+
+    def cruise(self,t,state):
         """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
         state = [x,z,mass]
         """
@@ -258,294 +368,40 @@ class StepMission(Flight):
                 0.,
                 self.get_val("ff",state[1], state[2])]
 
-    def altpx_stop(self,t,state, disa,vz_min_mcr,vz_min_mcl,rating):
+    def altpx_stop(self,t,state):
         # state = [x,z,mass]
         return self.altpx-state[1]
+    altpx_stop.terminal = True
 
-    def cas2_stop(self,t,state, disa,vz_min_mcr,vz_min_mcl,rating):
+    def cas2_stop(self,t,state):
         # state = [x,xdot,mass]
         return self.tas2-state[1]
 
-    def altpy_stop(self,t,state, disa,vz_min_mcr,vz_min_mcl,rating):
+    def altpy_stop(self,t,state):
         # state = [x,z,mass]
         return self.altpy-state[1]
 
-    def mach_stop(self,t,state, disa,vz_min_mcr,vz_min_mcl,rating):
+    def mach_stop(self,t,state):
         # state = [x,z,mass]
         return self.mach-self.get_val("mach",state[1], state[2]),
 
-    def best_sar_altp(self,altp,mass,heading="east"):
-        altp_list = [zp for zp in self.heading[heading] if altp<=zp<=self.altpz]
+    def fly_mission(self,disa,tow,zfw,cas1,cas2,cruise_mach,vz_min_mcr,vz_min_mcl):
 
-        for zp in altp_list:
-            if self.vz_mcr<=self.get_val("vz_mcr",zp,mass):
-                zp_max_mcr = zp
-            else: break
+        self.set_flight_domain(disa,tow,zfw,cas1,cas2,cruise_mach)
 
-        for zp in altp_list:
-            if self.vz_mcl<=self.get_val("vz_mcl",zp,mass):
-                zp_max_mcl = zp
-            else: break
+        self.cruise_profile(tow,vz_min_mcr,vz_min_mcl)
 
-        sar_list = [self.get_val("sar",zp,mass) for zp in altp_list]
+        # state = [x,z,mass]
+        state0 = [0.,
+                  unit.m_ft(1500.),
+                  tow]
 
-        return min(zp_max_mcr, zp_max_mcl, altp_list[np.argmax(sar_list)])
+        time_span = [0., 120.]
 
+        sol = solve_ivp(self.climb_path, time_span, state0, vectorized=False,  method="RK45")#, events=self.altpx_stop)
 
-
-
-
-
-
-
-
-
-
-
-class StepMissionZero(Flight):
-    """Mission simulated step by step
-    """
-    def __init__(self, aircraft):
-        self.aircraft = aircraft
-
-        self.westbound_altp = np.concatenate((np.arange(2000.,41000.,2000.),np.arange(43000.,85000.,4000.)))
-        self.eastbound_altp = np.concatenate((np.arange(1000.,42000.,2000.),np.arange(45000.,87000.,4000.)))
-
-        self.event_altp.terminal = True
-        self.event_mach.terminal = True
-        self.event_vcas.terminal = True
-        self.event_vz_mcr.terminal = True
-        self.event_vz_mcl.terminal = True
-
-        self.event_speed.terminal = True
-
-    def speed_from_mach(self,pamb,mach,speed_mode):
-        if speed_mode=="mach":
-            return mach
-        elif speed_mode=="cas":
-            return earth.vcas_from_mach(pamb,mach)
-
-    #-------------------------------------------------------------------------------------------------------------------
-    def set_flight_profile(self,t,state, nei,disa):
-        """Compute nodes of the flight profile
-        state = [x,z,mass,tas]
-        """
-
-
-
-
-    #-------------------------------------------------------------------------------------------------------------------
-    def climb_path(self,t,state, nei,disa, speed_mode,speed_max, altp_stop,vz_mcr,vz_mcl):
-        """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
-        state = [x,z,mass,tas]
-        """
-        kfn = 1.
-        altg = state[1]
-        mass = state[2]
-        vtas = state[3]
-
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        altp = earth.pressure_altitude(pamb)
-        mach = vtas / earth.sound_speed(tamb)
-        speed = self.speed_from_mach(pamb,mach,speed_mode)
-
-        path,vz,fn,ff,acc,cz,cx,pamb,tamb = Flight.air_path(nei,altp,disa,speed_mode,speed,mass,"MCL",kfn, full_output=True)
-
-        state_d = np.zeros(3)
-        state_d[0] = vtas*np.cos(path)
-        state_d[1] = vz
-        state_d[2] = -ff
-        state_d[3] = acc
-
-        return state_d
-
-    def event_climb_altp(self,t,state, nei,disa, speed_mode,speed_max, altp_stop,vz_mcr,vz_mcl):
-        """Detect altitude crossing
-        state = [x,zp,mass,tas]
-        """
-        altg = state[1]
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        altp = earth.pressure_altitude(pamb)
-
-        return altp_stop-altp
-
-    def event_climb_speed(self,t,state, nei,disa, speed_mode,speed_max, altp_stop,vz_mcr,vz_mcl):
-        """Detect max Mach crossing
-        state = [x,zp,mass]
-        """
-        altg = state[1]
-        vtas = state[3]
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        mach = vtas / earth.sound_speed(tamb)
-        speed = self.speed_from_mach(pamb,mach,speed_mode)
-        return speed_max-speed
-
-    def event_vz_mcr(self,t,state, nei,disa, speed_mode,speed_max, altp_stop,vz_mcr,vz_mcl):
-        """Detect max cruise ceiling
-        state = [x,zp,mass]
-        """
-        kfn = 1.
-        altg = state[1]
-        mass = state[2]
-        vtas = state[3]
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        altp = earth.pressure_altitude(pamb)
-        mach = vtas / earth.sound_speed(tamb)
-        speed = self.speed_from_mach(pamb,mach,speed_mode)
-        path,vz,fn,ff,acc,cz,cx,pamb,tamb = Flight.air_path(nei,altp,disa,speed_mode,speed,mass,"MCR",kfn, full_output=True)
-        return vz-vz_mcr
-
-    def event_vz_mcl(self,t,state, nei,disa, speed_mode,speed_max, altp_stop,vz_mcr,vz_mcl):
-        """Detect max climb ceiling
-        state = [x,zp,mass]
-        """
-        kfn = 1.
-        altg = state[1]
-        mass = state[2]
-        vtas = state[3]
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        altp = earth.pressure_altitude(pamb)
-        mach = vtas / earth.sound_speed(tamb)
-        speed = self.speed_from_mach(pamb,mach,speed_mode)
-        path,vz,fn,ff,acc,cz,cx,pamb,tamb = Flight.air_path(nei,altp,disa,speed_mode,speed,mass,"MCL",kfn, full_output=True)
-        return vz-vz_mcl
-
-    #-------------------------------------------------------------------------------------------------------------------
-    def change_speed(self,t,state, nei,disa, speed_mode,speed_limit):
-        """Perform acceleration or deceleration segment driven by Calibrated Air Speed (speed_mode="cas" or Mach (speed_mode="mach"
-        state = [x,z,mass,tas]
-        """
-        throttle = 1.
-        altg = state[1]
-        mass = state[2]
-        vtas = state[3]
-
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        altp = earth.pressure_altitude(pamb)
-        mach = vtas / earth.sound_speed(tamb)
-        speed = self.speed_from_mach(pamb,mach,speed_mode)
-
-        if speed>speed_limit:
-            rating = "FID"
-        else:
-            rating = "MCL"
-
-        acc,fn,ff,cz,cx,pamb,tamb = Flight.acceleration(self,nei,altp,disa,"mach",mach,mass,rating,throttle, full_output=True)
-
-        state_d = np.zeros(3)
-        state_d[0] = vtas
-        state_d[1] = 0.
-        state_d[2] = -ff
-        state_d[3] = acc
-
-        return state_d
-
-    def event_speed(self,t,state, nei,disa, speed_mode,speed_limit):
-        """Detect max Mach crossing
-        state = [x,z,mass,tas]
-        """
-        altg = state[1]
-        vtas = state[3]
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        mach = vtas / earth.sound_speed(tamb)
-        speed = self.speed_from_mach(pamb,mach,speed_mode)
-        return speed_limit-speed
-
-    #-------------------------------------------------------------------------------------------------------------------
-    def cruise_path(self,t,state, nei,disa, speed_mode,speed, x_limit,time_limit,mass_limit):
-        """Perform acceleration or deceleration segment driven by Calibrated Air Speed (speed_mode="cas" or Mach (speed_mode="mach"
-        state = [x,z,mass,tas]
-        """
-        throttle = 1.
-        altg = state[1]
-        mass = state[2]
-        vtas = state[3]
-
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        altp = earth.pressure_altitude(pamb)
-        mach = vtas / earth.sound_speed(tamb)
-        speed = self.speed_from_mach(pamb,mach,speed_mode)
-
-        dict = Flight.level_flight(pamb,tamb,mach,mass)
-
-        state_d = np.zeros(3)
-        state_d[0] = vtas
-        state_d[1] = 0.
-        state_d[2] = -dict["ff"]
-        state_d[3] = 0.
-
-        return state_d
-
-    def event_x(self,t,state, nei,disa, speed_mode,speed, x_limit,time_limit,mass_limit):
-        """Detect x limit crossing
-        state = [x,z,mass,tas]
-        """
-        x = state[0]
-        return x_limit-x
-
-    def event_t(self,t,state, nei,disa, speed_mode,speed, x_limit,time_limit,mass_limit):
-        """Detect time limit crossing
-        state = [x,z,mass,tas]
-        """
-        return time_limit-t
-
-    def event_m(self,t,state, nei,disa, speed_mode,speed, x_limit,time_limit,mass_limit):
-        """Detect mass limit crossing
-        state = [x,z,mass,tas]
-        """
-        mass = state[2]
-        return mass-mass_limit
-
-    #-------------------------------------------------------------------------------------------------------------------
-    def descent_path(self,t,state, nei,disa, speed_mode,speed_target, vz_target,altp_target):
-        """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
-        state = [x,zp,mass]
-        """
-        altg = state[1]
-        mass = state[2]
-        vtas = state[3]
-
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        altp = earth.pressure_altitude(pamb)
-        mach = vtas / earth.sound_speed(tamb)
-        speed = self.speed_from_mach(self,pamb,mach,speed_mode)
-
-        path,thtl,fn,ff,acc,cz,cx,pamb,tamb = Flight.descent(self,nei,altp,disa,speed_mode,speed,vz_target,mass)
-
-        mach = Flight.get_mach(pamb,speed_mode,speed)
-        vtas = earth.vtas_from_mach(altp,disa,mach)
-
-        state_d = np.zeros(3)
-        state_d[0] = vtas*np.cos(path)
-        state_d[1] = vz_target
-        state_d[2] = -ff
-        state_d[3] = acc
-
-        return state_d
-
-    def event_descent_altp(self,t,state, nei,disa, speed_mode,speed_target, vz_target,altp_target):
-        """Detect altitude crossing
-        state = [x,zp,mass]
-        """
-        altg = state[1]
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        altp = earth.pressure_altitude(pamb)
-
-        return altp_target-altp
-
-    def event_descent_speed(self,t,state, nei,disa, speed_mode,speed_target, altp_stop,vz_mcr,vz_mcl):
-        """Detect max Mach crossing
-        state = [x,zp,mass]
-        """
-        altg = state[1]
-        vtas = state[3]
-        pamb,tamb,dtodz = earth.atmosphere_geo(altg,disa)
-        mach = vtas / earth.sound_speed(tamb)
-        speed = self.speed_from_mach(pamb,mach,speed_mode)
-        return speed_target-speed
-
-
-
+        # print(sol.t)
+        # print(sol.y)
 
 
 
