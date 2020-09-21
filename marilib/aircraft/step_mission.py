@@ -10,10 +10,12 @@ Created on Thu Jan 20 20:20:20 2020
 
 from marilib.utils import earth, unit
 
+import matplotlib.pyplot as plt
+
 import numpy as np
 from scipy.optimize import fsolve
 from scipy.interpolate import interp1d, interp2d
-from scipy.integrate import solve_ivp
+from scipy.integrate import RK23, RK45, solve_ivp
 
 from marilib.aircraft.performance import Flight
 
@@ -50,16 +52,12 @@ class StepMission(Flight):
         self.heading_altp["west"] = [unit.m_ft(zp) for zp in altp_west]
         self.heading_altp["east"] = [unit.m_ft(zp) for zp in altp_east]
 
-        self.altpx = unit.m_ft(10000.)
-        self.altpz = unit.m_ft(51000.)
-        self.altp_list = [ unit.m_ft(1500.), self.altpx,
-                                             unit.m_ft(20000.),
-                                             unit.m_ft(30000.),
-                                             11000.,
-                                             unit.m_ft(41000.),
-                                             self.altpz]
+        self.zstep = 2200.
+        self.altp_list = np.arange(0., 16000., self.zstep)
+        self.altpz = self.altp_list[-1]
 
-        self.f_key_list = ["vz_mcr", "acc_lvf", "dec_lvf", "xdot_mcl", "vz_mcl", "ff_mcl", "xdot_fid", "vz_fid", "ff_fid", "mach", "tas", "sar", "ff"]
+        self.f_key_list = ["vz_mcr", "acc_lvf", "dec_lvf", "xdot_mcl", "vz_mcl", "ff_mcl",
+                           "xdot_fid", "vz_fid", "ff_fid", "pamb", "tamb", "mach", "cas", "tas", "sar", "ff"]
 
         self.data_dict = {}
         self.data_func = {}
@@ -71,11 +69,19 @@ class StepMission(Flight):
         self.data_dict["mass"] = {"low":[],"medium":[],"high":[]}
 
         self.heading = None
+        self.range = None
+        self.cruise_x_stop = None
 
+        self.altpw = None
+        self.altpx = None
         self.altpy = None
+
         self.cas1 = None
+        self.tas1 = None
+
         self.cas2 = None
         self.tas2 = None
+
         self.mach = None
 
         self.mass_list = None
@@ -84,25 +90,27 @@ class StepMission(Flight):
         self.change_mass = None
         self.change_cstr = None
 
-    def set_flight_domain(self,disa,tow,owe,cas1,cas2,cruise_mach):
+    def set_flight_domain(self,disa,tow,owe,cas1,altp2,cas2,cruise_mach):
         """Precomputation of all relevant quantities into a grid vs mass and altitude
         """
         if cas1>cas2:
             raise Exception("cas1 must be lower than cas2")
 
+        self.altpx = altp2
         self.cas1 = cas1
         self.cas2 = cas2
         self.mach = cruise_mach
 
-        self.altpx = unit.m_ft(10000.)
         pamb, tamb, tstd, dtodz = earth.atmosphere(self.altpx,disa)
-        self.tas2 = self.get_mach(pamb,"cas",cas2) * earth.sound_speed(tamb)
+        sound_speed = earth.sound_speed(tamb)
+        self.tas1 = self.get_mach(pamb,"cas",cas1) * sound_speed
+        self.tas2 = self.get_mach(pamb,"cas",cas2) * sound_speed
 
         self.altpy = earth.cross_over_altp(cas2,cruise_mach)
-        if self.altpy<unit.m_ft(10000.):
-            raise Exception("Cross over altitude must be higher than 10000 ft")
+        if self.altpy<self.altpx:
+            raise Exception("Cross over altitude must be higher than altp2")
 
-        n_mass = 4
+        n_mass = 5
         self.mass_list = np.linspace(owe,tow,n_mass)
         for layer in self.data_dict["altp"].keys():
             self.data_dict["mass"][layer] = self.mass_list
@@ -116,7 +124,7 @@ class StepMission(Flight):
             altg  = earth.altg_from_altp(altp,disa)
             pamb_,tamb_,dtodz_ = earth.atmosphere_geo(altg+daltg,disa)
 
-            if altp<=self.altpx:
+            if altp<=self.altpx+self.zstep:
                 layer = "low"
                 speed_mode = "cas"
                 speed = self.cas1
@@ -128,7 +136,7 @@ class StepMission(Flight):
                 self._fill_table(g,nei,pamb,tamb,mach,fac,layer)
                 self.data_dict["altp"][layer].append(altp)
 
-            if self.altpx<=altp and altp<=self.altpy:
+            if self.altpx-self.zstep<=altp and altp<=self.altpy+self.zstep:
                 layer = "medium"
                 speed_mode = "cas"
                 speed = self.cas2
@@ -140,7 +148,7 @@ class StepMission(Flight):
                 self._fill_table(g,nei,pamb,tamb,mach,fac,layer)
                 self.data_dict["altp"][layer].append(altp)
 
-            if self.altpy<=altp:
+            if self.altpy-self.zstep<=altp:
                 layer = "high"
                 mach = cruise_mach
                 tas  = mach * earth.sound_speed(tamb)
@@ -163,7 +171,7 @@ class StepMission(Flight):
     def _fill_table(self,g,nei,pamb,tamb,mach,fac,layer):
         """Generic function to build performance tables
         """
-        kf = 0.56
+        cas = earth.vcas_from_mach(pamb,mach)
         tas = mach * earth.sound_speed(tamb)
         dict_fid = self.aircraft.power_system.thrust(pamb,tamb,mach,"FID")
         dict_mcr = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCR")
@@ -177,10 +185,10 @@ class StepMission(Flight):
             cz = self.lift_from_speed(pamb,tamb,mach,mass)
             cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
 
-            sin_path_mcr = (kf*dict_mcr["fn"]/(mass*g) - 1./lod) / fac
+            sin_path_mcr = (dict_mcr["fn"]/(mass*g) - 1./lod) / fac
             vz_mcr = tas * sin_path_mcr
 
-            sin_path_mcl = (kf*dict_mcl["fn"]/(mass*g) - 1./lod) / fac   # Flight path air path sine
+            sin_path_mcl = (dict_mcl["fn"]/(mass*g) - 1./lod) / fac   # Flight path air path sine
             xdot_mcl = tas * np.sqrt(1.-sin_path_mcl**2)                # Acceleration in climb
             vz_mcl = tas * sin_path_mcl
             ff_mcl = -dict_mcl["ff"]
@@ -190,8 +198,8 @@ class StepMission(Flight):
             vz_fid = tas * sin_path_fid
             ff_fid = -dict_fid["ff"]
 
-            acc_lvf = kf*dict_mcl["fn"]/mass - g/lod
-            dec_lvf = kf*dict_fid["fn"]/mass - g/lod
+            acc_lvf = dict_mcl["fn"]/mass - g/lod
+            dec_lvf = dict_fid["fn"]/mass - g/lod
 
             if layer=="high":
                 fn_cruise = mass*g / lod
@@ -298,110 +306,439 @@ class StepMission(Flight):
 
         return
 
-    def get_val(self,f_key,altp,mass,cas=np.nan):
+    def get_val(self,f_key,altp,mass,cas=None):
         """This function interpolates performances in the performance tables
         """
-        if altp<=self.altpx-1.:
-        # Climbing at constant cas1 inside lower layer
-            return self.data_func[f_key]["low"](mass,altp)
-        elif abs(self.altpx-altp)<=1.e-4:
-        # accelerating at constant altitude altpx
+        if cas==None:
+            if altp<=self.altpx:
+            # Climbing at constant cas1 inside lower layer
+                return self.data_func[f_key]["low"](mass,altp)
+            elif self.altpx<altp and  altp<=self.altpy:
+            # Climbing at constant cas2 inside medium layer
+                return self.data_func[f_key]["medium"](mass,altp)
+            elif self.altpy<altp:
+            # Climbing or cruising at constant Mach inside upper layer
+                return self.data_func[f_key]["high"](mass,altp)
+        else:
+            # accelerating at constant altitude altpx
             v1 = self.data_func[f_key]["low"](mass,self.altpx)
             v2 = self.data_func[f_key]["medium"](mass,self.altpx)
+            print("coucou")
+            print(altp,mass,v1,v2)
             k = (cas-self.cas1) / (self.cas2-self.cas1)
-            v = v1*(1.-k) + k*v2
-        elif self.altpx+1.<=altp and  altp<=self.altpy:
-        # Climbing at constant cas2 inside medium layer
-            return self.data_func[f_key]["medium"](mass,altp)
-        elif self.altpy<=altp:
-        # Climbing or cruising at constant Mach inside upper layer
-            return self.data_func[f_key]["high"](mass,altp)
+            return v1*(1.-k) + k*v2
 
-    def climb_path(self,t,state):
+    def climb_path(self,z,state):
         """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
-        state = [x,z,mass]
+        The role of the time (t) is taken by altitude (z) in the integration scheme and time takes part of the state vector
+        state = [t,x,mass]
         """
-        altp = state[1]
-        mass = state[2]
-        n = np.size(altp)
-        if n==1:
-            return [self.get_val("xdot_mcl",altp,mass),
-                    self.get_val("vz_mcl",altp,mass),
-                    self.get_val("ff_mcl",altp,mass)]
-        else:
-            y = np.zeros((n,3))
-            for i in range(n):
-                y[i,:] = [self.get_val("xdot_mcl",altp[i],mass[i]),
-                          self.get_val("vz_mcl",altp[i],mass[i]),
-                          self.get_val("ff_mcl",altp[i],mass[i])]
-            return y
+        return np.array([1.,
+                         self.get_val("xdot_mcl",z,state[2]),
+                         self.get_val("ff_mcl",z,state[2])]) / self.get_val("vz_mcl",z,state[2])
 
-    def descent_path(self,t,state):
+    def descent_path(self,z,state):
         """Perform descent trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
-        state = [x,z,mass]
+        The role of the time (t) is taken by altitude (z) in the integration scheme and time takes part of the state vector
+        state = [t,x,mass]
         """
-        return [self.get_val("xdot_fid",state[1], state[2]),
-                self.get_val("vz_fid",state[1], state[2]),
-                self.get_val("ff_fid",state[1], state[2])]
+        return np.array([1.,
+                         self.get_val("xdot_fid",z,state[2]),
+                         self.get_val("ff_fid",z,state[2])]) / self.get_val("vz_fid",z,state[2])
 
-    def acceleration(self,t,state):
+    def acceleration(self,v,state):
         """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
-        state = [x,xdot,mass]
+        The role of the time (t) is taken by true air speed (v) in the integration scheme and time takes part of the state vector
+        state = [t,x,mass]
         """
-        return [state[1],
-                self.get_val("acc_lvf",self.altpx, state[2]),
-                self.get_val("ff_mcl",self.altpx, state[2])]
+        return  np.array([1.,v,self.get_val("ff_mcl",self.altpx, state[2])]) / self.get_val("acc_lvf",self.altpx, state[2])
 
-    def deceleration(self,t,state):
+    def deceleration(self,v,state):
         """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
-        state = [x,xdot,mass]
+        The role of the time (t) is taken by true air speed (v) in the integration scheme and time takes part of the state vector
+        state = [t,x,mass]
         """
-        return [state[1],
-                self.get_val("dec_lvf",self.altpx, state[2]),
-                self.get_val("ff_fid",self.altpx, state[2])]
+        return  np.array([1.,v,self.get_val("ff_fid",self.altpx, state[2])]) / self.get_val("dec_lvf",self.altpx, state[2])
 
-    def cruise(self,t,state):
+    def cruise(self,m,state):
         """Perform climb trajectory segment at constant Calibrated Air Speed (speed_mode="cas" or constant Mach (speed_mode="mach"
-        state = [x,z,mass]
+        The role of the time (t) is taken by the mass (m) in the integration scheme and time takes part of the state vector
+        state = [t,x,z]
         """
-        return [self.get_val("tas",state[1], state[2]),
-                0.,
-                self.get_val("ff",state[1], state[2])]
+        return np.array([1., self.get_val("tas",state[2],m), 0.]) / self.get_val("ff",state[2],m)
 
-    def altpx_stop(self,t,state):
-        # state = [x,z,mass]
-        return self.altpx-state[1]
-    altpx_stop.terminal = True
+    def cruise_stop(self,m,state):
+        """Cruise stop event
+        state = [t,x,z]
+        """
+        print("------------------------------->", self.cruise_x_stop)
+        return self.cruise_x_stop - state[1]
+    cruise_stop.terminal = True
 
-    def cas2_stop(self,t,state):
-        # state = [x,xdot,mass]
-        return self.tas2-state[1]
 
-    def altpy_stop(self,t,state):
-        # state = [x,z,mass]
-        return self.altpy-state[1]
+    def fly_descent(self,altp_start,state_start):
 
-    def mach_stop(self,t,state):
-        # state = [x,z,mass]
-        return self.mach-self.get_val("mach",state[1], state[2]),
+        # First descent segment, constant mach, state = [t,x,mass]
+        #---------------------------------------------------------------------------------------------------------------
+        z0 = altp_start
+        z1 = self.altpy
+        state0 = state_start
+        n = 5
+        t_eval = np.linspace(z0,z1,n)
 
-    def fly_mission(self,disa,tow,zfw,cas1,cas2,cruise_mach,vz_min_mcr,vz_min_mcl):
+        sol = solve_ivp(self.descent_path,[z0,z1],state0,t_eval=t_eval, method="RK45")
 
-        self.set_flight_domain(disa,tow,zfw,cas1,cas2,cruise_mach)
+        time = sol.y[0]
+        dist = sol.y[1]
+        mass = sol.y[2]
+        altp = sol.t
+        pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+        tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
+        s_1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
 
-        self.cruise_profile(tow,vz_min_mcr,vz_min_mcl)
+        # Second descent segment, constant cas2, state = [t,x,mass]
+        #---------------------------------------------------------------------------------------------------------------
+        z0 = self.altpy
+        z1 = self.altpx
+        state0 = np.array([sol.y[0][-1],
+                           sol.y[1][-1],
+                           sol.y[2][-1]])
+        n = 5
+        t_eval = np.linspace(z0,z1,n)
 
-        # state = [x,z,mass]
-        state0 = [0.,
-                  unit.m_ft(1500.),
-                  tow]
+        sol = solve_ivp(self.descent_path,[z0,z1],state0,t_eval=t_eval, method="RK45")
 
-        time_span = [0., 120.]
+        time = sol.y[0]
+        dist = sol.y[1]
+        mass = sol.y[2]
+        altp = sol.t
+        pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+        tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
+        s_2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
 
-        sol = solve_ivp(self.climb_path, time_span, state0, vectorized=False,  method="RK45")#, events=self.altpx_stop)
+       # Desceleration fron cas2 to cas1, state = [t,x,mass]
+        #---------------------------------------------------------------------------------------------------------------
+        v0 = self.tas2
+        v1 = self.tas1
+        state0 = np.array([sol.y[0][-1],
+                           sol.y[1][-1],
+                           sol.y[2][-1]])
+        n = 5
+        t_eval = np.linspace(v0,v1,n)
 
-        # print(sol.t)
-        # print(sol.y)
+        sol = solve_ivp(self.deceleration,[v0,v1],state0,t_eval=t_eval, method="RK45")
+
+        time = sol.y[0]
+        dist = sol.y[1]
+        mass = sol.y[2]
+        altp = np.ones(len(sol.t))*self.altpx
+        pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+        tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+        tas = sol.t
+        mach = [v/earth.sound_speed(tamb[0]) for v in tas]
+        cas = [earth.vcas_from_mach(pamb[0],ma) for ma in mach]
+        s_3 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+
+        # Last descent segment, constant cas1, state = [t,x,mass]
+        #---------------------------------------------------------------------------------------------------------------
+        z0 = self.altpx
+        z1 = self.altpw
+        state0 = np.array([sol.y[0][-1],
+                           sol.y[1][-1],
+                           sol.y[2][-1]])
+        n = 5
+        t_eval = np.linspace(z0,z1,n)
+
+        sol = solve_ivp(self.descent_path,[z0,z1],state0,t_eval=t_eval, method="RK45")
+
+        time = sol.y[0]
+        dist = sol.y[1]
+        mass = sol.y[2]
+        altp = sol.t
+        pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+        tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
+        s_4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+
+        sd = np.hstack((s_1[:,0:-1],s_2[:,0:-1],s_3[:,0:-1],s_4))
+
+        return sd
+
+
+    def fly_mission(self,disa,range,tow,zfw,altp1,cas1,altp2,cas2,cruise_mach,vz_min_mcr,vz_min_mcl):
+
+        self.range = range
+        self.cruise_x_stop = range
+        self.altpw = altp1
+
+        # Precompute airplane performances
+        #---------------------------------------------------------------------------------------------------------------
+        self.set_flight_domain(disa,tow,zfw,cas1,altp2,cas2,cruise_mach)
+
+        # First climb segment, constant cas1, state = [t,x,mass]
+        #---------------------------------------------------------------------------------------------------------------
+        z0 = self.altpw
+        z1 = self.altpx
+        state0 = np.array([0., 0., tow])
+
+        n = 5
+        t_eval = np.linspace(z0,z1,n)
+
+        sol = solve_ivp(self.climb_path,[z0,z1],state0,t_eval=t_eval, method="RK45")
+
+        time = sol.y[0]
+        dist = sol.y[1]
+        mass = sol.y[2]
+        altp = sol.t
+        pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+        tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
+        s1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+
+        # Acceleration fron cas1 to cas2, state = [t,x,mass]
+        #---------------------------------------------------------------------------------------------------------------
+        v0 = self.tas1
+        v1 = self.tas2
+        state0 = np.array([sol.y[0][-1],
+                           sol.y[1][-1],
+                           sol.y[2][-1]])
+        n = 5
+        t_eval = np.linspace(v0,v1,n)
+
+        sol = solve_ivp(self.acceleration,[v0,v1],state0,t_eval=t_eval, method="RK45")
+
+        time = sol.y[0]
+        dist = sol.y[1]
+        mass = sol.y[2]
+        altp = np.ones(len(sol.t))*self.altpx
+        pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+        tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+        tas = sol.t
+        mach = [v/earth.sound_speed(tamb[0]) for v in tas]
+        cas = [earth.vcas_from_mach(pamb[0],ma) for ma in mach]
+        s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+
+        # Second climb segment, constant cas2, state = [t,x,mass]
+        #---------------------------------------------------------------------------------------------------------------
+        z0 = self.altpx
+        z1 = self.altpy
+        state0 = np.array([sol.y[0][-1],
+                           sol.y[1][-1],
+                           sol.y[2][-1]])
+        n = 5
+        t_eval = np.linspace(z0,z1,n)
+
+        sol = solve_ivp(self.climb_path,[z0,z1],state0,t_eval=t_eval, method="RK45")
+
+        time = sol.y[0]
+        dist = sol.y[1]
+        mass = sol.y[2]
+        altp = sol.t
+        pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+        tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
+        s3 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+
+        # Precomputecruise profile
+        #---------------------------------------------------------------------------------------------------------------
+        self.cruise_profile(mass[-1],vz_min_mcr,vz_min_mcl)
+
+        # print(self.mass_list)
+        # print("")
+        # print(self.change_altp)
+        # print(self.change_mass)
+        # print(self.change_cstr)
+
+        # Third climb segment, constant mach, state = [t,x,mass]
+        #---------------------------------------------------------------------------------------------------------------
+        z0 = self.altpy
+        z1 = self.change_altp[0]
+        state0 = np.array([sol.y[0][-1],
+                           sol.y[1][-1],
+                           sol.y[2][-1]])
+        n = 5
+        t_eval = np.linspace(z0,z1,n)
+
+        sol = solve_ivp(self.climb_path,[z0,z1],state0,t_eval=t_eval, method="RK45")
+
+        time = sol.y[0]
+        dist = sol.y[1]
+        mass = sol.y[2]
+        altp = sol.t
+        pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+        tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
+        s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+
+        s = np.hstack((s1[:,0:-1],s2[:,0:-1],s3[:,0:-1],s4))
+
+        # First test on range
+        #---------------------------------------------------------------------------------------------------------------
+        current_dist = sol.y[1][-1]
+
+        if current_dist>self.range:
+            raise Exception("Range is shorter than climb distance")
+
+        mass_cruise_start = sol.y[2][-1]
+        state_cruise_start = np.array([sol.y[0][-1],
+                                       sol.y[1][-1],
+                                       self.change_altp[0]])
+
+        for i in [0,1,2,3]:
+
+            print("CouCou")
+
+            # First cruise segment, constant mach & altitude, state = [t,x,z]
+            #---------------------------------------------------------------------------------------------------------------
+            m0 = mass_cruise_start
+            m1 = self.change_mass[1]
+            state0 = state_cruise_start
+            n = 5
+            t_eval = np.linspace(m0,m1,n)
+
+            sol = solve_ivp(self.cruise, [m0,m1], state0, t_eval=t_eval, method="RK45", events=self.cruise_stop)
+
+            time = sol.y[0]
+            dist = sol.y[1]
+            altp = sol.y[2]
+            mass = sol.t
+            pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+            tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+            mach = np.ones(n)*self.mach
+            tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
+            cas = [earth.vcas_from_mach(p,ma) for p,ma in zip(pamb,mach)]
+            sc = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+
+            print(1,np.size(sol.t_events))
+
+            if np.size(sol.t_events)==0:    # Range has not been reached
+
+                for k,stop_mass in enumerate(self.change_mass[0:-2]):
+
+                    # Climb to next cruise level, constant mach, state = [t,x,m]
+                    #---------------------------------------------------------------------------------------------------------------
+                    z0 = self.change_altp[k]
+                    z1 = self.change_altp[k+1]
+                    state0 = np.array([sol.y[0][-1],
+                                       sol.y[1][-1],
+                                       sol.t[-1]])
+                    n = 5
+                    t_eval = np.linspace(z0,z1,n)
+
+                    sol = solve_ivp(self.climb_path,[z0,z1],state0,t_eval=t_eval, method="RK45", events=self.cruise_stop)
+
+                    time = sol.y[0]
+                    dist = sol.y[1]
+                    mass = sol.y[2]
+                    altp = sol.t
+                    pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+                    tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+                    cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+                    mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+                    tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
+                    s_6 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+
+                    print(2,np.size(sol.t_events))
+
+                    if np.size(sol.t_events)==0:    # Range has not been reached
+
+                        # Fly this cruise segment, constant mach & altitude, state = [t,x,z]
+                        #---------------------------------------------------------------------------------------------------------------
+                        m0 = sol.y[2][-1]
+                        m1 = self.change_mass[k+2]
+                        state0 = np.array([sol.y[0][-1],
+                                           sol.y[1][-1],
+                                           sol.t[-1]])
+                        n = 5
+                        t_eval = np.linspace(m0,m1,n)
+
+                        sol = solve_ivp(self.cruise, [m0,m1], state0, t_eval=t_eval, method="RK45", events=self.cruise_stop)
+
+                        time = sol.y[0]
+                        dist = sol.y[1]
+                        mass = sol.t
+                        altp = sol.y[2]
+                        pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
+                        tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
+                        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+                        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+                        tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
+                        s_7 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+
+                        print(3,np.size(sol.t_events))
+
+                        sc = np.hstack((sc[:,0:-1],s_6,s_7))
+
+                        if np.size(sol.t_events)>0:    # Range has been reached
+                            break
+
+                altp_start = sc[2][-1]
+                state_start = np.array([sc[0][-1],
+                                        sc[1][-1],
+                                        sc[3][-1]])
+
+                sd = self.fly_descent(altp_start,state_start)
+
+                print("=====>", self.range)
+                print("=====>", sd[1][-1])
+
+                dx = self.range - sd[1][-1]
+
+                self.cruise_x_stop += dx
+
+                print("=============>", dx)
+                print("=============>", self.cruise_x_stop)
+
+
+        s = np.hstack((s[:,0:-1],sc[:,0:-1],sd))
+
+
+
+
+
+        # print("-------------------------------")
+        # print(s)
+
+
+
+
+
+
+
+
+
+        plot_title = self.aircraft.name
+        window_title = "Mission profile"
+
+        ord = s[2]
+        abs = s[1]
+
+        fig,axes = plt.subplots(1,1)
+        fig.canvas.set_window_title(window_title)
+        fig.suptitle(plot_title, fontsize=14)
+
+        plt.plot(abs,ord,linewidth=2,color="blue")
+
+        plt.grid(True)
+
+        plt.ylabel('Pressure altitude (m)')
+        plt.xlabel('Distance (m)')
+
+        plt.show()
 
 
 

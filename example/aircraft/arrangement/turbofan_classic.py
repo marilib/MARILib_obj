@@ -51,20 +51,25 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 miss = StepMission(ac)
 
 disa = 0.
+
+range = unit.m_NM(3000.)
+
 tow = 77000.
-zfw = 62000.
+owe = 50000.
+
+altp1 = unit.m_ft(1500.)
 cas1 = unit.mps_kt(250.)
+
+altp2 = unit.m_ft(10000.)
 cas2 = unit.mps_kt(300.)
+
 cruise_mach = 0.78
 
 vz_mcr = unit.mps_ftpmin(0.)
 vz_mcl = unit.mps_ftpmin(300.)
 
-miss.fly_mission(disa,tow,zfw,cas1,cas2,cruise_mach,vz_mcr,vz_mcl)
+miss.fly_mission(disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_mcr,vz_mcl)
 
-print(miss.change_altp)
-print(miss.change_mass)
-print(miss.change_cstr)
 
 
 
