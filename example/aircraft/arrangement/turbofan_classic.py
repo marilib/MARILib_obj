@@ -52,7 +52,7 @@ miss = StepMission(ac)
 
 disa = 0.
 
-range = unit.m_NM(3000.)
+range = unit.m_NM(1000.)
 
 tow = 77000.
 owe = 50000.

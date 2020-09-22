@@ -227,7 +227,7 @@ class SemiEmpiricTf0Nacelle(Component):
         design_range = self.aircraft.requirement.design_range
 
         self.eis_date = get_init(class_name,"eis_date")
-        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.05)
         self.reference_offtake = 0.
         self.tune_factor = 1.
         self.engine_bpr = get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
@@ -379,7 +379,7 @@ class SemiEmpiricTfNacelle(Component):
         class_name = "SemiEmpiricTfNacelle"
 
         self.eis_date = get_init(class_name,"eis_date")
-        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.10)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.05)
         self.reference_offtake = 0.
         self.tune_factor = 1.
         self.engine_bpr = get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
@@ -823,7 +823,7 @@ class SemiEmpiricEfNacelle(Component):
         class_name = "SemiEmpiricEfNacelle"
 
         self.eis_date = 2020
-        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.05)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.fan_efficiency = get_init(class_name,"fan_efficiency")
         self.motor_efficiency = get_init(class_name,"motor_efficiency")
@@ -1212,7 +1212,7 @@ class SemiEmpiricTpNacelle(Component):
         class_name = "SemiEmpiricTpNacelle"
 
         self.eis_date = 2020
-        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.95, MCL=0.90, MCR=0.70, FID=0.10)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.95, MCL=0.90, MCR=0.70, FID=0.05)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
         self.lateral_margin = get_init(class_name,"lateral_margin")
@@ -1319,7 +1319,7 @@ class SemiEmpiricEpNacelle(Component):
         class_name = "SemiEmpiricEpNacelle"
 
         self.eis_date = 2020
-        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.05)
         self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
         self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
         self.motor_efficiency = get_init(class_name,"motor_efficiency")
