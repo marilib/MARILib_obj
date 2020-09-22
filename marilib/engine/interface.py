@@ -246,7 +246,7 @@ class ExergeticEfNacelle(Component):
         self.reference_thrust = None
         self.reference_power = None
         # self.rating_factor = {"MTO":1.00, "MCN":0.90, "MCL":0.88, "MCR":0.80, "FID":0.55, "VAR":1.}
-        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.10)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.05)
         self.engine_fpr = 1.45
         self.drag_bli = 0.
         self.motor_efficiency = 0.95

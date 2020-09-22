@@ -15,6 +15,7 @@ from marilib.aircraft.requirement import Requirement
 from marilib.utils.read_write import MarilibIO
 from marilib.aircraft.design import process
 
+from marilib.aircraft.step_mission import StepMission
 
 # Configure airplane arrangement
 # ---------------------------------------------------------------------------------------------------------------------
@@ -46,6 +47,35 @@ ac.airframe.wing.area = 128.
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 
 
+
+miss = StepMission(ac)
+
+disa = 0.
+
+range = unit.m_NM(1000.)
+
+tow = 77000.
+owe = 50000.
+
+altp1 = unit.m_ft(1500.)
+cas1 = unit.mps_kt(250.)
+
+altp2 = unit.m_ft(10000.)
+cas2 = unit.mps_kt(300.)
+
+cruise_mach = 0.78
+
+vz_mcr = unit.mps_ftpmin(0.)
+vz_mcl = unit.mps_ftpmin(300.)
+
+miss.fly_mission(disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_mcr,vz_mcl)
+
+
+
+
+
+raise Exception("ici")
+
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
 var = ["aircraft.power_system.reference_thrust",
@@ -75,7 +105,7 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 # Optimization criteria
 crt = "aircraft.weight_cg.mtow"
 
-process.mdf(ac, var,var_bnd, cst,cst_mag, crt)        # Perform an MDF optimization process
+# process.mdf(ac, var,var_bnd, cst,cst_mag, crt)        # Perform an MDF optimization process
 
 
 # Main output
