@@ -226,7 +226,7 @@ class StepMission(Flight):
 
         return
 
-    def cruise_profile(self,mass,vz_mcr,vz_mcl,heading="east"):
+    def cruise_profile(self,mass,vz_mcr,vz_mcl,heading):
         rev_mass_list = [mass]
         for m in reversed(self.mass_list):
             if m<mass: rev_mass_list.append(m)
@@ -382,7 +382,7 @@ class StepMission(Flight):
     cruise_stop.terminal = True
 
 
-    def fly_end_mission(self,start_mass,start_state,climb_dist,x_stop):
+    def fly_mission_end(self,start_mass,start_state,climb_dist,x_stop):
         """Perform level cruise sequence(s) and descent
         """
         self.cruise_x_stop = x_stop
@@ -564,7 +564,7 @@ class StepMission(Flight):
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
 
-       # Desceleration fron cas2 to cas1, state = [t,x,mass]
+        # Desceleration fron cas2 to cas1, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
         v0 = self.tas2
         v1 = self.tas1
@@ -617,7 +617,7 @@ class StepMission(Flight):
         return sc,sd,x_end
 
 
-    def fly_mission(self,disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_min_mcr,vz_min_mcl):
+    def fly_mission(self,disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_min_mcr,vz_min_mcl,heading):
 
         self.range = range
         self.altpw = altp1
@@ -696,7 +696,7 @@ class StepMission(Flight):
 
         # Precomputecruise profile
         #---------------------------------------------------------------------------------------------------------------
-        self.cruise_profile(mass[-1],vz_min_mcr,vz_min_mcl)
+        self.cruise_profile(mass[-1],vz_min_mcr,vz_min_mcl,heading)
 
         # print(self.mass_list)
         # print("")
@@ -742,35 +742,22 @@ class StepMission(Flight):
                                 sol.y[1][-1],
                                 self.change_altp[0]])
 
-        x_stop1 = self.range - climb_dist        # Anticipate some distance allowance for descent
+        x_stop1 = self.range
 
         # Fly the rest of the mission
         #---------------------------------------------------------------------------------------------------------------
-        sc,sd,x_end1 = self.fly_end_mission(start_mass,start_state,climb_dist,x_stop1)
+        sc,sd,x_end1 = self.fly_mission_end(start_mass,start_state,climb_dist,x_stop1)
 
-        print("----------------------------------")
-        print("range = ", self.range)
-        print("x_stop = ", x_stop1)
-        print("x_end = ", x_end1)
+        if x_end1<self.range:
+            raise Exception("OWE does not allow to complete the mission, lower OWE to embark more fuel")
 
-        dx1 = 1.1 * (self.range - x_end1)
+        x_stop2 = x_stop1 + (self.range - x_end1)
 
-        x_stop2 = x_stop1 + dx1
-
-        sc,sd,x_end2 = self.fly_end_mission(start_mass,start_state,climb_dist,x_stop2)
-
-        print("----------------------------------")
-        print("range = ", self.range)
-        print("x_stop = ", x_stop2)
-        print("x_end = ", x_end2)
+        sc,sd,x_end2 = self.fly_mission_end(start_mass,start_state,climb_dist,x_stop2)
 
         x_stop = x_stop1 +(self.range-x_end1)*(x_stop2-x_stop1)/(x_end2-x_end1)
-        sc,sd,x_end = self.fly_end_mission(start_mass,start_state,climb_dist,x_stop)
 
-        print("----------------------------------")
-        print("range = ", self.range)
-        print("x_stop = ", x_stop)
-        print("x_end = ", x_end)
+        sc,sd,x_end = self.fly_mission_end(start_mass,start_state,climb_dist,x_stop)
 
         s = np.hstack((s[:,0:-1],sc[:,0:-1],sd))
 
@@ -778,8 +765,8 @@ class StepMission(Flight):
 
 
 
-        # print("-------------------------------")
-        # print(s)
+        print("-------------------------------")
+        print(s)
 
 
 

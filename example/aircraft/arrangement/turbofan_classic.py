@@ -52,7 +52,7 @@ miss = StepMission(ac)
 
 disa = 0.
 
-range = unit.m_NM(1000.)
+range = unit.m_NM(2500.)
 
 tow = 77000.
 owe = 50000.
@@ -68,7 +68,9 @@ cruise_mach = 0.78
 vz_mcr = unit.mps_ftpmin(0.)
 vz_mcl = unit.mps_ftpmin(300.)
 
-miss.fly_mission(disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_mcr,vz_mcl)
+heading = "east"
+
+miss.fly_mission(disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_mcr,vz_mcl,heading)
 
 
 
