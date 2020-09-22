@@ -207,7 +207,7 @@ def custom_mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
 
     cost_fun = lambda x_in: custom_eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,1.)
 
-    res = custom_minimum_search(cost_fun,start_value)
+    res = custom_minimum_search(cost_fun,start_value,pen=100)
 
 
 def custom_minimum_search(cost_fun,x0,delta=0.05,pen=10):
@@ -273,11 +273,21 @@ o------o-------o------o
 
     # Find the equation of the plan passing through the 3 points
     print(current_points)
-    plane_equation = np.linalg.solve(current_points,[1,1,1]) # find the coefficient of the plan passing through the 3 points
-    print(plane_equation)
-    def extrapolator(xx):
-        return (1-plane_equation[0]*xx[0] + plane_equation[1]*xx[1])/plane_equation[2]
-    print(extrapolator((0,0)))
+    a,b,c = np.linalg.solve(current_points,[1,1,1]) # find the coefficient of the plan passing through the 3 points
+    extrapolator = lambda x,y: (1. - a*x - b*y)/c
+
+    xy = (0,0)
+    zgradient = np.array([-a/c,-b/c]) / np.linalg.norm([-a/c, -b/c])
+    criter_old = points[xy]+1
+    criter = points[xy]
+    while criter<criter_old:
+    #for k in range(0, 10):
+        xy = np.array(xy) - zgradient
+        x = x0 + xy * stepsize
+        criter_old = criter
+        criter = custom_cost(x)
+        print("2",xy,criter)
+
     # TODO : extrapolate plane equation to retrieve z of other points
 
     return points

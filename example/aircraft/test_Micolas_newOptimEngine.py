@@ -72,14 +72,14 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 # Optimization criteria
 crt = "aircraft.weight_cg.mtow"
 
-process.mdf(ac, var,var_bnd, cst,cst_mag, crt)        # Perform an MDF optimization process
-#process.custom_mdf(ac, var,var_bnd, cst,cst_mag, crt)
+#process.mdf(ac, var,var_bnd, cst,cst_mag, crt)        # Perform an MDF optimization process
+process.custom_mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
-# breakpoint()
+breakpoint()
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.view_3d("This_plane")                        # Draw a 3D view diagram
 ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 io = MarilibIO()
