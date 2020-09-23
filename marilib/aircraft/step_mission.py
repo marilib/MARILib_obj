@@ -56,8 +56,9 @@ class StepMission(Flight):
         self.altp_list = np.arange(0., 16000., self.zstep)
         self.altpz = self.altp_list[-1]
 
-        self.f_key_list = ["vz_mcr", "acc_lvf", "dec_lvf", "xdot_mcl", "vz_mcl", "ff_mcl",
-                           "xdot_fid", "vz_fid", "ff_fid", "pamb", "tamb", "mach", "cas", "tas", "sar", "ff"]
+        self.f_key_list = ["vz_mcr", "acc_lvf", "dec_lvf", "xdot_mcl", "vz_mcl", "fn_mcl", "ff_mcl",
+                           "xdot_fid", "vz_fid", "fn_fid", "ff_fid", "pamb", "tamb",
+                           "mach", "cas", "tas", "sar", "fn_crz", "ff_crz"]
 
         self.data_dict = {}
         self.data_func = {}
@@ -73,6 +74,7 @@ class StepMission(Flight):
 
         self.heading = None
         self.range = None
+
         self.cruise_x_stop = None
         self.level_blocker = None
 
@@ -93,6 +95,37 @@ class StepMission(Flight):
         self.change_altp = None
         self.change_mass = None
         self.change_cstr = None
+
+        self.flight_profile = None
+
+        self.taxi_out_fuel = None
+        self.taxi_out_time = None
+        self.taxi_out_dist = None
+
+        self.take_off_fuel = None
+        self.take_off_time = None
+        self.take_off_dist = None
+
+        self.climb_fuel = None
+        self.climb_time = None
+        self.climb_dist = None
+
+        self.cruise_fuel = None
+        self.cruise_time = None
+        self.cruise_dist = None
+
+        self.descent_fuel = None
+        self.descent_time = None
+        self.descent_dist = None
+
+        self.landing_fuel = None
+        self.landing_time = None
+        self.landing_dist = None
+
+        self.taxi_in_fuel = None
+        self.taxi_in_time = None
+        self.taxi_in_dist = None
+
 
     def set_flight_domain(self,disa,tow,owe,cas1,altp2,cas2,cruise_mach):
         """Precomputation of all relevant quantities into a grid vs mass and altitude
@@ -195,12 +228,14 @@ class StepMission(Flight):
             sin_path_mcr = (dict_mcr["fn"]/(mass*g) - 1./lod) / fac
             vz_mcr = tas * sin_path_mcr
 
-            sin_path_mcl = (dict_mcl["fn"]/(mass*g) - 1./lod) / fac   # Flight path air path sine
+            fn_mcl = dict_mcl["fn"]
+            sin_path_mcl = (fn_mcl/(mass*g) - 1./lod) / fac   # Flight path air path sine
             xdot_mcl = tas * np.sqrt(1.-sin_path_mcl**2)                # Acceleration in climb
             vz_mcl = tas * sin_path_mcl
             ff_mcl = -dict_mcl["ff"]
 
-            sin_path_fid = (dict_fid["fn"]/(mass*g) - 1./lod) / fac   # Flight path air path sine
+            fn_fid = dict_fid["fn"]
+            sin_path_fid = (fn_fid/(mass*g) - 1./lod) / fac   # Flight path air path sine
             xdot_fid = tas * np.sqrt(1.-sin_path_fid**2)                # Acceleration in climb
             vz_fid = tas * sin_path_fid
             ff_fid = -dict_fid["ff"]
@@ -209,14 +244,15 @@ class StepMission(Flight):
             dec_lvf = dict_fid["fn"]/mass - g/lod
 
             if layer=="high":
-                fn_cruise = mass*g / lod
-                dict_cruise = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",fn_cruise,nei)
+                fn_crz = mass*g / lod
+                dict_cruise = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",fn_crz,nei)
                 dict_cruise["lod"] = lod
                 sar = self.aircraft.power_system.specific_air_range(mass,tas,dict_cruise)
-                ff = -tas / sar
+                ff_crz = -tas / sar
             else:
                 sar = np.nan
-                ff = np.nan
+                fn_crz = np.nan
+                ff_crz = np.nan
 
             for key in self.f_key_list:
                 data[key].append(eval(key))
@@ -372,7 +408,7 @@ class StepMission(Flight):
         The role of the time (t) is taken by the mass (m) in the integration scheme and time takes part of the state vector
         state = [t,x,z]
         """
-        return np.array([1., self.get_val("tas",state[2],m), 0.]) / self.get_val("ff",state[2],m)
+        return np.array([1., self.get_val("tas",state[2],m), 0.]) / self.get_val("ff_crz",state[2],m)
 
     def cruise_stop(self,m,state):
         """Cruise stop event
@@ -382,11 +418,11 @@ class StepMission(Flight):
     cruise_stop.terminal = True
 
 
-    def fly_mission_end(self,start_mass,start_state,climb_dist,x_stop):
+    def fly_mission_end(self,start_mass,start_state,x_stop):
         """Perform level cruise sequence(s) and descent
         """
         self.cruise_x_stop = x_stop
-        self.level_blocker = climb_dist*6.
+        self.level_blocker = self.climb_dist*6.
         go_ahead = True
         level_index = 0
         sc = []
@@ -416,15 +452,17 @@ class StepMission(Flight):
         dist = sol.y[1]
         altp = sol.y[2]
         mass = sol.t
+        fn = [self.get_val("fn_crz",z,m)[0] for z,m in zip(altp,mass)]
+        ff = [self.get_val("ff_crz",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        mach = np.ones(n)*self.mach
+        mach = np.ones(len(sol.t))*self.mach
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         cas = [earth.vcas_from_mach(p,ma) for p,ma in zip(pamb,mach)]
         if go_ahead:
-            s5 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+            s5 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
         else:
-            sc = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+            sc = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
         while go_ahead and level_index<(np.size(self.change_altp)-2):
             # Climb to next cruise level, constant mach, state = [t,x,m]
@@ -443,12 +481,14 @@ class StepMission(Flight):
             dist = sol.y[1]
             mass = sol.y[2]
             altp = sol.t
+            fn = [self.get_val("fn_mcl",z,m)[0] for z,m in zip(altp,mass)]
+            ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
             pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
             tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
             cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
             mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
             tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
-            s6 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+            s6 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
             if sol.y[1][-1]>self.cruise_x_stop:    # Cruise x stop has been reached during climb, extend previous segment
                 m1 = sol.y[2][-1]
@@ -461,12 +501,14 @@ class StepMission(Flight):
                 dist = sol.y[1]
                 altp = sol.y[2]
                 mass = sol.t
+                fn = [self.get_val("fn_crz",z,m)[0] for z,m in zip(altp,mass)]
+                ff = [self.get_val("ff_crz",z,m)[0] for z,m in zip(altp,mass)]
                 pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
                 tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-                mach = np.ones(n)*self.mach
+                mach = np.ones(len(sol.t))*self.mach
                 tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
                 cas = [earth.vcas_from_mach(p,ma) for p,ma in zip(pamb,mach)]
-                s5 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+                s5 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
                 if len(sc)==0:
                     sc = s5
@@ -504,12 +546,14 @@ class StepMission(Flight):
                 dist = sol.y[1]
                 mass = sol.t
                 altp = sol.y[2]
+                fn = [self.get_val("fn_crz",z,m)[0] for z,m in zip(altp,mass)]
+                ff = [self.get_val("ff_crz",z,m)[0] for z,m in zip(altp,mass)]
                 pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
                 tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
                 cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
                 mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
                 tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
-                s7 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+                s7 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
                 if len(sc)==0:
                     sc = np.hstack((s5[:,0:-1],s6[:,0:-1],s7))
@@ -517,6 +561,10 @@ class StepMission(Flight):
                     sc = np.hstack((sc[:,0:-1],s6[:,0:-1],s7))
 
                 level_index += 1
+
+        self.cruise_time = sol.y[0][-1] - self.climb_time
+        self.cruise_fuel = self.tow - sol.t[-1] - self.climb_fuel
+        self.cruise_dist = sol.y[1][-1] - self.climb_dist
 
         # First descent segment, constant mach, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
@@ -534,12 +582,14 @@ class StepMission(Flight):
         dist = sol.y[1]
         mass = sol.y[2]
         altp = sol.t
+        fn = [self.get_val("fn_fid",z,m)[0] for z,m in zip(altp,mass)]
+        ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
         cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
-        s1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+        s1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
         # Second descent segment, constant cas2, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
@@ -557,12 +607,14 @@ class StepMission(Flight):
         dist = sol.y[1]
         mass = sol.y[2]
         altp = sol.t
+        fn = [self.get_val("fn_fid",z,m)[0] for z,m in zip(altp,mass)]
+        ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
         cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
-        s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+        s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
         # Desceleration fron cas2 to cas1, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
@@ -580,12 +632,14 @@ class StepMission(Flight):
         dist = sol.y[1]
         mass = sol.y[2]
         altp = np.ones(len(sol.t))*self.altpx
+        fn = [self.get_val("fn_fid",z,m)[0] for z,m in zip(altp,mass)]
+        ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
         tas = sol.t
         mach = [v/earth.sound_speed(tamb[0]) for v in tas]
         cas = [earth.vcas_from_mach(pamb[0],ma) for ma in mach]
-        s3 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+        s3 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
         # Last descent segment, constant cas1, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
@@ -603,14 +657,20 @@ class StepMission(Flight):
         dist = sol.y[1]
         mass = sol.y[2]
         altp = sol.t
+        fn = [self.get_val("fn_fid",z,m)[0] for z,m in zip(altp,mass)]
+        ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
         cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
-        s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+        s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
         sd = np.hstack((s1[:,0:-1],s2[:,0:-1],s3[:,0:-1],s4))
+
+        self.descent_time = sol.y[0][-1] - self.climb_time - self.cruise_time
+        self.descent_fuel = self.tow - sol.y[2][-1] - self.climb_fuel - self.cruise_fuel
+        self.descent_dist = sol.y[1][-1] - self.climb_dist - self.cruise_dist
 
         x_end = sd[1][-1]
 
@@ -641,12 +701,14 @@ class StepMission(Flight):
         dist = sol.y[1]
         mass = sol.y[2]
         altp = sol.t
+        fn = [self.get_val("fn_mcl",z,m)[0] for z,m in zip(altp,mass)]
+        ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
         cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
-        s1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+        s1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
         # Acceleration fron cas1 to cas2, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
@@ -664,12 +726,14 @@ class StepMission(Flight):
         dist = sol.y[1]
         mass = sol.y[2]
         altp = np.ones(len(sol.t))*self.altpx
+        fn = [self.get_val("fn_mcl",z,m)[0] for z,m in zip(altp,mass)]
+        ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
         tas = sol.t
         mach = [v/earth.sound_speed(tamb[0]) for v in tas]
         cas = [earth.vcas_from_mach(pamb[0],ma) for ma in mach]
-        s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+        s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
         # Second climb segment, constant cas2, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
@@ -687,12 +751,14 @@ class StepMission(Flight):
         dist = sol.y[1]
         mass = sol.y[2]
         altp = sol.t
+        fn = [self.get_val("fn_mcl",z,m)[0] for z,m in zip(altp,mass)]
+        ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
         cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
-        s3 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+        s3 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
         # Precomputecruise profile
         #---------------------------------------------------------------------------------------------------------------
@@ -720,20 +786,24 @@ class StepMission(Flight):
         dist = sol.y[1]
         mass = sol.y[2]
         altp = sol.t
+        fn = [self.get_val("fn_mcl",z,m)[0] for z,m in zip(altp,mass)]
+        ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
         cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
-        s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas))
+        s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
         s = np.hstack((s1[:,0:-1],s2[:,0:-1],s3[:,0:-1],s4))
 
+        self.climb_time = sol.y[0][-1]
+        self.climb_fuel = self.tow - sol.y[2][-1]
+        self.climb_dist = sol.y[1][-1]
+
         # First test on range
         #---------------------------------------------------------------------------------------------------------------
-        climb_dist = sol.y[1][-1]
-
-        if climb_dist>self.range:
+        if self.climb_dist>self.range:
             raise Exception("Range is shorter than climb distance")
 
         start_mass = sol.y[2][-1]
@@ -744,43 +814,60 @@ class StepMission(Flight):
 
         x_stop1 = self.range
 
-        # Fly the rest of the mission
+        # Fly the rest of the mission looking for target range
         #---------------------------------------------------------------------------------------------------------------
-        sc,sd,x_end1 = self.fly_mission_end(start_mass,start_state,climb_dist,x_stop1)
+        sc,sd,x_end1 = self.fly_mission_end(start_mass,start_state,x_stop1)
 
         if x_end1<self.range:
             raise Exception("OWE does not allow to complete the mission, lower OWE to embark more fuel")
 
         x_stop2 = x_stop1 + (self.range - x_end1)
 
-        sc,sd,x_end2 = self.fly_mission_end(start_mass,start_state,climb_dist,x_stop2)
+        sc,sd,x_end2 = self.fly_mission_end(start_mass,start_state,x_stop2)
 
         x_stop = x_stop1 +(self.range-x_end1)*(x_stop2-x_stop1)/(x_end2-x_end1)
 
-        sc,sd,x_end = self.fly_mission_end(start_mass,start_state,climb_dist,x_stop)
+        sc,sd,x_end = self.fly_mission_end(start_mass,start_state,x_stop)
 
-        s = np.hstack((s[:,0:-1],sc[:,0:-1],sd))
+        flight_profile = np.hstack((s[:,0:-1],sc[:,0:-1],sd)).transpose()
 
+        self.flight_profile = {"label":["time","dist","altp","mass","pamb","tamb","mach","tas","cas","fn","ff"],
+                               "unit":["h","NM","ft","kg","Pa","K","mach","kt","kt","kN","kg/h"],
+                               "data":flight_profile}
 
+        # Departure ground legs
+        #---------------------------------------------------------------------------------------------------------------
+        dict = self.departure_ground_legs(self.tow)
 
+        self.taxi_out_fuel = dict["fuel"]["taxi_out"]
+        self.taxi_out_time = dict["time"]["taxi_out"]
+        self.taxi_out_dist = 0.
 
+        self.take_off_fuel = dict["fuel"]["take_off"]
+        self.take_off_time = dict["time"]["take_off"]
+        self.take_off_dist = 0.
 
-        print("-------------------------------")
-        print(s)
+        # Arrival ground legs
+        #-----------------------------------------------------------------------------------------------------------
+        dict = self.arrival_ground_legs(sd[3][-1])
 
+        self.landing_fuel = dict["fuel"]["landing"]
+        self.landing_time = dict["time"]["landing"]
+        self.landing_dist = 0.
 
+        self.taxi_in_fuel = dict["fuel"]["taxi_in"]
+        self.taxi_in_time = dict["time"]["taxi_in"]
+        self.taxi_in_dist = 0.
 
+        return
 
-
-
-
-
+    def draw_flight_profile(self):
 
         plot_title = self.aircraft.name
         window_title = "Mission profile"
 
-        ord = s[2]
-        abs = s[1]
+        abs = [unit.NM_m(x) for x in self.flight_profile["data"][:,1]]
+        ord = [unit.ft_m(z) for z in self.flight_profile["data"][:,2]]
 
         fig,axes = plt.subplots(1,1)
         fig.canvas.set_window_title(window_title)
@@ -790,8 +877,8 @@ class StepMission(Flight):
 
         plt.grid(True)
 
-        plt.ylabel('Pressure altitude (m)')
-        plt.xlabel('Distance (m)')
+        plt.ylabel('Pressure altitude (ft)')
+        plt.xlabel('Distance (NM)')
 
         plt.show()
 

@@ -52,10 +52,10 @@ miss = StepMission(ac)
 
 disa = 0.
 
-range = unit.m_NM(2500.)
+range = unit.m_NM(3000.)
 
-tow = 77000.
-owe = 50000.
+tow = 77866.
+owe = 45000.
 
 altp1 = unit.m_ft(1500.)
 cas1 = unit.mps_kt(250.)
@@ -72,9 +72,7 @@ heading = "east"
 
 miss.fly_mission(disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_mcr,vz_mcl,heading)
 
-
-
-
+miss.draw_flight_profile()
 
 raise Exception("ici")
 

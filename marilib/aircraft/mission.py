@@ -270,15 +270,20 @@ class MissionVarMassGeneric(Flight):
         n_engine = self.aircraft.power_system.n_engine
         reference_thrust = self.aircraft.power_system.get_reference_thrust()
         engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
+        fuel_type = self.aircraft.arrangement.fuel_type
         ktow = self.aircraft.performance.mission.ktow
 
-        # Departure ground phases
-        #-----------------------------------------------------------------------------------------------------------
-        fuel_taxi_out = (34. + 2.3e-4*reference_thrust)*n_engine
-        time_taxi_out = 540.
+        fuel_mass_factor = earth.fuel_heat("kerosene") / earth.fuel_heat(fuel_type)
 
-        fuel_take_off = 1e-4*(2.8+2.3/engine_bpr)*tow
-        time_take_off = 220.*tow/(reference_thrust*n_engine)
+        # Departure ground legs
+        #-----------------------------------------------------------------------------------------------------------
+        dict = self.departure_ground_legs(tow)
+
+        fuel_taxi_out = dict["fuel"]["taxi_out"]
+        time_taxi_out = dict["time"]["taxi_out"]
+
+        fuel_take_off = dict["fuel"]["take_off"]
+        time_take_off = dict["time"]["take_off"]
 
         # Mission leg
         #-----------------------------------------------------------------------------------------------------------
@@ -286,13 +291,15 @@ class MissionVarMassGeneric(Flight):
 
         mass = tow - (fuel_taxi_out + fuel_take_off + fuel_mission)     # mass is not landing weight
 
-        # Arrival ground phases
+        # Arrival ground legs
         #-----------------------------------------------------------------------------------------------------------
-        fuel_landing = 1e-4*(0.5+2.3/engine_bpr)*mass
-        time_landing = 180.
+        dict = self.arrival_ground_legs(mass)
 
-        fuel_taxi_in = (26. + 1.8e-4*reference_thrust)*n_engine
-        time_taxi_in = 420.
+        fuel_landing = dict["fuel"]["landing"]
+        time_landing = dict["time"]["landing"]
+
+        fuel_taxi_in = dict["fuel"]["taxi_in"]
+        time_taxi_in = dict["time"]["taxi_in"]
 
         # Block fuel and time
         #-----------------------------------------------------------------------------------------------------------
@@ -506,25 +513,29 @@ class MissionIsoMassGeneric(Flight):
         n_engine = self.aircraft.power_system.n_engine
         reference_thrust = self.aircraft.power_system.get_reference_thrust()
 
-        # Departure ground phases
+        # Departure ground legs
         #-----------------------------------------------------------------------------------------------------------
-        enrg_taxi_out = (0.25*43.1e6)*(34. + 2.3e-4*reference_thrust)*n_engine
-        time_taxi_out = 540.
+        dict = self.departure_ground_legs(tow)
 
-        enrg_take_off = (0.25*43.1e6)*3.e-4*tow
-        time_take_off = 220.*tow/(reference_thrust*n_engine)
+        enrg_taxi_out = dict["enrg"]["taxi_out"]
+        time_taxi_out = dict["time"]["taxi_out"]
+
+        enrg_take_off = dict["enrg"]["take_off"]
+        time_take_off = dict["time"]["take_off"]
 
         # Mission leg
         #-----------------------------------------------------------------------------------------------------------
         enrg_mission,time_mission = self.breguet_range(range,tow,1.,altp,mach,disa)
 
-        # Arrival ground phases
+        # Arrival ground legs
         #-----------------------------------------------------------------------------------------------------------
-        enrg_landing = (0.25*43.1e6)*0.75e-4*tow
-        time_landing = 180.
+        dict = self.arrival_ground_legs(tow)
 
-        enrg_taxi_in = (0.25*43.1e6)*(26. + 1.8e-4*reference_thrust)*n_engine
-        time_taxi_in = 420.
+        enrg_landing = dict["enrg"]["landing"]
+        time_landing = dict["time"]["landing"]
+
+        enrg_taxi_in = dict["enrg"]["taxi_in"]
+        time_taxi_in = dict["time"]["taxi_in"]
 
         # Block fuel and time
         #-----------------------------------------------------------------------------------------------------------
