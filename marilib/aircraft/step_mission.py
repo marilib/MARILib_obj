@@ -861,6 +861,69 @@ class StepMission(Flight):
 
         return
 
+    def fly_this_profile(self,disa,tow,profile):
+        """Compute fuel consumption along a given flight path
+        state = [x,z,m]
+        """
+        g = earth.gravity()
+
+        dt1 = profile[1:-1,0] - profile[0:-2,0]     # Time intervals
+        dx = profile[1:-1,1] - profile[0:-2,1]      # Track intervals
+        dz = profile[1:-1,2] - profile[0:-2,2]      # Altitude intervals
+
+        t1 = 0.5*(profile[1:-1,0] + profile[0:-2,0])    # Mean time stamps
+        vx = dx / dt1                                   # Mean speed
+        vz = dz / dt1                                   # Mean speed
+
+        dvx = vx[1:-1] - vx[0:-2]
+        dvz = vz[1:-1] - vz[0:-2]
+
+        dt2 = t1[1:-1] - t1[0:-2]
+        t2 = 0.5*(t1[1:-1] + t1[0:-2])
+
+        x_dot = interp1d(t1,vx, kind="linear", fill_value="extrapolate")
+        z_dot = interp1d(t1,vz, kind="linear", fill_value="extrapolate")
+        vx_dot = interp1d(t2,dvx/dt2, kind="linear", fill_value="extrapolate")
+        vz_dot = interp1d(t2,dvz/dt2, kind="linear", fill_value="extrapolate")
+
+        def state_dot(t,state):
+            altp = state[1]
+            mass = state[2]
+
+            vx = x_dot(t)
+            vz = z_dot(t)
+            tas = np.sqrt(vx**2 + vz**2)
+
+            sin_path = vz / tas
+
+            vxd = vx_dot(t)
+            vzd = vz_dot(t)
+            acc = np.sqrt(vxd**2 + vzd**2)
+
+            pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+            mach = tas*earth.sound_speed(tamb)
+
+            cz = self.lift_from_speed(pamb,tamb,mach,mass)
+            cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
+
+            nei = 0.
+            fn = mass*g*(acc/g + sin_path + 1./lod)
+            dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCL",fn,nei)
+            m_dot = -dict["ff"]
+
+            return np.array([vx, vz, m_dot])
+
+
+
+
+
+
+
+
+
+
+
+
     def draw_flight_profile(self):
 
         plot_title = self.aircraft.name
