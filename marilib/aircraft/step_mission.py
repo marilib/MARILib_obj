@@ -98,6 +98,8 @@ class StepMission(Flight):
 
         self.flight_profile = None
 
+        self.park_mass = None
+
         self.taxi_out_fuel = None
         self.taxi_out_time = None
         self.taxi_out_dist = None
@@ -173,7 +175,7 @@ class StepMission(Flight):
                 tas_ = self.get_mach(pamb_,speed_mode,speed) * earth.sound_speed(tamb_)
                 dtas_o_dh = (tas_-tas) / daltg
                 fac = (1. + (tas/g)*dtas_o_dh)
-                self._fill_table(g,nei,pamb,tamb,mach,fac,layer)
+                self._fill_table(g,nei,pamb,tamb,mach,tas,fac,layer)
                 self.data_dict["altp"][layer].append(altp)
 
             if self.altpx-self.zstep<=altp and altp<=self.altpy+self.zstep:
@@ -185,7 +187,7 @@ class StepMission(Flight):
                 tas_ = self.get_mach(pamb_,speed_mode,speed) * earth.sound_speed(tamb_)
                 dtas_o_dh = (tas_-tas) / daltg
                 fac = (1. + (tas/g)*dtas_o_dh)
-                self._fill_table(g,nei,pamb,tamb,mach,fac,layer)
+                self._fill_table(g,nei,pamb,tamb,mach,tas,fac,layer)
                 self.data_dict["altp"][layer].append(altp)
 
             if self.altpy-self.zstep<=altp:
@@ -195,7 +197,7 @@ class StepMission(Flight):
                 tas_ = mach * earth.sound_speed(tamb_)
                 dtas_o_dh = (tas_-tas) / daltg
                 fac = (1. + (tas/g)*dtas_o_dh)
-                self._fill_table(g,nei,pamb,tamb,mach,fac,layer)
+                self._fill_table(g,nei,pamb,tamb,mach,tas,fac,layer)
                 self.data_dict["altp"][layer].append(altp)
 
         # Build interpolation functions
@@ -208,11 +210,10 @@ class StepMission(Flight):
                                                         self.data_dict[f_key][layer],
                                                         kind="linear")
 
-    def _fill_table(self,g,nei,pamb,tamb,mach,fac,layer):
+    def _fill_table(self,g,nei,pamb,tamb,mach,tas,fac,layer):
         """Generic function to build performance tables
         """
         cas = earth.vcas_from_mach(pamb,mach)
-        tas = mach * earth.sound_speed(tamb)
         dict_fid = self.aircraft.power_system.thrust(pamb,tamb,mach,"FID")
         dict_mcr = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCR")
         dict_mcl = self.aircraft.power_system.thrust(pamb,tamb,mach,"MCL")
@@ -513,7 +514,7 @@ class StepMission(Flight):
                 if len(sc)==0:
                     sc = s5
                 else:
-                    sc = np.hstack((sc[:,0:-1],s5))
+                    sc = np.hstack((sc,s5))
 
                 go_ahead = False
 
@@ -556,9 +557,9 @@ class StepMission(Flight):
                 s7 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
                 if len(sc)==0:
-                    sc = np.hstack((s5[:,0:-1],s6[:,0:-1],s7))
+                    sc = np.hstack((s5,s6,s7))
                 else:
-                    sc = np.hstack((sc[:,0:-1],s6[:,0:-1],s7))
+                    sc = np.hstack((sc,s6,s7))
 
                 level_index += 1
 
@@ -666,7 +667,7 @@ class StepMission(Flight):
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
-        sd = np.hstack((s1[:,0:-1],s2[:,0:-1],s3[:,0:-1],s4))
+        sd = np.hstack((s1,s2,s3,s4))
 
         self.descent_time = sol.y[0][-1] - self.climb_time - self.cruise_time
         self.descent_fuel = self.tow - sol.y[2][-1] - self.climb_fuel - self.cruise_fuel
@@ -685,6 +686,20 @@ class StepMission(Flight):
         # Precompute airplane performances
         #---------------------------------------------------------------------------------------------------------------
         self.set_flight_domain(disa,tow,owe,cas1,altp2,cas2,cruise_mach)
+
+        # Departure ground legs
+        #---------------------------------------------------------------------------------------------------------------
+        dict = self.departure_ground_legs(self.tow)
+
+        self.taxi_out_fuel = dict["fuel"]["taxi_out"]
+        self.taxi_out_time = dict["time"]["taxi_out"]
+        self.taxi_out_dist = 0.
+
+        self.take_off_fuel = dict["fuel"]["take_off"]
+        self.take_off_time = dict["time"]["take_off"]
+        self.take_off_dist = 0.
+
+        self.park_mass = tow + self.taxi_out_fuel + self.take_off_fuel  # Park mass
 
         # First climb segment, constant cas1, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
@@ -795,7 +810,7 @@ class StepMission(Flight):
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
-        s = np.hstack((s1[:,0:-1],s2[:,0:-1],s3[:,0:-1],s4))
+        s = np.hstack((s1,s2,s3,s4))
 
         self.climb_time = sol.y[0][-1]
         self.climb_fuel = self.tow - sol.y[2][-1]
@@ -829,23 +844,11 @@ class StepMission(Flight):
 
         sc,sd,x_end = self.fly_mission_end(start_mass,start_state,x_stop)
 
-        flight_profile = np.hstack((s[:,0:-1],sc[:,0:-1],sd)).transpose()
+        flight_profile = np.hstack((s,sc,sd)).transpose()
 
         self.flight_profile = {"label":["time","dist","altp","mass","pamb","tamb","mach","tas","cas","fn","ff"],
                                "unit":["h","NM","ft","kg","Pa","K","mach","kt","kt","kN","kg/h"],
                                "data":flight_profile}
-
-        # Departure ground legs
-        #---------------------------------------------------------------------------------------------------------------
-        dict = self.departure_ground_legs(self.tow)
-
-        self.taxi_out_fuel = dict["fuel"]["taxi_out"]
-        self.taxi_out_time = dict["time"]["taxi_out"]
-        self.taxi_out_dist = 0.
-
-        self.take_off_fuel = dict["fuel"]["take_off"]
-        self.take_off_time = dict["time"]["take_off"]
-        self.take_off_dist = 0.
 
         # Arrival ground legs
         #-----------------------------------------------------------------------------------------------------------
@@ -861,11 +864,19 @@ class StepMission(Flight):
 
         return
 
-    def fly_this_profile(self,disa,tow,profile):
+    def fly_this_profile(self,disa,tow,flight_profile):
         """Compute fuel consumption along a given flight path
-        state = [x,z,m]
+        Profile = array([time,dist,altp])
+        state = [m]
         """
         g = earth.gravity()
+
+        k_list = [k for k,t in enumerate(flight_profile[1:,0]) if t==flight_profile[k,0]]
+
+        profile = np.delete(flight_profile,k_list,axis=0)
+
+
+        z_val = interp1d(profile[:,0],profile[:,2], kind="cubic", fill_value="extrapolate")
 
         dt1 = profile[1:-1,0] - profile[0:-2,0]     # Time intervals
         dx = profile[1:-1,1] - profile[0:-2,1]      # Track intervals
@@ -886,9 +897,8 @@ class StepMission(Flight):
         vx_dot = interp1d(t2,dvx/dt2, kind="linear", fill_value="extrapolate")
         vz_dot = interp1d(t2,dvz/dt2, kind="linear", fill_value="extrapolate")
 
-        def state_dot(t,state):
-            altp = state[1]
-            mass = state[2]
+        def all_values(t,mass):
+            altp = z_val(t)
 
             vx = x_dot(t)
             vz = z_dot(t)
@@ -901,7 +911,9 @@ class StepMission(Flight):
             acc = np.sqrt(vxd**2 + vzd**2)
 
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-            mach = tas*earth.sound_speed(tamb)
+            vsnd = earth.sound_speed(tamb)
+            mach = tas/vsnd
+            cas = earth.vcas_from_mach(pamb,mach)
 
             cz = self.lift_from_speed(pamb,tamb,mach,mass)
             cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
@@ -909,15 +921,46 @@ class StepMission(Flight):
             nei = 0.
             fn = mass*g*(acc/g + sin_path + 1./lod)
             dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCL",fn,nei)
-            m_dot = -dict["ff"]
+            ff = dict["sfc"]*fn
 
-            return np.array([vx, vz, m_dot])
+            return pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod
 
+        def state_dot(t,state):
+            pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = all_values(t,state[0])
+            return np.array([-ff])
 
+        t0 = profile[0,0]
+        t1 = profile[-1,0]
+        state0 = np.array([tow])
+        t_eval = profile[:,0]
+        sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="RK45")
 
+        time = sol.t
+        dist = profile[:,1]
+        altp = profile[:,2]
+        mass = sol.y[0]
+        pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = [],[],[],[],[],[],[],[],[],[]
+        for t,m in zip(time,mass):
+            pamb1,tamb1,mach1,tas1,cas1,fn1,ff1,cz1,cx1,lod1 = all_values(t,m)
+            pamb.append(pamb1)
+            tamb.append(tamb1)
+            mach.append(mach1)
+            tas.append(tas1)
+            cas.append(cas1)
+            fn.append(fn1)
+            ff.append(ff1)
+            cz.append(cz1)
+            cx.append(cx1)
+            lod.append(lod1)
+        st = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod))
 
+        flight_profile = st.transpose()
 
+        flight_profile = {"label":["time","dist","altp","mass","pamb","tamb","mach","tas","cas","fn","ff","cz","cx","lod"],
+                          "unit":["h","NM","ft","kg","Pa","K","mach","kt","kt","kN","kg/h","no_dim","no_dim","no_dim"],
+                          "data":flight_profile}
 
+        return flight_profile
 
 
 
@@ -930,6 +973,7 @@ class StepMission(Flight):
         window_title = "Mission profile"
 
         abs = [unit.NM_m(x) for x in self.flight_profile["data"][:,1]]
+        # ord = [z for z in self.flight_profile["data"][:,9]]             # unit.ft_m(z)
         ord = [unit.ft_m(z) for z in self.flight_profile["data"][:,2]]
 
         fig,axes = plt.subplots(1,1)
