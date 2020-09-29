@@ -124,8 +124,8 @@ class Cabin(Component):
 
     def __n_pax_front(self):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
-        if  (n_pax_ref<=8):   n_pax_front = 2
-        elif(n_pax_ref<=16):  n_pax_front = 3
+        if  (n_pax_ref<=9):   n_pax_front = 2
+        elif(n_pax_ref<=19):  n_pax_front = 3
         elif(n_pax_ref<=70):  n_pax_front = 4
         elif(n_pax_ref<=120): n_pax_front = 5
         elif(n_pax_ref<=225): n_pax_front = 6
@@ -272,6 +272,7 @@ class Fuselage(Component):
 
         self.forward_limit = get_init(self,"forward_limit")
         self.wall_thickness = get_init(self,"wall_thickness")
+        self.rear_bulkhead_ratio = get_init(self,"rear_bulkhead_ratio")
         self.tail_cone_ratio = get_init(self,"tail_cone_ratio")
 
         self.width = None
@@ -290,7 +291,11 @@ class Fuselage(Component):
 
         self.width = cabin_width + self.wall_thickness      # fuselage walls are supposed 0.2m thick
         self.height = 1.25*(cabin_width - 0.15)
-        self.length = self.forward_limit + cabin_length + 1.50*self.width
+        if self.aircraft.arrangement.tank_architecture=="rear":
+            self.length = self.forward_limit + cabin_length + self.aircraft.airframe.tank.length + self.rear_bulkhead_ratio*self.width
+        else:
+            self.length = self.forward_limit + cabin_length + self.rear_bulkhead_ratio*self.width
+
         self.tail_cone_length = self.tail_cone_ratio*self.width
 
         self.gross_wet_area = 2.70*self.length*np.sqrt(self.width*self.height)
@@ -321,10 +326,10 @@ class Wing(Component):
         self.span = None
         self.aspect_ratio = get_init(self,"aspect_ratio", val=self.aspect_ratio())
         self.taper_ratio = None
+        self.dihedral = get_init(self,"dihedral")
         self.sweep0 = None
-        self.sweep25 = None
+        self.sweep25 = get_init(self,"sweep25", val=self.sweep25())
         self.sweep100 = None
-        self.dihedral = None
         self.setting = None
         self.hld_type = get_init(self,"hld_type", val=self.high_lift_type())
 
@@ -352,6 +357,10 @@ class Wing(Component):
         else: raise Exception("propulsion.architecture index is out of range")
         return ar
 
+    def sweep25(self):
+        sweep25 = 1.6*max(0.,(self.aircraft.requirement.cruise_mach - 0.5))     # Empirical law
+        return sweep25
+
     def high_lift_type(self):
         if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): hld_type = 9
         elif (self.aircraft.arrangement.power_architecture in ["ef","pte","exef"]): hld_type = 9
@@ -370,10 +379,6 @@ class Wing(Component):
         self.tip_toc = 0.10
         self.kink_toc = self.tip_toc + 0.01
         self.root_toc = self.kink_toc + 0.03
-
-        self.sweep25 = 1.6*max(0.,(cruise_mach - 0.5))     # Empirical law
-
-        self.dihedral = unit.rad_deg(5.)
 
         if(self.wing_morphing=="aspect_ratio_driven"):   # Aspect ratio is driving parameter
             self.span = np.sqrt(self.aspect_ratio*self.area)
@@ -883,7 +888,7 @@ class HtpClassic(Component):
         self.axe_c = 2.*self.area/(self.span*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.axe_c
 
-        self.sweep25 = wing_sweep25 + unit.rad_deg(5)     # Design rule
+        self.sweep25 = abs(wing_sweep25) + unit.rad_deg(5)     # Design rule
 
         self.mac = self.span*(self.axe_c**2+self.tip_c**2+self.axe_c*self.tip_c)/(3.*self.area)
         y_mac = y_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
@@ -977,7 +982,7 @@ class HtpTtail(Component):
         self.axe_c = 2.*self.area/(self.span*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.axe_c
 
-        self.sweep25 = wing_sweep25 + unit.rad_deg(5)     # Design rule
+        self.sweep25 = abs(wing_sweep25) + unit.rad_deg(5)     # Design rule
 
         self.mac = self.span*(self.axe_c**2+self.tip_c**2+self.axe_c*self.tip_c)/(3.*self.area)
         y_mac = y_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
@@ -1070,7 +1075,7 @@ class HtpHtail(Component):
         self.axe_c = 2.*self.area/(self.span*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.axe_c
 
-        self.sweep25 = wing_sweep25 + unit.rad_deg(5)     # Design rule
+        self.sweep25 = abs(wing_sweep25) + unit.rad_deg(5)     # Design rule
 
         self.mac = self.span*(self.axe_c**2+self.tip_c**2+self.axe_c*self.tip_c)/(3.*self.area)
         y_mac = y_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
@@ -1418,8 +1423,6 @@ class TankPiggyBack(Component):
         self.aero_length = self.length
         self.form_factor = 1.05
 
-        shell_ratio = self.fuel_pressure/(self.shield_parameter*self.shield_density)
-
         gross_volume = 0.80 * self.length*(0.25*np.pi*self.width**2)
 
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
@@ -1449,6 +1452,115 @@ class TankPiggyBack(Component):
         # Tank structural mass makes use of statistical regression versus fuselage built surface
         self.mass =  5.47*(np.pi*self.width*self.length)**1.2 + self.shield_mass + self.insulation_mass
         self.cg = self.frame_origin[0] + 0.45*np.array([self.length, 0., 0.])
+
+        self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
+        self.fuel_max_fwd_mass = self.max_volume*self.fuel_density
+
+        self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
+        self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
+
+
+class TankRearFuselage(Component):
+
+    def __init__(self, aircraft):
+        super(TankRearFuselage, self).__init__(aircraft)
+
+        self.shield_parameter = get_init(self,"shield_parameter", val=self.shield_parameter(aircraft))
+        self.shield_density = get_init(self,"shield_density")
+        self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
+        self.insulation_thickness = get_init(self,"insulation_thickness")
+        self.insulation_density = get_init(self,"insulation_density")
+        self.fuel_density = None
+
+        self.length = get_init(self,"length")
+        self.width_rear_factor = get_init(self,"width_rear_factor")
+        self.width_rear = None
+        self.width_front = None
+
+        self.shield_volume = None
+        self.shield_mass = None
+        self.insulation_volume = None
+        self.insulation_mass = None
+        self.shell_ratio = None
+        self.max_volume = None
+        self.mfw_volume_limited = None
+
+        self.fuel_max_fwd_cg = np.full(3,None)
+        self.fuel_max_fwd_mass = None
+
+        self.fuel_max_bwd_cg = np.full(3,None)
+        self.fuel_max_bwd_mass = None
+
+    def shield_parameter(self, aircraft):
+        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
+        elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
+        else: return unit.Pam3pkg_barLpkg(700.)
+
+    def fuel_pressure(self, aircraft):
+        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pa_bar(10.)
+        elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pa_bar(700.)
+        else: return 0.
+
+    def eval_geometry(self):
+        body_loc = self.aircraft.airframe.body.frame_origin
+        body_width = self.aircraft.airframe.body.width
+        body_length = self.aircraft.airframe.body.length
+        body_tail_cone_ratio = self.aircraft.airframe.body.tail_cone_ratio
+        body_rear_bulkhead_ratio = self.aircraft.airframe.body.rear_bulkhead_ratio
+
+        x_axe = body_loc[0] + body_length - body_tail_cone_ratio*body_width - self.length
+        y_axe = 0.
+        z_axe = body_loc[2] + 0.6*body_width
+
+        self.frame_origin = [x_axe, y_axe, z_axe]
+
+        x = self.length/((body_tail_cone_ratio-body_rear_bulkhead_ratio)*body_width)
+        self.width_front = min(1.,self.width_rear_factor+(1.-self.width_rear_factor)*x)*body_width
+        self.width_rear = self.width_rear_factor*body_width
+
+        lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
+
+        gross_volume =   0.25*np.pi*lcyl*self.width_front**2 \
+                       + (1./12.)*np.pi*self.length*(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2)
+
+        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+            gross_wall_area =   0.25*np.pi*self.width_front**2 \
+                              + np.pi*self.width_front*lcyl \
+                              + 0.5*np.pi*(self.width_front+self.width_rear)*np.sqrt(self.length**2+0.25*(self.width_front-self.width_rear)**2) \
+                              + 0.25*np.pi*self.width_rear**2
+            # Volume of the structural shielding for pressure containment
+            self.shield_volume = gross_volume * self.fuel_pressure/(self.shield_parameter*self.shield_density)
+            # Volume of the insulation layer
+            self.insulation_volume = gross_wall_area * self.insulation_thickness
+            self.max_volume = gross_volume - self.shield_volume - self.insulation_volume
+
+        else:
+            self.shield_volume = 0.
+            self.insulation_volume = 0.
+            self.max_volume = gross_volume
+
+    def eval_mass(self):
+        fuel_type = self.aircraft.arrangement.fuel_type
+        body_width = self.aircraft.airframe.body.width
+        body_tail_cone_ratio = self.aircraft.airframe.body.tail_cone_ratio
+        body_rear_bulkhead_ratio = self.aircraft.airframe.body.rear_bulkhead_ratio
+
+        # REMARK : if fuel is "Battery", fuel density will be battery density
+        self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
+        self.mfw_volume_limited = self.max_volume*self.fuel_density
+
+        self.shield_mass = self.shield_volume*self.shield_density
+        self.insulation_mass = self.insulation_volume*self.insulation_density
+        self.shell_ratio = (self.shield_mass + self.insulation_mass) / self.mfw_volume_limited
+
+        # Tank structural mass
+        self.mass =  self.shield_mass + self.insulation_mass
+
+        lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
+        V = (1./12.)*self.length*np.sqrt(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2)
+        v = (1./12.)*self.length*np.sqrt(self.width_rear**2)
+        vcyl = 0.25*np.pi*self.width_front**2 * lcyl
+        self.cg = self.frame_origin[0] + 0.5*lcyl + 0.25*self.length*(1.+body_rear_bulkhead_ratio*body_width/self.length-3.*v/V)
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
         self.fuel_max_fwd_mass = self.max_volume*self.fuel_density

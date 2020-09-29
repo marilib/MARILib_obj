@@ -21,11 +21,14 @@ model_config = {
     "Fuselage":{
         "forward_limit": [4., "m", "Distance between fuselage nose and forward cabin wall"],
         "wall_thickness": [0.2, "m", "Fuselage wall total tchickness"],
-        "tail_cone_ratio": [3.45, "no_dim", "Fuselage tail cone length over fuselage diameter"]
+        "tail_cone_ratio": [3.45, "no_dim", "Fuselage tail cone length (evolutive part) over fuselage diameter"],
+        "rear_bulkhead_ratio": [1.5, "no_dim", "Distance from rear pressure bulkhead to fuselage end over fuselage diameter"]
     },
     "Wing":{
         "wing_morphing": ["aspect_ratio_driven", "no_dim", "Wing deformation mode, 'aspect_ratio_driven' or 'span_driven'"],
         "aspect_ratio": ["function", "no_dim", "Wing aspect ratio (function)"],
+        "sweep25": ["function", "deg", "Wing sweep angle at 25% of the chords of outboard trapezoid (function)"],
+        "dihedral": [5., "deg", "Wing dihedral"],
         "hld_type": ["function", "int", "Type of high lift device, from 0 to 10, (function)"]
     },
     "VtpClassic":{
@@ -95,6 +98,15 @@ model_config = {
         "x_loc_ratio": [0.4, "no_dim", "Fraction of the tank length behind the wing"],
         "length": ["function", "m", "Length of the tank"],
         "width": ["function", "m", "Diameter of the tank"],
+        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
+        "shield_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
+        "shield_density": [1750, "kg/m3", "Tank shell material density"],
+        "insulation_thickness": [0.06, "m", "Tank insulation thickness"],
+        "insulation_density": [100., "kg/m3", "Tank insulation material density"]
+    },
+    "TankRearFuselage":{
+        "length": [10., "m", "Length of the tank"],
+        "width_rear_factor": [0.75, "m", "Diameter of the rear pressure bulkhead over fuselage diameter"],
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         "shield_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
         "shield_density": [1750, "kg/m3", "Tank shell material density"],
