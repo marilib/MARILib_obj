@@ -71,10 +71,7 @@ vz_mcl = unit.mps_ftpmin(300.)
 miss.fly_mission(disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_mcr,vz_mcl)
 
 
-
-
-
-raise Exception("ici")
+#raise Exception("ici")
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------

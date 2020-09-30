@@ -73,10 +73,9 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 #process.mdf(ac, var,var_bnd, cst,cst_mag, crt)        # Perform an MDF optimization process
-process.custom_mdf(ac, var,var_bnd, cst,cst_mag, crt)
+algo_points = process.custom_mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
-breakpoint()
-
+# raise Exception("Ici")
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
 ac.draw.view_3d("This_plane")                        # Draw a 3D view diagram
@@ -134,6 +133,6 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
          ac.performance.mission.nominal.fuel_total]              # Limit values
 
-process.draw_design_space(file, res, field, const, color, limit, bound) # Used stored result to build a graph of the design space
+process.draw_design_space(file, res, field, const, color, limit, bound,optim_points=algo_points) # Used stored result to build a graph of the design space
 
 

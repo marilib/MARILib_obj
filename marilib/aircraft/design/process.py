@@ -99,7 +99,7 @@ def mda_hq(aircraft):
 
 already_done = {}
 
-def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
+def eval_optim_data_TEMP(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
     """Compute criterion and constraints
     """
     in_key = str(x_in)
@@ -124,6 +124,25 @@ def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
 
         criterion = already_done[in_key][0]
         constraint = already_done[in_key][1]
+
+    return criterion,constraint
+
+def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
+    """Compute criterion and constraints
+    """
+    in_key = str(x_in)
+
+    for k,key in enumerate(var):    #  Put optimization variables in aircraft object
+        exec(key+" = x_in[k]")
+
+    mda(aircraft)                   #  Run MDA
+
+    constraint = np.zeros(len(cst))
+    for k,key in enumerate(cst):    # put optimization variables in aircraft object
+        constraint[k] = eval(key)/eval(cst_mag[k])
+
+    #criterion = eval(crt) * (20./crt_mag)
+    criterion = eval(crt)
 
     return criterion,constraint
 
@@ -159,6 +178,13 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
                    constraints=NonlinearConstraint(fun=lambda x:eval_optim_cst(x,aircraft,var,cst,cst_mag,crt,crt_mag),
                                                    lb=0., ub=np.inf, jac='3-point'),
                    options={'maxiter':500,'gtol': 1e-6})
+    """res = minimize(eval_optim_crt, start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,),
+                   method="CG",
+                   bounds=var_bnd,
+                   constraints=NonlinearConstraint(fun=lambda x:eval_optim_cst(x,aircraft,var,cst,cst_mag,crt,crt_mag),
+                                                   lb=0., ub=np.inf),
+                   options={"gtol":10, "maxiter": 1}
+                   )"""
 
     #              tol=None, callback=None,
     #              options={'grad': None, 'xtol': 1e-08, 'gtol': 1e-08, 'barrier_tol': 1e-08,
@@ -204,13 +230,15 @@ def custom_mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
     start_value = np.zeros(len(var))
     for k, key in enumerate(var):  # put optimization variables in aircraft object
         exec("start_value[k] = eval(key)")
+    mda(aircraft)
 
     cost_fun = lambda x_in: custom_eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,1.)
 
-    res = custom_minimum_search(cost_fun,start_value,pen=100)
+    points = custom_minimum_search(cost_fun,start_value)
+    return points
 
 
-def custom_minimum_search(cost_fun,x0,delta=0.05,pen=10):
+def custom_minimum_search(cost_fun,x0,delta=0.01,pen=1e6):
     """ A custom minimization method limited to 2 parameters problems (x1,x2).
     This method uses a custom pattern search algorithm that requires a minimum number of call to the cost function.
     It takes advantage of the prior knowledge of the problem:
@@ -249,6 +277,7 @@ o------o-------o------o
     """
     points = {}  # initialize the list of computed points (delta unit coordinate)
 
+    print("x0 ",x0)
     if not isinstance(x0,type(np.array)):
         x0 = np.array(list(x0))
 
@@ -256,41 +285,55 @@ o------o-------o------o
         crt,cst = cost_fun(x)
         return crt - pen*sum([c for c in cst if c<0])
 
-    xx = np.array([0,0])  # set initial value in delta coordinates
+    xy = np.array([0,0])  # set initial value in delta coordinates
     points[(0,0)] = custom_cost(x0)  # put initial point in the points dict
-    stepsize = delta*x0
 
-    current_points = []
-    for step in [(0,0),(-1,0),(0,-1)]:
-        xx = xx + np.array(step)  # move current location by a step
-        x = x0 + xx * stepsize
-        if tuple(xx) not in points.keys(): # this value is not already computed
-            crt = custom_cost(x)
-            points[tuple(xx)] = crt
-            current_points.append([xx[0],xx[1],crt])
-        else:
-            current_points.append([xx[0],xx[1],points[tuple(xx)]])
 
-    # Find the equation of the plan passing through the 3 points
-    print(current_points)
-    a,b,c = np.linalg.solve(current_points,[1,1,1]) # find the coefficient of the plan passing through the 3 points
-    extrapolator = lambda x,y: (1. - a*x - b*y)/c
+    while delta>1e-4:
+        stepsize = delta * x0
+        print("stepsize ", stepsize)
+        current_points = []
+        for step in [(0,0),(-1,0),(0,-1)]:
+            xy = np.array([0,0]) + np.array(step)  # move current location by a step
+            print("xy ", xy)
+            x = x0 + xy * stepsize
+            print("x ",x)
+            if tuple(xy) not in points.keys(): # this value is not already computed
+                crt = custom_cost(x)
+                points[tuple(xy)] = crt
+                current_points.append([xy[0],xy[1],crt])
+            else:
+                current_points.append([xy[0],xy[1],points[tuple(xy)]])
 
-    xy = (0,0)
-    zgradient = np.array([-a/c,-b/c]) / np.linalg.norm([-a/c, -b/c])
-    criter_old = points[xy]+1
-    criter = points[xy]
-    while criter<criter_old:
-    #for k in range(0, 10):
-        xy = np.array(xy) - zgradient
-        x = x0 + xy * stepsize
-        criter_old = criter
-        criter = custom_cost(x)
-        print("2",xy,criter)
+        # Find the equation of the plan passing through the 3 points
+        zgradient,extrapolator = update_interpolator_and_gradient(current_points)
+        xy = (0,0)
+        criter_old = points[xy]+1 # set initialy criter_old > criter
+        criter = points[xy]
+        while criter < criter_old:
+            xy = np.array(xy) - zgradient
+            x = x0 + xy * stepsize
+            criter_old = criter
+            criter = custom_cost(x)
+            points[tuple(xy)] = criter
+            print("2",xy,criter)
+        delta = 0.5*delta
 
     # TODO : extrapolate plane equation to retrieve z of other points
 
-    return points
+    return [x0+np.array(xy)*stepsize for xy in points.keys()]
+
+def update_interpolator_and_gradient(threePoints):
+    """
+    Compute the plane equation through three points.
+    Returns the gradient vector and interpolator function.
+    :param xxx : a three point matrix [[x1,y1,z1],[x2,y2,z2],[x3,y3,z3]]
+    """
+    a, b, c = np.linalg.solve(threePoints,
+                              [1, 1, 1])  # find the coefficient of the plan passing through the 3 points
+    extrapolator = lambda x, y: (1. - a * x - b * y) / c
+    zgradient = np.array([-a / c, -b / c]) / np.linalg.norm([-a / c, -b / c])
+    return zgradient,extrapolator
 
 
 
@@ -339,7 +382,7 @@ def explore_design_space(ac, var, step, data, file):
     return res
 
 
-def draw_design_space(file, mark, field, const, color, limit, bound):
+def draw_design_space(file, mark, field, const, color, limit, bound, optim_points=None):
     # Read information
     #------------------------------------------------------------------------------------------------------
     dataframe = np.genfromtxt(file, dtype=str, delimiter=";")
@@ -415,6 +458,12 @@ def draw_design_space(file, mark, field, const, color, limit, bound):
         hdl.append(h[0])
 
     axe.legend(hdl,const, loc = "lower left", bbox_to_anchor=(1.02, 0.))
+
+    # Add optim points if specified ------------------------------------------
+    if optim_points is not None:
+        x,y = zip(*optim_points)
+        print(np.array(x)/10,y)
+        axe.scatter(np.array(x)/10,y)
 
     # Set introspection
     #------------------------------------------------------------------------------------------------------
