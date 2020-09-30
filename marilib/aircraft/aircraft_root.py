@@ -114,6 +114,8 @@ class Aircraft(object):
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.tank_architecture=="wing_box"):
             self.airframe.tank = component.TankWingBox(self)
+        elif (self.arrangement.tank_architecture=="rear"):
+            self.airframe.tank = component.TankRearFuselage(self)
         elif (self.arrangement.tank_architecture=="piggy_back"):
             self.airframe.tank = component.TankPiggyBack(self)
         elif (self.arrangement.tank_architecture=="pods"):

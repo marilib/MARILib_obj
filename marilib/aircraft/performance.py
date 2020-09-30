@@ -371,6 +371,52 @@ class Flight(object):
         dict = self.level_flight(pamb,tamb,mach,mass)
         return self.aircraft.power_system.specific_holding(mass,time,tas,dict)
 
+    def departure_ground_legs(self,tow):
+        """Compute fuel and time allowances for departure ground phases
+        """
+        n_engine = self.aircraft.power_system.n_engine
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
+        engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
+        fuel_type = self.aircraft.arrangement.fuel_type
+
+        time_taxi_out = 540.
+        time_take_off = 220.*tow/(reference_thrust*n_engine)
+
+        if fuel_type!="battery":
+            fuel_mass_factor = earth.fuel_heat("kerosene") / earth.fuel_heat(fuel_type)
+            fuel_taxi_out = fuel_mass_factor*(34. + 2.3e-4*reference_thrust)*n_engine
+            fuel_take_off = fuel_mass_factor*1e-4*(2.8+2.3/engine_bpr)*tow
+            return {"fuel":{"taxi_out":fuel_taxi_out,"take_off":fuel_take_off},
+                    "time":{"taxi_out":time_taxi_out,"take_off":time_take_off}}
+        else:
+            enrg_taxi_out = (0.25*43.1e6)*(34. + 2.3e-4*reference_thrust)*n_engine
+            enrg_take_off = (0.25*43.1e6)*3.e-4*tow
+            return {"enrg":{"taxi_out":enrg_taxi_out,"take_off":enrg_take_off},
+                    "time":{"taxi_out":time_taxi_out,"take_off":time_take_off}}
+
+
+    def arrival_ground_legs(self,ldw):
+        """Compute fuel and time allowances for arrival ground phases
+        """
+        n_engine = self.aircraft.power_system.n_engine
+        reference_thrust = self.aircraft.power_system.get_reference_thrust()
+        engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
+        fuel_type = self.aircraft.arrangement.fuel_type
+
+        time_landing = 180.
+        time_taxi_in = 420.
+
+        if fuel_type!="battery":
+            fuel_mass_factor = earth.fuel_heat("kerosene") / earth.fuel_heat(fuel_type)
+            fuel_landing = fuel_mass_factor*1e-4*(0.5+2.3/engine_bpr)*ldw
+            fuel_taxi_in = fuel_mass_factor*(26. + 1.8e-4*reference_thrust)*n_engine
+            return {"fuel":{"landing":fuel_landing,"taxi_in":fuel_taxi_in},
+                    "time":{"landing":time_landing,"taxi_in":time_taxi_in}}
+        else:
+            enrg_landing = (0.25*43.1e6)*0.75e-4*ldw
+            enrg_taxi_in = (0.25*43.1e6)*(26. + 1.8e-4*reference_thrust)*n_engine
+            return {"enrg":{"landing":enrg_landing,"taxi_in":enrg_taxi_in},
+                    "time":{"landing":time_landing,"taxi_in":time_taxi_in}}
 
 class TakeOff(Flight):
     """Take Off Field Length

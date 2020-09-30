@@ -8,6 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
+from tabulate import tabulate
 
 from marilib.utils import unit
 from marilib.aircraft.aircraft_root import Arrangement, Aircraft
@@ -52,10 +53,10 @@ miss = StepMission(ac)
 
 disa = 0.
 
-range = unit.m_NM(1000.)
+range = unit.m_NM(3000.)
 
-tow = 77000.
-owe = 50000.
+tow = 77866.
+owe = 45000.
 
 altp1 = unit.m_ft(1500.)
 cas1 = unit.mps_kt(250.)
@@ -68,10 +69,32 @@ cruise_mach = 0.78
 vz_mcr = unit.mps_ftpmin(0.)
 vz_mcl = unit.mps_ftpmin(300.)
 
-miss.fly_mission(disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_mcr,vz_mcl)
+heading = "east"
 
+miss.fly_mission(disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_mcr,vz_mcl,heading)
 
-#raise Exception("ici")
+miss.draw_flight_profile()
+
+profile = miss.flight_profile["data"][:,0:3]
+
+flight_path = miss.fly_this_profile(disa,tow,profile)
+
+print(miss.flight_profile["data"][0,3] - miss.flight_profile["data"][-1,3])
+print(flight_path["data"][0,3]-flight_path["data"][-1,3])
+
+table = [[unit.ft_m(z1),m1,m2,f1,f2] for z1,m1,m2,f1,f2 in zip(miss.flight_profile["data"][:,2],
+                                                               miss.flight_profile["data"][:,3],flight_path["data"][:,3],
+                                                               miss.flight_profile["data"][:,9],flight_path["data"][:,9])]
+
+# for z1,m1,m2,f1,f2 in zip(miss.flight_profile["data"][:,2],
+#                        miss.flight_profile["data"][:,3],flight_path["data"][:,3],
+#                        miss.flight_profile["data"][:,9],flight_path["data"][:,9]):
+#     print(unit.ft_m(z1),m1,m2,f1,f2)
+
+print(tabulate(table))
+
+raise Exception("ici")
+
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
