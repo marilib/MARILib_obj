@@ -106,6 +106,7 @@ print(tabulate(table4))
 
 raise Exception("ici")
 
+
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
 var = ["aircraft.power_system.reference_thrust",
