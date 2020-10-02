@@ -73,25 +73,36 @@ heading = "east"
 
 miss.fly_mission(disa,range,tow,owe,altp1,cas1,altp2,cas2,cruise_mach,vz_mcr,vz_mcl,heading)
 
-miss.draw_flight_profile()
+print("------------------------------")
+table1 = np.array([[t1,unit.NM_m(x1),unit.ft_m(z1),m1] for t1,x1,z1,m1 in zip(miss.flight_profile["data"][:,0],
+                                                                              miss.flight_profile["data"][:,1],
+                                                                              miss.flight_profile["data"][:,2],
+                                                                              miss.flight_profile["data"][:,3])])
+k_list = [k for k,t in enumerate(table1[1:,0]) if t==table1[k,0]]
+table2 = np.delete(table1,k_list,axis=0)
+print(tabulate(table2))
+
+# miss.draw_flight_profile()
 
 profile = miss.flight_profile["data"][:,0:3]
 
 flight_path = miss.fly_this_profile(disa,tow,profile)
 
+print("------------------------------")
 print(miss.flight_profile["data"][0,3] - miss.flight_profile["data"][-1,3])
 print(flight_path["data"][0,3]-flight_path["data"][-1,3])
 
-table = [[unit.ft_m(z1),m1,m2,f1,f2] for z1,m1,m2,f1,f2 in zip(miss.flight_profile["data"][:,2],
-                                                               miss.flight_profile["data"][:,3],flight_path["data"][:,3],
-                                                               miss.flight_profile["data"][:,9],flight_path["data"][:,9])]
+table4 = [[t1,t2,z1,m1,m2,dm] for t1,t2,z1,m1,m2,dm in zip(table2[:,0],flight_path["data"][:,0],
+                                                     table2[:,2],
+                                                     table2[:,3],flight_path["data"][:,3],
+                                                     table2[:,3]-flight_path["data"][:,3])]
 
 # for z1,m1,m2,f1,f2 in zip(miss.flight_profile["data"][:,2],
 #                        miss.flight_profile["data"][:,3],flight_path["data"][:,3],
 #                        miss.flight_profile["data"][:,9],flight_path["data"][:,9]):
 #     print(unit.ft_m(z1),m1,m2,f1,f2)
 
-print(tabulate(table))
+print(tabulate(table4))
 
 raise Exception("ici")
 

@@ -871,6 +871,111 @@ class StepMission(Flight):
         """
         g = earth.gravity()
 
+        # Remove doublets (connection points with the same date)
+        k_list = [k for k,t in enumerate(flight_profile[1:,0]) if t==flight_profile[k,0]]
+        profile = np.delete(flight_profile,k_list,axis=0)
+
+        time_ = profile[:,0]
+        dist_ = profile[:,1]
+        altp_ = profile[:,2]
+
+        coef = []
+
+        for k in range(len(time_)-1):
+            # print(k,time_[k])
+            A  = np.array([[time_[k]  , 1.],
+                           [time_[k+1], 1.]])
+            Bx = [dist_[k], dist_[k+1]]
+            Cx = np.linalg.solve(A,Bx)
+
+            Bz = [altp_[k], altp_[k+1]]
+            Cz = np.linalg.solve(A,Bz)
+            coef.append(np.concatenate((Cx,Cz)))
+
+        print("***************************************")
+
+        def get_interp_data(t):
+            k = max(0,np.searchsorted(time_[:-1],t)-1)
+            # print("---->", t,np.searchsorted(time_,t))
+            x_d = coef[k][0]
+            z_d = coef[k][2]
+            zp = coef[k][2]*t + coef[k][3]
+            sin_path = z_d/x_d
+            tas = np.sqrt(x_d**2+z_d**2)
+            acc = 0.
+            # print(t,unit.ft_m(zp),z_d,z_dd,x_dd,x_d)
+            return zp,sin_path,tas,acc
+
+        def all_values(t,mass):
+            altp,sin_path,tas,acc = get_interp_data(t)
+
+            pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+            vsnd = earth.sound_speed(tamb)
+            mach = tas/vsnd
+            cas = earth.vcas_from_mach(pamb,mach)
+
+            cz = self.lift_from_speed(pamb,tamb,mach,mass)
+            cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
+
+            nei = 0.
+            fn = mass*g*(acc/g + sin_path + 1./lod)
+            fn1 = max(0.,fn)
+            dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCL",fn1,nei)
+            ff = dict["sfc"]*fn
+
+            return pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod
+
+        def state_dot(t,state):
+            pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = all_values(t,state[0])
+            m_dot = np.array([-ff])
+            return m_dot
+
+        mass_ = [tow]
+
+        state0 = np.array([tow])
+
+        for k in range(len(time_)-1):
+            # print(k)
+            t0 = time_[k]
+            t1 = time_[k+1]
+            t_eval = [t1]
+            # print(k,t0,t1,t_eval,state0)
+            sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="RK45")
+            # print(k,sol.y[0])
+            mass_.append(sol.y[0])
+            state0[0] = sol.y[0]
+
+        pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = [],[],[],[],[],[],[],[],[],[]
+        for t,m in zip(time_,mass_):
+            pamb1,tamb1,mach1,tas1,cas1,fn1,ff1,cz1,cx1,lod1 = all_values(t,m)
+            pamb.append(pamb1)
+            tamb.append(tamb1)
+            mach.append(mach1)
+            tas.append(tas1)
+            cas.append(cas1)
+            fn.append(fn1)
+            ff.append(ff1)
+            cz.append(cz1)
+            cx.append(cx1)
+            lod.append(lod1)
+        st = np.vstack((time_,dist_,altp_,mass_,pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod))
+
+        flight_profile = st.transpose()
+
+        flight_profile = {"label":["time","dist","altp","mass","pamb","tamb","mach","tas","cas","fn","ff","cz","cx","lod"],
+                          "unit":["h","NM","ft","kg","Pa","K","mach","kt","kt","kN","kg/h","no_dim","no_dim","no_dim"],
+                          "data":flight_profile}
+
+        return flight_profile
+
+
+    def fly_this_profile_old(self,disa,tow,flight_profile):
+        """Compute fuel consumption along a given flight path
+        Profile = array([time,dist,altp])
+        state = [m]
+        """
+        g = earth.gravity()
+
         k_list = [k for k,t in enumerate(flight_profile[1:,0]) if t==flight_profile[k,0]]
 
         profile = np.delete(flight_profile,k_list,axis=0)
