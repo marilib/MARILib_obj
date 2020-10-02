@@ -881,6 +881,7 @@ class StepMission(Flight):
 
         coef = []
 
+        # Build polynomial trajectory functions by segment
         for k in range(len(time_)-1):
             # print(k,time_[k])
             A  = np.array([[time_[k]  , 1.],
@@ -892,20 +893,18 @@ class StepMission(Flight):
             Cz = np.linalg.solve(A,Bz)
             coef.append(np.concatenate((Cx,Cz)))
 
-        print("***************************************")
-
+        # Interpolate into the trajectory
         def get_interp_data(t):
             k = max(0,np.searchsorted(time_[:-1],t)-1)
-            # print("---->", t,np.searchsorted(time_,t))
             x_d = coef[k][0]
             z_d = coef[k][2]
             zp = coef[k][2]*t + coef[k][3]
             sin_path = z_d/x_d
             tas = np.sqrt(x_d**2+z_d**2)
             acc = 0.
-            # print(t,unit.ft_m(zp),z_d,z_dd,x_dd,x_d)
             return zp,sin_path,tas,acc
 
+        # Compute airplane performances at a given trajectory point
         def all_values(t,mass):
             altp,sin_path,tas,acc = get_interp_data(t)
 
@@ -925,6 +924,7 @@ class StepMission(Flight):
 
             return pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod
 
+        # State dot function for ODE integrator
         def state_dot(t,state):
             pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = all_values(t,state[0])
             m_dot = np.array([-ff])
@@ -934,31 +934,30 @@ class StepMission(Flight):
 
         state0 = np.array([tow])
 
+        # Trajectory mass integration by segment
         for k in range(len(time_)-1):
-            # print(k)
             t0 = time_[k]
             t1 = time_[k+1]
             t_eval = [t1]
-            # print(k,t0,t1,t_eval,state0)
             sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="RK45")
-            # print(k,sol.y[0])
             mass_.append(sol.y[0])
             state0[0] = sol.y[0]
 
-        pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = [],[],[],[],[],[],[],[],[],[]
+        # Recompute all data at each given point
+        pamb_,tamb_,mach_,tas_,cas_,fn_,ff_,cz_,cx_,lod_ = [],[],[],[],[],[],[],[],[],[]
         for t,m in zip(time_,mass_):
-            pamb1,tamb1,mach1,tas1,cas1,fn1,ff1,cz1,cx1,lod1 = all_values(t,m)
-            pamb.append(pamb1)
-            tamb.append(tamb1)
-            mach.append(mach1)
-            tas.append(tas1)
-            cas.append(cas1)
-            fn.append(fn1)
-            ff.append(ff1)
-            cz.append(cz1)
-            cx.append(cx1)
-            lod.append(lod1)
-        st = np.vstack((time_,dist_,altp_,mass_,pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod))
+            pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = all_values(t,m)
+            pamb_.append(pamb)
+            tamb_.append(tamb)
+            mach_.append(mach)
+            tas_.append(tas)
+            cas_.append(cas)
+            fn_.append(fn)
+            ff_.append(ff)
+            cz_.append(cz)
+            cx_.append(cx)
+            lod_.append(lod)
+        st = np.vstack((time_,dist_,altp_,mass_,pamb_,tamb_,mach_,tas_,cas_,fn_,ff_,cz_,cx_,lod_))
 
         flight_profile = st.transpose()
 
@@ -967,107 +966,6 @@ class StepMission(Flight):
                           "data":flight_profile}
 
         return flight_profile
-
-
-    def fly_this_profile_old(self,disa,tow,flight_profile):
-        """Compute fuel consumption along a given flight path
-        Profile = array([time,dist,altp])
-        state = [m]
-        """
-        g = earth.gravity()
-
-        k_list = [k for k,t in enumerate(flight_profile[1:,0]) if t==flight_profile[k,0]]
-
-        profile = np.delete(flight_profile,k_list,axis=0)
-
-
-        z_val = interp1d(profile[:,0],profile[:,2], kind="cubic", fill_value="extrapolate")
-
-        dt1 = profile[1:-1,0] - profile[0:-2,0]     # Time intervals
-        dx = profile[1:-1,1] - profile[0:-2,1]      # Track intervals
-        dz = profile[1:-1,2] - profile[0:-2,2]      # Altitude intervals
-
-        t1 = 0.5*(profile[1:-1,0] + profile[0:-2,0])    # Mean time stamps
-        vx = dx / dt1                                   # Mean speed
-        vz = dz / dt1                                   # Mean speed
-
-        dvx = vx[1:-1] - vx[0:-2]
-        dvz = vz[1:-1] - vz[0:-2]
-
-        dt2 = t1[1:-1] - t1[0:-2]
-        t2 = 0.5*(t1[1:-1] + t1[0:-2])
-
-        x_dot = interp1d(t1,vx, kind="linear", fill_value="extrapolate")
-        z_dot = interp1d(t1,vz, kind="linear", fill_value="extrapolate")
-        vx_dot = interp1d(t2,dvx/dt2, kind="linear", fill_value="extrapolate")
-        vz_dot = interp1d(t2,dvz/dt2, kind="linear", fill_value="extrapolate")
-
-        def all_values(t,mass):
-            altp = z_val(t)
-
-            vx = x_dot(t)
-            vz = z_dot(t)
-            tas = np.sqrt(vx**2 + vz**2)
-
-            sin_path = vz / tas
-
-            vxd = vx_dot(t)
-            vzd = vz_dot(t)
-            acc = np.sqrt(vxd**2 + vzd**2)
-
-            pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
-            vsnd = earth.sound_speed(tamb)
-            mach = tas/vsnd
-            cas = earth.vcas_from_mach(pamb,mach)
-
-            cz = self.lift_from_speed(pamb,tamb,mach,mass)
-            cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
-
-            nei = 0.
-            fn = mass*g*(acc/g + sin_path + 1./lod)
-            dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCL",fn,nei)
-            ff = dict["sfc"]*fn
-
-            return pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod
-
-        def state_dot(t,state):
-            pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = all_values(t,state[0])
-            return np.array([-ff])
-
-        t0 = profile[0,0]
-        t1 = profile[-1,0]
-        state0 = np.array([tow])
-        t_eval = profile[:,0]
-        sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="RK45")
-
-        time = sol.t
-        dist = profile[:,1]
-        altp = profile[:,2]
-        mass = sol.y[0]
-        pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = [],[],[],[],[],[],[],[],[],[]
-        for t,m in zip(time,mass):
-            pamb1,tamb1,mach1,tas1,cas1,fn1,ff1,cz1,cx1,lod1 = all_values(t,m)
-            pamb.append(pamb1)
-            tamb.append(tamb1)
-            mach.append(mach1)
-            tas.append(tas1)
-            cas.append(cas1)
-            fn.append(fn1)
-            ff.append(ff1)
-            cz.append(cz1)
-            cx.append(cx1)
-            lod.append(lod1)
-        st = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod))
-
-        flight_profile = st.transpose()
-
-        flight_profile = {"label":["time","dist","altp","mass","pamb","tamb","mach","tas","cas","fn","ff","cz","cx","lod"],
-                          "unit":["h","NM","ft","kg","Pa","K","mach","kt","kt","kN","kg/h","no_dim","no_dim","no_dim"],
-                          "data":flight_profile}
-
-        return flight_profile
-
-
 
 
 
