@@ -878,19 +878,86 @@ class StepMission(Flight):
         time_ = profile[:,0]
         dist_ = profile[:,1]
         altp_ = profile[:,2]
+        # vtas_ = profile[:,3]
 
-        coef = []
+        nseg = len(time_) - 1
+
+        # # Compute mean speed on each segment segment
+        # x_d = []
+        # z_d = []
+        # dat = []
+        # for k in range(nseg):
+        #     x_d.append((dist_[k+1]-dist_[k])/(time_[k+1]-time_[k]))
+        #     z_d.append((altp_[k+1]-altp_[k])/(time_[k+1]-time_[k]))
+        #     dat.append(0.5*(time_[k]+time_[k+1]))
+        #
+        # # Compute mean acceleration in between each segment
+        # x_ddm = [0.]
+        # z_ddm = [0.]
+        # for k in range(nseg-1):
+        #     x_ddm.append((x_d[k+1]-x_d[k])/(dat[k+1]-dat[k]))
+        #     z_ddm.append((z_d[k+1]-z_d[k])/(dat[k+1]-dat[k]))
+        # x_ddm.append(0.)
+        # z_ddm.append(0.)
+        # x_ddm[0] = x_ddm[1]
+        # x_ddm[-1] = x_ddm[-2]
+        # z_ddm[0] = z_ddm[1]
+        # z_ddm[-1] = z_ddm[-2]
+        #
+        # # Compute mean acceleration WITHIN each segment
+        # x_dd = [0.]
+        # z_dd = [0.]
+        # for k in range(nseg):
+        #     x_dd.append(0.5*(x_ddm[k]+x_ddm[k+1]))
+        #     z_dd.append(0.5*(z_ddm[k]+z_ddm[k+1]))
+        #     # print(unit.ft_m(altp_[k]),x_dd[-1],z_dd[-1])
+
+        # # Build polynomial trajectory functions by segment
+        # coef = []
+        # for k in range(nseg):
+        #     Ax   = np.array([[3.*time_[k]     , 2.*time_[k]     , 1.        , 0.],
+        #                      [   time_[k]**3  ,    time_[k]**2  , time_[k]  , 1.],
+        #                      [3.*time_[k+1]   , 2.*time_[k+1]   , 1.        , 0.],
+        #                      [   time_[k+1]**2,    time_[k+1]**2, time_[k+1], 1.]])
+        #     Bx = [vtas_[k], dist_[k], vtas_[k+1], dist_[k+1]]
+        #     Cx = np.linalg.solve(Ax,Bx)
+        #
+        #     Az   = np.array([[time_[k]  , 1.],
+        #                      [time_[k+1], 1.]])
+        #     Bz = [altp_[k], altp_[k+1]]
+        #     Cz = np.linalg.solve(Az,Bz)
+        #
+        #     coef.append(np.concatenate((Cx,Cz)))
+
+        # # Interpolate into the trajectory
+        # def get_interp_data(t):
+        #     k = max(0,np.searchsorted(time_[:-1],t)-1)
+        #     x_d = (3.*coef[k][0]*t + 2.*coef[k][1])*t + coef[k][2]
+        #     z_d = coef[k][4]
+        #     zp = coef[k][4]*t + coef[k][5]
+        #     sin_path = z_d/x_d
+        #     tas = np.sqrt(x_d**2+z_d**2)
+        #     x_dd = 6.*coef[k][0]*t + 2.*coef[k][1]
+        #     z_dd = 0.
+        #     acc = (x_dd*x_d+z_dd*z_d)/tas
+        #     return zp,sin_path,tas,acc
+
+        # # Compute mean acceleration WITHIN each segment
+        # acc_ = []
+        # for k in range(nseg):
+        #     acc_.append((vtas_[k+1]-vtas_[k])/(time_[k+1]-time_[k]))
 
         # Build polynomial trajectory functions by segment
-        for k in range(len(time_)-1):
-            # print(k,time_[k])
-            A  = np.array([[time_[k]  , 1.],
-                           [time_[k+1], 1.]])
+        coef = []
+        for k in range(nseg):
+            A   = np.array([[time_[k]  , 1.],
+                            [time_[k+1], 1.]])
             Bx = [dist_[k], dist_[k+1]]
             Cx = np.linalg.solve(A,Bx)
 
             Bz = [altp_[k], altp_[k+1]]
             Cz = np.linalg.solve(A,Bz)
+
             coef.append(np.concatenate((Cx,Cz)))
 
         # Interpolate into the trajectory
@@ -907,7 +974,7 @@ class StepMission(Flight):
         # Compute airplane performances at a given trajectory point
         def all_values(t,mass):
             altp,sin_path,tas,acc = get_interp_data(t)
-
+            print(t,altp,sin_path,tas,acc)
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
             vsnd = earth.sound_speed(tamb)
             mach = tas/vsnd
@@ -939,7 +1006,7 @@ class StepMission(Flight):
             t0 = time_[k]
             t1 = time_[k+1]
             t_eval = [t1]
-            sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="RK45")
+            sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="LSODA")
             mass_.append(sol.y[0])
             state0[0] = sol.y[0]
 

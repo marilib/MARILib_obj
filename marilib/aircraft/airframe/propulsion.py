@@ -1202,6 +1202,10 @@ class BodyTailConeMountedEfNacelle(SemiEmpiricEfBliNacelle,BodyTailConeMountedNa
     def __init__(self, aircraft):
         super(BodyTailConeMountedEfNacelle, self).__init__(aircraft)
 
+class PiggyBackTailConeMountedEfNacelle(SemiEmpiricEfBliNacelle,PiggyBackTailConeMountedNacelle):
+    def __init__(self, aircraft):
+        super(PiggyBackTailConeMountedEfNacelle, self).__init__(aircraft)
+
 
 
 class SemiEmpiricTpNacelle(Component):

@@ -78,7 +78,8 @@ class Airframe(object):
         self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
         self.aircraft.airframe.nacelle.eval_geometry()
-        self.aircraft.airframe.other_nacelle.eval_geometry()
+        if hasattr(self.aircraft.airframe, "other_nacelle"):
+            self.aircraft.airframe.other_nacelle.eval_geometry()
         if (number_of_engine=="quadri"):
             self.aircraft.airframe.internal_nacelle.eval_geometry()
             self.aircraft.airframe.left_internal_nacelle.eval_geometry()
@@ -87,7 +88,7 @@ class Airframe(object):
             self.aircraft.airframe.left_internal_nacelle.eval_geometry()
             self.aircraft.airframe.median_nacelle.eval_geometry()
             self.aircraft.airframe.left_median_nacelle.eval_geometry()
-        if (power_architecture=="pte"):
+        if (power_architecture in ["pte","pte_p"]):
             self.aircraft.airframe.tail_nacelle.eval_geometry()
 
         def fct(x_in):

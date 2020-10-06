@@ -20,7 +20,7 @@ tank_efficiency = Pam3pkg_barLpkg(250.)      # bar.L/kg,  pressurized tank effic
 
 shield_density = 1400.          # kg/m3, pressure material density
 
-insul_density = 100.            # kg/m3, insulation material density
+insul_density = 200.            # kg/m3, insulation material density
 insul_thick = 0.06              # m, insulation thickness
 
 lh2_density = 71.               # kg/m3, liquid H2 density
@@ -40,15 +40,22 @@ press_volume = ext_volume / (1. + over_pressure/(tank_efficiency*shield_density)
 
 psm = over_pressure * press_volume / tank_efficiency    # pressure structural mass
 
-pst = (psm / shield_density) / ext_area                 # pressure structural thickness
+shell_volume = psm / shield_density                     # pressure shell volume
+
+pst = shell_volume / ext_area                           # pressure structural thickness
 
 pia = ext_area * (1.-2.*pst/length) * (1.-2.*pst/width) # pressurized insulated area
 
-lh2_volume = press_volume - pia*insul_thick     # LH2 volume
-lh2_mass = lh2_volume * lh2_density             # LH2 mass
+insul_volume = pia*insul_thick                          # insulation volume
 
-ism = pia * insul_thick * insul_density         # insulation structural mass
-total_mass = psm + ism           # total mass
+lh2_volume = press_volume - insul_volume    # LH2 volume
+lh2_mass = lh2_volume * lh2_density         # LH2 mass
+
+ism = insul_volume * insul_density          # insulation structural mass
+total_mass = psm + ism                      # total tank mass
+total_volume = shell_volume + insul_volume  # total tank volume
+
+tds = total_mass / total_volume     # global tank density
 
 rtm = total_mass / lh2_mass         # relative tank mass, tank mass per lh2 mass (without carrying structure)
 
@@ -63,6 +70,7 @@ print("pressure structural mass = ", "%0.1f"%psm, " kg")
 print("pressure structural thickness = ", "%0.3f"%pst, " m")
 print("insulation structural mass = ", "%0.1f"%ism, " kg")
 print("tank mass = ", "%0.1f"%total_mass, " kg")
+print("tank material density = ", "%0.1f"%tds, " kg/m3")
 print("tank mass over LH2 mass = ", "%0.3f"%rtm, " kg/kg")
 
 
