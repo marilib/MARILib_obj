@@ -24,8 +24,8 @@ agmt = Arrangement(body_type = "fuselage",             # "fuselage" or "blended"
                    stab_architecture = "h_tail",     # "classic", "t_tail" or "h_tail"
                    tank_architecture = "piggy_back", # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",          # "twin", "quadri" or "hexa"
-                   nacelle_attachment = "body_cones",# "wing", "rear", "pods", "body_cones"
-                   power_architecture = "tf",          # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   nacelle_attachment = "wing",      # "wing", "rear", "pods", "body_cones"
+                   power_architecture = "pte_p",          # "tf", "tp", "ef", "ep", "pte", "pte", "pte_p", "extf", "exef"
                    power_source = "fuel",              # "fuel", "battery", "fuel_cell"
                    fuel_type = "liquid_h2")          # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
@@ -39,6 +39,7 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
+ac.airframe.system.chain_power = unit.W_MW(2.)
 ac.power_system.reference_thrust = unit.N_kN(130.)
 ac.airframe.wing.area = 137.
 

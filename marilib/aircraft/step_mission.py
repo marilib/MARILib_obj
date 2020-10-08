@@ -871,45 +871,110 @@ class StepMission(Flight):
         """
         g = earth.gravity()
 
+        # Remove doublets (connection points with the same date)
         k_list = [k for k,t in enumerate(flight_profile[1:,0]) if t==flight_profile[k,0]]
-
         profile = np.delete(flight_profile,k_list,axis=0)
 
+        time_ = profile[:,0]
+        dist_ = profile[:,1]
+        altp_ = profile[:,2]
+        # vtas_ = profile[:,3]
 
-        z_val = interp1d(profile[:,0],profile[:,2], kind="cubic", fill_value="extrapolate")
+        nseg = len(time_) - 1
 
-        dt1 = profile[1:-1,0] - profile[0:-2,0]     # Time intervals
-        dx = profile[1:-1,1] - profile[0:-2,1]      # Track intervals
-        dz = profile[1:-1,2] - profile[0:-2,2]      # Altitude intervals
+        # # Compute mean speed on each segment segment
+        # x_d = []
+        # z_d = []
+        # dat = []
+        # for k in range(nseg):
+        #     x_d.append((dist_[k+1]-dist_[k])/(time_[k+1]-time_[k]))
+        #     z_d.append((altp_[k+1]-altp_[k])/(time_[k+1]-time_[k]))
+        #     dat.append(0.5*(time_[k]+time_[k+1]))
+        #
+        # # Compute mean acceleration in between each segment
+        # x_ddm = [0.]
+        # z_ddm = [0.]
+        # for k in range(nseg-1):
+        #     x_ddm.append((x_d[k+1]-x_d[k])/(dat[k+1]-dat[k]))
+        #     z_ddm.append((z_d[k+1]-z_d[k])/(dat[k+1]-dat[k]))
+        # x_ddm.append(0.)
+        # z_ddm.append(0.)
+        # x_ddm[0] = x_ddm[1]
+        # x_ddm[-1] = x_ddm[-2]
+        # z_ddm[0] = z_ddm[1]
+        # z_ddm[-1] = z_ddm[-2]
+        #
+        # # Compute mean acceleration WITHIN each segment
+        # x_dd = [0.]
+        # z_dd = [0.]
+        # for k in range(nseg):
+        #     x_dd.append(0.5*(x_ddm[k]+x_ddm[k+1]))
+        #     z_dd.append(0.5*(z_ddm[k]+z_ddm[k+1]))
+        #     # print(unit.ft_m(altp_[k]),x_dd[-1],z_dd[-1])
 
-        t1 = 0.5*(profile[1:-1,0] + profile[0:-2,0])    # Mean time stamps
-        vx = dx / dt1                                   # Mean speed
-        vz = dz / dt1                                   # Mean speed
+        # # Build polynomial trajectory functions by segment
+        # coef = []
+        # for k in range(nseg):
+        #     Ax   = np.array([[3.*time_[k]     , 2.*time_[k]     , 1.        , 0.],
+        #                      [   time_[k]**3  ,    time_[k]**2  , time_[k]  , 1.],
+        #                      [3.*time_[k+1]   , 2.*time_[k+1]   , 1.        , 0.],
+        #                      [   time_[k+1]**2,    time_[k+1]**2, time_[k+1], 1.]])
+        #     Bx = [vtas_[k], dist_[k], vtas_[k+1], dist_[k+1]]
+        #     Cx = np.linalg.solve(Ax,Bx)
+        #
+        #     Az   = np.array([[time_[k]  , 1.],
+        #                      [time_[k+1], 1.]])
+        #     Bz = [altp_[k], altp_[k+1]]
+        #     Cz = np.linalg.solve(Az,Bz)
+        #
+        #     coef.append(np.concatenate((Cx,Cz)))
 
-        dvx = vx[1:-1] - vx[0:-2]
-        dvz = vz[1:-1] - vz[0:-2]
+        # # Interpolate into the trajectory
+        # def get_interp_data(t):
+        #     k = max(0,np.searchsorted(time_[:-1],t)-1)
+        #     x_d = (3.*coef[k][0]*t + 2.*coef[k][1])*t + coef[k][2]
+        #     z_d = coef[k][4]
+        #     zp = coef[k][4]*t + coef[k][5]
+        #     sin_path = z_d/x_d
+        #     tas = np.sqrt(x_d**2+z_d**2)
+        #     x_dd = 6.*coef[k][0]*t + 2.*coef[k][1]
+        #     z_dd = 0.
+        #     acc = (x_dd*x_d+z_dd*z_d)/tas
+        #     return zp,sin_path,tas,acc
 
-        dt2 = t1[1:-1] - t1[0:-2]
-        t2 = 0.5*(t1[1:-1] + t1[0:-2])
+        # # Compute mean acceleration WITHIN each segment
+        # acc_ = []
+        # for k in range(nseg):
+        #     acc_.append((vtas_[k+1]-vtas_[k])/(time_[k+1]-time_[k]))
 
-        x_dot = interp1d(t1,vx, kind="linear", fill_value="extrapolate")
-        z_dot = interp1d(t1,vz, kind="linear", fill_value="extrapolate")
-        vx_dot = interp1d(t2,dvx/dt2, kind="linear", fill_value="extrapolate")
-        vz_dot = interp1d(t2,dvz/dt2, kind="linear", fill_value="extrapolate")
+        # Build polynomial trajectory functions by segment
+        coef = []
+        for k in range(nseg):
+            A   = np.array([[time_[k]  , 1.],
+                            [time_[k+1], 1.]])
+            Bx = [dist_[k], dist_[k+1]]
+            Cx = np.linalg.solve(A,Bx)
 
+            Bz = [altp_[k], altp_[k+1]]
+            Cz = np.linalg.solve(A,Bz)
+
+            coef.append(np.concatenate((Cx,Cz)))
+
+        # Interpolate into the trajectory
+        def get_interp_data(t):
+            k = max(0,np.searchsorted(time_[:-1],t)-1)
+            x_d = coef[k][0]
+            z_d = coef[k][2]
+            zp = coef[k][2]*t + coef[k][3]
+            sin_path = z_d/x_d
+            tas = np.sqrt(x_d**2+z_d**2)
+            acc = 0.
+            return zp,sin_path,tas,acc
+
+        # Compute airplane performances at a given trajectory point
         def all_values(t,mass):
-            altp = z_val(t)
-
-            vx = x_dot(t)
-            vz = z_dot(t)
-            tas = np.sqrt(vx**2 + vz**2)
-
-            sin_path = vz / tas
-
-            vxd = vx_dot(t)
-            vzd = vz_dot(t)
-            acc = np.sqrt(vxd**2 + vzd**2)
-
+            altp,sin_path,tas,acc = get_interp_data(t)
+            print(t,altp,sin_path,tas,acc)
             pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
             vsnd = earth.sound_speed(tamb)
             mach = tas/vsnd
@@ -920,39 +985,46 @@ class StepMission(Flight):
 
             nei = 0.
             fn = mass*g*(acc/g + sin_path + 1./lod)
-            dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCL",fn,nei)
+            fn1 = max(0.,fn)
+            dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCL",fn1,nei)
             ff = dict["sfc"]*fn
 
             return pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod
 
+        # State dot function for ODE integrator
         def state_dot(t,state):
             pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = all_values(t,state[0])
-            return np.array([-ff])
+            m_dot = np.array([-ff])
+            return m_dot
 
-        t0 = profile[0,0]
-        t1 = profile[-1,0]
+        mass_ = [tow]
+
         state0 = np.array([tow])
-        t_eval = profile[:,0]
-        sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="RK45")
 
-        time = sol.t
-        dist = profile[:,1]
-        altp = profile[:,2]
-        mass = sol.y[0]
-        pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = [],[],[],[],[],[],[],[],[],[]
-        for t,m in zip(time,mass):
-            pamb1,tamb1,mach1,tas1,cas1,fn1,ff1,cz1,cx1,lod1 = all_values(t,m)
-            pamb.append(pamb1)
-            tamb.append(tamb1)
-            mach.append(mach1)
-            tas.append(tas1)
-            cas.append(cas1)
-            fn.append(fn1)
-            ff.append(ff1)
-            cz.append(cz1)
-            cx.append(cx1)
-            lod.append(lod1)
-        st = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod))
+        # Trajectory mass integration by segment
+        for k in range(len(time_)-1):
+            t0 = time_[k]
+            t1 = time_[k+1]
+            t_eval = [t1]
+            sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="LSODA")
+            mass_.append(sol.y[0])
+            state0[0] = sol.y[0]
+
+        # Recompute all data at each given point
+        pamb_,tamb_,mach_,tas_,cas_,fn_,ff_,cz_,cx_,lod_ = [],[],[],[],[],[],[],[],[],[]
+        for t,m in zip(time_,mass_):
+            pamb,tamb,mach,tas,cas,fn,ff,cz,cx,lod = all_values(t,m)
+            pamb_.append(pamb)
+            tamb_.append(tamb)
+            mach_.append(mach)
+            tas_.append(tas)
+            cas_.append(cas)
+            fn_.append(fn)
+            ff_.append(ff)
+            cz_.append(cz)
+            cx_.append(cx)
+            lod_.append(lod)
+        st = np.vstack((time_,dist_,altp_,mass_,pamb_,tamb_,mach_,tas_,cas_,fn_,ff_,cz_,cx_,lod_))
 
         flight_profile = st.transpose()
 
@@ -961,8 +1033,6 @@ class StepMission(Flight):
                           "data":flight_profile}
 
         return flight_profile
-
-
 
 
 

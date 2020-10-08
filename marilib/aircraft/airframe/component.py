@@ -352,7 +352,7 @@ class Wing(Component):
 
     def aspect_ratio(self):
         if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): ar = 9
-        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","exef"]): ar = 9
+        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","pte_p","exef"]): ar = 9
         elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): ar = 10
         else: raise Exception("propulsion.architecture index is out of range")
         return ar
@@ -363,7 +363,7 @@ class Wing(Component):
 
     def high_lift_type(self):
         if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): hld_type = 9
-        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","exef"]): hld_type = 9
+        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","pte_p","exef"]): hld_type = 9
         elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): hld_type = 2
         else: raise Exception("propulsion.architecture index is out of range")
         return hld_type
@@ -1265,8 +1265,10 @@ class TankWingPod(Component):
         self.length = get_init(self,"length", val=length)
         self.width = get_init(self,"width", val=width)
         self.x_loc_ratio = get_init(self,"x_loc_ratio")
+        self.z_loc_ratio = get_init(self,"z_loc_ratio")
         self.wing_axe_c = None
         self.wing_axe_x = None
+        self.wing_axe_z = None
         self.shield_volume = None
         self.shield_mass = None
         self.insulation_volume = None
@@ -1304,17 +1306,18 @@ class TankWingPod(Component):
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
         if (self.aircraft.arrangement.nacelle_attachment == "pod"):
-            y_axe = 0.6 * body_width + 1.5 * self.width
+            y_axe = self.aircraft.airframe.nacelle.locate_nacelle()[1]
         else:
             y_axe = self.span_ratio * wing_tip_loc[1]
 
         x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - self.x_loc_ratio*self.length
-        z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral)
+        z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral) - self.z_loc_ratio*self.width
 
         self.frame_origin = [x_axe, y_axe, z_axe]
 
         self.wing_axe_c = wing_kink_c - (wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
         self.wing_axe_x = wing_kink_loc[0] - (wing_kink_loc[0]-wing_tip_loc[0])/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
+        self.wing_axe_z = wing_kink_loc[2] - (wing_kink_loc[2]-wing_tip_loc[2])/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
 
         self.gross_wet_area = 2.*(0.85*3.14*self.width*self.length)
         self.net_wet_area = 0.95*self.gross_wet_area
@@ -1380,6 +1383,10 @@ class TankPiggyBack(Component):
         self.length = get_init(self,"length", val=length)
         self.width = get_init(self,"width", val=width)
         self.x_loc_ratio = get_init(self,"x_loc_ratio")
+        self.z_loc_ratio = get_init(self,"z_loc_ratio")
+        self.wing_axe_c = None
+        self.wing_axe_x = None
+        self.wing_axe_z = None
         self.shield_volume = None
         self.shield_mass = None
         self.insulation_volume = None
@@ -1412,12 +1419,13 @@ class TankPiggyBack(Component):
 
         x_axe = wing_mac_loc[0] - self.x_loc_ratio*self.length
         y_axe = 0.
-        z_axe = 1.07*body_width + 0.85*self.width
+        z_axe = 1.07*body_width + self.z_loc_ratio*self.width
 
         self.frame_origin = [x_axe, y_axe, z_axe]
 
         self.wing_axe_c = wing_root_c
         self.wing_axe_x = wing_root_loc[0]
+        self.wing_axe_z = wing_root_loc[2]
 
         self.net_wet_area = 0.85*3.14*self.width*self.length
         self.aero_length = self.length
