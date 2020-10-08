@@ -605,7 +605,7 @@ class SemiEmpiricTfNacelle(Component):
         return self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
 
     def unitary_sc_free_stream(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
-        """Unitary power required of an electrofan engine delivering a given thrust (semi-empirical model)
+        """Unitary power required of a turbofan engine delivering a given thrust (semi-empirical model)
         """
         r,gam,Cp,Cv = earth.gas_data()
 

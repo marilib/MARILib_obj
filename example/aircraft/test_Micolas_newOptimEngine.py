@@ -36,12 +36,10 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_thrust = unit.N_kN(160.)
-ac.airframe.wing.area = 128.
-
+ac.power_system.reference_thrust = unit.N_kN(158.)
+ac.airframe.wing.area = 135.
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -73,21 +71,15 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 #process.mdf(ac, var,var_bnd, cst,cst_mag, crt)        # Perform an MDF optimization process
+algo_points=None
 algo_points = process.custom_mdf(ac, var,var_bnd, cst,cst_mag, crt)
 
 # raise Exception("Ici")
+
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.view_3d("This_plane")                        # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
-
-io = MarilibIO()
-json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
-# dico = io.from_string(json)
-
-io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
-# ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
-
+#ac.draw.view_3d("This_plane")                        # Draw a 3D view diagram
+#ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 # Configure design space exploration
 # ---------------------------------------------------------------------------------------------------------------------
@@ -118,8 +110,8 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
 
 file = "aircraft_explore_design.txt"
 
-# res = process.eval_this(ac,var)                                  # This function allows to get the values of a list of addresses in the Aircraft
-res = process.explore_design_space(ac, var, step, data, file)      # Build a set of experiments using above config data and store it in a file
+res = process.eval_this(ac,var)                                  # This function allows to get the values of a list of addresses in the Aircraft
+#res = process.explore_design_space(ac, var, step, data, file)      # Build a set of experiments using above config data and store it in a file
 
 field = 'MTOW'                                                                  # Optimization criteria, keys are from data
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC', 'FUEL']    # Constrained performances, keys are from data

@@ -99,7 +99,7 @@ def mda_hq(aircraft):
 
 already_done = {}
 
-def eval_optim_data_TEMP(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
+def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
     """Compute criterion and constraints
     """
     in_key = str(x_in)
@@ -116,7 +116,7 @@ def eval_optim_data_TEMP(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
             constraint[k] = eval(key)/eval(cst_mag[k])
 
         #criterion = eval(crt) * (20./crt_mag)
-        criterion = eval(crt)
+        criterion = eval(crt)/crt_mag
 
         already_done[in_key] = [criterion,constraint]
 
@@ -127,27 +127,8 @@ def eval_optim_data_TEMP(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
 
     return criterion,constraint
 
-def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
-    """Compute criterion and constraints
-    """
-    in_key = str(x_in)
-
-    for k,key in enumerate(var):    #  Put optimization variables in aircraft object
-        exec(key+" = x_in[k]")
-
-    mda(aircraft)                   #  Run MDA
-
-    constraint = np.zeros(len(cst))
-    for k,key in enumerate(cst):    # put optimization variables in aircraft object
-        constraint[k] = eval(key)/eval(cst_mag[k])
-
-    #criterion = eval(crt) * (20./crt_mag)
-    criterion = eval(crt)
-
-    return criterion,constraint
-
 def eval_optim_cst(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
-    """Retrieve the constraints that bounds the optimization
+    """Retrieve the constraints that bounds the admissible design space
     """
     crit,cst = eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag)
     print("cst :",cst)
@@ -178,12 +159,14 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
                    constraints=NonlinearConstraint(fun=lambda x:eval_optim_cst(x,aircraft,var,cst,cst_mag,crt,crt_mag),
                                                    lb=0., ub=np.inf, jac='3-point'),
                    options={'maxiter':500,'gtol': 1e-6})
-    """res = minimize(eval_optim_crt, start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,),
-                   method="CG",
-                   bounds=var_bnd,
-                   constraints=NonlinearConstraint(fun=lambda x:eval_optim_cst(x,aircraft,var,cst,cst_mag,crt,crt_mag),
-                                                   lb=0., ub=np.inf),
-                   options={"gtol":10, "maxiter": 1}
+
+    """def custom_cost(x,*args):
+        crt, cst = custom_eval_optim_data(x,*args)
+        return crt - 5e5 * sum([c for c in cst if c < 0])
+
+    res = minimize(custom_cost, start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag),
+                   method="BFGS",
+                   options={'gtol':1e-4,'maxiter':5,'disp':True}
                    )"""
 
     #              tol=None, callback=None,
@@ -205,6 +188,7 @@ def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
     return res
 
 # -------------------- CUSTOM OPTIMIZATION -------------------
+
 def custom_eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, crt_mag):
     """Compute criterion and constraints
     """
@@ -234,11 +218,10 @@ def custom_mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
 
     cost_fun = lambda x_in: custom_eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,1.)
 
-    points = custom_minimum_search(cost_fun,start_value)
+    points = custom_descent_search(cost_fun,start_value)
     return points
 
-
-def custom_minimum_search(cost_fun,x0,delta=0.01,pen=1e6):
+def custom_minimum_search(cost_fun,x0,delta=0.02,pen=5e5):
     """ A custom minimization method limited to 2 parameters problems (x1,x2).
     This method uses a custom pattern search algorithm that requires a minimum number of call to the cost function.
     It takes advantage of the prior knowledge of the problem:
@@ -286,18 +269,18 @@ o------o-------o------o
         return crt - pen*sum([c for c in cst if c<0])
 
     xy = np.array([0,0])  # set initial value in delta coordinates
+    xy_ref = xy
     points[(0,0)] = custom_cost(x0)  # put initial point in the points dict
 
-
-    while delta>1e-4:
-        stepsize = delta * x0
-        print("stepsize ", stepsize)
+    delta0 = delta
+    scale = delta0*x0 # one unit displacement of xy corresponds to delta0*x0 displacement in real x
+    while delta>0:
+        print(">>>> delta = %f" %delta)
         current_points = []
         for step in [(0,0),(-1,0),(0,-1)]:
-            xy = np.array([0,0]) + np.array(step)  # move current location by a step
-            print("xy ", xy)
-            x = x0 + xy * stepsize
-            print("x ",x)
+            xy = xy_ref + np.array(step)*delta/delta0  # move current location by a step
+            x = x0 + xy * scale
+            #print(x)
             if tuple(xy) not in points.keys(): # this value is not already computed
                 crt = custom_cost(x)
                 points[tuple(xy)] = crt
@@ -307,21 +290,103 @@ o------o-------o------o
 
         # Find the equation of the plan passing through the 3 points
         zgradient,extrapolator = update_interpolator_and_gradient(current_points)
-        xy = (0,0)
-        criter_old = points[xy]+1 # set initialy criter_old > criter
-        criter = points[xy]
-        while criter < criter_old:
-            xy = np.array(xy) - zgradient
-            x = x0 + xy * stepsize
-            criter_old = criter
-            criter = custom_cost(x)
-            points[tuple(xy)] = criter
-            print("2",xy,criter)
-        delta = 0.5*delta
+        xy = xy_ref
+        crt_old = points[tuple(xy)]+1 # set initialy criter_old > criter
+        crt = points[tuple(xy)]
+        while crt < crt_old:
+            crt_old = crt
+            xy_ref = xy
+            xy = xy - zgradient*delta/delta0
+            x = x0 + xy * scale
+            crt = custom_cost(x)
+            points[tuple(xy)] = crt
+            #print("->",xy,criter)
+
+        delta = delta/2.
+        print(points)
 
     # TODO : extrapolate plane equation to retrieve z of other points
 
-    return [x0+np.array(xy)*stepsize for xy in points.keys()]
+    return [x0+np.array(xy)*scale for xy in points.keys()]
+
+def custom_descent_search(cost_fun,x0,delta=0.02,delta_end=0.00005,pen=1e6):
+    """ A custom minimization method limited to 2 parameters problems (x1,x2).
+    This method is based on mximum descent algorythm.
+
+        1. Evaluate cost function (with constraint penalisation) on 3 points.
+
+    (-1,0)    (0,0)         + : computed points
+       +-------+
+               |
+               |
+               +
+             (0,-1)
+
+        2. Compute the 2D gradient of the cost function (taking into account penalized constraints).
+        3. Build a linear approximation of the cost function based on the the gradient.
+        4. Extrapolate the cost function on the gradient direction step by step until cost increases
+        5. Reduce the step size 'delta' by a factor 2 and restart from step 1.
+
+The algorythm ends when the step is small enough.
+More precisely when the relative step delta (percentage of initial starting point x0) is smaller than delta_end.
+
+    :param cost_fun: a function that returns the criterion to be minimized and the constraints value for given
+                    values of the parameters. In MARILib, cost and constraints are evaluated simultaneously.
+    :param x0: a list of the two initial parameter values (x1,x2).
+    :param delta: the relative step for initial pattern size : 0< delta < 1.
+        :Example: If delta = 0.05, the pattern size will be 5% of the magnitude of x0 values.
+    :param delta_end: the relative step for for algorythm ending.
+    :param pen: penalisation factor to multiply the constraint value. The constraint is negative when unsatisfied.
+        :Example: This algorythm minimizes the modified cost function : criterion + pen*constraint
+    """
+    points = {}  # initialize the list of computed points (delta unit coordinate)
+
+    print("x0 ",x0)
+    if not isinstance(x0,type(np.array)):
+        x0 = np.array(list(x0))
+
+    def custom_cost(x):
+        crt,cst = cost_fun(x)
+        return crt + sum(np.exp(-cst*1e3))
+
+    xy = np.array([0,0])  # set initial value in delta coordinates
+    xy_ref = xy
+    points[(0,0)] = custom_cost(x0)  # put initial point in the points dict
+
+    scale = delta*x0 # one unit displacement of xy corresponds to delta0*x0 displacement in real x
+    k=0
+    while delta>=delta_end:
+        print("Iter %d, delta = %f" %(k,delta))
+        current_points = []
+        for step in [(0,0),(-1,0),(0,-1)]:
+            xy = xy_ref + np.array(step)/2**k  # move current location by a step
+            x = x0 + xy * scale
+            #print(x)
+            if tuple(xy) not in points.keys(): # this value is not already computed
+                crt = custom_cost(x)
+                points[tuple(xy)] = crt
+                current_points.append([xy[0],xy[1],crt])
+            else:
+                current_points.append([xy[0],xy[1],points[tuple(xy)]])
+
+        # Find the equation of the plan passing through the 3 points
+        zgradient,extrapolator = update_interpolator_and_gradient(current_points)
+        xy = xy_ref
+        crt_old = points[tuple(xy)]+1 # set initialy criter_old > criter
+        crt = points[tuple(xy)]
+        while crt < crt_old:
+            crt_old = crt
+            xy_ref = xy
+            xy = xy - zgradient/2**k
+            x = x0 + xy * scale
+            crt = custom_cost(x)
+            points[tuple(xy)] = crt
+            print("\t",x)
+
+        k+=1
+        delta = delta/2.
+
+    return [x0+np.array(xy)*scale for xy in points.keys()]
 
 def update_interpolator_and_gradient(threePoints):
     """
@@ -336,6 +401,7 @@ def update_interpolator_and_gradient(threePoints):
     return zgradient,extrapolator
 
 
+# -------------------- PLOT OPTIM RESULTS
 
 def explore_design_space(ac, var, step, data, file):
 
@@ -346,8 +412,8 @@ def explore_design_space(ac, var, step, data, file):
     slst_list = [res[0]*(1-1.5*step[0]), res[0]*(1-0.5*step[0]), res[0]*(1+0.5*step[0]), res[0]*(1+1.5*step[0])]
     area_list = [res[1]*(1-1.5*step[1]), res[1]*(1-0.5*step[1]), res[1]*(1+0.5*step[1]), res[1]*(1+1.5*step[1])]
 
-    print(slst_list)
-    print(area_list)
+    #print(slst_list)
+    #print(area_list)
 
     txt_list = []
     val_list = []
@@ -365,11 +431,13 @@ def explore_design_space(ac, var, step, data, file):
             # aircraft.airframe.nacelle.reference_thrust = thrust
             # aircraft.airframe.wing.area = area
 
-            print("-----------------------------------------------------------------------")
-            print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
-
-            mda(aircraft)   # Perform MDA
-            print("Done")
+            #print("-----------------------------------------------------------------------")
+            #print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
+            try:
+                mda(aircraft)   # Perform MDA
+            except Exception:
+                print("WARNING: unable to perform MDA at : thrust = ",thrust/10.," daN    area = ",area, " m")
+            #print("Done")
 
             res_list = []
             for j in range(len(data)):
@@ -459,11 +527,10 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
 
     axe.legend(hdl,const, loc = "lower left", bbox_to_anchor=(1.02, 0.))
 
-    # Add optim points if specified ------------------------------------------
+    # Add optim points if specified -------------------------------------- MICOLAS
     if optim_points is not None:
         x,y = zip(*optim_points)
-        print(np.array(x)/10,y)
-        axe.scatter(np.array(x)/10,y)
+        axe.scatter(np.array(x)/10,y)  # /10 to rescale units ... WARNING not very robust !!
 
     # Set introspection
     #------------------------------------------------------------------------------------------------------
