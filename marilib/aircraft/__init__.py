@@ -103,4 +103,4 @@ Submodules documentation
 
 from marilib.aircraft.aircraft_root import Arrangement, Aircraft
 from marilib.aircraft.requirement import Requirement
-from marilib.aircraft.design.process import mda, mdf, draw_design_space,explore_design_space
+from marilib.aircraft.design.process import mda, Optimizer, draw_design_space,explore_design_space
