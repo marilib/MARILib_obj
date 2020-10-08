@@ -194,10 +194,11 @@ class Optimizer(object):
 
         res = minimize(lambda x,*args:self.eval_optim_data_checked(x,*args)[0],
                        start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,), method="trust-constr",
-                       jac="3-point", hess=SR1(), hessp=None, bounds=var_bnd, tol=1e-5,
+                       jac="2-point", bounds=var_bnd,
                        constraints=NonlinearConstraint(fun=lambda x:self.eval_optim_data_checked(x,aircraft,var,cst,cst_mag,crt,crt_mag)[1],
-                                                       lb=0., ub=np.inf, jac='3-point'),
-                       options={'maxiter':500,'gtol': 1e-6})
+                                                       lb=0., ub=np.inf, jac='2-point'),
+                       options={'maxiter':500,'xtol': np.linalg.norm(start_value)*0.01,
+                                'initial_tr_radius': np.linalg.norm(start_value)*0.05 })
         return res
 
     def custom_descent_search(self,cost_fun, x0, delta=0.02, delta_end=0.005, pen=1e6):

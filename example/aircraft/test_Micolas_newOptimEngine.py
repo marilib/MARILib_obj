@@ -36,8 +36,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_thrust = unit.N_kN(165.)
-ac.airframe.wing.area = 135.
+ac.power_system.reference_thrust = unit.N_kN(170.)
+ac.airframe.wing.area = 125.
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 
@@ -71,9 +71,8 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 opt = process.Optimizer()
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
+opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)#,method='custom')
 algo_points= opt.computed_points
-print(algo_points)
 
 # raise Exception("Ici")
 
