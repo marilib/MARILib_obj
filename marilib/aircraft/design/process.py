@@ -116,6 +116,166 @@ class Optimizer(object):
         """
         self.computed_points = {}
 
+    def mdf(self,aircraft,var,var_bnd,cst,cst_mag,crt,method='trust-constr'):
+        """Run the Multidisciplinary Design Feasible procedure for a given aircraft.
+         The minimization procedure finds the minimal value of a given criteria with respect to given design variables,
+         and given constraints.
+
+         Ex: minimize the MTOW with respect to reference thrust and wing area.
+
+         :param method: {'trust-constr','custom'} default is 'trust-constr'.
+
+                * 'trust-constr' refers to the method :meth:`mdf_scipy_trust_constraint` which uses scipy.
+                * 'custom' refers to the method :meth:`custom_descent_search` with a kind of descent search algorythm.
+                    Recquires less evaluations and is often faster.
+        """
+        self.reset()
+        start_value = np.zeros(len(var))
+        for k, key in enumerate(var):  # put optimization variables in aircraft object
+            exec("start_value[k] = eval(key)")
+
+        crt_mag, unused = self.eval_optim_data(start_value, aircraft, var, cst, cst_mag, crt, 1.)
+
+        if method == 'trust-constr':
+            res = self.scipy_trust_constraint(aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag)
+
+        elif method == 'custom':
+            cost_const = lambda x_in: self.eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, 1.)
+            res = self.custom_descent_search(cost_const,start_value)
+
+        else:
+            raise ValueError("Invalid method : should be 'trust-constr' or 'custom' but found '%s'" %str(method))
+
+        print(res)
+
+
+    def scipy_trust_constraint(self,aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag):
+        """
+        Run the trust-constraint minimization procedure :func:`scipy.optimize.minimize` to minimize a given criterion
+        and satisfy given constraints for a given aircraft.
+        """
+
+        res = minimize(lambda x,*args:self.eval_optim_data_checked(x,*args)[0],
+                       start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,), method="trust-constr",
+                       jac="2-point", bounds=var_bnd,
+                       constraints=NonlinearConstraint(fun=lambda x:self.eval_optim_data_checked(x,aircraft,var,cst,cst_mag,crt,crt_mag)[1],
+                                                       lb=0., ub=np.inf, jac='2-point'),
+                       options={'maxiter':500,'xtol': np.linalg.norm(start_value)*0.01,
+                                'initial_tr_radius': np.linalg.norm(start_value)*0.05 })
+        return res
+
+    def custom_descent_search(self, cost_const, x0, relative_step_init=2e-2, relative_step_end=5e-3, c_tol=1e-2,
+                              relative_finite_diff_step = 1e-3):
+        """ A custom minimization method limited to 2 parameters problems (x1,x2).
+        This method is based on mximum descent algorythm.
+
+            1. Evaluate cost function (with constraint penalisation) on 3 points.
+
+        (-1,0)    (0,0)         + : computed points
+           +-------+
+                   |
+                   |
+                   +
+                 (0,-1)
+
+            2. Compute the 2D gradient of the cost function (taking into account penalized constraints).
+            3. Build a linear approximation of the cost function based on the the gradient.
+            4. Extrapolate the cost function on the gradient direction step by step until cost increases
+            5. Reduce the step size 'delta' by a factor 2 and restart from step 1.
+
+    The algorythm ends when the step is small enough.
+    More precisely when the relative step delta (percentage of initial starting point x0) is smaller than delta_end.
+
+        :param cost_const: a function that returns the criterion to be minimized and the constraints value for given
+                        values of the parameters. In MARILib, cost and constraints are evaluated simultaneously.
+        :param x0: a list of the two initial parameter values (x1,x2).
+        :param delta: the relative step for initial pattern size : 0< delta < 1.
+            :Example: If delta = 0.05, the pattern size will be 5% of the magnitude of x0 values.
+        :param delta_end: the relative step for for algorythm ending.
+        :param pen: penalisation factor to multiply the constraint value. The constraint is negative when unsatisfied.
+            :Example: This algorythm minimizes the modified cost function : criterion + pen*constraint
+        """
+        points = {}  # initialize the list of computed points (delta unit coordinate)
+
+        print("x0 ", x0)
+        if not isinstance(x0, type(np.array)):
+            x0 = np.array(list(x0))
+
+        # intialize current position and stepsize
+        crit,cst = cost_const(x0)
+        current_point = {"xy":x0, "criterion":crit, "constraints":cst}
+        relative_step = relative_step_init
+        dxdy = relative_finite_diff_step*x0
+        k = 0
+        while relative_step >= relative_step_end: # the minimzation ends when the relative step reaches the desired value
+
+            if any([c<0 for c in current_point["constraints"]]) : # a constraint is active -> find gradient of constraint and go to constraint=0
+                print("Active constraint")
+                grad, const_grad = self._gradient(current_point,cost_const,dxdy,const_grad=True)
+                # Newton Raphson iterate : find dx so that f(x0) + grad(f)*dx = 0, with f(x) the sum of active constraints at x.
+                # we make the assumption that constraints are linear:
+                # TODO : find constraint = 0
+                dx = -sum(c for c in current_point["constraints"] if c<0)/const_grad
+                xy = current_point["xy"] + dx
+                current_point["xy"] = xy
+                current_point["criterion"], current_point["constraints"] = cost_const(xy)
+
+
+            # update step size
+            relative_step = relative_step/2**k
+            step_size = relative_step * x0
+            print("Iter %d, relative_step = %.2g" % (k, relative_step))
+            crit_gradient, const_grad= self._gradient( cost_const, current_point, relative_finite_diff_step*x0)
+
+            xy = current_point["xy"]
+            crit = current_point["criterion"] -1  # set current_criter > criter to start loop
+            k=0
+            while crit<current_point["criterion"] :  # descent search
+                if k == 0:
+                    pass
+                else: # update current point
+                    current_point["xy"] = xy # update current position
+                    current_point["criterion"] = crit
+                    current_point["constraints"] = const
+
+                xy = xy - crit_gradient*step_size
+                crit,const = cost_const(xy)
+                print("\tpoint", xy)
+            k += 1
+
+        res = "---- Custom descent search ----\n>Number of evaluations : %d" %len(points)
+        return res
+
+    def _gradient(self, cost_const, current_point, finite_diff_step, constraints_grad=False):
+        """
+        Compute the normalized gradient of a function f(x,y) using order 1 finite difference scheme at point xy_ref.
+        If constraint_grad, is true, also compute the gradient of the constraint(s) returned by f.
+        :param xy_ref: the point of gradient evaluation, 2 element array-like.
+        :param finite_diff_step: [dx,dy], the finite diff step (array like)
+        :return: the list of points:
+        [[x    , y    , f(x,y)    ], -> current point
+         [x+dx , y    , f(x+dx,y) ],
+         [x    , y+dy , f(x,y+dy) ]]
+        """
+        grad_points = []  # store position, criterion and constraints for the two grad points
+        for step in [(-1, 0), (0, -1)]:
+            xy = current_point["xy"] + np.array(step) * finite_diff_step  # move current location by a step
+            crit, cst = cost_const(xy)
+            grad_points.append({"xy": xy, "criterion": crit, "constraints": cst})
+
+        print(grad_points)
+        df_dx = (current_point["criterion"] - grad_points[0]["criterion"])
+        df_dy = (current_point["criterion"] - grad_points[1]["criterion"])
+        crit_norm_gradient = np.array([df_dx, df_dy]) / np.sqrt(df_dx ** 2 + df_dy ** 2)
+        if constraints_grad:
+            df_dx = (current_point["constraint"] - grad_points[0]["constraints"])
+            df_dy = (current_point["constraints"] - grad_points[1]["constraints"])
+            const_norm_gradient = np.array([df_dx, df_dy]) / np.sqrt(df_dx ** 2 + df_dy ** 2)
+        else:
+            const_norm_gradient = []
+
+        return crit_norm_gradient, const_norm_gradient
+
     def eval_optim_data(self,x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
         """Compute criterion and constraints.
         """
@@ -156,145 +316,8 @@ class Optimizer(object):
         print("Constraints :", constraint)
         return criterion,constraint
 
-    def mdf(self,aircraft,var,var_bnd,cst,cst_mag,crt,method='trust-constr'):
-        """Run the Multidisciplinary Design Feasible procedure for a given aircraft.
-         The minimization procedure finds the minimal value of a given criteria with respect to given design variables,
-         and given constraints.
 
-         Ex: minimize the MTOW with respect to reference thrust and wing area.
-
-         :param method: {'trust-constr','custom'} default is 'trust-constr'.
-
-                * 'trust-constr' refers to the method :meth:`mdf_scipy_trust_constraint` which uses scipy.
-                * 'custom' refers to the method :meth:`custom_descent_search` with a kind of descent search algorythm.
-                    Recquires less evaluations and is often faster.
-        """
-        self.reset()
-        start_value = np.zeros(len(var))
-        for k, key in enumerate(var):  # put optimization variables in aircraft object
-            exec("start_value[k] = eval(key)")
-
-        crt_mag, unused = self.eval_optim_data(start_value, aircraft, var, cst, cst_mag, crt, 1.)
-
-        if method == 'trust-constr':
-            res = self.scipy_trust_constraint(aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag)
-
-        elif method == 'custom':
-            cost_const = lambda x_in: self.eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, 1.)
-            res = self.custom_descent_search(cost_const,start_value)
-
-        print(res)
-
-
-    def scipy_trust_constraint(self,aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag):
-        """
-        Run the trust-constraint minimization procedure :func:`scipy.optimize.minimize` to minimize a given criterion
-        and satisfy given constraints for a given aircraft.
-        """
-
-        res = minimize(lambda x,*args:self.eval_optim_data_checked(x,*args)[0],
-                       start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,), method="trust-constr",
-                       jac="2-point", bounds=var_bnd,
-                       constraints=NonlinearConstraint(fun=lambda x:self.eval_optim_data_checked(x,aircraft,var,cst,cst_mag,crt,crt_mag)[1],
-                                                       lb=0., ub=np.inf, jac='2-point'),
-                       options={'maxiter':500,'xtol': np.linalg.norm(start_value)*0.01,
-                                'initial_tr_radius': np.linalg.norm(start_value)*0.05 })
-        return res
-
-    def custom_descent_search(self,cost_fun, x0, delta=0.02, delta_end=0.005, pen=1e6):
-        """ A custom minimization method limited to 2 parameters problems (x1,x2).
-        This method is based on mximum descent algorythm.
-
-            1. Evaluate cost function (with constraint penalisation) on 3 points.
-
-        (-1,0)    (0,0)         + : computed points
-           +-------+
-                   |
-                   |
-                   +
-                 (0,-1)
-
-            2. Compute the 2D gradient of the cost function (taking into account penalized constraints).
-            3. Build a linear approximation of the cost function based on the the gradient.
-            4. Extrapolate the cost function on the gradient direction step by step until cost increases
-            5. Reduce the step size 'delta' by a factor 2 and restart from step 1.
-
-    The algorythm ends when the step is small enough.
-    More precisely when the relative step delta (percentage of initial starting point x0) is smaller than delta_end.
-
-        :param cost_fun: a function that returns the criterion to be minimized and the constraints value for given
-                        values of the parameters. In MARILib, cost and constraints are evaluated simultaneously.
-        :param x0: a list of the two initial parameter values (x1,x2).
-        :param delta: the relative step for initial pattern size : 0< delta < 1.
-            :Example: If delta = 0.05, the pattern size will be 5% of the magnitude of x0 values.
-        :param delta_end: the relative step for for algorythm ending.
-        :param pen: penalisation factor to multiply the constraint value. The constraint is negative when unsatisfied.
-            :Example: This algorythm minimizes the modified cost function : criterion + pen*constraint
-        """
-        points = {}  # initialize the list of computed points (delta unit coordinate)
-
-        print("x0 ", x0)
-        if not isinstance(x0, type(np.array)):
-            x0 = np.array(list(x0))
-
-        def custom_cost(x):
-            crt, cst = cost_fun(x)
-            return crt - sum([c*pen for c in cst if c<0])
-
-        xy = np.array([0, 0])  # set initial value in delta coordinates
-        xy_ref = xy
-        points[(0, 0)] = custom_cost(x0)  # put initial point in the points dict
-
-        scale = delta * x0  # one unit displacement of xy corresponds to delta0*x0 displacement in real x
-        k = 0
-        while delta >= delta_end:
-            print("Iter %d, delta = %f" % (k, delta))
-            current_points = []
-            for step in [(0, 0), (-1, 0), (0, -1)]:
-                xy = xy_ref + np.array(step) / 2 ** k  # move current location by a step
-                x = x0 + xy * scale
-                # print(x)
-                if tuple(xy) not in points.keys():  # this value is not already computed
-                    crt = custom_cost(x)
-                    points[tuple(xy)] = crt
-                    current_points.append([xy[0], xy[1], crt])
-                else:
-                    current_points.append([xy[0], xy[1], points[tuple(xy)]])
-
-            # Find the equation of the plan passing through the 3 points
-            zgradient, extrapolator = self.update_interpolator_and_gradient(current_points)
-            xy = xy_ref
-            crt_old = points[tuple(xy)] + 1  # set initialy criter_old > criter
-            crt = points[tuple(xy)]
-            while crt < crt_old:  # descent search
-                crt_old = crt
-                xy_ref = xy
-                xy = xy - zgradient / 2 ** k
-                x = x0 + xy * scale
-                crt = custom_cost(x)
-                points[tuple(xy)] = crt
-                print("\t", x)
-
-            k += 1
-            delta = delta / 2.
-
-        res = "---- Custom descent search ----\n>Number of evaluations : %d" %len(points)
-        return res
-
-    def update_interpolator_and_gradient(self,threePoints):
-        """
-        Compute the plane equation through three points.
-        Returns the gradient vector and interpolator function.
-        :param xxx : a three point matrix [[x1,y1,z1],[x2,y2,z2],[x3,y3,z3]]
-        """
-        a, b, c = np.linalg.solve(threePoints,
-                                  [1, 1, 1])  # find the coefficient of the plan passing through the 3 points
-        extrapolator = lambda x, y: (1. - a * x - b * y) / c
-        zgradient = np.array([-a / c, -b / c]) / np.linalg.norm([-a / c, -b / c])
-        return zgradient, extrapolator
-
-
-    def grid_minimum_search(cost_fun,x0,delta=0.02,pen=5e5):
+    def grid_minimum_search(self,cost_fun,x0,delta=0.02,pen=5e5):
         """ A custom minimization method limited to 2 parameters problems (x1,x2).
         This method uses a custom pattern search algorithm that requires a minimum number of call to the cost function.
         It takes advantage of the prior knowledge of the problem:
@@ -369,8 +392,8 @@ def explore_design_space(ac, var, step, data, file):
             # aircraft.airframe.nacelle.reference_thrust = thrust
             # aircraft.airframe.wing.area = area
 
-            #print("-----------------------------------------------------------------------")
-            #print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
+            print("-----------------------------------------------------------------------")
+            print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
             try:
                 mda(aircraft)   # Perform MDA
             except Exception:
