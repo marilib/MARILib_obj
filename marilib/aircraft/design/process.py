@@ -70,7 +70,6 @@ def mda(aircraft, mass_mission_matching=True):
     aircraft.power_system.thrust_analysis()
 
 
-
 def mda_hq(aircraft):
     """Perform Multidsciplinary_Design_Analysis
     All coupling constraints are solved in a relevent order
@@ -97,245 +96,250 @@ def mda_hq(aircraft):
 
     aircraft.power_system.thrust_analysis()
 
-already_done = {}
 
-def eval_optim_data_TEMP(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
-    """Compute criterion and constraints
+
+class Optimizer(object):
+    """A container for the optimization procedure.
+    The optimizer will prevent any optimization routine to run twice the MDA at the same point.
+    The computed_points dictionnary has the foolowing keys and values: :
+
+        * key: the position of the computed point as a key "(x,y)" a
+        * value : the value of the criterion and contraints list.
     """
-    in_key = str(x_in)
 
-    if in_key not in already_done.keys():
+    def __init__(self):
+        self.computed_points = {}  # store the points that are already evaluated (to avoid running mda twice during optimization)
+        self.check_for_doublon = True # should the optimizer check if points were already been computed before calling eval_optim_data
 
-        for k,key in enumerate(var):    #  Put optimization variables in aircraft object
-            exec(key+" = x_in[k]")
+    def reset(self):
+        """Empty the computed_points dict
+        """
+        self.computed_points = {}
 
-        mda(aircraft)                   #  Run MDA
+    def eval_optim_data(self,x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
+        """Compute criterion and constraints.
+        """
+        for k, key in enumerate(var):  # Put optimization variables in aircraft object
+            exec(key + " = x_in[k]")
+
+        mda(aircraft)  # Run MDA
 
         constraint = np.zeros(len(cst))
-        for k,key in enumerate(cst):    # put optimization variables in aircraft object
-            constraint[k] = eval(key)/eval(cst_mag[k])
+        for k, key in enumerate(cst):  # put optimization variables in aircraft object
+            constraint[k] = eval(key) / eval(cst_mag[k])
 
-        #criterion = eval(crt) * (20./crt_mag)
-        criterion = eval(crt)
+        criterion = eval(crt) / crt_mag
 
-        already_done[in_key] = [criterion,constraint]
+        self.computed_points[tuple(x_in)] = [criterion, constraint]
 
-    else:
-
-        criterion = already_done[in_key][0]
-        constraint = already_done[in_key][1]
-
-    return criterion,constraint
-
-def eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag):
-    """Compute criterion and constraints
-    """
-    in_key = str(x_in)
-
-    for k,key in enumerate(var):    #  Put optimization variables in aircraft object
-        exec(key+" = x_in[k]")
-
-    mda(aircraft)                   #  Run MDA
-
-    constraint = np.zeros(len(cst))
-    for k,key in enumerate(cst):    # put optimization variables in aircraft object
-        constraint[k] = eval(key)/eval(cst_mag[k])
-
-    #criterion = eval(crt) * (20./crt_mag)
-    criterion = eval(crt)
-
-    return criterion,constraint
-
-def eval_optim_cst(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
-    """Retrieve the constraints that bounds the optimization
-    """
-    crit,cst = eval_optim_data(x_in ,aircraft,var,cst,cst_mag,crt,crt_mag)
-    print("cst :",cst)
-    return cst
-
-def eval_optim_crt(x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
-    """Retrieve the cost function to be minimized (the "criterion")
-    """
-    crit,cst = eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,crt_mag)
-    print("Design :",x_in)
-    print("Crit :",crit)
-    return crit
+        return criterion,constraint
 
 
-def mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
-    """
-    Compute criterion and constraints
-    """
+    def eval_optim_data_checked(self,x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
+        """Compute criterion and constraints and check that it was not already computed.
+        """
+        in_key = tuple(x_in)
+        if self.check_for_doublon:
 
-    start_value = np.zeros(len(var))
-    for k,key in enumerate(var):    # put optimization variables in aircraft object
-        exec("start_value[k] = eval(key)")
+            if in_key not in self.computed_points.keys(): # check if this point has not been already evaluated
+                criterion,constraint = self.eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,crt_mag)
 
-    crt_mag,unused = eval_optim_data(start_value,aircraft,var,cst,cst_mag,crt,1.)
+            else:
+                criterion = self.computed_points[in_key][0]
+                constraint = self.computed_points[in_key][1]
 
-    res = minimize(eval_optim_crt, start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,), method="trust-constr",
-                   jac="3-point", hess=SR1(), hessp=None, bounds=var_bnd, tol=1e-5,
-                   constraints=NonlinearConstraint(fun=lambda x:eval_optim_cst(x,aircraft,var,cst,cst_mag,crt,crt_mag),
-                                                   lb=0., ub=np.inf, jac='3-point'),
-                   options={'maxiter':500,'gtol': 1e-6})
-    """res = minimize(eval_optim_crt, start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,),
-                   method="CG",
-                   bounds=var_bnd,
-                   constraints=NonlinearConstraint(fun=lambda x:eval_optim_cst(x,aircraft,var,cst,cst_mag,crt,crt_mag),
-                                                   lb=0., ub=np.inf),
-                   options={"gtol":10, "maxiter": 1}
-                   )"""
+        else:
+            criterion, constraint = self.eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, crt_mag)
 
-    #              tol=None, callback=None,
-    #              options={'grad': None, 'xtol': 1e-08, 'gtol': 1e-08, 'barrier_tol': 1e-08,
-    #                       'sparse_jacobian': None, 'maxiter': 1000, 'verbose': 0,
-    #                       'finite_diff_rel_step': None, 'initial_constr_penalty': 1.0,
-    #                       'initial_tr_radius': 1.0, 'initial_barrier_parameter': 0.1,
-    #                       'initial_barrier_tolerance': 0.1, 'factorization_method': None, 'disp': False})
+        print("-->Design point:", x_in)
+        print("Criterion :", criterion)
+        print("Constraints :", constraint)
+        return criterion,constraint
 
-    # res = minimize(eval_optim_crt, start_value, args=(aircraft,crit_index,crit_ref,mda_type,), method="SLSQP", bounds=search_domain,
-    #                constraints={"type":"ineq","fun":eval_optim_cst,"args":(aircraft,crit_index,crit_ref,mda_type,)},
-    #                jac="2-point",options={"maxiter":30,"ftol":1e-14,"eps":0.01},tol=1e-14)
+    def mdf(self,aircraft,var,var_bnd,cst,cst_mag,crt,method='trust-constr'):
+        """Run the Multidisciplinary Design Feasible procedure for a given aircraft.
+         The minimization procedure finds the minimal value of a given criteria with respect to given design variables,
+         and given constraints.
 
-    #res = minimize(eval_optim_crt, x_in, args=(aircraft,crit_index,crit_ref,mda_type,), method="COBYLA", bounds=((110000,140000),(120,160)),
-    #               constraints={"type":"ineq","fun":eval_optim_cst,"args":(aircraft,crit_index,crit_ref,mda_type,)},
-    #               options={"maxiter":100,"tol":0.1,"catol":0.0002,'rhobeg': 1.0})
-    print(res)
+         Ex: minimize the MTOW with respect to reference thrust and wing area.
 
-    return res
+         :param method: {'trust-constr','custom'} default is 'trust-constr'.
 
-# -------------------- CUSTOM OPTIMIZATION -------------------
-def custom_eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, crt_mag):
-    """Compute criterion and constraints
-    """
-    in_key = str(x_in)
+                * 'trust-constr' refers to the method :meth:`mdf_scipy_trust_constraint` which uses scipy.
+                * 'custom' refers to the method :meth:`custom_descent_search` with a kind of descent search algorythm.
+                    Recquires less evaluations and is often faster.
+        """
+        self.reset()
+        start_value = np.zeros(len(var))
+        for k, key in enumerate(var):  # put optimization variables in aircraft object
+            exec("start_value[k] = eval(key)")
 
-    for k, key in enumerate(var):  # Put optimization variables in aircraft object
-        exec(key + " = x_in[k]")
+        crt_mag, unused = self.eval_optim_data(start_value, aircraft, var, cst, cst_mag, crt, 1.)
 
-    mda(aircraft)  # Run MDA
+        if method == 'trust-constr':
+            res = self.scipy_trust_constraint(aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag)
 
-    constraint = np.zeros(len(cst))
-    for k, key in enumerate(cst):  # put optimization variables in aircraft object
-        constraint[k] = eval(key) / eval(cst_mag[k])
+        elif method == 'custom':
+            cost_const = lambda x_in: self.eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, 1.)
+            res = self.custom_descent_search(cost_const,start_value)
 
-    # criterion = eval(crt) * (20./crt_mag)
-    criterion = eval(crt)/crt_mag
+        print(res)
 
 
-    return criterion, constraint
+    def scipy_trust_constraint(self,aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag):
+        """
+        Run the trust-constraint minimization procedure :func:`scipy.optimize.minimize` to minimize a given criterion
+        and satisfy given constraints for a given aircraft.
+        """
 
-def custom_mdf(aircraft,var,var_bnd,cst,cst_mag,crt):
+        res = minimize(lambda x,*args:self.eval_optim_data_checked(x,*args)[0],
+                       start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,), method="trust-constr",
+                       jac="2-point", bounds=var_bnd,
+                       constraints=NonlinearConstraint(fun=lambda x:self.eval_optim_data_checked(x,aircraft,var,cst,cst_mag,crt,crt_mag)[1],
+                                                       lb=0., ub=np.inf, jac='2-point'),
+                       options={'maxiter':500,'xtol': np.linalg.norm(start_value)*0.01,
+                                'initial_tr_radius': np.linalg.norm(start_value)*0.05 })
+        return res
 
-    start_value = np.zeros(len(var))
-    for k, key in enumerate(var):  # put optimization variables in aircraft object
-        exec("start_value[k] = eval(key)")
-    mda(aircraft)
+    def custom_descent_search(self,cost_fun, x0, delta=0.02, delta_end=0.005, pen=1e6):
+        """ A custom minimization method limited to 2 parameters problems (x1,x2).
+        This method is based on mximum descent algorythm.
 
-    cost_fun = lambda x_in: custom_eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,1.)
+            1. Evaluate cost function (with constraint penalisation) on 3 points.
 
-    points = custom_minimum_search(cost_fun,start_value)
-    return points
+        (-1,0)    (0,0)         + : computed points
+           +-------+
+                   |
+                   |
+                   +
+                 (0,-1)
 
+            2. Compute the 2D gradient of the cost function (taking into account penalized constraints).
+            3. Build a linear approximation of the cost function based on the the gradient.
+            4. Extrapolate the cost function on the gradient direction step by step until cost increases
+            5. Reduce the step size 'delta' by a factor 2 and restart from step 1.
 
-def custom_minimum_search(cost_fun,x0,delta=0.01,pen=1e6):
-    """ A custom minimization method limited to 2 parameters problems (x1,x2).
-    This method uses a custom pattern search algorithm that requires a minimum number of call to the cost function.
-    It takes advantage of the prior knowledge of the problem:
+    The algorythm ends when the step is small enough.
+    More precisely when the relative step delta (percentage of initial starting point x0) is smaller than delta_end.
 
-        1. Evaluate cost function (with constraint penalisation) at current point : coordinate (0,0)
-        2. Evaluate, if not already done, the cost function in three other points to draw a square area of side1 :
-           coordinates (-1,0), (0,-1) relatively to current point
-        3. Build a linear approximation of the cost function based on the the 3 previous points.
-        4. Extrapolate the cost function on the surrounding points:
+        :param cost_fun: a function that returns the criterion to be minimized and the constraints value for given
+                        values of the parameters. In MARILib, cost and constraints are evaluated simultaneously.
+        :param x0: a list of the two initial parameter values (x1,x2).
+        :param delta: the relative step for initial pattern size : 0< delta < 1.
+            :Example: If delta = 0.05, the pattern size will be 5% of the magnitude of x0 values.
+        :param delta_end: the relative step for for algorythm ending.
+        :param pen: penalisation factor to multiply the constraint value. The constraint is negative when unsatisfied.
+            :Example: This algorythm minimizes the modified cost function : criterion + pen*constraint
+        """
+        points = {}  # initialize the list of computed points (delta unit coordinate)
 
-o------o-------o------o
-|                     |     o : extrapolated points
-|   (-1,0)   (0,0)    |     + : computed points
-o      +-------+      o
-|      |       |      |
-|      |       |      |
-o      o-------+      o
-|            (0,-1)   |
-|                     |
-o------o-------o------o
+        print("x0 ", x0)
+        if not isinstance(x0, type(np.array)):
+            x0 = np.array(list(x0))
 
-        5. Find the square cell (among the 9 cells defined by computed and extrapolated points)
-        with minimal average criterion value
-        Crt  = cost_function(x1,y1) - sum(unsatisfied constraints)
-            * If current cell is minimum : STOP (or refine of asked so)
-            * Else : move current point to the top right corner of the new candidate cell and go back to step 1.
+        def custom_cost(x):
+            crt, cst = cost_fun(x)
+            return crt - sum([c*pen for c in cst if c<0])
 
-    :param cost_fun: a function that returns the criterion to be minimized and the constraints value for given
-                    value of the parameters : length-2 tuple (x1,x2).
-    :param x0: a list of the two initial parameter values (x1,x2).
-    :param args: list of additional argument for cost_fun.
-    :param delta: the relative step for initial pattern size : 0< delta < 1.
-        :Example: If delta = 0.05, the pattern size will be 5% of the magnitude of x0 values.
-    :param pen: penalisation factor to multiply the constraint value. The constraint is negative when unsatisfied.
-        :Example: This algorythm minimizes the modified cost function : criterion + pen*constraint
-    """
-    points = {}  # initialize the list of computed points (delta unit coordinate)
+        xy = np.array([0, 0])  # set initial value in delta coordinates
+        xy_ref = xy
+        points[(0, 0)] = custom_cost(x0)  # put initial point in the points dict
 
-    print("x0 ",x0)
-    if not isinstance(x0,type(np.array)):
-        x0 = np.array(list(x0))
+        scale = delta * x0  # one unit displacement of xy corresponds to delta0*x0 displacement in real x
+        k = 0
+        while delta >= delta_end:
+            print("Iter %d, delta = %f" % (k, delta))
+            current_points = []
+            for step in [(0, 0), (-1, 0), (0, -1)]:
+                xy = xy_ref + np.array(step) / 2 ** k  # move current location by a step
+                x = x0 + xy * scale
+                # print(x)
+                if tuple(xy) not in points.keys():  # this value is not already computed
+                    crt = custom_cost(x)
+                    points[tuple(xy)] = crt
+                    current_points.append([xy[0], xy[1], crt])
+                else:
+                    current_points.append([xy[0], xy[1], points[tuple(xy)]])
 
-    def custom_cost(x):
-        crt,cst = cost_fun(x)
-        return crt - pen*sum([c for c in cst if c<0])
-
-    xy = np.array([0,0])  # set initial value in delta coordinates
-    points[(0,0)] = custom_cost(x0)  # put initial point in the points dict
-
-
-    while delta>1e-4:
-        stepsize = delta * x0
-        print("stepsize ", stepsize)
-        current_points = []
-        for step in [(0,0),(-1,0),(0,-1)]:
-            xy = np.array([0,0]) + np.array(step)  # move current location by a step
-            print("xy ", xy)
-            x = x0 + xy * stepsize
-            print("x ",x)
-            if tuple(xy) not in points.keys(): # this value is not already computed
+            # Find the equation of the plan passing through the 3 points
+            zgradient, extrapolator = self.update_interpolator_and_gradient(current_points)
+            xy = xy_ref
+            crt_old = points[tuple(xy)] + 1  # set initialy criter_old > criter
+            crt = points[tuple(xy)]
+            while crt < crt_old:  # descent search
+                crt_old = crt
+                xy_ref = xy
+                xy = xy - zgradient / 2 ** k
+                x = x0 + xy * scale
                 crt = custom_cost(x)
                 points[tuple(xy)] = crt
-                current_points.append([xy[0],xy[1],crt])
-            else:
-                current_points.append([xy[0],xy[1],points[tuple(xy)]])
+                print("\t", x)
 
-        # Find the equation of the plan passing through the 3 points
-        zgradient,extrapolator = update_interpolator_and_gradient(current_points)
-        xy = (0,0)
-        criter_old = points[xy]+1 # set initialy criter_old > criter
-        criter = points[xy]
-        while criter < criter_old:
-            xy = np.array(xy) - zgradient
-            x = x0 + xy * stepsize
-            criter_old = criter
-            criter = custom_cost(x)
-            points[tuple(xy)] = criter
-            print("2",xy,criter)
-        delta = 0.5*delta
+            k += 1
+            delta = delta / 2.
 
-    # TODO : extrapolate plane equation to retrieve z of other points
+        res = "---- Custom descent search ----\n>Number of evaluations : %d" %len(points)
+        return res
 
-    return [x0+np.array(xy)*stepsize for xy in points.keys()]
-
-def update_interpolator_and_gradient(threePoints):
-    """
-    Compute the plane equation through three points.
-    Returns the gradient vector and interpolator function.
-    :param xxx : a three point matrix [[x1,y1,z1],[x2,y2,z2],[x3,y3,z3]]
-    """
-    a, b, c = np.linalg.solve(threePoints,
-                              [1, 1, 1])  # find the coefficient of the plan passing through the 3 points
-    extrapolator = lambda x, y: (1. - a * x - b * y) / c
-    zgradient = np.array([-a / c, -b / c]) / np.linalg.norm([-a / c, -b / c])
-    return zgradient,extrapolator
+    def update_interpolator_and_gradient(self,threePoints):
+        """
+        Compute the plane equation through three points.
+        Returns the gradient vector and interpolator function.
+        :param xxx : a three point matrix [[x1,y1,z1],[x2,y2,z2],[x3,y3,z3]]
+        """
+        a, b, c = np.linalg.solve(threePoints,
+                                  [1, 1, 1])  # find the coefficient of the plan passing through the 3 points
+        extrapolator = lambda x, y: (1. - a * x - b * y) / c
+        zgradient = np.array([-a / c, -b / c]) / np.linalg.norm([-a / c, -b / c])
+        return zgradient, extrapolator
 
 
+    def grid_minimum_search(cost_fun,x0,delta=0.02,pen=5e5):
+        """ A custom minimization method limited to 2 parameters problems (x1,x2).
+        This method uses a custom pattern search algorithm that requires a minimum number of call to the cost function.
+        It takes advantage of the prior knowledge of the problem:
+
+            1. Evaluate cost function (with constraint penalisation) at current point : coordinate (0,0)
+            2. Evaluate, if not already done, the cost function in three other points to draw a square area of side1 :
+               coordinates (-1,0), (0,-1) relatively to current point
+            3. Build a linear approximation of the cost function based on the the 3 previous points.
+            4. Extrapolate the cost function on the surrounding points:
+
+            o------o-------o------o
+            |                     |     o : extrapolated points
+            |   (-1,0)   (0,0)    |     + : computed points
+            o      +-------+      o
+            |      |       |      |
+            |      |       |      |
+            o      o-------+      o
+            |            (0,-1)   |
+            |                     |
+            o------o-------o------o
+
+            5. Find the square cell (among the 9 cells defined by computed and extrapolated points)
+            with minimal average criterion value
+            Crt  = cost_function(x1,y1) - sum(unsatisfied constraints)
+                * If current cell is minimum : STOP (or refine of asked so)
+                * Else : move current point to the top right corner of the new candidate cell and go back to step 1.
+
+        :param cost_fun: a function that returns the criterion to be minimized and the constraints value for given
+                        value of the parameters : length-2 tuple (x1,x2).
+        :param x0: a list of the two initial parameter values (x1,x2).
+        :param args: list of additional argument for cost_fun.
+        :param delta: the relative step for initial pattern size : 0< delta < 1.
+            :Example: If delta = 0.05, the pattern size will be 5% of the magnitude of x0 values.
+        :param pen: penalisation factor to multiply the constraint value. The constraint is negative when unsatisfied.
+            :Example: This algorythm minimizes the modified cost function : criterion + pen*constraint
+        """
+
+        # TODO
+        raise NotImplementedError
+        return
+
+
+
+
+# -------------------- PLOT OPTIM RESULTS
 
 def explore_design_space(ac, var, step, data, file):
 
@@ -346,8 +350,8 @@ def explore_design_space(ac, var, step, data, file):
     slst_list = [res[0]*(1-1.5*step[0]), res[0]*(1-0.5*step[0]), res[0]*(1+0.5*step[0]), res[0]*(1+1.5*step[0])]
     area_list = [res[1]*(1-1.5*step[1]), res[1]*(1-0.5*step[1]), res[1]*(1+0.5*step[1]), res[1]*(1+1.5*step[1])]
 
-    print(slst_list)
-    print(area_list)
+    #print(slst_list)
+    #print(area_list)
 
     txt_list = []
     val_list = []
@@ -365,11 +369,13 @@ def explore_design_space(ac, var, step, data, file):
             # aircraft.airframe.nacelle.reference_thrust = thrust
             # aircraft.airframe.wing.area = area
 
-            print("-----------------------------------------------------------------------")
-            print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
-
-            mda(aircraft)   # Perform MDA
-            print("Done")
+            #print("-----------------------------------------------------------------------")
+            #print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
+            try:
+                mda(aircraft)   # Perform MDA
+            except Exception:
+                print("WARNING: unable to perform MDA at : thrust = ",thrust/10.," daN    area = ",area, " m")
+            #print("Done")
 
             res_list = []
             for j in range(len(data)):
@@ -426,7 +432,7 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
     X, Y = np.meshgrid(abs, ord)
     Z = dat[field].reshape(ny,nx)
     F[field] = interpolate.interp2d(X, Y, Z, kind=typ)
-    ctf = axe.contourf(X, Y, Z, cmap=mpl.cm.Greens, levels=100)
+    ctf = axe.contourf(X, Y, Z, cmap=mpl.cm.Greens, levels=10)
     axins = inset_axes(axe,
                        width="5%",  # width = 5% of parent_bbox width
                        height="60%",  # height : 50%
@@ -459,11 +465,10 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
 
     axe.legend(hdl,const, loc = "lower left", bbox_to_anchor=(1.02, 0.))
 
-    # Add optim points if specified ------------------------------------------
+    # Add optim points if specified -------------------------------------- MICOLAS
     if optim_points is not None:
         x,y = zip(*optim_points)
-        print(np.array(x)/10,y)
-        axe.scatter(np.array(x)/10,y)
+        axe.scatter(np.array(x)/10,y)  # /10 to rescale units ... WARNING not very robust !!
 
     # Set introspection
     #------------------------------------------------------------------------------------------------------
