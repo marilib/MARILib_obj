@@ -82,7 +82,7 @@ class SystemWithBattery(Component):
 
         elec_power_max = self.aircraft.power_system.reference_power / self.power_chain_efficiency
 
-        self.power_chain_mass = (1./self.wiring_pw_density + 1./self.cooling_pw_density) * (elec_power_max * n_engine)
+        self.power_chain_mass = (1./self.wiring_pw_density + 1./self.cooling_pw_density) * elec_power_max
 
         power_elec_cg = 0.70*nacelle_cg + 0.30*body_cg
 
@@ -137,8 +137,8 @@ class SystemWithFuelCell(Component):
         elec_power_max = self.aircraft.power_system.reference_power / self.power_chain_efficiency
 
         self.fuel_cell_mass = (elec_power_max * n_engine)/self.fuel_cell_pw_density
-        self.power_chain_mass =   (1./self.wiring_pw_density + 1./self.cooling_pw_density) * (elec_power_max * n_engine) \
-                                + self.fuel_cell_mass
+
+        self.power_chain_mass = (1./self.wiring_pw_density + 1./self.cooling_pw_density) * elec_power_max + self.fuel_cell_mass
 
         power_elec_cg = 0.70*nacelle_cg + 0.30*body_cg
 
@@ -208,11 +208,11 @@ class SystemPartialTurboElectric(Component):
 
         elec_power_max = self.chain_power / self.get_power_chain_efficiency()
 
-        # Power chain is designed assuming each turbofan can feed the total power if required
         self.power_chain_mass = (  1./self.generator_pw_density
                                  + 1./self.rectifier_pw_density
                                  + 1./self.wiring_pw_density
-                                 + 1./self.cooling_pw_density) * (elec_power_max * n_engine)
+                                 + 1./self.cooling_pw_density) * elec_power_max
+
         if self.battery=="yes":
             self.battery_mass = (self.lto_power * self.lto_time + self.cruise_energy) / self.battery_energy_density
             self.power_chain_mass += self.battery_mass

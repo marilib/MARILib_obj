@@ -17,7 +17,15 @@ from marilib.aircraft.airframe.component import Component
 from marilib.aircraft.model_config import get_init
 
 
-class InboardWingMountedNacelle(Component):
+class Nacelle(Component):
+
+    def __init__(self, aircraft):
+        self.aircraft = aircraft
+
+    def get_nacelle_type(self):
+        raise NotImplementedError
+
+class InboardWingMountedNacelle(Nacelle):
 
     def __init__(self, aircraft):
         super(InboardWingMountedNacelle, self).__init__(aircraft)
@@ -43,7 +51,7 @@ class InboardWingMountedNacelle(Component):
     def get_nacelle_type(self):
         return "Wing"
 
-class OutboardWingMountedNacelle(Component):
+class OutboardWingMountedNacelle(Nacelle):
 
     def __init__(self, aircraft):
         super(OutboardWingMountedNacelle, self).__init__(aircraft)
@@ -69,7 +77,7 @@ class OutboardWingMountedNacelle(Component):
     def get_nacelle_type(self):
         return "Wing"
 
-class ExternalWingMountedNacelle(Component):
+class ExternalWingMountedNacelle(Nacelle):
 
     def __init__(self, aircraft):
         super(ExternalWingMountedNacelle, self).__init__(aircraft)
@@ -95,7 +103,7 @@ class ExternalWingMountedNacelle(Component):
     def get_nacelle_type(self):
         return "Wing"
 
-class RearFuselageMountedNacelle(Component):
+class RearFuselageMountedNacelle(Nacelle):
 
     def __init__(self, aircraft):
         super(RearFuselageMountedNacelle, self).__init__(aircraft)
@@ -114,7 +122,7 @@ class RearFuselageMountedNacelle(Component):
     def get_nacelle_type(self):
         return "Body"
 
-class BodyTailConeMountedNacelle(Component):
+class BodyTailConeMountedNacelle(Nacelle):
 
     def __init__(self, aircraft):
         super(BodyTailConeMountedNacelle, self).__init__(aircraft)
@@ -145,7 +153,7 @@ class BodyTailConeMountedNacelle(Component):
     def get_nacelle_type(self):
         return "BodyTail"
 
-class PodTailConeMountedNacelle(Component):
+class PodTailConeMountedNacelle(Nacelle):
 
     def __init__(self, aircraft):
         super(PodTailConeMountedNacelle, self).__init__(aircraft)
@@ -193,7 +201,7 @@ class PodTailConeMountedNacelle(Component):
     def get_nacelle_type(self):
         return "PodTail"
 
-class PiggyBackTailConeMountedNacelle(Component):
+class PiggyBackTailConeMountedNacelle(Nacelle):
 
     def __init__(self, aircraft):
         super(PiggyBackTailConeMountedNacelle, self).__init__(aircraft)
@@ -234,7 +242,7 @@ class RatingFactor(object):
 
 
 
-class SemiEmpiricTf0Nacelle(Component):
+class SemiEmpiricTf0Nacelle(object):
 
     def __init__(self, aircraft):
         super(SemiEmpiricTf0Nacelle, self).__init__(aircraft)
@@ -287,8 +295,11 @@ class SemiEmpiricTf0Nacelle(Component):
         return (self.vertical_margin - 0.45)*self.width
 
     def eval_geometry(self):
-        # Update power transfert in case of hybridization
-        self.aircraft.power_system.update_power_transfert()
+        # Set nominal power offtake
+        chain_power = self.aircraft.airframe.system.chain_power
+        power_chain_efficiency = self.aircraft.airframe.system.get_power_chain_efficiency()
+        n_engine = self.aircraft.power_system.n_engine
+        self.reference_offtake = chain_power/power_chain_efficiency/n_engine
 
         reference_thrust = self.aircraft.power_system.get_reference_thrust()
 
@@ -390,7 +401,7 @@ class RearFuselageMountedTf0Nacelle(SemiEmpiricTf0Nacelle,RearFuselageMountedNac
 
 
 
-class SemiEmpiricTfNacelle(Component):
+class SemiEmpiricTfNacelle(object):
 
     def __init__(self, aircraft):
         super(SemiEmpiricTfNacelle, self).__init__(aircraft)
@@ -443,8 +454,11 @@ class SemiEmpiricTfNacelle(Component):
         return (self.vertical_margin - 0.45)*self.width
 
     def eval_geometry(self):
-        # Update power transfert in case of hybridization, here : set power offtake
-        self.aircraft.power_system.update_power_transfert()
+        # Set nominal power offtake
+        chain_power = self.aircraft.airframe.system.chain_power
+        power_chain_efficiency = self.aircraft.airframe.system.get_power_chain_efficiency()
+        n_engine = self.aircraft.power_system.n_engine
+        self.reference_offtake = chain_power/power_chain_efficiency/n_engine    # Total power offtake is split between all engines
 
         reference_thrust = self.aircraft.power_system.get_reference_thrust()
 
@@ -834,7 +848,7 @@ class PiggyBackTailConeMountedTfNacelle(SemiEmpiricTfBliNacelle,PiggyBackTailCon
 
 
 
-class SemiEmpiricEfNacelle(Component):
+class SemiEmpiricEfNacelle(object):
 
     def __init__(self, aircraft):
         super(SemiEmpiricEfNacelle, self).__init__(aircraft)
@@ -1230,7 +1244,7 @@ class PodTailConeMountedEfNacelle(SemiEmpiricEfBliNacelle,PodTailConeMountedNace
 
 
 
-class SemiEmpiricTpNacelle(Component):
+class SemiEmpiricTpNacelle(object):
 
     def __init__(self, aircraft):
         super(SemiEmpiricTpNacelle, self).__init__(aircraft)
@@ -1337,7 +1351,7 @@ class InboardWingMountedTpNacelle(SemiEmpiricTpNacelle,InboardWingMountedNacelle
 
 
 
-class SemiEmpiricEpNacelle(Component):
+class SemiEmpiricEpNacelle(object):
 
     def __init__(self, aircraft):
         super(SemiEmpiricEpNacelle, self).__init__(aircraft)

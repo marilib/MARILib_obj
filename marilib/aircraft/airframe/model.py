@@ -423,9 +423,6 @@ class Turbofan(PowerSystem, Flight):
     def get_reference_thrust(self):
         return self.reference_thrust
 
-    def update_power_transfert(self):
-        pass
-
     def thrust_analysis(self):
         self.thrust_requirement()
         for rating in self.data.keys():
@@ -909,12 +906,6 @@ class PartialTurboElectric(PowerSystem, Flight):
 
     def get_reference_power(self, type):
         return self.aircraft.airframe.system.chain_power
-
-    def update_power_transfert(self):
-        ref_power = self.aircraft.airframe.system.chain_power
-        power_chain_efficiency = self.aircraft.airframe.system.get_power_chain_efficiency()
-        n_engine = self.aircraft.power_system.n_engine
-        self.aircraft.airframe.nacelle.reference_offtake = ref_power/power_chain_efficiency/n_engine
 
     def thrust_analysis(self):
         self.thrust_requirement()
