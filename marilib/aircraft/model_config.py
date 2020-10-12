@@ -85,7 +85,7 @@ model_config = {
     "TankWingPod":{
         "span_ratio": [0.65, "no_dim", "Relative span wise position of the tank"],
         "x_loc_ratio": [0.3, "no_dim", "Fraction of the tank length behind the wing"],
-        "z_loc_ratio": [0.7, "no_dim", "Fraction of the tank diameter between the wing and the tank"],
+        "z_loc_ratio": [0., "no_dim", "Fraction of the tank diameter between the wing and the tank"],
         "length": ["function", "m", "Length of the tank"],
         "width": ["function", "m", "Diameter of the tank"],
         "surface_mass": [10., "kg/m2", "Mass per surface unit of the tank structure"],
@@ -142,7 +142,10 @@ model_config = {
         "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
     },
     "SystemPartialTurboElectric":{
-        "chain_power": ["function", "kW", "Electric chain power"],
+        "chain_power_pod": ["function", "kW", "Electric shaft power of the wing tank tail electric fan"],
+        "chain_power_body": ["function", "kW", "Electric shaft power of the main body tail electric fan"],
+        "chain_power_piggyback": ["function", "kW", "Electric shaft power of piggyback body tail electric fan"],
+        "chain_power": ["function", "kW", "Total electric shaft power"],
         "battery": ["no", "string", "Use of battery, 'yes', 'no'"],
         "battery_density": [2800., "kg/m3", "Battery density"],
         "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"],
@@ -226,7 +229,8 @@ model_config = {
         "bli_effect": ["yes", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
         "hub_width": [0.6, "m", "Fan hub diameter"],
         "lateral_margin": [1.5, "no_dim", "Lateral margin as a fraction of nacelle width"],
-        "x_loc_ratio": [0.5, "no_dim", "Fraction of the tank length behind the wing"],
+        "x_loc_ratio": [0.35, "no_dim", "Fraction of the tank length behind the wing"],
+        "z_loc_ratio": [-0.2, "no_dim", "Fraction of the tank diameter under the wing"],
         "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
     },
     "PiggyBackTailConeMountedNacelle":{

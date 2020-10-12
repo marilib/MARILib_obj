@@ -524,6 +524,9 @@ class Turboprop(PowerSystem, Flight):
     def get_reference_thrust(self):
         return self.reference_power * (0.82/87.26)
 
+    def get_reference_power(self):
+        return self.aircraft.power_system.reference_power
+
     def reference_power_offtake(self):
         return 0.
 
@@ -632,6 +635,9 @@ class Electroprop(PowerSystem, Flight):
 
     def get_reference_thrust(self):
         return self.reference_power * (0.82/87.26)
+
+    def get_reference_power(self):
+        return self.aircraft.power_system.reference_power
 
     def thrust_analysis(self):
         self.thrust_requirement()
@@ -766,7 +772,7 @@ class Electrofan(PowerSystem, Flight):
                      "MCL":ThrustDataEf(aircraft, nei=0),
                      "MCR":ThrustDataEf(aircraft, nei=0)}
 
-    def get_reference_power(self):
+    def get_reference_power(self, type):
         return self.reference_power
 
     def get_reference_thrust(self):
@@ -901,16 +907,12 @@ class PartialTurboElectric(PowerSystem, Flight):
     def get_reference_thrust(self):
         return self.reference_thrust
 
-    def get_reference_power(self):
+    def get_reference_power(self, type):
         return self.aircraft.airframe.system.chain_power
 
     def update_power_transfert(self):
         ref_power = self.aircraft.airframe.system.chain_power
-        power_chain_efficiency =   self.aircraft.airframe.system.generator_efficiency \
-                                 * self.aircraft.airframe.system.rectifier_efficiency \
-                                 * self.aircraft.airframe.system.wiring_efficiency \
-                                 * self.aircraft.airframe.tail_nacelle.controller_efficiency \
-                                 * self.aircraft.airframe.tail_nacelle.motor_efficiency
+        power_chain_efficiency = self.aircraft.airframe.system.get_power_chain_efficiency()
         n_engine = self.aircraft.power_system.n_engine
         self.aircraft.airframe.nacelle.reference_offtake = ref_power/power_chain_efficiency/n_engine
 
@@ -1013,4 +1015,98 @@ class PartialTurboElectric(PowerSystem, Flight):
         g = earth.gravity()
         return dict["sfc"]*(mass*g/dict["lod"])*time
 
+class PartialTurboElectricPods(PartialTurboElectric):
 
+    def __init__(self, aircraft):
+        super(PartialTurboElectricPods, self).__init__(aircraft)
+
+    def get_reference_power(self,type):
+        if type=="BodyTail":
+            return self.aircraft.airframe.system.chain_power_body
+        elif type=="PodTail":
+            return self.aircraft.airframe.system.chain_power_pod
+        else:
+            raise Exception("Bad use of this class")
+
+    def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
+        """Total thrust of a series architecture of turbofan engine and electrofan
+        """
+        n_engine = self.aircraft.power_system.n_engine
+        fuel_type = self.aircraft.arrangement.fuel_type
+        fuel_heat = earth.fuel_heat(fuel_type)
+
+        # Compute power required by body tail electrofan
+        dict_ef1 = self.aircraft.airframe.tail_nacelle.unitary_thrust(pamb,tamb,mach,rating)
+
+        # Compute power required by tank pod tail electrofan
+        dict_ef2 = self.aircraft.airframe.pod_tail_nacelle.unitary_thrust(pamb,tamb,mach,rating)
+
+        pw_elec = dict_ef1["pw"] + 2.*dict_ef2["pw"]
+
+        # Power offtake for one single engine
+        pw_offtake =    pw_elec \
+                     / self.aircraft.airframe.system.wiring_efficiency \
+                     / self.aircraft.airframe.system.rectifier_efficiency \
+                     / self.aircraft.airframe.system.generator_efficiency \
+                     / (n_engine - nei)
+
+        # Then, compute turbofan thrust according to required power offtake
+        dict_tf = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+
+        fn1 = dict_tf["fn"]*(n_engine-nei)              # All turbofan thrust
+        fn = fn1 + dict_ef1["fn"] + 2.*dict_ef2["fn"]   # Total thrust
+        ff = dict_tf["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
+        sfc = ff / fn                       # Global SFC
+        t41 = dict_tf["t4"]
+        efn = dict_ef1["fn"] + 2.*dict_ef2["fn"]
+        epw = dict_ef1["pw"] + 2.*dict_ef2["pw"]
+
+        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41, "fn1":fn1, "efn":efn, "epw":epw, "sec":epw/efn}
+
+class PartialTurboElectricPiggyBack(PartialTurboElectric):
+
+    def __init__(self, aircraft):
+        super(PartialTurboElectricPiggyBack, self).__init__(aircraft)
+
+    def get_reference_power(self,type):
+        if type=="BodyTail":
+            return self.aircraft.airframe.system.chain_power_body
+        elif type=="PiggyBackTail":
+            return self.aircraft.airframe.system.chain_power_piggyback
+        else:
+            raise Exception("Bad use of this class")
+
+    def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
+        """Total thrust of a series architecture of turbofan engine and electrofan
+        """
+        n_engine = self.aircraft.power_system.n_engine
+        fuel_type = self.aircraft.arrangement.fuel_type
+        fuel_heat = earth.fuel_heat(fuel_type)
+
+        # Compute power required by body tail electrofan
+        dict_ef1 = self.aircraft.airframe.tail_nacelle.unitary_thrust(pamb,tamb,mach,rating)
+
+        # Compute power required by piggyback tail electrofan
+        dict_ef2 = self.aircraft.airframe.other_tail_nacelle.unitary_thrust(pamb,tamb,mach,rating)
+
+        pw_elec = dict_ef1["pw"] + dict_ef2["pw"]
+
+        # Power offtake for one single engine
+        pw_offtake =    pw_elec \
+                     / self.aircraft.airframe.system.wiring_efficiency \
+                     / self.aircraft.airframe.system.rectifier_efficiency \
+                     / self.aircraft.airframe.system.generator_efficiency \
+                     / (n_engine - nei)
+
+        # Then, compute turbofan thrust according to required power offtake
+        dict_tf = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+
+        fn1 = dict_tf["fn"]*(n_engine-nei)          # All turbofan thrust
+        fn = fn1 + dict_ef1["fn"] + dict_ef2["fn"]  # Total thrust
+        ff = dict_tf["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
+        sfc = ff / fn                       # Global SFC
+        t41 = dict_tf["t4"]
+        efn = dict_ef1["fn"] + dict_ef2["fn"]
+        epw = dict_ef1["pw"] + dict_ef2["pw"]
+
+        return {"fn":fn, "ff":ff, "sfc":sfc, "t4":t41, "fn1":fn1, "efn":efn, "epw":epw, "sec":epw/efn}

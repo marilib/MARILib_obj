@@ -39,8 +39,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(2500.)
-ac.airframe.wing.area = 65.
+ac.power_system.reference_power = unit.W_kW(2600.)
+ac.airframe.wing.area = 68.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)

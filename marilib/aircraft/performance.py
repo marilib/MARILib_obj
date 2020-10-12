@@ -376,13 +376,13 @@ class Flight(object):
         """
         n_engine = self.aircraft.power_system.n_engine
         reference_thrust = self.aircraft.power_system.get_reference_thrust()
-        engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
         fuel_type = self.aircraft.arrangement.fuel_type
 
         time_taxi_out = 540.
         time_take_off = 220.*tow/(reference_thrust*n_engine)
 
         if fuel_type!="battery":
+            engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
             fuel_mass_factor = earth.fuel_heat("kerosene") / earth.fuel_heat(fuel_type)
             fuel_taxi_out = fuel_mass_factor*(34. + 2.3e-4*reference_thrust)*n_engine
             fuel_take_off = fuel_mass_factor*1e-4*(2.8+2.3/engine_bpr)*tow
@@ -400,13 +400,13 @@ class Flight(object):
         """
         n_engine = self.aircraft.power_system.n_engine
         reference_thrust = self.aircraft.power_system.get_reference_thrust()
-        engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
         fuel_type = self.aircraft.arrangement.fuel_type
 
         time_landing = 180.
         time_taxi_in = 420.
 
         if fuel_type!="battery":
+            engine_bpr = self.aircraft.airframe.nacelle.engine_bpr
             fuel_mass_factor = earth.fuel_heat("kerosene") / earth.fuel_heat(fuel_type)
             fuel_landing = fuel_mass_factor*1e-4*(0.5+2.3/engine_bpr)*ldw
             fuel_taxi_in = fuel_mass_factor*(26. + 1.8e-4*reference_thrust)*n_engine

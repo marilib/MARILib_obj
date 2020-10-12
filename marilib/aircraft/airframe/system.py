@@ -158,31 +158,40 @@ class SystemPartialTurboElectric(Component):
     def __init__(self, aircraft):
         super(SystemPartialTurboElectric, self).__init__(aircraft)
 
-        self.chain_power = get_init(self,"chain_power", val=0.2*init_power(aircraft))
+        class_name = "SystemPartialTurboElectric"
 
-        self.battery = get_init(self,"battery")
-        self.battery_density = get_init(self,"battery_density")
-        self.battery_energy_density = get_init(self,"battery_energy_density")
-        self.lto_power = get_init(self,"lto_power")
-        self.lto_time = get_init(self,"lto_time")
-        self.cruise_energy = get_init(self,"cruise_energy")
+        self.chain_power = get_init(class_name,"chain_power", val=0.2*init_power(aircraft))
 
-        self.generator_efficiency = get_init(self,"generator_efficiency")
-        self.generator_pw_density = get_init(self,"generator_pw_density")
+        self.battery = get_init(class_name,"battery")
+        self.battery_density = get_init(class_name,"battery_density")
+        self.battery_energy_density = get_init(class_name,"battery_energy_density")
+        self.lto_power = get_init(class_name,"lto_power")
+        self.lto_time = get_init(class_name,"lto_time")
+        self.cruise_energy = get_init(class_name,"cruise_energy")
 
-        self.rectifier_efficiency = get_init(self,"rectifier_efficiency")
-        self.rectifier_pw_density = get_init(self,"rectifier_pw_density")
+        self.generator_efficiency = get_init(class_name,"generator_efficiency")
+        self.generator_pw_density = get_init(class_name,"generator_pw_density")
 
-        self.wiring_efficiency = get_init(self,"wiring_efficiency")
-        self.wiring_pw_density = get_init(self,"wiring_pw_density")
+        self.rectifier_efficiency = get_init(class_name,"rectifier_efficiency")
+        self.rectifier_pw_density = get_init(class_name,"rectifier_pw_density")
 
-        self.cooling_efficiency = get_init(self,"cooling_efficiency")
-        self.cooling_pw_density = get_init(self,"cooling_pw_density")
+        self.wiring_efficiency = get_init(class_name,"wiring_efficiency")
+        self.wiring_pw_density = get_init(class_name,"wiring_pw_density")
+
+        self.cooling_efficiency = get_init(class_name,"cooling_efficiency")
+        self.cooling_pw_density = get_init(class_name,"cooling_pw_density")
 
         self.power_chain_efficiency = None
 
         self.battery_mass = None
         self.power_chain_mass = None
+
+    def get_power_chain_efficiency(self):
+        self.power_chain_efficiency =   self.generator_efficiency * self.rectifier_efficiency \
+                                      * self.wiring_efficiency * self.cooling_efficiency \
+                                      * self.aircraft.airframe.tail_nacelle.controller_efficiency \
+                                      * self.aircraft.airframe.tail_nacelle.motor_efficiency
+        return self.power_chain_efficiency
 
     def eval_geometry(self):
         self.frame_origin = [0., 0., 0.]
@@ -197,11 +206,7 @@ class SystemPartialTurboElectric(Component):
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
         n_engine = self.aircraft.power_system.n_engine
 
-        self.power_chain_efficiency =   self.generator_efficiency * self.rectifier_efficiency * self.wiring_efficiency * self.cooling_efficiency \
-                                      * self.aircraft.airframe.tail_nacelle.controller_efficiency \
-                                      * self.aircraft.airframe.tail_nacelle.motor_efficiency
-
-        elec_power_max = self.chain_power / self.power_chain_efficiency
+        elec_power_max = self.chain_power / self.get_power_chain_efficiency()
 
         # Power chain is designed assuming each turbofan can feed the total power if required
         self.power_chain_mass = (  1./self.generator_pw_density
@@ -226,3 +231,32 @@ class SystemPartialTurboElectric(Component):
                   + 0.10*nacelle_cg \
                   + 0.10*power_elec_cg
 
+
+class SystemPartialTurboElectricPods(SystemPartialTurboElectric):
+
+    def __init__(self, aircraft):
+        super(SystemPartialTurboElectricPods, self).__init__(aircraft)
+
+        class_name = "SystemPartialTurboElectric"
+
+        self.chain_power_body = get_init(class_name,"chain_power_body", val=0.1*init_power(aircraft))
+        self.chain_power_pod = get_init(class_name,"chain_power_pod", val=0.05*init_power(aircraft))
+
+    def eval_geometry(self):
+        self.frame_origin = [0., 0., 0.]
+        self.chain_power = self.chain_power_body + 2.*self.chain_power_pod
+
+
+class SystemPartialTurboElectricPiggyBack(SystemPartialTurboElectric):
+
+    def __init__(self, aircraft):
+        super(SystemPartialTurboElectricPiggyBack, self).__init__(aircraft)
+
+        class_name = "SystemPartialTurboElectric"
+
+        self.chain_power_body = get_init(class_name,"chain_power_body", val=0.1*init_power(aircraft))
+        self.chain_power_piggyback = get_init(class_name,"chain_power_piggyback", val=0.1*init_power(aircraft))
+
+    def eval_geometry(self):
+        self.frame_origin = [0., 0., 0.]
+        self.chain_power = self.chain_power_body + self.chain_power_piggyback

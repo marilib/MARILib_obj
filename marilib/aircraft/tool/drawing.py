@@ -114,7 +114,7 @@ class Drawing(object):
         nac_height = self.aircraft.airframe.nacelle.width
         nac_width = self.aircraft.airframe.nacelle.width
         if (self.aircraft.arrangement.nacelle_attachment=="body_cones"):
-            if self.aircraft.arrangement.power_architecture=="pte_p":
+            if self.aircraft.arrangement.power_architecture=="pte_piggy":
                 nac_x_ext = self.aircraft.airframe.nacelle.frame_origin[0]
                 nac_y_ext = self.aircraft.airframe.nacelle.frame_origin[1]
                 nac_z_ext = self.aircraft.airframe.nacelle.frame_origin[2]
@@ -142,7 +142,7 @@ class Drawing(object):
         if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
             prop_width = self.aircraft.airframe.nacelle.propeller_width
 
-        if (self.aircraft.arrangement.power_architecture in ["pte","pte_p"]):
+        if (self.aircraft.arrangement.power_architecture in ["pte","pte_piggy"]):
             r_nac_length = self.aircraft.airframe.tail_nacelle.length
             r_nac_width = self.aircraft.airframe.tail_nacelle.width
             r_nac_x_axe = self.aircraft.airframe.tail_nacelle.frame_origin[0]
@@ -333,7 +333,7 @@ class Drawing(object):
 
         # Rear nacelle
         #-----------------------------------------------------------------------------------------------------------
-        if (self.aircraft.arrangement.power_architecture in ["pte","pte_p"] or \
+        if (self.aircraft.arrangement.power_architecture in ["pte","pte_piggy"] or \
             self.aircraft.arrangement.nacelle_attachment=="body_cones"):
             r_nac_xz,r_nac_xy,r_nac_yz,r_fan_yz = self.nacelle_shape(r_nac_x_axe,r_nac_y_axe,r_nac_z_axe,r_nac_width,r_nac_width,r_nac_length,cyl)
 
@@ -427,13 +427,13 @@ class Drawing(object):
         else:
             raise Exception("draw_3d_view, vertical_tail.attachment value is out of range")
 
-        if (self.aircraft.arrangement.power_architecture in ["pte","pte_p"] or \
+        if (self.aircraft.arrangement.power_architecture in ["pte","pte_piggy"] or \
             self.aircraft.arrangement.nacelle_attachment=="body_cones"):
             plt.plot(xTopView+r_nac_xy[0:,0], yTopView+r_nac_xy[0:,1], color="grey", zorder=7)        # rear nacelle top view
 
         # Draw side view
         #-----------------------------------------------------------------------------------------------------------
-        if (self.aircraft.arrangement.power_architecture in ["pte","pte_p"] or \
+        if (self.aircraft.arrangement.power_architecture in ["pte","pte_piggy"] or \
             self.aircraft.arrangement.nacelle_attachment=="body_cones"):
             plt.fill(xSideView+vtp_xz[0:,0], ySideView+vtp_xz[0:,1], color="white", zorder=6)      # vtp_ side view
             plt.plot(xSideView+vtp_xz[0:,0], ySideView+vtp_xz[0:,1], color="grey", zorder=7)      # vtp_ side view
@@ -448,7 +448,7 @@ class Drawing(object):
             plt.fill(xSideView+pod_side[0:,0], ySideView+pod_side[0:,1], color="white", zorder=1)     # Pod side view
             plt.plot(xSideView+pod_side[0:,0], ySideView+pod_side[0:,1], color="grey", zorder=1)      # Pod side view
 
-        if (self.aircraft.arrangement.power_architecture in ["pte","pte_p"] or \
+        if (self.aircraft.arrangement.power_architecture in ["pte","pte_piggy"] or \
             self.aircraft.arrangement.nacelle_attachment=="body_cones"):
             plt.fill(xSideView+r_nac_xz[0:,0], ySideView+r_nac_xz[0:,1], color="white", zorder=4)   # rear nacelle side view
             plt.plot(xSideView+r_nac_xz[0:,0], ySideView+r_nac_xz[0:,1], color="grey", zorder=5)    # rear nacelle side view
@@ -498,7 +498,7 @@ class Drawing(object):
 
         plt.plot(xFrontView-wing_yz[0:,0], yFrontView+wing_yz[0:,1], color="grey", zorder=2)   # wing_ front view
 
-        if (self.aircraft.arrangement.power_architecture in ["pte","pte_p"] or \
+        if (self.aircraft.arrangement.power_architecture in ["pte","pte_piggy"] or \
             self.aircraft.arrangement.nacelle_attachment=="body_cones"):
             plt.plot(xFrontView-r_nac_yz[0:,0], yFrontView+r_nac_yz[0:,1], color="grey", zorder=3)    # rear nacelle front view
             plt.plot(xFrontView-r_fan_yz[0:,0], yFrontView+r_fan_yz[0:,1], color="grey", zorder=3)    # rear inlet front view

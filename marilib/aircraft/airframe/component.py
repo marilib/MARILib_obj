@@ -141,16 +141,16 @@ class Cabin(Component):
 
     def __m_pax_nominal(self):
         design_range = self.aircraft.requirement.design_range
-        if  (design_range <= unit.m_NM(500.)): m_pax_nominal = 85.
-        elif(design_range <= unit.m_NM(1500.)): m_pax_nominal = 95.
-        elif(design_range <= unit.m_NM(3500.)): m_pax_nominal = 100.
+        if  (design_range <= unit.m_NM(500.)): m_pax_nominal = 95.
+        elif(design_range <= unit.m_NM(1500.)): m_pax_nominal = 105.
+        elif(design_range <= unit.m_NM(3500.)): m_pax_nominal = 105.
         elif(design_range <= unit.m_NM(5500.)): m_pax_nominal = 105.
         else: m_pax_nominal = 110.
         return m_pax_nominal
 
     def __m_pax_max(self):
-        if(self.aircraft.requirement.design_range <= unit.m_NM(500.)): m_pax_max = 95.
-        elif(self.aircraft.requirement.design_range <= unit.m_NM(1500.)): m_pax_max = 105.
+        if(self.aircraft.requirement.design_range <= unit.m_NM(500.)): m_pax_max = 105.
+        elif(self.aircraft.requirement.design_range <= unit.m_NM(1500.)): m_pax_max = 110.
         elif(self.aircraft.requirement.design_range <= unit.m_NM(3500.)): m_pax_max = 120.
         elif(self.aircraft.requirement.design_range <= unit.m_NM(5500.)): m_pax_max = 135.
         else: m_pax_max = 150.
@@ -352,7 +352,7 @@ class Wing(Component):
 
     def aspect_ratio(self):
         if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): ar = 9
-        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","pte_p","exef"]): ar = 9
+        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","pte_pod","pte_piggy","exef"]): ar = 9
         elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): ar = 10
         else: raise Exception("propulsion.architecture index is out of range")
         return ar
@@ -363,7 +363,7 @@ class Wing(Component):
 
     def high_lift_type(self):
         if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): hld_type = 9
-        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","pte_p","exef"]): hld_type = 9
+        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","pte_pod","pte_piggy","exef"]): hld_type = 9
         elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): hld_type = 2
         else: raise Exception("propulsion.architecture index is out of range")
         return hld_type
@@ -1305,7 +1305,7 @@ class TankWingPod(Component):
 
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
-        if (self.aircraft.arrangement.nacelle_attachment == "pod"):
+        if (self.aircraft.arrangement.nacelle_attachment == "pods"):
             y_axe = self.aircraft.airframe.nacelle.locate_nacelle()[1]
         else:
             y_axe = self.span_ratio * wing_tip_loc[1]
