@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 
 from marilib.utils import unit
 
+from marilib.aircraft.airframe.component import Nacelle
+
 
 class Drawing(object):
 
@@ -53,6 +55,71 @@ class Drawing(object):
         plt.show()
 
     def view_3d(self, window_title):
+        """
+        Build a 3 views drawing of the airplane
+        """
+        plot_title = self.aircraft.name
+
+        # Drawing_ box
+        #-----------------------------------------------------------------------------------------------------------
+        fig,axes = plt.subplots(1,1)
+        fig.canvas.set_window_title(window_title)
+        fig.suptitle(plot_title, fontsize=14)
+        axes.set_aspect('equal', 'box')
+        plt.plot(np.array([0,100,100,0,0]), np.array([0,0,100,100,0]))      # Draw a square box of 100m side
+
+        xTopView = 50 - (self.aircraft.airframe.wing.mac_loc[0] + 0.25*self.aircraft.airframe.wing.mac)      # Top view positionning
+        yTopView = 50
+
+        xSideView = 50 - (self.aircraft.airframe.wing.mac_loc[0] + 0.25*self.aircraft.airframe.wing.mac)       # Top view positionning
+        ySideView = 82
+
+        xFrontView = 50
+        yFrontView = 10
+
+        ref = {"xy":[xTopView,yTopView],"yz":[xFrontView,yFrontView],"xz":[xSideView,ySideView]}
+
+        # Get component curves
+        #-----------------------------------------------------------------------------------------------------------
+        component = {"body":self.aircraft.airframe.body.sketch_3view(),
+                     "wing":self.aircraft.airframe.wing.sketch_3view(),
+                     "htp":self.aircraft.airframe.horizontal_stab.sketch_3view(),
+                     "vtp":self.aircraft.airframe.vertical_stab.sketch_3view()}
+
+        zframe = {"xy":{"body":2, "wing":1, "htp":1, "vtp":3},      # top
+                  "yz":{"body":4, "wing":3, "htp":1, "vtp":1},      # front
+                  "xz":{"body":2, "wing":3, "htp":3, "vtp":1}}      # side
+
+
+        # Top view
+        #-----------------------------------------------------------------------------------------------------------
+        for view in ["xy","yz","xz"]:
+            for key,comp in component.items():
+                plt.fill(ref[view][0]+comp[view][0:,0], ref[view][1]+comp[view][0:,1], color="white", zorder=zframe[view][key])    # draw mask
+                plt.plot(ref[view][0]+comp[view][0:,0], ref[view][1]+comp[view][0:,1], color="grey", zorder=zframe[view][key])     # draw contour
+
+        znac = {"wing":{"xy":0, "yz":4, "xz":5},
+                "body":{"xy":1, "yz":1, "xz":1},
+                "body_tail":{"xy":1, "yz":1, "xz":1},
+                "pod_tail":{"xy":1, "yz":1, "xz":1},
+                "piggyback_tail":{"xy":1, "yz":1, "xz":1}}
+
+        key = "nac"
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Nacelle):
+                nacelle = comp.sketch_3view()
+                typ = comp.get_nacelle_type()
+                for view in ["xy","yz","xz"]:
+                    plt.fill(ref[view][0]+nacelle[view][0:,0], ref[view][1]+nacelle[view][0:,1], color="white", zorder=znac[typ][view])    # draw mask
+                    plt.plot(ref[view][0]+nacelle[view][0:,0], ref[view][1]+nacelle[view][0:,1], color="grey", zorder=znac[typ][view])     # draw contour
+                # plt.fill(ref[view][0]+nacelle["disk"][0:,0], ref["disk"][1]+nacelle[view][0:,1], color="white", zorder=znac[typ]["yz"])    # draw mask
+                plt.plot(ref["yz"][0]+nacelle["disk"][0:,0], ref["yz"][1]+nacelle["disk"][0:,1], color="grey", zorder=znac[typ]["yz"])     # draw contour
+
+
+        plt.show()
+        return
+
+    def view_3d_old(self, window_title):
         """
         Build a 3 views drawing of the airplane
         """
@@ -690,5 +757,6 @@ def get_shape(): # TODO: is the docstring up to date ?
                     [- 0.5000000 , 0.0000000 ,  0.0000000 ]])
 
     return nose3,nose2,nose1,cone1,cone2,cyl
+
 
 

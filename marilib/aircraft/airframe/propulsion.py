@@ -12,18 +12,11 @@ from scipy.optimize import fsolve
 
 from marilib.utils import earth, unit, math
 
-from marilib.aircraft.airframe.component import Component
+from marilib.aircraft.airframe.component import Nacelle
 
 from marilib.aircraft.model_config import get_init
 
 
-class Nacelle(Component):
-
-    def __init__(self, aircraft):
-        self.aircraft = aircraft
-
-    def get_nacelle_type(self):
-        raise NotImplementedError
 
 class InboardWingMountedNacelle(Nacelle):
 
@@ -49,7 +42,7 @@ class InboardWingMountedNacelle(Nacelle):
         return np.array([x_int, y_int, z_int])
 
     def get_nacelle_type(self):
-        return "Wing"
+        return "wing"
 
 class OutboardWingMountedNacelle(Nacelle):
 
@@ -75,7 +68,7 @@ class OutboardWingMountedNacelle(Nacelle):
         return np.array([x_ext, y_ext, z_ext])
 
     def get_nacelle_type(self):
-        return "Wing"
+        return "wing"
 
 class ExternalWingMountedNacelle(Nacelle):
 
@@ -101,7 +94,7 @@ class ExternalWingMountedNacelle(Nacelle):
         return np.array([x_ext, y_ext, z_ext])
 
     def get_nacelle_type(self):
-        return "Wing"
+        return "wing"
 
 class RearFuselageMountedNacelle(Nacelle):
 
@@ -120,7 +113,7 @@ class RearFuselageMountedNacelle(Nacelle):
         return np.array([x_int, y_int, z_int])
 
     def get_nacelle_type(self):
-        return "Body"
+        return "body"
 
 class BodyTailConeMountedNacelle(Nacelle):
 
@@ -151,7 +144,7 @@ class BodyTailConeMountedNacelle(Nacelle):
         return np.array([x_axe, y_axe, z_axe])
 
     def get_nacelle_type(self):
-        return "BodyTail"
+        return "body_tail"
 
 class PodTailConeMountedNacelle(Nacelle):
 
@@ -199,7 +192,7 @@ class PodTailConeMountedNacelle(Nacelle):
         return np.array([x_int, y_int, z_int])
 
     def get_nacelle_type(self):
-        return "PodTail"
+        return "pod_tail"
 
 class PiggyBackTailConeMountedNacelle(Nacelle):
 
@@ -228,7 +221,7 @@ class PiggyBackTailConeMountedNacelle(Nacelle):
         return np.array([x_axe, y_axe, z_axe])
 
     def get_nacelle_type(self):
-        return "PiggyBackTail"
+        return "piggyback_tail"
 
 
 

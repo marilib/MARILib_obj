@@ -45,7 +45,8 @@ class Airframe(object):
         self.aircraft.airframe.cargo.eval_geometry()
 
         for comp in self.aircraft.airframe:
-            if issubclass(type(comp),Nacelle): comp.eval_geometry()
+            if issubclass(type(comp),Nacelle):
+                comp.eval_geometry()
 
         if (stab_architecture in ["classic","t_tail"]):
             self.aircraft.airframe.vertical_stab.eval_geometry()
@@ -71,7 +72,8 @@ class Airframe(object):
         self.aircraft.airframe.cargo.eval_geometry()
 
         for comp in self.aircraft.airframe:
-            if issubclass(type(comp),Nacelle): comp.eval_geometry()
+            if issubclass(type(comp),Nacelle):
+                comp.eval_geometry()
 
         def fct(x_in):
             self.aircraft.airframe.vertical_stab.area = x_in[0]                           # Coupling variable

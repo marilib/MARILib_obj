@@ -1060,9 +1060,9 @@ class PartialTurboElectricPiggyBack(PartialTurboElectric):
         super(PartialTurboElectricPiggyBack, self).__init__(aircraft)
 
     def get_reference_power(self,type):
-        if type=="BodyTail":
+        if type=="body_tail":
             return self.aircraft.airframe.system.chain_power_body
-        elif type=="PiggyBackTail":
+        elif type=="piggyback_tail":
             return self.aircraft.airframe.system.chain_power_piggyback
         else:
             raise Exception("Bad use of this class")
