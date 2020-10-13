@@ -14,6 +14,8 @@ from marilib.utils import earth, unit
 
 from marilib.aircraft.model_config import get_init
 
+from marilib.aircraft.tool.drawing import get_shape
+
 
 
 class Component(object):
@@ -265,8 +267,8 @@ class Cargo(Component):
 
 
 class Fuselage(Component):
-    """The skin of the aircraft body (tube and wing configuration)"""
-
+    """The skin of the aircraft body (tube and wing configuration)
+    """
     def __init__(self, aircraft):
         super(Fuselage, self).__init__(aircraft)
 
@@ -308,6 +310,34 @@ class Fuselage(Component):
         kfus = np.pi*self.length*np.sqrt(self.width*self.height)
         self.mass = 5.47*kfus**1.2      # Statistical regression versus fuselage built surface
         self.cg = np.array([0.50*self.length, 0., 0.40*self.height])     # Middle of the fuselage
+
+    def sketch_3view(self):
+        body_width = self.width
+        body_height = self.height
+        body_length = self.length
+
+        nose,nose2,nose3,cone,cone2,cyl = get_shape()
+
+        r_nose = 0.15       # Fuselage length ratio of nose evolutive part
+        r_cone = 0.35       # Fuselage length ratio of tail cone evolutive part
+
+        cyl_yz = np.stack([cyl[0:,0]*body_width , cyl[0:,1]*body_height+0.5*body_height , cyl[0:,2]*body_height+0.5*body_height], axis=1)
+
+        body_front = np.vstack([np.stack([cyl_yz[0:,0] , cyl_yz[0:,1]],axis=1) , np.stack([cyl_yz[::-1,0] , cyl_yz[::-1,2]],axis=1)])
+
+        nose_xz = np.stack([nose[0:,0]*body_length*r_nose , nose[0:,1]*body_height , nose[0:,2]*body_height], axis=1)
+        cone_xz = np.stack([(1-r_cone)*body_length + cone[0:,0]*body_length*r_cone , cone[0:,1]*body_height , cone[0:,2]*body_height], axis=1)
+        body_xz = np.vstack([nose_xz , cone_xz])
+
+        body_side = np.vstack([np.stack([body_xz[0:-2,0] , body_xz[0:-2,1]],axis=1) , np.stack([body_xz[:0:-1,0] , body_xz[:0:-1,2]],axis=1)])
+
+        nose_xy = np.stack([nose[0:,0]*body_length*r_nose , nose[0:,3]*body_width , nose[0:,4]*body_width], axis=1)
+        cone_xy = np.stack([(1-r_cone)*body_length + cone[0:,0]*body_length*r_cone , cone[0:,3]*body_width , cone[0:,4]*body_width], axis=1)
+        body_xy = np.vstack([nose_xy , cone_xy])
+
+        body_top = np.vstack([np.stack([body_xy[1:-2,0]  , body_xy[1:-2,1]],axis=1) , np.stack([body_xy[:0:-1,0] , body_xy[:0:-1,2]],axis=1)])
+
+        return {"xy":body_top , "yz":body_front, "xz":body_side}
 
 
 class Wing(Component):
@@ -351,10 +381,10 @@ class Wing(Component):
         self.mac = None
 
     def aspect_ratio(self):
-        if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): ar = 9
-        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","pte_pod","pte_piggy","exef"]): ar = 9
-        elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): ar = 10
-        else: raise Exception("propulsion.architecture index is out of range")
+        if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
+            ar = 10
+        else:
+            ar = 9
         return ar
 
     def sweep25(self):
@@ -362,10 +392,10 @@ class Wing(Component):
         return sweep25
 
     def high_lift_type(self):
-        if (self.aircraft.arrangement.power_architecture in ["tf0","tf","extf"]): hld_type = 9
-        elif (self.aircraft.arrangement.power_architecture in ["ef","pte","pte_pod","pte_piggy","exef"]): hld_type = 9
-        elif (self.aircraft.arrangement.power_architecture in ["tp","ep"]): hld_type = 2
-        else: raise Exception("propulsion.architecture index is out of range")
+        if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
+            hld_type = 2
+        else:
+            hld_type = 9
         return hld_type
 
     def eval_geometry(self, hq_optim=False):
@@ -565,6 +595,83 @@ class Wing(Component):
                  + 0.55*(self.kink_loc + 0.40*np.array([self.kink_c, 0., 0.])) \
                  + 0.20*(self.tip_loc + 0.40*np.array([self.tip_c, 0., 0.]))
 
+    def sketch_3view(self):
+        wing_x_root = self.root_loc[0]
+        wing_y_root = self.root_loc[1]
+        wing_z_root = self.root_loc[2]
+        wing_c_root = self.root_c
+        wing_toc_r = self.root_toc
+        wing_x_kink = self.kink_loc[0]
+        wing_y_kink = self.kink_loc[1]
+        wing_z_kink = self.kink_loc[2]
+        wing_c_kink = self.kink_c
+        wing_toc_k = self.kink_toc
+        wing_x_tip = self.tip_loc[0]
+        wing_y_tip = self.tip_loc[1]
+        wing_z_tip = self.tip_loc[2]
+        wing_c_tip = self.tip_c
+        wing_toc_t = self.tip_toc
+
+        wing_xy = np.array([[wing_x_root             ,  wing_y_root ],
+                            [wing_x_tip              ,  wing_y_tip  ],
+                            [wing_x_tip+wing_c_tip   ,  wing_y_tip  ],
+                            [wing_x_kink+wing_c_kink ,  wing_y_kink ],
+                            [wing_x_root+wing_c_root ,  wing_y_root ],
+                            [wing_x_root+wing_c_root , -wing_y_root ],
+                            [wing_x_kink+wing_c_kink , -wing_y_kink ],
+                            [wing_x_tip+wing_c_tip   , -wing_y_tip  ],
+                            [wing_x_tip              , -wing_y_tip  ],
+                            [wing_x_root             , -wing_y_root ],
+                            [wing_x_root             ,  wing_y_root ]])
+
+        wing_yz = np.array([[ wing_y_root  , wing_z_root                        ],
+                            [ wing_y_kink  , wing_z_kink                        ],
+                            [ wing_y_tip   , wing_z_tip                         ],
+                            [ wing_y_tip   , wing_z_tip+wing_toc_t*wing_c_tip   ],
+                            [ wing_y_kink  , wing_z_kink+wing_toc_k*wing_c_kink ],
+                            [ wing_y_root  , wing_z_root+wing_toc_r*wing_c_root ],
+                            [-wing_y_root  , wing_z_root+wing_toc_r*wing_c_root ],
+                            [-wing_y_kink  , wing_z_kink+wing_toc_k*wing_c_kink ],
+                            [-wing_y_tip   , wing_z_tip+wing_toc_t*wing_c_tip   ],
+                            [-wing_y_tip   , wing_z_tip                         ],
+                            [-wing_y_kink  , wing_z_kink                        ],
+                            [-wing_y_root  , wing_z_root                        ],
+                            [ wing_y_root  , wing_z_root                        ]])
+
+        wing_xz = np.array([[wing_x_tip                  , wing_z_tip+wing_toc_t*wing_c_tip                           ],
+                            [wing_x_tip+0.1*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip-0.5*wing_toc_t*wing_c_tip ],
+                            [wing_x_tip+0.7*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip-0.5*wing_toc_t*wing_c_tip ],
+                            [wing_x_tip+wing_c_tip       , wing_z_tip+wing_toc_t*wing_c_tip                           ],
+                            [wing_x_tip+0.7*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip+0.5*wing_toc_t*wing_c_tip ],
+                            [wing_x_tip+0.1*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip+0.5*wing_toc_t*wing_c_tip ],
+                            [wing_x_tip                  , wing_z_tip+wing_toc_t*wing_c_tip                           ],
+                            [wing_x_kink                 , wing_z_kink+0.5*wing_toc_k*wing_c_kink                     ],
+                            [wing_x_root                 , wing_z_root+0.5*wing_toc_r*wing_c_root                     ],
+                            [wing_x_root+0.1*wing_c_root , wing_z_root                                                ],
+                            [wing_x_root+0.7*wing_c_root , wing_z_root                                                ],
+                            [wing_x_root+wing_c_root     , wing_z_root+0.5*wing_toc_r*wing_c_root                     ],
+                            [wing_x_kink+wing_c_kink     , wing_z_kink+0.5*wing_toc_k*wing_c_kink                     ],
+                            [wing_x_tip+wing_c_tip       , wing_z_tip+wing_toc_t*wing_c_tip                           ]])
+
+        if (self.aircraft.arrangement.tank_architecture=="pods"):
+            wing_x_body = self.aircraft.airframe.tank.wing_axe_x
+            wing_z_body = self.aircraft.airframe.tank.wing_axe_z
+            wing_c_body = self.aircraft.airframe.tank.wing_axe_c
+            tip_wing_xz = np.array([[wing_x_tip                  , wing_z_tip+wing_toc_t*wing_c_tip                           ],
+                                    [wing_x_tip+0.1*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip-0.5*wing_toc_t*wing_c_tip ],
+                                    [wing_x_tip+0.7*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip-0.5*wing_toc_t*wing_c_tip ],
+                                    [wing_x_tip+wing_c_tip       , wing_z_tip+wing_toc_t*wing_c_tip                           ],
+                                    [wing_x_tip+0.7*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip+0.5*wing_toc_t*wing_c_tip ],
+                                    [wing_x_tip+0.1*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip+0.5*wing_toc_t*wing_c_tip ],
+                                    [wing_x_tip                  , wing_z_tip+wing_toc_t*wing_c_tip                           ],
+                                    [wing_x_body                 , wing_z_body+0.5*wing_toc_k*wing_c_kink                     ],
+                                    [wing_x_body+wing_c_body     , wing_z_body+0.5*wing_toc_k*wing_c_kink                     ],
+                                    [wing_x_tip+wing_c_tip       , wing_z_tip+wing_toc_t*wing_c_tip                           ]])
+        else:
+            tip_wing_xz = None
+
+        return {"xy":wing_xy, "yz":wing_yz, "xz":wing_xz, "xz_tip":tip_wing_xz}
+
 
 class VtpClassic(Component):
 
@@ -658,6 +765,45 @@ class VtpClassic(Component):
         area_2 = self.wing_volume_factor*(wing_area*wing_span)/self.lever_arm
         self.area = max(area_1,area_2)
 
+    def sketch_3view(self):
+        vtp_t_o_c = self.toc
+        vtp_x_root = self.root_loc[0]
+        vtp_y_root = self.root_loc[1]
+        vtp_z_root = self.root_loc[2]
+        vtp_c_root = self.root_c
+        vtp_x_tip = self.tip_loc[0]
+        vtp_y_tip = self.tip_loc[1]
+        vtp_z_tip = self.tip_loc[2]
+        vtp_c_tip = self.tip_c
+
+        vtp_xz = np.array([[vtp_x_root            , vtp_z_root ],
+                           [vtp_x_tip             , vtp_z_tip  ],
+                           [vtp_x_tip+vtp_c_tip   , vtp_z_tip  ],
+                           [vtp_x_root+vtp_c_root , vtp_z_root ],
+                           [vtp_x_root            , vtp_z_root ]])
+
+        vtp_xy = np.array([[vtp_x_root                , vtp_y_root                            ],
+                           [vtp_x_root+0.1*vtp_c_root , vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root ],
+                           [vtp_x_root+0.7*vtp_c_root , vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root ],
+                           [vtp_x_root+vtp_c_root     , vtp_y_root                            ],
+                           [vtp_x_root+0.7*vtp_c_root , vtp_y_root - 0.5*vtp_t_o_c*vtp_c_root ],
+                           [vtp_x_root+0.1*vtp_c_root , vtp_y_root - 0.5*vtp_t_o_c*vtp_c_root ],
+                           [vtp_x_root                , vtp_y_root                            ],
+                           [vtp_x_tip                 , vtp_y_tip                             ],
+                           [vtp_x_tip+0.1*vtp_c_tip   , vtp_y_tip + 0.5*vtp_t_o_c*vtp_c_tip   ],
+                           [vtp_x_tip+0.7*vtp_c_tip   , vtp_y_tip + 0.5*vtp_t_o_c*vtp_c_tip   ],
+                           [vtp_x_tip+vtp_c_tip       , vtp_y_tip                             ],
+                           [vtp_x_tip+0.7*vtp_c_tip   , vtp_y_tip - 0.5*vtp_t_o_c*vtp_c_tip   ],
+                           [vtp_x_tip+0.1*vtp_c_tip   , vtp_y_tip - 0.5*vtp_t_o_c*vtp_c_tip   ],
+                           [vtp_x_tip                 , vtp_y_tip                             ]])
+
+        vtp_yz = np.array([[vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ],
+                           [vtp_y_tip + 0.5*vtp_t_o_c*vtp_c_tip   , vtp_z_tip  ],
+                           [vtp_y_tip - 0.5*vtp_t_o_c*vtp_c_tip   , vtp_z_tip  ],
+                           [vtp_y_root - 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ],
+                           [vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ]])
+
+        return
 
 class VtpTtail(Component):
 

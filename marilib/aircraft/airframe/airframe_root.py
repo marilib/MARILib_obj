@@ -8,6 +8,7 @@
 import numpy as np
 from scipy.optimize import fsolve
 from marilib.aircraft.airframe.component import Component
+from marilib.aircraft.airframe.propulsion import Nacelle
 
 #--------------------------------------------------------------------------------------------------------------------------------
 class Airframe(object):
@@ -44,28 +45,7 @@ class Airframe(object):
         self.aircraft.airframe.cargo.eval_geometry()
 
         for comp in self.aircraft.airframe:
-
-
-
-        self.aircraft.airframe.nacelle.eval_geometry()
-        self.aircraft.airframe.other_nacelle.eval_geometry()
-        if (number_of_engine=="quadri"):
-            self.aircraft.airframe.internal_nacelle.eval_geometry()
-            self.aircraft.airframe.left_internal_nacelle.eval_geometry()
-        if (number_of_engine=="hexa"):
-            self.aircraft.airframe.internal_nacelle.eval_geometry()
-            self.aircraft.airframe.left_internal_nacelle.eval_geometry()
-            self.aircraft.airframe.median_nacelle.eval_geometry()
-            self.aircraft.airframe.left_median_nacelle.eval_geometry()
-        if (power_architecture=="pte"):
-            self.aircraft.airframe.tail_nacelle.eval_geometry()
-        elif (power_architecture=="pte_piggy"):
-            self.aircraft.airframe.tail_nacelle.eval_geometry()
-            self.aircraft.airframe.other_tail_nacelle.eval_geometry()
-        elif (power_architecture=="pte_pod"):
-            self.aircraft.airframe.tail_nacelle.eval_geometry()
-            self.aircraft.airframe.pod_tail_nacelle.eval_geometry()
-            self.aircraft.airframe.other_pod_tail_nacelle.eval_geometry()
+            if issubclass(type(comp),Nacelle): comp.eval_geometry()
 
         if (stab_architecture in ["classic","t_tail"]):
             self.aircraft.airframe.vertical_stab.eval_geometry()
@@ -89,25 +69,9 @@ class Airframe(object):
         self.aircraft.airframe.wing.eval_geometry()
         self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
-        self.aircraft.airframe.nacelle.eval_geometry()
-        self.aircraft.airframe.other_nacelle.eval_geometry()
-        if (number_of_engine=="quadri"):
-            self.aircraft.airframe.internal_nacelle.eval_geometry()
-            self.aircraft.airframe.left_internal_nacelle.eval_geometry()
-        if (number_of_engine=="hexa"):
-            self.aircraft.airframe.internal_nacelle.eval_geometry()
-            self.aircraft.airframe.left_internal_nacelle.eval_geometry()
-            self.aircraft.airframe.median_nacelle.eval_geometry()
-            self.aircraft.airframe.left_median_nacelle.eval_geometry()
-        if (power_architecture=="pte"):
-            self.aircraft.airframe.tail_nacelle.eval_geometry()
-        elif (power_architecture=="pte_piggy"):
-            self.aircraft.airframe.tail_nacelle.eval_geometry()
-            self.aircraft.airframe.other_tail_nacelle.eval_geometry()
-        elif (power_architecture=="pte_pod"):
-            self.aircraft.airframe.tail_nacelle.eval_geometry()
-            self.aircraft.airframe.pod_tail_nacelle.eval_geometry()
-            self.aircraft.airframe.other_pod_tail_nacelle.eval_geometry()
+
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Nacelle): comp.eval_geometry()
 
         def fct(x_in):
             self.aircraft.airframe.vertical_stab.area = x_in[0]                           # Coupling variable

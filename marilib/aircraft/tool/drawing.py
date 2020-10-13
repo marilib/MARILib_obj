@@ -254,7 +254,7 @@ class Drawing(object):
                            [vtp_y_root - 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ],
                            [vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ]])
 
-        # wing_ shape
+         # wing_ shape
         #-----------------------------------------------------------------------------------------------------------
         wing_xy = np.array([[wing_x_root             ,  wing_y_root ],
                             [wing_x_tip              ,  wing_y_tip  ],
@@ -689,6 +689,6 @@ def get_shape(): # TODO: is the docstring up to date ?
                     [- 0.4903926 , 0.0975452 , -0.0975452 ] ,
                     [- 0.5000000 , 0.0000000 ,  0.0000000 ]])
 
-    return nose1,nose2,nose3,cone1,cone2,cyl
+    return nose3,nose2,nose1,cone1,cone2,cyl
 
 

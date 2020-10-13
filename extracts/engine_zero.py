@@ -210,7 +210,7 @@ def  off_design_tf(altp,disa,mach,rating,qfuel,fia,fna):
 
     sfc = qfuel/fn
 
-    ttot_fan_jet = ttot + pws_fan/(q_total*Cp)                # Stagnation temperature increases due to introduced work
+    ttot_fan_jet = ttot + pws_fan/(q_total*Cp)              # Stagnation temperature increases due to introduced work
     tstat_fan_jet = ttot_fan_jet - 0.5*vj_fan**2/Cp         # Static temperature
     mach_fan_jet = vj_fan/earth.sound_speed(tstat_fan_jet)  # Fan jet Mach number
 

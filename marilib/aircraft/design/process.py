@@ -369,8 +369,8 @@ def explore_design_space(ac, var, step, data, file):
             # aircraft.airframe.nacelle.reference_thrust = thrust
             # aircraft.airframe.wing.area = area
 
-            #print("-----------------------------------------------------------------------")
-            #print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
+            print("-----------------------------------------------------------------------")
+            print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
             try:
                 mda(aircraft)   # Perform MDA
             except Exception:
