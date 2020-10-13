@@ -44,6 +44,9 @@ class System(Component):
                   + 0.05*vertical_stab_cg \
                   + 0.10*nacelle_cg
 
+    def get_reference_offtake(self):
+        return 0.
+
 
 class SystemWithBattery(Component):
 
@@ -192,6 +195,13 @@ class SystemPartialTurboElectric(Component):
                                       * self.aircraft.airframe.tail_nacelle.controller_efficiency \
                                       * self.aircraft.airframe.tail_nacelle.motor_efficiency
         return self.power_chain_efficiency
+
+    def get_reference_offtake(self):
+        # Total power offtake is split between all engines
+        reference_offtake =  self.chain_power \
+                            /self.get_power_chain_efficiency() \
+                            /self.aircraft.power_system.n_engine
+        return reference_offtake
 
     def eval_geometry(self):
         self.frame_origin = [0., 0., 0.]

@@ -296,10 +296,7 @@ class SemiEmpiricTf0Nacelle(object):
 
     def eval_geometry(self):
         # Set nominal power offtake
-        chain_power = self.aircraft.airframe.system.chain_power
-        power_chain_efficiency = self.aircraft.airframe.system.get_power_chain_efficiency()
-        n_engine = self.aircraft.power_system.n_engine
-        self.reference_offtake = chain_power/power_chain_efficiency/n_engine
+        self.reference_offtake = self.aircraft.airframe.system.get_reference_offtake()
 
         reference_thrust = self.aircraft.power_system.get_reference_thrust()
 
@@ -455,10 +452,7 @@ class SemiEmpiricTfNacelle(object):
 
     def eval_geometry(self):
         # Set nominal power offtake
-        chain_power = self.aircraft.airframe.system.chain_power
-        power_chain_efficiency = self.aircraft.airframe.system.get_power_chain_efficiency()
-        n_engine = self.aircraft.power_system.n_engine
-        self.reference_offtake = chain_power/power_chain_efficiency/n_engine    # Total power offtake is split between all engines
+        self.reference_offtake = self.aircraft.airframe.system.get_reference_offtake()
 
         reference_thrust = self.aircraft.power_system.get_reference_thrust()
 

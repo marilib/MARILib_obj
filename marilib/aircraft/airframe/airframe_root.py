@@ -42,6 +42,11 @@ class Airframe(object):
         self.aircraft.airframe.wing.eval_geometry(hq_optim)
         self.aircraft.airframe.tank.eval_geometry()
         self.aircraft.airframe.cargo.eval_geometry()
+
+        for comp in self.aircraft.airframe:
+
+
+
         self.aircraft.airframe.nacelle.eval_geometry()
         self.aircraft.airframe.other_nacelle.eval_geometry()
         if (number_of_engine=="quadri"):
