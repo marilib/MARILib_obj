@@ -220,16 +220,25 @@ class ExergeticTfNacelle(Component):
 
 
 class Outboard_wing_mounted_extf_nacelle(ExergeticTfNacelle,OutboardWingMountedNacelle):
-    def __init__(self, aircraft):
+    def __init__(self, aircraft, side):
         super(Outboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
+        self.airplane_side = side
+    def get_side(self):
+        return {"right":1., "left":-1.}.get(self.airplane_side)
 
 class Inboard_wing_mounted_extf_nacelle(ExergeticTfNacelle,InboardWingMountedNacelle):
-    def __init__(self, aircraft):
+    def __init__(self, aircraft, side):
         super(Inboard_wing_mounted_extf_nacelle, self).__init__(aircraft)
+        self.airplane_side = side
+    def get_side(self):
+        return {"right":1., "left":-1.}.get(self.airplane_side)
 
 class Rear_fuselage_mounted_extf_nacelle(ExergeticTfNacelle,RearFuselageMountedNacelle):
-    def __init__(self, aircraft):
+    def __init__(self, aircraft, side):
         super(Rear_fuselage_mounted_extf_nacelle, self).__init__(aircraft)
+        self.airplane_side = side
+    def get_side(self):
+        return {"right":1., "left":-1.}.get(self.airplane_side)
 
 
 
@@ -390,14 +399,23 @@ class ExergeticEfNacelle(Component):
 
 
 class Outboard_wing_mounted_exef_nacelle(ExergeticEfNacelle,OutboardWingMountedNacelle):
-    def __init__(self, aircraft):
+    def __init__(self, aircraft, side):
         super(Outboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
+        self.airplane_side = side
+    def get_side(self):
+        return {"right":1., "left":-1.}.get(self.airplane_side)
 
 class Inboard_wing_mounted_exef_nacelle(ExergeticEfNacelle,InboardWingMountedNacelle):
-    def __init__(self, aircraft):
+    def __init__(self, aircraft, side):
         super(Inboard_wing_mounted_exef_nacelle, self).__init__(aircraft)
+        self.airplane_side = side
+    def get_side(self):
+        return {"right":1., "left":-1.}.get(self.airplane_side)
 
 class Rear_fuselage_mounted_exef_nacelle(ExergeticEfNacelle,RearFuselageMountedNacelle):
-    def __init__(self, aircraft):
+    def __init__(self, aircraft, side):
         super(Rear_fuselage_mounted_exef_nacelle, self).__init__(aircraft)
+        self.airplane_side = side
+    def get_side(self):
+        return {"right":1., "left":-1.}.get(self.airplane_side)
 

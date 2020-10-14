@@ -119,7 +119,8 @@ class Aircraft(object):
         elif (self.arrangement.tank_architecture=="piggy_back"):
             self.airframe.tank = component.TankPiggyBack(self)
         elif (self.arrangement.tank_architecture=="pods"):
-            self.airframe.tank = component.TankWingPod(self)
+            self.airframe.tank = component.TankWingPod(self,"right")
+            self.airframe.other_tank = component.TankWingPod(self,"self")
         else:
             raise Exception("Type of tank is unknown")
 
@@ -146,21 +147,21 @@ class Aircraft(object):
             self.power_system = model.Turbofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.InboardWingMountedTf0Nacelle(self)
-                    self.airframe.other_nacelle = propulsion.InboardWingMountedTf0Nacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedTf0Nacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.InboardWingMountedTf0Nacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.OutboardWingMountedTf0Nacelle(self)
-                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTf0Nacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTf0Nacelle(self)
-                    self.airframe.left_internal_nacelle = propulsion.InboardWingMountedTf0Nacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle"]
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTf0Nacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTf0Nacelle(self,"left")
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTf0Nacelle(self,"right")
+                    self.airframe.other_internal_nacelle = propulsion.InboardWingMountedTf0Nacelle(self,"left")
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.RearFuselageMountedTf0Nacelle(self)
-                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTf0Nacelle(self)
+                    self.airframe.nacelle = propulsion.RearFuselageMountedTf0Nacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTf0Nacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
@@ -171,27 +172,27 @@ class Aircraft(object):
             self.power_system = model.Turbofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.InboardWingMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.InboardWingMountedTfNacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTfNacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.left_internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle"]
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTfNacelle(self,"left")
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_internal_nacelle = propulsion.InboardWingMountedTfNacelle(self,"left")
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTfNacelle(self,"left")
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="pods"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.PodTailConeMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.PodTailConeMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.PodTailConeMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.PodTailConeMountedTfNacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
@@ -209,15 +210,15 @@ class Aircraft(object):
             self.power_system = model.Turboprop(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.InboardWingMountedTpNacelle(self)
-                    self.airframe.other_nacelle = propulsion.InboardWingMountedTpNacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedTpNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.InboardWingMountedTpNacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.OutboardWingMountedTpNacelle(self)
-                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTpNacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTpNacelle(self)
-                    self.airframe.left_internal_nacelle = propulsion.InboardWingMountedTpNacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle"]
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTpNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTpNacelle(self,"left")
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTpNacelle(self,"right")
+                    self.airframe.other_internal_nacelle = propulsion.InboardWingMountedTpNacelle(self,"left")
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             else:
@@ -227,23 +228,23 @@ class Aircraft(object):
             self.power_system = model.Electroprop(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.InboardWingMountedEpNacelle(self)
-                    self.airframe.other_nacelle = propulsion.InboardWingMountedEpNacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedEpNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.InboardWingMountedEpNacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.OutboardWingMountedEpNacelle(self)
-                    self.airframe.other_nacelle = propulsion.OutboardWingMountedEpNacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEpNacelle(self)
-                    self.airframe.left_internal_nacelle = propulsion.InboardWingMountedEpNacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle"]
+                    self.airframe.nacelle = propulsion.OutboardWingMountedEpNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.OutboardWingMountedEpNacelle(self,"left")
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEpNacelle(self,"right")
+                    self.airframe.other_internal_nacelle = propulsion.InboardWingMountedEpNacelle(self,"left")
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle"]
                 elif (self.arrangement.number_of_engine=="hexa"):
-                    self.airframe.nacelle = propulsion.ExternalWingMountedEpNacelle(self)
-                    self.airframe.other_nacelle = propulsion.ExternalWingMountedEpNacelle(self)
-                    self.airframe.median_nacelle = propulsion.OutboardWingMountedEpNacelle(self)
-                    self.airframe.left_median_nacelle = propulsion.OutboardWingMountedEpNacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEpNacelle(self)
-                    self.airframe.left_internal_nacelle = propulsion.InboardWingMountedEpNacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","median_nacelle","left_median_nacelle","internal_nacelle","left_internal_nacelle"]
+                    self.airframe.nacelle = propulsion.ExternalWingMountedEpNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.ExternalWingMountedEpNacelle(self,"left")
+                    self.airframe.median_nacelle = propulsion.OutboardWingMountedEpNacelle(self,"right")
+                    self.airframe.other_median_nacelle = propulsion.OutboardWingMountedEpNacelle(self,"left")
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEpNacelle(self,"right")
+                    self.airframe.other_internal_nacelle = propulsion.InboardWingMountedEpNacelle(self,"left")
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","median_nacelle","other_median_nacelle","internal_nacelle","other_internal_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             else:
@@ -253,21 +254,21 @@ class Aircraft(object):
             self.power_system = model.Electrofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.InboardWingMountedEfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.InboardWingMountedEfNacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedEfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.InboardWingMountedEfNacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.OutboardWingMountedEfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.OutboardWingMountedEfNacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEfNacelle(self)
-                    self.airframe.left_internal_nacelle = propulsion.InboardWingMountedEfNacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle"]
+                    self.airframe.nacelle = propulsion.OutboardWingMountedEfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.OutboardWingMountedEfNacelle(self,"left")
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedEfNacelle(self,"right")
+                    self.airframe.other_internal_nacelle = propulsion.InboardWingMountedEfNacelle(self,"left")
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.RearFuselageMountedEfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.RearFuselageMountedEfNacelle(self)
+                    self.airframe.nacelle = propulsion.RearFuselageMountedEfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.RearFuselageMountedEfNacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
@@ -278,23 +279,23 @@ class Aircraft(object):
             self.power_system = model.PartialTurboElectric(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.InboardWingMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.InboardWingMountedTfNacelle(self,"left")
                     self.airframe.tail_nacelle = propulsion.BodyTailConeMountedEfNacelle(self)
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle","tail_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTfNacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.left_internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTfNacelle(self,"left")
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_internal_nacelle = propulsion.InboardWingMountedTfNacelle(self,"left")
                     self.airframe.tail_nacelle = propulsion.BodyTailConeMountedEfNacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle","tail_nacelle"]
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle","tail_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTfNacelle(self,"left")
                     self.airframe.tail_nacelle = propulsion.BodyTailConeMountedEfNacelle(self)
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle","tail_nacelle"]
                 else:
@@ -306,28 +307,28 @@ class Aircraft(object):
             self.power_system = model.PartialTurboElectricPods(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.InboardWingMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.InboardWingMountedTfNacelle(self,"left")
                     self.airframe.tail_nacelle = propulsion.BodyTailConeMountedEfNacelle(self)
-                    self.airframe.pod_tail_nacelle = propulsion.PodTailConeMountedEfNacelle(self)
-                    self.airframe.other_pod_tail_nacelle = propulsion.PodTailConeMountedEfNacelle(self)
+                    self.airframe.pod_tail_nacelle = propulsion.PodTailConeMountedEfNacelle(self,"right")
+                    self.airframe.other_pod_tail_nacelle = propulsion.PodTailConeMountedEfNacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle","tail_nacelle","pod_tail_nacelle","other_pod_tail_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTfNacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.left_internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.tail_nacelle = propulsion.BodyTailConeMountedEfNacelle(self)
-                    self.airframe.other_tail_nacelle = propulsion.PiggyBackTailConeMountedEfNacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle","tail_nacelle","pod_tail_nacelle","other_pod_tail_nacelle"]
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTfNacelle(self,"left")
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_internal_nacelle = propulsion.InboardWingMountedTfNacelle(self,"left")
+                    self.airframe.pod_tail_nacelle = propulsion.PodTailConeMountedEfNacelle(self,"right")
+                    self.airframe.other_pod_tail_nacelle = propulsion.PodTailConeMountedEfNacelle(self,"left")
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle","pod_tail_nacelle","other_pod_tail_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTfNacelle(self)
-                    self.airframe.tail_nacelle = propulsion.BodyTailConeMountedEfNacelle(self)
-                    self.airframe.other_tail_nacelle = propulsion.PiggyBackTailConeMountedEfNacelle(self)
+                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTfNacelle(self,"left")
+                    self.airframe.pod_tail_nacelle = propulsion.PodTailConeMountedEfNacelle(self,"right")
+                    self.airframe.other_pod_tail_nacelle = propulsion.PodTailConeMountedEfNacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle","tail_nacelle","pod_tail_nacelle","other_pod_tail_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
@@ -338,25 +339,25 @@ class Aircraft(object):
             self.power_system = model.PartialTurboElectricPiggyBack(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.InboardWingMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.InboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.InboardWingMountedTfNacelle(self,"left")
                     self.airframe.tail_nacelle = propulsion.BodyTailConeMountedEfNacelle(self)
                     self.airframe.other_tail_nacelle = propulsion.PiggyBackTailConeMountedEfNacelle(self)
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle","tail_nacelle","other_tail_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTfNacelle(self)
-                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
-                    self.airframe.left_internal_nacelle = propulsion.InboardWingMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.OutboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.OutboardWingMountedTfNacelle(self,"left")
+                    self.airframe.internal_nacelle = propulsion.InboardWingMountedTfNacelle(self,"right")
+                    self.airframe.other_internal_nacelle = propulsion.InboardWingMountedTfNacelle(self,"left")
                     self.airframe.tail_nacelle = propulsion.BodyTailConeMountedEfNacelle(self)
                     self.airframe.other_tail_nacelle = propulsion.PiggyBackTailConeMountedEfNacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle","tail_nacelle","other_tail_nacelle"]
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle","tail_nacelle","other_tail_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self)
-                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTfNacelle(self)
+                    self.airframe.nacelle = propulsion.RearFuselageMountedTfNacelle(self,"right")
+                    self.airframe.other_nacelle = propulsion.RearFuselageMountedTfNacelle(self,"left")
                     self.airframe.tail_nacelle = propulsion.BodyTailConeMountedEfNacelle(self)
                     self.airframe.other_tail_nacelle = propulsion.PiggyBackTailConeMountedEfNacelle(self)
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle","tail_nacelle","other_tail_nacelle"]
@@ -369,21 +370,21 @@ class Aircraft(object):
             self.power_system = model.Turbofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = interface.Inboard_wing_mounted_extf_nacelle(self)
-                    self.airframe.other_nacelle = interface.Inboard_wing_mounted_extf_nacelle(self)
+                    self.airframe.nacelle = interface.Inboard_wing_mounted_extf_nacelle(self,"right")
+                    self.airframe.other_nacelle = interface.Inboard_wing_mounted_extf_nacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = interface.Outboard_wing_mounted_extf_nacelle(self)
-                    self.airframe.other_nacelle = interface.Outboard_wing_mounted_extf_nacelle(self)
-                    self.airframe.internal_nacelle = interface.Inboard_wing_mounted_extf_nacelle(self)
-                    self.airframe.left_internal_nacelle = interface.Inboard_wing_mounted_extf_nacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle"]
+                    self.airframe.nacelle = interface.Outboard_wing_mounted_extf_nacelle(self,"right")
+                    self.airframe.other_nacelle = interface.Outboard_wing_mounted_extf_nacelle(self,"left")
+                    self.airframe.internal_nacelle = interface.Inboard_wing_mounted_extf_nacelle(self,"right")
+                    self.airframe.other_internal_nacelle = interface.Inboard_wing_mounted_extf_nacelle(self,"left")
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = interface.Rear_fuselage_mounted_extf_nacelle(self)
-                    self.airframe.other_nacelle = interface.Rear_fuselage_mounted_extf_nacelle(self)
+                    self.airframe.nacelle = interface.Rear_fuselage_mounted_extf_nacelle(self,"right")
+                    self.airframe.other_nacelle = interface.Rear_fuselage_mounted_extf_nacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
@@ -394,21 +395,21 @@ class Aircraft(object):
             self.power_system = model.Electrofan(self)
             if (self.arrangement.nacelle_attachment=="wing"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = interface.Inboard_wing_mounted_exef_nacelle(self)
-                    self.airframe.other_nacelle = interface.Inboard_wing_mounted_exef_nacelle(self)
+                    self.airframe.nacelle = interface.Inboard_wing_mounted_exef_nacelle(self,"right")
+                    self.airframe.other_nacelle = interface.Inboard_wing_mounted_exef_nacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 elif (self.arrangement.number_of_engine=="quadri"):
-                    self.airframe.nacelle = interface.Outboard_wing_mounted_exef_nacelle(self)
-                    self.airframe.other_nacelle = interface.Outboard_wing_mounted_exef_nacelle(self)
-                    self.airframe.internal_nacelle = interface.Inboard_wing_mounted_exef_nacelle(self)
-                    self.airframe.left_internal_nacelle = interface.Inboard_wing_mounted_exef_nacelle(self)
-                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","left_internal_nacelle"]
+                    self.airframe.nacelle = interface.Outboard_wing_mounted_exef_nacelle(self,"right")
+                    self.airframe.other_nacelle = interface.Outboard_wing_mounted_exef_nacelle(self,"left")
+                    self.airframe.internal_nacelle = interface.Inboard_wing_mounted_exef_nacelle(self,"right")
+                    self.airframe.other_internal_nacelle = interface.Inboard_wing_mounted_exef_nacelle(self,"left")
+                    self.airframe.engine_analysis_order = ["nacelle","other_nacelle","internal_nacelle","other_internal_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")
             elif (self.arrangement.nacelle_attachment=="rear"):
                 if (self.arrangement.number_of_engine=="twin"):
-                    self.airframe.nacelle = interface.Rear_fuselage_mounted_exef_nacelle(self)
-                    self.airframe.other_nacelle = interface.Rear_fuselage_mounted_exef_nacelle(self)
+                    self.airframe.nacelle = interface.Rear_fuselage_mounted_exef_nacelle(self,"right")
+                    self.airframe.other_nacelle = interface.Rear_fuselage_mounted_exef_nacelle(self,"left")
                     self.airframe.engine_analysis_order = ["nacelle","other_nacelle"]
                 else:
                     raise Exception("Number of engines not allowed")

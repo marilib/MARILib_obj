@@ -79,7 +79,7 @@ class Drawing(object):
 
         ref = {"xy":[xTopView,yTopView],"yz":[xFrontView,yFrontView],"xz":[xSideView,ySideView]}
 
-        # Get component curves
+        # Draw components
         #-----------------------------------------------------------------------------------------------------------
         component = {"body":self.aircraft.airframe.body.sketch_3view(),
                      "wing":self.aircraft.airframe.wing.sketch_3view(),
@@ -87,22 +87,41 @@ class Drawing(object):
                      "vtp":self.aircraft.airframe.vertical_stab.sketch_3view()}
 
         zframe = {"xy":{"body":2, "wing":1, "htp":1, "vtp":3},      # top
-                  "yz":{"body":4, "wing":3, "htp":1, "vtp":1},      # front
+                  "yz":{"body":4, "wing":3, "htp":1, "vtp":2},      # front
                   "xz":{"body":2, "wing":3, "htp":3, "vtp":1}}      # side
 
+        if self.aircraft.arrangement.wing_attachment=="high":
+            zframe["xy"]["body"] = 1
+            zframe["xy"]["wing"] = 2
 
-        # Top view
-        #-----------------------------------------------------------------------------------------------------------
+        if self.aircraft.arrangement.stab_architecture=="t_tail":
+            zframe["xy"]["htp"] = 3
+            zframe["xy"]["vtp"] = 1
+
+        if self.aircraft.arrangement.stab_architecture=="h_tail":
+            zframe["xz"]["htp"] = 1
+            zframe["xz"]["vtp"] = 3
+
         for view in ["xy","yz","xz"]:
             for key,comp in component.items():
                 plt.fill(ref[view][0]+comp[view][0:,0], ref[view][1]+comp[view][0:,1], color="white", zorder=zframe[view][key])    # draw mask
                 plt.plot(ref[view][0]+comp[view][0:,0], ref[view][1]+comp[view][0:,1], color="grey", zorder=zframe[view][key])     # draw contour
 
-        znac = {"wing":{"xy":0, "yz":4, "xz":5},
-                "body":{"xy":1, "yz":1, "xz":1},
-                "body_tail":{"xy":1, "yz":1, "xz":1},
-                "pod_tail":{"xy":1, "yz":1, "xz":1},
-                "piggyback_tail":{"xy":1, "yz":1, "xz":1}}
+        # Draw tanks
+        #-----------------------------------------------------------------------------------------------------------
+
+
+
+
+
+        # Draw nacelles
+        #-----------------------------------------------------------------------------------------------------------
+        #                          top    front    side
+        znac = {          "wing":{"xy":0, "yz":4, "xz":5},
+                          "body":{"xy":3, "yz":1, "xz":5},
+                     "body_tail":{"xy":1, "yz":0, "xz":0},
+                      "pod_tail":{"xy":1, "yz":0, "xz":2},
+                "piggyback_tail":{"xy":5, "yz":0, "xz":2}}
 
         key = "nac"
         for comp in self.aircraft.airframe:

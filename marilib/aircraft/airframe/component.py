@@ -193,7 +193,6 @@ class Component(object):
 
         return [curve[n] for n in name]
 
-
 class Nacelle(Component):
 
     def __init__(self, aircraft):
@@ -249,6 +248,46 @@ class Nacelle(Component):
                                  np.stack([nac_y+d_fan_yz[::-1,0] , nac_z+d_fan_yz[::-1,2]],axis=1)])
 
         return {"xy":nac_xy , "yz":nac_yz, "xz":nac_xz, "disk":disk_yz}
+
+class Pod(Component):
+
+    def __init__(self, side):
+        self.airplane_side = side
+    def get_side(self):
+        return {"right":1., "left":-1.}.get(self.airplane_side)
+
+    def sketch_3view(self):
+        pod_width = self.width
+        pod_length = self.length
+        pod_x_axe = self.frame_origin[0]
+        pod_y_axe = self.frame_origin[1]*self.get_side()
+        pod_z_axe = self.frame_origin[2]
+        wing_x_body = self.wing_axe_x
+        wing_z_body = self.wing_axe_z
+        wing_c_body = self.wing_axe_c
+
+        nose2,cone2,cyl = self.get_this_shape(["nose2","cone2","cyl"])
+
+        r_nose = 0.15       # Fuselage length ratio of nose evolutive part
+        r_cone = 0.35       # Fuselage length ratio of tail cone evolutive part
+
+        pod_cyl_yz = np.stack([pod_y_axe + cyl[0:,0]*pod_width , pod_z_axe + cyl[0:,1]*pod_width , pod_z_axe + cyl[0:,2]*pod_width], axis=1)
+
+        pod_front = np.vstack([np.stack([pod_cyl_yz[0:,0] , pod_cyl_yz[0:,1]],axis=1) , np.stack([pod_cyl_yz[::-1,0] , pod_cyl_yz[::-1,2]],axis=1)])
+
+        pod_nose_xz = np.stack([pod_x_axe + nose2[0:,0]*pod_length*r_nose , pod_z_axe - 0.5*pod_width + nose2[0:,1]*pod_width , pod_z_axe - 0.5*pod_width + nose2[0:,2]*pod_width], axis=1)
+        pod_cone_xz = np.stack([pod_x_axe + (1-r_cone)*pod_length + cone2[0:,0]*pod_length*r_cone , pod_z_axe - 0.5*pod_width + cone2[0:,1]*pod_width , pod_z_axe - 0.5*pod_width + cone2[0:,2]*pod_width], axis=1)
+        pod_xz = np.vstack([pod_nose_xz , pod_cone_xz])
+
+        pod_side = np.vstack([np.stack([pod_xz[0:-2,0] , pod_xz[0:-2,1]],axis=1) , np.stack([pod_xz[:0:-1,0] , pod_xz[:0:-1,2]],axis=1)])
+
+        pod_nose_xy = np.stack([pod_x_axe + nose2[0:,0]*pod_length*r_nose , pod_y_axe + nose2[0:,3]*pod_width , pod_y_axe + nose2[0:,4]*pod_width], axis=1)
+        pod_cone_xy = np.stack([pod_x_axe + (1-r_cone)*pod_length + cone2[0:,0]*pod_length*r_cone , pod_y_axe + cone2[0:,3]*pod_width , pod_y_axe + cone2[0:,4]*pod_width], axis=1)
+        pod_xy = np.vstack([pod_nose_xy , pod_cone_xy])
+
+        pod_top = np.vstack([np.stack([pod_xy[1:-2,0]  , pod_xy[1:-2,1]],axis=1) , np.stack([pod_xy[:0:-1,0] , pod_xy[:0:-1,2]],axis=1)])
+
+        return {"xy":pod_top , "yz":pod_front, "xz":pod_side}
 
 
 class Cabin(Component):
@@ -1479,44 +1518,6 @@ class HtpHtail(Component,HtpDrawing):
         self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
 
-class TankDrawing(object):
-
-    def __init__(self):
-        pass
-
-    def sketch_3view(self):
-        pod_width = self.width
-        pod_length = self.length
-        pod_x_axe = self.frame_origin[0]
-        pod_y_axe = self.frame_origin[1]
-        pod_z_axe = self.frame_origin[2]
-        wing_x_body = self.wing_axe_x
-        wing_z_body = self.wing_axe_z
-        wing_c_body = self.wing_axe_c
-
-        nose2,cone2,cyl = self.get_this_shape(["nose2","cone2","cyl"])
-
-        r_nose = 0.15       # Fuselage length ratio of nose evolutive part
-        r_cone = 0.35       # Fuselage length ratio of tail cone evolutive part
-
-        pod_cyl_yz = np.stack([pod_y_axe + cyl[0:,0]*pod_width , pod_z_axe + cyl[0:,1]*pod_width , pod_z_axe + cyl[0:,2]*pod_width], axis=1)
-
-        pod_front = np.vstack([np.stack([pod_cyl_yz[0:,0] , pod_cyl_yz[0:,1]],axis=1) , np.stack([pod_cyl_yz[::-1,0] , pod_cyl_yz[::-1,2]],axis=1)])
-
-        pod_nose_xz = np.stack([pod_x_axe + nose2[0:,0]*pod_length*r_nose , pod_z_axe - 0.5*pod_width + nose2[0:,1]*pod_width , pod_z_axe - 0.5*pod_width + nose2[0:,2]*pod_width], axis=1)
-        pod_cone_xz = np.stack([pod_x_axe + (1-r_cone)*pod_length + cone2[0:,0]*pod_length*r_cone , pod_z_axe - 0.5*pod_width + cone2[0:,1]*pod_width , pod_z_axe - 0.5*pod_width + cone2[0:,2]*pod_width], axis=1)
-        pod_xz = np.vstack([pod_nose_xz , pod_cone_xz])
-
-        pod_side = np.vstack([np.stack([pod_xz[0:-2,0] , pod_xz[0:-2,1]],axis=1) , np.stack([pod_xz[:0:-1,0] , pod_xz[:0:-1,2]],axis=1)])
-
-        pod_nose_xy = np.stack([pod_x_axe + nose2[0:,0]*pod_length*r_nose , pod_y_axe + nose2[0:,3]*pod_width , pod_y_axe + nose2[0:,4]*pod_width], axis=1)
-        pod_cone_xy = np.stack([pod_x_axe + (1-r_cone)*pod_length + cone2[0:,0]*pod_length*r_cone , pod_y_axe + cone2[0:,3]*pod_width , pod_y_axe + cone2[0:,4]*pod_width], axis=1)
-        pod_xy = np.vstack([pod_nose_xy , pod_cone_xy])
-
-        pod_top = np.vstack([np.stack([pod_xy[1:-2,0]  , pod_xy[1:-2,1]],axis=1) , np.stack([pod_xy[:0:-1,0] , pod_xy[:0:-1,2]],axis=1)])
-
-        return {"xy":pod_top , "yz":pod_front, "xz":pod_side}
-
 class TankWingBox(Component):
 
     def __init__(self, aircraft):
@@ -1740,7 +1741,7 @@ class TankRearFuselage(Component):
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
         self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
-class TankWingPod(Component,TankDrawing):
+class TankWingPod(Pod):
 
     def __init__(self, aircraft):
         super(TankWingPod, self).__init__(aircraft)
@@ -1858,7 +1859,7 @@ class TankWingPod(Component,TankDrawing):
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
         self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
-class TankPiggyBack(Component,TankDrawing):
+class TankPiggyBack(Pod):
 
     def __init__(self, aircraft):
         super(TankPiggyBack, self).__init__(aircraft)
@@ -1925,7 +1926,8 @@ class TankPiggyBack(Component,TankDrawing):
         self.wing_axe_x = wing_root_loc[0]
         self.wing_axe_z = wing_root_loc[2]
 
-        self.net_wet_area = 0.85*3.14*self.width*self.length
+        self.gross_wet_area = 0.85*3.14*self.width*self.length
+        self.net_wet_area = self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.05
 
