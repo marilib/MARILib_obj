@@ -41,8 +41,8 @@ class InboardWingMountedNacelle(Nacelle):
 
         return np.array([x_int, y_int*self.get_side(), z_int])
 
-    def get_nacelle_type(self):
-        return "wing"
+    def get_component_type(self):
+        return "wing_nacelle"
 
 class OutboardWingMountedNacelle(Nacelle):
 
@@ -67,8 +67,8 @@ class OutboardWingMountedNacelle(Nacelle):
 
         return np.array([x_ext, y_ext*self.get_side(), z_ext])
 
-    def get_nacelle_type(self):
-        return "wing"
+    def get_component_type(self):
+        return "wing_nacelle"
 
 class ExternalWingMountedNacelle(Nacelle):
 
@@ -93,8 +93,8 @@ class ExternalWingMountedNacelle(Nacelle):
 
         return np.array([x_ext, y_ext*self.get_side(), z_ext])
 
-    def get_nacelle_type(self):
-        return "wing"
+    def get_component_type(self):
+        return "wing_nacelle"
 
 class RearFuselageMountedNacelle(Nacelle):
 
@@ -112,8 +112,8 @@ class RearFuselageMountedNacelle(Nacelle):
 
         return np.array([x_int, y_int*self.get_side(), z_int])
 
-    def get_nacelle_type(self):
-        return "body"
+    def get_component_type(self):
+        return "body_nacelle"
 
 class BodyTailConeMountedNacelle(Nacelle):
 
@@ -143,8 +143,8 @@ class BodyTailConeMountedNacelle(Nacelle):
 
         return np.array([x_axe, y_axe, z_axe])
 
-    def get_nacelle_type(self):
-        return "body_tail"
+    def get_component_type(self):
+        return "body_tail_nacelle"
 
 class PodTailConeMountedNacelle(Nacelle):
 
@@ -191,8 +191,8 @@ class PodTailConeMountedNacelle(Nacelle):
 
         return np.array([x_int, y_int*self.get_side(), z_int])
 
-    def get_nacelle_type(self):
-        return "pod_tail"
+    def get_component_type(self):
+        return "pod_tail_nacelle"
 
 class PiggyBackTailConeMountedNacelle(Nacelle):
 
@@ -220,8 +220,8 @@ class PiggyBackTailConeMountedNacelle(Nacelle):
 
         return np.array([x_axe, y_axe, z_axe])
 
-    def get_nacelle_type(self):
-        return "piggyback_tail"
+    def get_component_type(self):
+        return "piggyback_tail_nacelle"
 
 
 
@@ -897,7 +897,7 @@ class SemiEmpiricEfNacelle(object):
         return (self.vertical_margin - 0.45)*self.width
 
     def eval_geometry(self):
-        reference_power = self.aircraft.power_system.get_reference_power(self.get_nacelle_type())
+        reference_power = self.aircraft.power_system.get_reference_power(self.get_component_type())
 
         # Electric fan geometry is design for MCR in cruise condition
         disa = self.aircraft.requirement.cruise_disa
@@ -916,7 +916,7 @@ class SemiEmpiricEfNacelle(object):
         self.frame_origin = self.locate_nacelle()
 
     def eval_mass(self):
-        reference_power = self.aircraft.power_system.get_reference_power(self.get_nacelle_type())
+        reference_power = self.aircraft.power_system.get_reference_power(self.get_component_type())
 
         self.engine_mass = (  1./self.controller_pw_density + 1./self.motor_pw_density
                             + 1./self.nacelle_pw_density
@@ -985,7 +985,7 @@ class SemiEmpiricEfNacelle(object):
     def unitary_thrust_free_stream(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Unitary thrust of an electrofan engine (semi-empirical model)
         """
-        reference_power = self.aircraft.power_system.get_reference_power(self.get_nacelle_type())
+        reference_power = self.aircraft.power_system.get_reference_power(self.get_component_type())
 
         r,gam,Cp,Cv = earth.gas_data()
 
@@ -1154,7 +1154,7 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
             q = CQoA1*self.nozzle_area
             return q1 - q
 
-        reference_power = self.aircraft.power_system.get_reference_power(self.get_nacelle_type())
+        reference_power = self.aircraft.power_system.get_reference_power(self.get_component_type())
         pw_shaft = reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
         pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
 

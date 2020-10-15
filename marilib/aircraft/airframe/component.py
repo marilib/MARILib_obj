@@ -48,6 +48,9 @@ class Component(object):
         self.aero_length = 1.       # characteristic length of the component in the direction of the flow
         self.form_factor = 0.       # factor on skin friction to account for lift independent pressure drag
 
+    def get_component_type(self):
+        raise NotImplementedError
+
     def eval_geometry(self):
         """Estimates the geometry of the component from the aircraft requirements and statistical design laws.
         """
@@ -89,6 +92,9 @@ class Component(object):
     def get_form_factor(self):
         """Form factor used to estimate form drag."""
         return self.form_factor
+
+    def sketch_3view(self):
+        return None
 
     def get_this_shape(self, name): # TODO: is the docstring up to date ?
         """Contour curves for 3 view drawing
@@ -193,13 +199,11 @@ class Component(object):
 
         return [curve[n] for n in name]
 
+
 class Nacelle(Component):
 
     def __init__(self, aircraft):
-        self.aircraft = aircraft
-
-    def get_nacelle_type(self):
-        raise NotImplementedError
+        super(Nacelle, self).__init__(aircraft)
 
     def sketch_3view(self):
         nac_length = self.length
@@ -249,18 +253,21 @@ class Nacelle(Component):
 
         return {"xy":nac_xy , "yz":nac_yz, "xz":nac_xz, "disk":disk_yz}
 
+class Tank(Component):
+
+    def __init__(self, aircraft):
+        super(Tank, self).__init__(aircraft)
+
 class Pod(Component):
 
-    def __init__(self, side):
-        self.airplane_side = side
-    def get_side(self):
-        return {"right":1., "left":-1.}.get(self.airplane_side)
+    def __init__(self, aircraft):
+        super(Pod, self).__init__(aircraft)
 
     def sketch_3view(self):
         pod_width = self.width
         pod_length = self.length
         pod_x_axe = self.frame_origin[0]
-        pod_y_axe = self.frame_origin[1]*self.get_side()
+        pod_y_axe = self.frame_origin[1]
         pod_z_axe = self.frame_origin[2]
         wing_x_body = self.wing_axe_x
         wing_z_body = self.wing_axe_z
@@ -355,6 +362,9 @@ class Cabin(Component):
         else: m_pax_max = 150.
         return m_pax_max
 
+    def get_component_type(self):
+        return "cabin"
+
     def eval_geometry(self):
         self.width = 0.38*self.n_pax_front + 1.05*self.n_aisle + 0.15     # Statistical regression
         self.length = 6.3*(self.width - 0.24) + 0.005*(self.n_pax_ref/self.n_pax_front)**2.25     # Statistical regression
@@ -408,6 +418,9 @@ class Cargo(Component):
 
         self.freight_max_bwd_cg = np.full(3,None)
         self.freight_max_bwd_mass = None
+
+    def get_component_type(self):
+        return "cargo_hold"
 
     def eval_geometry(self):
         self.frame_origin = self.aircraft.airframe.cabin.frame_origin
@@ -476,6 +489,9 @@ class Fuselage(Component):
         self.height = None
         self.length = None
         self.tail_cone_length = None
+
+    def get_component_type(self):
+        return "body"
 
     def eval_geometry(self):
         self.frame_origin = [0., 0., 0.]
@@ -574,6 +590,9 @@ class Wing(Component):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+
+    def get_component_type(self):
+        return "wing"
 
     def aspect_ratio(self):
         if (self.aircraft.arrangement.power_architecture in ["tp","ep"]):
@@ -868,10 +887,13 @@ class Wing(Component):
         return {"xy":wing_xy, "yz":wing_yz, "xz":wing_xz, "xz_tip":tip_wing_xz}
 
 
-class VtpDrawing(object):
+class Vstab(Component):
 
-    def __init__(self):
-        pass
+    def __init__(self, aircraft):
+        super(Vstab, self).__init__(aircraft)
+
+    def get_component_type(self):
+        return "vtp"
 
     def sketch_3view(self):
         vtp_t_o_c = self.toc
@@ -913,7 +935,7 @@ class VtpDrawing(object):
 
         return {"xy":vtp_xy , "yz":vtp_yz, "xz":vtp_xz}
 
-class VtpClassic(Component,VtpDrawing):
+class VtpClassic(Vstab):
 
     def __init__(self, aircraft):
         super(VtpClassic, self).__init__(aircraft)
@@ -1005,7 +1027,7 @@ class VtpClassic(Component,VtpDrawing):
         area_2 = self.wing_volume_factor*(wing_area*wing_span)/self.lever_arm
         self.area = max(area_1,area_2)
 
-class VtpTtail(Component,VtpDrawing):
+class VtpTtail(Vstab):
 
     def __init__(self, aircraft):
         super(VtpTtail, self).__init__(aircraft)
@@ -1098,14 +1120,16 @@ class VtpTtail(Component,VtpDrawing):
         area_2 = self.wing_volume_factor*(wing_area*wing_span)/self.lever_arm
         self.area = max(area_1,area_2)
 
-class VtpHtail(Component,VtpDrawing):
+class VtpHtail(Vstab):
 
-    def __init__(self, aircraft):
+    def __init__(self, aircraft, side):
         super(VtpHtail, self).__init__(aircraft)
+
+        self.airplane_side = side
 
         wing_area = aircraft.airframe.wing.area
 
-        self.area = 0.20*wing_area  # Design variable for hq_optim
+        self.area = 0.10*wing_area  # Design variable for hq_optim
         self.height = None
         self.aspect_ratio = get_init(self,"aspect_ratio")
         self.taper_ratio = get_init(self,"taper_ratio")
@@ -1124,14 +1148,17 @@ class VtpHtail(Component,VtpDrawing):
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
 
+    def get_side(self):
+        return {"right":1., "left":-1.}.get(self.airplane_side)
+
     def eval_geometry(self):
         htp_tip_loc = self.aircraft.airframe.horizontal_stab.tip_loc
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
         wing_mac = self.aircraft.airframe.wing.mac
 
-        self.height = np.sqrt(self.aspect_ratio*(0.5*self.area))
-        self.root_c = 2*(0.5*self.area)/(self.height*(1+self.taper_ratio))
+        self.height = np.sqrt(self.aspect_ratio*(self.area))
+        self.root_c = 2*(self.area)/(self.height*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.root_c
 
         self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
@@ -1145,16 +1172,16 @@ class VtpHtail(Component,VtpDrawing):
         z_root = htp_tip_loc[2]
         z_tip = z_root + self.height
 
-        self.mac = self.height*(self.root_c**2+self.tip_c**2+self.root_c*self.tip_c)/(3*(0.5*self.area))
-        x_mac = x_root+(x_tip-x_root)*self.height*(2*self.tip_c+self.root_c)/(6*(0.5*self.area))
+        self.mac = self.height*(self.root_c**2+self.tip_c**2+self.root_c*self.tip_c)/(3*(self.area))
+        x_mac = x_root+(x_tip-x_root)*self.height*(2*self.tip_c+self.root_c)/(6*(self.area))
         y_mac = y_tip
         z_mac = z_tip**2*(2*self.tip_c+self.root_c)/(6*self.area)
 
         self.lever_arm = (x_mac + 0.25*self.mac) - (wing_mac_loc[0] + 0.25*wing_mac)
 
-        self.root_loc = np.array([x_root, y_root, z_root])
-        self.tip_loc = np.array([x_tip, y_tip, z_tip])
-        self.mac_loc = np.array([x_mac, y_mac, z_mac])
+        self.root_loc = np.array([x_root, y_root*self.get_side(), z_root])
+        self.tip_loc = np.array([x_tip, y_tip*self.get_side(), z_tip])
+        self.mac_loc = np.array([x_mac, y_mac*self.get_side(), z_mac])
 
         self.frame_origin = [x_root, y_root, z_root]
 
@@ -1185,13 +1212,16 @@ class VtpHtail(Component,VtpDrawing):
         wing_span = self.aircraft.airframe.wing.span
         area_1 = self.thrust_volume_factor*(1.e-3*reference_thrust*nacelle_loc_ext[1])/self.lever_arm
         area_2 = self.wing_volume_factor*(wing_area*wing_span)/self.lever_arm
-        self.area = max(area_1,area_2)
+        self.area = 0.5 * max(area_1,area_2)
 
 
-class HtpDrawing(object):
+class Hstab(Component):
 
-    def __init__(self):
-        pass
+    def __init__(self, aircraft):
+        super(Hstab, self).__init__(aircraft)
+
+    def get_component_type(self):
+        return "htp"
 
     def sketch_3view(self):
         htp_span = self.span
@@ -1238,7 +1268,7 @@ class HtpDrawing(object):
 
         return {"xy":htp_xy , "yz":htp_yz, "xz":htp_xz}
 
-class HtpClassic(Component,HtpDrawing):
+class HtpClassic(Hstab):
 
     def __init__(self, aircraft):
         super(HtpClassic, self).__init__(aircraft)
@@ -1330,7 +1360,7 @@ class HtpClassic(Component,HtpDrawing):
 
         self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
-class HtpTtail(Component,HtpDrawing):
+class HtpTtail(Hstab):
 
     def __init__(self, aircraft):
         super(HtpTtail, self).__init__(aircraft)
@@ -1423,7 +1453,7 @@ class HtpTtail(Component,HtpDrawing):
 
         self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
-class HtpHtail(Component,HtpDrawing):
+class HtpHtail(Hstab):
 
     def __init__(self, aircraft):
         super(HtpHtail, self).__init__(aircraft)
@@ -1518,7 +1548,7 @@ class HtpHtail(Component,HtpDrawing):
         self.area = self.volume_factor*(wing_area*wing_mac/self.lever_arm)
 
 
-class TankWingBox(Component):
+class TankWingBox(Tank):
 
     def __init__(self, aircraft):
         super(TankWingBox, self).__init__(aircraft)
@@ -1545,6 +1575,9 @@ class TankWingBox(Component):
 
         self.fuel_max_bwd_cg = np.full(3,None)
         self.fuel_max_bwd_mass = None
+
+    def get_component_type(self):
+        return "wing_box_tank"
 
     def shield_parameter(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
@@ -1597,6 +1630,9 @@ class TankWingBox(Component):
 
         self.frame_origin = [wing_root_loc[0], 0., wing_root_loc[2]]
 
+    def sketch_3view(self):
+        return None
+
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type
         wing_root_c = self.aircraft.airframe.wing.root_c
@@ -1633,7 +1669,7 @@ class TankWingBox(Component):
         self.fuel_max_bwd_cg = self.fuel_cantilever_cg    # Fuel max Backward CG
         self.fuel_max_bwd_mass = self.cantilever_volume*self.fuel_density
 
-class TankRearFuselage(Component):
+class TankRearFuselage(Tank):
 
     def __init__(self, aircraft):
         super(TankRearFuselage, self).__init__(aircraft)
@@ -1663,6 +1699,9 @@ class TankRearFuselage(Component):
 
         self.fuel_max_bwd_cg = np.full(3,None)
         self.fuel_max_bwd_mass = None
+
+    def get_component_type(self):
+        return "rear_body_tank"
 
     def shield_parameter(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
@@ -1712,6 +1751,9 @@ class TankRearFuselage(Component):
             self.insulation_volume = 0.
             self.max_volume = gross_volume
 
+    def sketch_3view(self):
+        return None
+
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type
         body_width = self.aircraft.airframe.body.width
@@ -1743,8 +1785,10 @@ class TankRearFuselage(Component):
 
 class TankWingPod(Pod):
 
-    def __init__(self, aircraft):
+    def __init__(self, aircraft, side):
         super(TankWingPod, self).__init__(aircraft)
+
+        self.airplane_side = side
 
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
@@ -1783,6 +1827,12 @@ class TankWingPod(Pod):
         self.fuel_max_bwd_cg = np.full(3,None)
         self.fuel_max_bwd_mass = None
 
+    def get_side(self):
+        return {"right":1., "left":-1.}.get(self.airplane_side)
+
+    def get_component_type(self):
+        return "wing_pod_tank"
+
     def shield_parameter(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
         elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
@@ -1794,7 +1844,6 @@ class TankWingPod(Pod):
         else: return 0.
 
     def eval_geometry(self):
-        body_width = self.aircraft.airframe.body.width
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_dihedral = self.aircraft.airframe.wing.dihedral
         wing_root_loc = self.aircraft.airframe.wing.root_loc
@@ -1807,13 +1856,14 @@ class TankWingPod(Pod):
 
         if (self.aircraft.arrangement.nacelle_attachment == "pods"):
             y_axe = self.aircraft.airframe.nacelle.locate_nacelle()[1]
+            z_axe = self.aircraft.airframe.nacelle.locate_nacelle()[2]
         else:
             y_axe = self.span_ratio * wing_tip_loc[1]
+            z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral) - self.z_loc_ratio*self.width
 
         x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - self.x_loc_ratio*self.length
-        z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral) - self.z_loc_ratio*self.width
 
-        self.frame_origin = [x_axe, y_axe, z_axe]
+        self.frame_origin = [x_axe, y_axe*self.get_side(), z_axe]
 
         self.wing_axe_c = wing_kink_c - (wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
         self.wing_axe_x = wing_kink_loc[0] - (wing_kink_loc[0]-wing_tip_loc[0])/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
@@ -1900,6 +1950,9 @@ class TankPiggyBack(Pod):
         self.fuel_max_bwd_cg = np.full(3,None)
         self.fuel_max_bwd_mass = None
 
+    def get_component_type(self):
+        return "piggyback_tank"
+
     def shield_parameter(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
         elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
@@ -1978,6 +2031,9 @@ class LandingGear(Component):
         wing_root_loc = self.aircraft.airframe.wing.root_loc
 
         self.frame_origin = wing_root_loc[0] + 0.85*wing_root_c
+
+    def sketch_3view(self):
+        return None
 
     def eval_mass(self):
         mtow = self.aircraft.weight_cg.mtow

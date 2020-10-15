@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 from marilib.utils import unit
 
-from marilib.aircraft.airframe.component import Nacelle
+from marilib.aircraft.airframe.component import Nacelle, Pod
 
 
 class Drawing(object):
@@ -81,53 +81,68 @@ class Drawing(object):
 
         # Draw components
         #-----------------------------------------------------------------------------------------------------------
-        component = {"body":self.aircraft.airframe.body.sketch_3view(),
-                     "wing":self.aircraft.airframe.wing.sketch_3view(),
-                     "htp":self.aircraft.airframe.horizontal_stab.sketch_3view(),
-                     "vtp":self.aircraft.airframe.vertical_stab.sketch_3view()}
+        l0w, l1, l2, l3, l4, l5, high = 0, 1, 2, 3, 4, 5, 6
 
-        zframe = {"xy":{"body":2, "wing":1, "htp":1, "vtp":3},      # top
-                  "yz":{"body":4, "wing":3, "htp":1, "vtp":2},      # front
-                  "xz":{"body":2, "wing":3, "htp":3, "vtp":1}}      # side
+        zframe = {"xy":{"body":l2, "wing":l1, "htp":l1, "vtp":l3},      # top
+                  "yz":{"body":l4, "wing":l3, "htp":l1, "vtp":l2},      # front
+                  "xz":{"body":l2, "wing":l3, "htp":l3, "vtp":l1}}      # side
 
         if self.aircraft.arrangement.wing_attachment=="high":
-            zframe["xy"]["body"] = 1
-            zframe["xy"]["wing"] = 2
+            zframe["xy"]["body"] = l1
+            zframe["xy"]["wing"] = l2
 
         if self.aircraft.arrangement.stab_architecture=="t_tail":
-            zframe["xy"]["htp"] = 3
-            zframe["xy"]["vtp"] = 1
+            zframe["xy"]["htp"] = l3
+            zframe["xy"]["vtp"] = l1
 
         if self.aircraft.arrangement.stab_architecture=="h_tail":
-            zframe["xz"]["htp"] = 1
-            zframe["xz"]["vtp"] = 3
+            zframe["xz"]["htp"] = l1
+            zframe["xz"]["vtp"] = l3
 
-        for view in ["xy","yz","xz"]:
-            for key,comp in component.items():
-                plt.fill(ref[view][0]+comp[view][0:,0], ref[view][1]+comp[view][0:,1], color="white", zorder=zframe[view][key])    # draw mask
-                plt.plot(ref[view][0]+comp[view][0:,0], ref[view][1]+comp[view][0:,1], color="grey", zorder=zframe[view][key])     # draw contour
+        for comp in self.aircraft.airframe:
+            data = comp.sketch_3view()
+            if data is not None:
+                typ = comp.get_component_type()
+                if typ in ["body","wing","htp","vtp"]:
+                    for view in ["xy","yz","xz"]:
+                        plt.fill(ref[view][0]+data[view][0:,0], ref[view][1]+data[view][0:,1], color="white", zorder=zframe[view][typ])    # draw mask
+                        plt.plot(ref[view][0]+data[view][0:,0], ref[view][1]+data[view][0:,1], color="grey", zorder=zframe[view][typ])     # draw contour
 
         # Draw tanks
         #-----------------------------------------------------------------------------------------------------------
+        #                            top        front    side
+        zpod = {   "wing_pod_tank":{"xy":l3,   "yz":l4, "xz":l4},
+                  "piggyback_tank":{"xy":high, "yz":l4, "xz":l2}}
 
-
-
-
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Pod):
+                pod = comp.sketch_3view()
+                typ = comp.get_component_type()
+                if typ=="wing_pod_tank" and self.aircraft.airframe.tank.frame_origin[2] < self.aircraft.airframe.tank.wing_axe_z:
+                    zpod["wing_pod_tank"]["xy"] = l0w
+                for view in ["xy","yz","xz"]:
+                    plt.fill(ref[view][0]+pod[view][0:,0], ref[view][1]+pod[view][0:,1], color="white", zorder=zpod[typ][view])    # draw mask
+                    plt.plot(ref[view][0]+pod[view][0:,0], ref[view][1]+pod[view][0:,1], color="grey", zorder=zpod[typ][view])     # draw contour
+                # print(typ,zpod[typ]["xy"],zframe["xy"]["wing"])
+                if typ=="wing_pod_tank" and zframe["xy"]["wing"] < zpod[typ]["xy"]:
+                    data = self.aircraft.airframe.wing.sketch_3view()
+                    view = "xz_tip"
+                    plt.fill(ref["xz"][0]+data[view][0:,0], ref["xz"][1]+data[view][0:,1], color="white", zorder=high)    # draw mask
+                    plt.plot(ref["xz"][0]+data[view][0:,0], ref["xz"][1]+data[view][0:,1], color="grey", zorder=high)     # draw contour
 
         # Draw nacelles
         #-----------------------------------------------------------------------------------------------------------
-        #                          top    front    side
-        znac = {          "wing":{"xy":0, "yz":4, "xz":5},
-                          "body":{"xy":3, "yz":1, "xz":5},
-                     "body_tail":{"xy":1, "yz":0, "xz":0},
-                      "pod_tail":{"xy":1, "yz":0, "xz":2},
-                "piggyback_tail":{"xy":5, "yz":0, "xz":2}}
+        #                                  top        front     side
+        znac = {          "wing_nacelle":{"xy":l0w,  "yz":l4,  "xz":high},
+                          "body_nacelle":{"xy":l3,   "yz":l1,  "xz":high},
+                     "body_tail_nacelle":{"xy":l1,   "yz":l0w, "xz":l0w},
+                      "pod_tail_nacelle":{"xy":l4,   "yz":l0w, "xz":l5},
+                "piggyback_tail_nacelle":{"xy":high, "yz":l0w, "xz":l2}}
 
-        key = "nac"
         for comp in self.aircraft.airframe:
             if issubclass(type(comp),Nacelle):
                 nacelle = comp.sketch_3view()
-                typ = comp.get_nacelle_type()
+                typ = comp.get_component_type()
                 for view in ["xy","yz","xz"]:
                     plt.fill(ref[view][0]+nacelle[view][0:,0], ref[view][1]+nacelle[view][0:,1], color="white", zorder=znac[typ][view])    # draw mask
                     plt.plot(ref[view][0]+nacelle[view][0:,0], ref[view][1]+nacelle[view][0:,1], color="grey", zorder=znac[typ][view])     # draw contour

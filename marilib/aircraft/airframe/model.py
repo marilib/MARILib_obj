@@ -1012,9 +1012,9 @@ class PartialTurboElectricPods(PartialTurboElectric):
         super(PartialTurboElectricPods, self).__init__(aircraft)
 
     def get_reference_power(self,type):
-        if type=="BodyTail":
+        if type=="body_tail_nacelle":
             return self.aircraft.airframe.system.chain_power_body
-        elif type=="PodTail":
+        elif type=="pod_tail_nacelle":
             return self.aircraft.airframe.system.chain_power_pod
         else:
             raise Exception("Bad use of this class")

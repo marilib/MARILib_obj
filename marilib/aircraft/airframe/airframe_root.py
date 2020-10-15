@@ -7,8 +7,7 @@
 
 import numpy as np
 from scipy.optimize import fsolve
-from marilib.aircraft.airframe.component import Component
-from marilib.aircraft.airframe.propulsion import Nacelle
+from marilib.aircraft.airframe.component import Component, Nacelle, Tank, Pod
 
 #--------------------------------------------------------------------------------------------------------------------------------
 class Airframe(object):
@@ -41,7 +40,15 @@ class Airframe(object):
         self.aircraft.airframe.cabin.eval_geometry()
         self.aircraft.airframe.body.eval_geometry()
         self.aircraft.airframe.wing.eval_geometry(hq_optim)
-        self.aircraft.airframe.tank.eval_geometry()
+
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Tank):
+                comp.eval_geometry()
+
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Pod):
+                comp.eval_geometry()
+
         self.aircraft.airframe.cargo.eval_geometry()
 
         for comp in self.aircraft.airframe:
@@ -54,6 +61,7 @@ class Airframe(object):
         elif (stab_architecture=="h_tail"):
             self.aircraft.airframe.horizontal_stab.eval_geometry()
             self.aircraft.airframe.vertical_stab.eval_geometry()
+            self.aircraft.airframe.other_vertical_stab.eval_geometry()
 
         self.aircraft.airframe.landing_gear.eval_geometry()
         self.aircraft.airframe.system.eval_geometry()
@@ -68,7 +76,15 @@ class Airframe(object):
         self.aircraft.airframe.cabin.eval_geometry()
         self.aircraft.airframe.body.eval_geometry()
         self.aircraft.airframe.wing.eval_geometry()
-        self.aircraft.airframe.tank.eval_geometry()
+
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Tank):
+                comp.eval_geometry()
+
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Pod):
+                comp.eval_geometry()
+
         self.aircraft.airframe.cargo.eval_geometry()
 
         for comp in self.aircraft.airframe:
@@ -85,6 +101,7 @@ class Airframe(object):
             elif (stab_architecture=="h_tail"):
                 self.aircraft.airframe.horizontal_stab.eval_geometry()
                 self.aircraft.airframe.vertical_stab.eval_geometry()
+                self.aircraft.airframe.other_vertical_stab.eval_geometry()
 
             self.aircraft.airframe.horizontal_stab.eval_area()
             self.aircraft.airframe.vertical_stab.eval_area()
@@ -99,15 +116,18 @@ class Airframe(object):
         output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
-        self.aircraft.airframe.vertical_stab.area = output_dict[0][0]                           # Coupling variable
-        self.aircraft.airframe.horizontal_stab.area = output_dict[0][1]                             # Coupling variable
-
         if (stab_architecture in ["classic","t_tail"]):
+            self.aircraft.airframe.vertical_stab.area = output_dict[0][0]
             self.aircraft.airframe.vertical_stab.eval_geometry()
+            self.aircraft.airframe.horizontal_stab.area = output_dict[0][1]
             self.aircraft.airframe.horizontal_stab.eval_geometry()
         elif (stab_architecture=="h_tail"):
+            self.aircraft.airframe.horizontal_stab.area = output_dict[0][1]
             self.aircraft.airframe.horizontal_stab.eval_geometry()
+            self.aircraft.airframe.vertical_stab.area = output_dict[0][0]
             self.aircraft.airframe.vertical_stab.eval_geometry()
+            self.aircraft.airframe.other_vertical_stab.area = output_dict[0][0]
+            self.aircraft.airframe.other_vertical_stab.eval_geometry()
 
         self.aircraft.airframe.landing_gear.eval_geometry()
         self.aircraft.airframe.system.eval_geometry()

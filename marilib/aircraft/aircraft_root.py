@@ -107,7 +107,8 @@ class Aircraft(object):
             self.airframe.horizontal_stab = component.HtpTtail(self)
         elif (self.arrangement.stab_architecture=="h_tail"):
             self.airframe.horizontal_stab = component.HtpHtail(self)
-            self.airframe.vertical_stab = component.VtpHtail(self)
+            self.airframe.vertical_stab = component.VtpHtail(self,"right")
+            self.airframe.other_vertical_stab = component.VtpHtail(self,"left")
         else:
             raise Exception("stab_architecture is unknown")
 
@@ -120,7 +121,7 @@ class Aircraft(object):
             self.airframe.tank = component.TankPiggyBack(self)
         elif (self.arrangement.tank_architecture=="pods"):
             self.airframe.tank = component.TankWingPod(self,"right")
-            self.airframe.other_tank = component.TankWingPod(self,"self")
+            self.airframe.other_tank = component.TankWingPod(self,"left")
         else:
             raise Exception("Type of tank is unknown")
 
