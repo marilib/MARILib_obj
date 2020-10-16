@@ -149,7 +149,7 @@ model_config = {
         "battery": ["no", "string", "Use of battery, 'yes', 'no'"],
         "battery_density": [2800., "kg/m3", "Battery density"],
         "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"],
-        "lto_power": [1., "MW", "Battery power reserve for take off and landing"],
+        "lto_power": [0., "kW", "Battery power reserve for take off and landing"],
         "lto_time": [0., "min", "Duration of availability of the power reserve"],
         "cruise_energy": [0., "kWh", "Energy booked for cruise"],
         "generator_efficiency": [0.95, "no_dim", "Electric generator efficiency"],

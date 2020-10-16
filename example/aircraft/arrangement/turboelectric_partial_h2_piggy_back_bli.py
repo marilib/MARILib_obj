@@ -42,7 +42,7 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 ac.airframe.system.chain_power_piggyback = unit.W_MW(1.)
 ac.airframe.system.chain_power_body = unit.W_MW(1.)
 ac.power_system.reference_thrust = unit.N_kN(130.)
-ac.airframe.wing.area = 137.
+ac.airframe.wing.area = 145.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -84,8 +84,8 @@ crt = "aircraft.weight_cg.mtow"
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format

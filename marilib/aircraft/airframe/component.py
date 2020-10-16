@@ -347,7 +347,7 @@ class Cabin(Component):
 
     def __m_pax_nominal(self):
         design_range = self.aircraft.requirement.design_range
-        if  (design_range <= unit.m_NM(500.)): m_pax_nominal = 95.
+        if  (design_range <= unit.m_NM(500.)): m_pax_nominal = 105.
         elif(design_range <= unit.m_NM(1500.)): m_pax_nominal = 105.
         elif(design_range <= unit.m_NM(3500.)): m_pax_nominal = 105.
         elif(design_range <= unit.m_NM(5500.)): m_pax_nominal = 105.
@@ -1844,6 +1844,9 @@ class TankWingPod(Pod):
         else: return 0.
 
     def eval_geometry(self):
+        body_width = self.aircraft.airframe.body.width
+        tank_width = self.aircraft.airframe.tank.width
+
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_dihedral = self.aircraft.airframe.wing.dihedral
         wing_root_loc = self.aircraft.airframe.wing.root_loc
@@ -1852,16 +1855,17 @@ class TankWingPod(Pod):
         wing_tip_c = self.aircraft.airframe.wing.tip_c
         wing_tip_loc = self.aircraft.airframe.wing.tip_loc
 
+        lateral_margin = self.aircraft.airframe.nacelle.lateral_margin
+
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
         if (self.aircraft.arrangement.nacelle_attachment == "pods"):
-            y_axe = self.aircraft.airframe.nacelle.locate_nacelle()[1]
-            z_axe = self.aircraft.airframe.nacelle.locate_nacelle()[2]
+            y_axe = 0.6 * body_width + (0.5 + lateral_margin)*tank_width
         else:
             y_axe = self.span_ratio * wing_tip_loc[1]
-            z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral) - self.z_loc_ratio*self.width
 
         x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - self.x_loc_ratio*self.length
+        z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral) - self.z_loc_ratio*self.width
 
         self.frame_origin = [x_axe, y_axe*self.get_side(), z_axe]
 

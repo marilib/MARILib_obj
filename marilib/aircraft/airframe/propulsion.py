@@ -106,7 +106,7 @@ class RearFuselageMountedNacelle(Nacelle):
         body_height = self.aircraft.airframe.body.height
         body_length = self.aircraft.airframe.body.length
 
-        y_int = 0.5 * body_width + 0.9 * self.width      # statistical regression
+        y_int = 0.5 * body_width + 0.7 * self.width      # statistical regression
         x_int = 0.80 * body_length - self.length
         z_int = body_height
 
@@ -167,27 +167,12 @@ class PodTailConeMountedNacelle(Nacelle):
         self.bnd_layer = self.aircraft.aerodynamics.tail_cone_boundary_layer(self.body_width,self.hub_width)
 
         body_width = self.aircraft.airframe.body.width
-        wing_root_loc = self.aircraft.airframe.wing.root_loc
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
-        wing_dihedral = self.aircraft.airframe.wing.dihedral
-        wing_kink_c = self.aircraft.airframe.wing.kink_c
-        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
-        wing_tip_c = self.aircraft.airframe.wing.tip_c
-        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
-        tank_length = self.aircraft.airframe.tank.length
         tank_width = self.aircraft.airframe.tank.width
 
-        tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
-
-        # Recompute pod position
-        y_axe = 0.6 * body_width + (0.5 + self.lateral_margin)*tank_width
-        x_axe = wing_root_loc[0] + (y_axe-wing_root_loc[1])*tan_phi0 - self.x_loc_ratio*tank_length
-        z_axe = wing_root_loc[2] + (y_axe-wing_root_loc[2])*np.tan(wing_dihedral) - self.z_loc_ratio*tank_width
-
         # Locate nacelle
-        y_int = y_axe
-        x_int = x_axe + self.aircraft.airframe.tank.length
-        z_int = z_axe
+        x_int = self.aircraft.airframe.tank.frame_origin[0] + self.aircraft.airframe.tank.length
+        y_int = self.aircraft.airframe.tank.frame_origin[1]
+        z_int = self.aircraft.airframe.tank.frame_origin[2]
 
         return np.array([x_int, y_int*self.get_side(), z_int])
 

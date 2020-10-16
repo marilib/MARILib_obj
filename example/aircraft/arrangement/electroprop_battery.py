@@ -39,8 +39,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(1400.)      # twin
-ac.airframe.wing.area = 74.                             # twin
+ac.power_system.reference_power = unit.W_kW(1300.)      # twin
+ac.airframe.wing.area = 69.                             # twin
 # ac.power_system.reference_power = unit.W_kW(1550.)      # quadri
 # ac.airframe.wing.area = 83.                             # quadri
 # ac.power_system.reference_power = unit.W_kW(1150.)      # hexa
@@ -86,8 +86,8 @@ crt = "aircraft.weight_cg.mtow"
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
