@@ -23,7 +23,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "wing_box",   # "wing_box", "piggy_back" or "pods"
-                   number_of_engine = "quadri",        # "twin", "quadri" or "hexa"
+                   number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
                    power_source = "battery",       # "fuel", "battery", "fuel_cell"
@@ -31,7 +31,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 reqs = Requirement(n_pax_ref = 19.,
                    design_range = unit.m_NM(100.),
-                   cruise_mach = 0.55,
+                   cruise_mach = 0.45,
                    cruise_altp = unit.m_ft(20000.))
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
@@ -39,12 +39,10 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(1300.)      # twin
-ac.airframe.wing.area = 69.                             # twin
+ac.power_system.reference_power = unit.W_kW(2800.)      # twin
+ac.airframe.wing.area = 76.                             # twin
 # ac.power_system.reference_power = unit.W_kW(1550.)      # quadri
 # ac.airframe.wing.area = 83.                             # quadri
-# ac.power_system.reference_power = unit.W_kW(1150.)      # hexa
-# ac.airframe.wing.area = 92.                             # hexa
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)

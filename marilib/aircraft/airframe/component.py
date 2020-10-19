@@ -330,8 +330,8 @@ class Cabin(Component):
 
     def __n_pax_front(self):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
-        if  (n_pax_ref<=9):   n_pax_front = 2
-        elif(n_pax_ref<=19):  n_pax_front = 3
+        if  (n_pax_ref<=12):   n_pax_front = 2
+        elif(n_pax_ref<=24):  n_pax_front = 3
         elif(n_pax_ref<=70):  n_pax_front = 4
         elif(n_pax_ref<=120): n_pax_front = 5
         elif(n_pax_ref<=225): n_pax_front = 6
@@ -1730,6 +1730,7 @@ class TankRearFuselage(Tank):
         self.width_front = min(1.,self.width_rear_factor+(1.-self.width_rear_factor)*x)*body_width
         self.width_rear = self.width_rear_factor*body_width
 
+        # Tank is supposed to be composed of an eventual cylindrical part of length lcyl and a cone trunc
         lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
 
         gross_volume =   0.25*np.pi*lcyl*self.width_front**2 \
@@ -1803,8 +1804,8 @@ class TankWingPod(Pod):
         self.insulation_density = get_init(self,"insulation_density")
         self.fuel_density = None
 
-        length = 0.30*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
-        width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        length = 0.36*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
+        width = 0.72*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
         self.length = get_init(self,"length", val=length)
         self.width = get_init(self,"width", val=width)
@@ -1878,10 +1879,11 @@ class TankWingPod(Pod):
         self.aero_length = self.length
         self.form_factor = 1.05
 
-        gross_volume = 2.0 * 0.80 * self.length*(0.25*np.pi*self.width**2)  # for both tanks
+        # Tank is supposed to be composed of a cylindrical part ended with two emisphers, an unusable length of one diameter is taken
+        gross_volume = 2.0 * ((1./6.)*np.pi*self.width**3 + (self.length-2.*self.width)*(0.25*np.pi*self.width**2))  # for both tanks
 
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
-            gross_wall_area = 0.80 * self.length * (np.pi*self.width)
+            gross_wall_area = 2.0 * (np.pi*self.width**2 + (self.length-2.*self.width)*(np.pi*self.width))
             # Volume of the structural shielding for pressure containment
             self.shield_volume = gross_volume * self.fuel_pressure/(self.shield_parameter*self.shield_density)
             # Volume of the insulation layer
@@ -1988,10 +1990,11 @@ class TankPiggyBack(Pod):
         self.aero_length = self.length
         self.form_factor = 1.05
 
-        gross_volume = 0.80 * self.length*(0.25*np.pi*self.width**2)
+        # Tank is supposed to be composed of a cylindrical part ended with two emisphers, an unusable length of one diameter is taken
+        gross_volume = (1./6.)*np.pi*self.width**3 + (self.length-2.*self.width)*(0.25*np.pi*self.width**2)  # for one tank
 
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
-            gross_wall_area = 0.80 * self.length * (np.pi*self.width)
+            gross_wall_area = np.pi*self.width**2 + (self.length-2.*self.width)*(np.pi*self.width)
             # Volume of the structural shielding for pressure containment
             self.shield_volume = gross_volume * self.fuel_pressure/(self.shield_parameter*self.shield_density)
             # Volume of the insulation layer

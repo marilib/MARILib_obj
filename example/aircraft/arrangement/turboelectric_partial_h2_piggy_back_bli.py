@@ -39,8 +39,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.airframe.system.chain_power_piggyback = unit.W_MW(1.)
-ac.airframe.system.chain_power_body = unit.W_MW(1.)
+ac.airframe.system.chain_power_piggyback = unit.W_MW(2.)
+ac.airframe.system.chain_power_body = unit.W_MW(2.)
 ac.power_system.reference_thrust = unit.N_kN(130.)
 ac.airframe.wing.area = 145.
 

@@ -83,7 +83,8 @@ class TakeOffReq(object):
         return s2_min_path
 
     def __tofl_req(self, requirement):
-        if(requirement.design_range <= unit.m_NM(1500.)): tofl_req = 1500.
+        if(requirement.design_range <= unit.m_NM(500.)): tofl_req = 1000.
+        elif(requirement.design_range <= unit.m_NM(1500.)): tofl_req = 1500.
         elif(requirement.design_range <= unit.m_NM(3500.)): tofl_req = 2300.
         elif(requirement.design_range <= unit.m_NM(5500.)): tofl_req = 2800.
         else: tofl_req = 3000.
@@ -101,7 +102,8 @@ class ApproachReq(object):
         self.app_speed_req = get_init(self,"app_speed_req", val=self.__app_speed_req(requirement))
 
     def __app_speed_req(self, requirement):
-        if (requirement.n_pax_ref<=100): app_speed_req = unit.mps_kt(120.)
+        if (requirement.n_pax_ref<=40): app_speed_req = unit.mps_kt(110.)
+        elif (requirement.n_pax_ref<=100): app_speed_req = unit.mps_kt(120.)
         elif (requirement.n_pax_ref<=200): app_speed_req = unit.mps_kt(137.)
         else: app_speed_req = unit.mps_kt(140.)
         return app_speed_req
