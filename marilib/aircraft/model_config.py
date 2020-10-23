@@ -79,32 +79,8 @@ model_config = {
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency (function)"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"],
-        "insulation_thickness": [0.06, "m", "Tank insulation thickness"],
-        "insulation_density": [200., "kg/m3", "Tank insulation material density"]
-    },
-    "TankWingPod":{
-        "span_ratio": [0.65, "no_dim", "Relative span wise position of the tank"],
-        "x_loc_ratio": [0.3, "no_dim", "Fraction of the tank length behind the wing"],
-        "z_loc_ratio": [0., "no_dim", "Fraction of the tank diameter between the wing and the tank"],
-        "length": ["function", "m", "Length of the tank"],
-        "width": ["function", "m", "Diameter of the tank"],
-        "surface_mass": [10., "kg/m2", "Mass per surface unit of the tank structure"],
-        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
-        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency (function)"],
-        "shell_density": [1750, "kg/m3", "Tank shell material density"],
-        "insulation_thickness": [0.06, "m", "Tank insulation thickness"],
-        "insulation_density": [200., "kg/m3", "Tank insulation material density"]
-    },
-    "TankPiggyBack":{
-        "x_loc_ratio": [0.4, "no_dim", "Fraction of the tank length behind the wing"],
-        "z_loc_ratio": [0.85, "no_dim", "Fraction of the tank diameter between the fuselage and the tank axis"],
-        "length": ["function", "m", "Length of the tank"],
-        "width": ["function", "m", "Diameter of the tank"],
-        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
-        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
-        "shell_density": [1750, "kg/m3", "Tank shell material density"],
-        "insulation_thickness": [0.06, "m", "Tank insulation thickness"],
-        "insulation_density": [200., "kg/m3", "Tank insulation material density"]
+        "insulation_thickness": [0.04, "m", "Tank insulation thickness"],
+        "insulation_density": [500., "kg/m3", "Tank insulation density"]
     },
     "TankRearFuselage":{
         "length": [10., "m", "Length of the tank"],
@@ -112,8 +88,32 @@ model_config = {
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
         "shell_density": [1750, "kg/m3", "Tank shell material density"],
-        "insulation_thickness": [0.06, "m", "Tank insulation thickness"],
-        "insulation_density": [200., "kg/m3", "Tank insulation material density"]
+        "insulation_thickness": [0.04, "m", "Tank insulation thickness"],
+        "insulation_density": [500., "kg/m3", "Tank insulation density"]
+    },
+    "GenericPodTank":{
+        "structure_shell_surface_mass": [15., "kg/m2", "Surface mass of the surrounding support structure"],
+        "structure_shell_thickness": [0.05, "m", "Thickness of the support structure"],
+        "min_pressure_shell_efficiency": [250., "bar.l/kg", "minimum pressurized tank efficiency"],
+        "max_pressure_shell_efficiency": [650., "bar.l/kg", "maximum pressurized tank efficiency"],
+        "pressure_shell_density": [2000., "kg/m3", "material density of the pressure shield"],
+        "insulation_thickness": [0.04, "m", "Tank insulation thickness"],
+        "insulation_density": [500., "kg/m3", "Tank insulation density"]
+    },
+    "TankWingPod":{
+        "span_ratio": [0.65, "no_dim", "Relative span wise position of the tank"],
+        "x_loc_ratio": [0.3, "no_dim", "Fraction of the tank length behind the wing"],
+        "z_loc_ratio": [0., "no_dim", "Fraction of the tank diameter between the wing and the tank"],
+        "length": ["function", "m", "Length of the tank"],
+        "width": ["function", "m", "Diameter of the tank"],
+        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
+    },
+    "TankPiggyBack":{
+        "x_loc_ratio": [0.4, "no_dim", "Fraction of the tank length behind the wing"],
+        "z_loc_ratio": [0.85, "no_dim", "Fraction of the tank diameter between the fuselage and the tank axis"],
+        "length": ["function", "m", "Length of the tank"],
+        "width": ["function", "m", "Diameter of the tank"],
+        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
     },
     "LandingGear":{
     },
