@@ -77,8 +77,8 @@ model_config = {
     },
     "TankWingBox":{
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
-        "shield_parameter": ["function", "bar.l/kg", "Tank structural efficiency (function)"],
-        "shield_density": [1750, "kg/m3", "Tank shell material density"],
+        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency (function)"],
+        "shell_density": [1750, "kg/m3", "Tank shell material density"],
         "insulation_thickness": [0.06, "m", "Tank insulation thickness"],
         "insulation_density": [200., "kg/m3", "Tank insulation material density"]
     },
@@ -90,8 +90,8 @@ model_config = {
         "width": ["function", "m", "Diameter of the tank"],
         "surface_mass": [10., "kg/m2", "Mass per surface unit of the tank structure"],
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
-        "shield_parameter": ["function", "bar.l/kg", "Tank structural efficiency (function)"],
-        "shield_density": [1750, "kg/m3", "Tank shell material density"],
+        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency (function)"],
+        "shell_density": [1750, "kg/m3", "Tank shell material density"],
         "insulation_thickness": [0.06, "m", "Tank insulation thickness"],
         "insulation_density": [200., "kg/m3", "Tank insulation material density"]
     },
@@ -101,8 +101,8 @@ model_config = {
         "length": ["function", "m", "Length of the tank"],
         "width": ["function", "m", "Diameter of the tank"],
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
-        "shield_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
-        "shield_density": [1750, "kg/m3", "Tank shell material density"],
+        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
+        "shell_density": [1750, "kg/m3", "Tank shell material density"],
         "insulation_thickness": [0.06, "m", "Tank insulation thickness"],
         "insulation_density": [200., "kg/m3", "Tank insulation material density"]
     },
@@ -110,8 +110,8 @@ model_config = {
         "length": [10., "m", "Length of the tank"],
         "width_rear_factor": [0.75, "m", "Diameter of the rear pressure bulkhead over fuselage diameter"],
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
-        "shield_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
-        "shield_density": [1750, "kg/m3", "Tank shell material density"],
+        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
+        "shell_density": [1750, "kg/m3", "Tank shell material density"],
         "insulation_thickness": [0.06, "m", "Tank insulation thickness"],
         "insulation_density": [200., "kg/m3", "Tank insulation material density"]
     },

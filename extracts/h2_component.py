@@ -16,16 +16,17 @@ def bar_Pa(Pa): return Pa/1.e5   # Translate Pascal into bar
 
 # Data
 #-----------------------------------------------------------------------------------------------
-tank_efficiency = Pam3pkg_barLpkg(300.)      # bar.L/kg,  pressurized tank efficiency
+tank_efficiency = Pam3pkg_barLpkg(250.)      # bar.L/kg,  pressurized tank efficiency
 
 shield_density = 1400.          # kg/m3, pressure material density
+steel_density = 8000.
 
 insul_density = 320.            # kg/m3, insulation material density
 insul_thick = 0.05              # m, insulation thickness
 
 lh2_density = 71.               # kg/m3, liquid H2 density
 
-over_pressure = Pa_bar(11.)     # bar, fuel delta pressure
+over_pressure = Pa_bar(5.)     # bar, fuel delta pressure
 
 length = 12.    # m, tank length
 width = 2.5     # m, tank diameter
@@ -74,6 +75,8 @@ print("insulation structural mass = ", "%0.1f"%ism, " kg")
 print("tank mass = ", "%0.1f"%total_mass, " kg")
 print("pressure surface mass = ", "%0.1f"%(psm/ext_area), " kg/m2")
 print("insulation surface mass = ", "%0.1f"%(ism/ext_area), " kg/m2")
+print("reference insulation surface mass = ", "%0.1f"%(2.*steel_density/1000.), " kg/m2")
+
 print("tank surface mass = ", "%0.1f"%(total_mass/ext_area), " kg/m2")
 print("tank material density = ", "%0.1f"%tds, " kg/m3")
 print("tank mass over LH2 mass = ", "%0.3f"%rtm, " kg/kg")

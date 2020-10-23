@@ -573,6 +573,8 @@ class Wing(Component):
         self.sweep100 = None
         self.setting = None
         self.hld_type = get_init(self,"hld_type", val=self.high_lift_type())
+        self.front_spar_ratio = 0.15
+        self.rear_spar_ratio = 0.70
 
         self.x_rout = None      # Design variable for hq_optim
 
@@ -1553,8 +1555,8 @@ class TankWingBox(Tank):
     def __init__(self, aircraft):
         super(TankWingBox, self).__init__(aircraft)
 
-        self.shield_parameter = get_init(self,"shield_parameter", val=self.shield_parameter(aircraft))
-        self.shield_density = get_init(self,"shield_density")
+        self.shell_parameter = get_init(self,"shell_parameter", val=self.shell_parameter(aircraft))
+        self.shell_density = get_init(self,"shell_density")
         self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
         self.insulation_thickness = get_init(self,"insulation_thickness")
         self.insulation_density = get_init(self,"insulation_density")
@@ -1562,8 +1564,8 @@ class TankWingBox(Tank):
 
         self.cantilever_volume = None
         self.central_volume = None
-        self.shield_volume = None
-        self.shield_mass = None
+        self.shell_volume = None
+        self.shell_mass = None
         self.insulation_volume = None
         self.insulation_mass = None
         self.shell_ratio = None
@@ -1579,13 +1581,13 @@ class TankWingBox(Tank):
     def get_component_type(self):
         return "wing_box_tank"
 
-    def shield_parameter(self, aircraft):
+    def shell_parameter(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
         elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
         else: return unit.Pam3pkg_barLpkg(250.)
 
     def fuel_pressure(self, aircraft):
-        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pa_bar(10.)
+        if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pa_bar(5.)
         elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pa_bar(700.)
         else: return 0.
 
@@ -1593,35 +1595,63 @@ class TankWingBox(Tank):
         body_width = self.aircraft.airframe.body.width
         wing_area = self.aircraft.airframe.wing.area
         wing_mac = self.aircraft.airframe.wing.mac
-        wing_root_toc = self.aircraft.airframe.wing.root_toc
         wing_root_loc = self.aircraft.airframe.wing.root_loc
+        wing_root_toc = self.aircraft.airframe.wing.root_toc
         wing_root_c = self.aircraft.airframe.wing.root_c
+        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
         wing_kink_toc = self.aircraft.airframe.wing.kink_toc
+        wing_kink_c = self.aircraft.airframe.wing.kink_c
+        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
         wing_tip_toc = self.aircraft.airframe.wing.tip_toc
+        wing_tip_c = self.aircraft.airframe.wing.tip_c
+        wing_fsr = self.aircraft.airframe.wing.front_spar_ratio
+        wing_rsr = self.aircraft.airframe.wing.rear_spar_ratio
         fuel_type = self.aircraft.arrangement.fuel_type
 
-        cantilever_gross_volume = 0.275 * (wing_area*wing_mac*(0.50*wing_root_toc + 0.30*wing_kink_toc + 0.20*wing_tip_toc))
-        central_gross_volume = 0.5 * body_width * wing_root_toc * wing_root_c**2
+
+        root_sec = (wing_rsr - wing_fsr)*wing_root_toc*wing_root_c**2
+        kink_sec = (wing_rsr - wing_fsr)*wing_kink_toc*wing_kink_c**2
+        tip_sec = (wing_rsr - wing_fsr)*wing_tip_toc*wing_tip_c**2
+
+        cantilever_gross_volume = (2./3.)*(
+            0.9*(wing_kink_loc[1]-wing_root_loc[1])*(root_sec+kink_sec+np.sqrt(root_sec*kink_sec))
+          + 0.7*(wing_tip_loc[1]-wing_kink_loc[1])*(kink_sec+tip_sec+np.sqrt(kink_sec*tip_sec)))
+
+        central_gross_volume = 0.8*(wing_rsr - wing_fsr) * body_width * wing_root_toc * wing_root_c**2
+
+
+        # cantilever_gross_volume = 0.275 * (wing_area*wing_mac*(0.50*wing_root_toc + 0.30*wing_kink_toc + 0.20*wing_tip_toc))
+        # central_gross_volume = 0.5 * body_width * wing_root_toc * wing_root_c**2
 
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
-            cantilever_gross_wall_area = 0.6 * wing_area
-            # Volume of the structural shielding for pressure containment
-            cantilever_shield_volume = cantilever_gross_volume * self.fuel_pressure/(self.shield_parameter*self.shield_density)
+            inner_sec =  (wing_rsr - wing_fsr)*(wing_root_c + wing_kink_c)*(wing_kink_loc[1] - wing_root_loc[1]) \
+                        +(wing_rsr - wing_fsr)*(wing_root_c*wing_root_toc + wing_kink_c*wing_kink_toc)*(wing_kink_loc[1] - wing_root_loc[1])
+            outer_sec =  (wing_rsr - wing_fsr)*(wing_kink_c + wing_tip_c)*(wing_tip_loc[1] - wing_kink_loc[1]) \
+                        +(wing_rsr - wing_fsr)*(wing_kink_c*wing_kink_toc + wing_tip_c*wing_tip_toc)*(wing_tip_loc[1] - wing_kink_loc[1])
+            cantilever_gross_wall_area = 0.9*inner_sec + 0.7*outer_sec
+
+            # cantilever_gross_wall_area = 2. * (0.6 * wing_area)
+            # Volume of the structural shell for pressure containment
+            cantilever_shell_volume = cantilever_gross_volume / (1. + self.shell_parameter*self.shell_density/self.fuel_pressure)
             # Volume of the insulation layer
             cantilever_insulation_volume = cantilever_gross_wall_area * self.insulation_thickness
-            self.cantilever_volume = cantilever_gross_volume - cantilever_shield_volume - cantilever_insulation_volume
+            self.cantilever_volume = cantilever_gross_volume - cantilever_shell_volume - cantilever_insulation_volume
 
-            central_gross_wall_area = body_width * 2.*0.5*wing_root_c + 2.*(body_width + 0.5*wing_root_c) * wing_root_toc * wing_root_c
+            central_gross_wall_area = 0.9 * 2.*(  body_width * (wing_rsr - wing_fsr)*wing_root_c
+                                                +(body_width + (wing_rsr - wing_fsr)*wing_root_c) * wing_root_toc * wing_root_c)
+
+
+            # central_gross_wall_area = body_width * 2.*0.5*wing_root_c + 2.*(body_width + 0.5*wing_root_c) * wing_root_toc * wing_root_c
             # Volume of the structural shielding for pressure containment
-            central_shield_volume = central_gross_volume * self.fuel_pressure/(self.shield_parameter*self.shield_density)
+            central_shell_volume = central_gross_volume / (1. + self.shell_parameter*self.shell_density/self.fuel_pressure)
             # Volume of the insulation layer
             central_insulation_volume = central_gross_wall_area * self.insulation_thickness
-            self.central_volume = central_gross_volume - central_shield_volume - central_insulation_volume
+            self.central_volume = central_gross_volume - central_shell_volume - central_insulation_volume
 
-            self.shield_volume = cantilever_shield_volume + central_shield_volume
+            self.shell_volume = cantilever_shell_volume + central_shell_volume
             self.insulation_volume = cantilever_insulation_volume + central_insulation_volume
         else:
-            self.shield_volume = 0.
+            self.shell_volume = 0.
             self.insulation_volume = 0.
             self.cantilever_volume = cantilever_gross_volume
             self.central_volume = central_gross_volume
@@ -1656,11 +1686,11 @@ class TankWingBox(Tank):
         self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.shield_mass = self.shield_volume*self.shield_density
+        self.shell_mass = self.shell_volume*self.shell_density
         self.insulation_mass = self.insulation_volume*self.insulation_density
-        self.shell_ratio = (self.shield_mass + self.insulation_mass) / self.mfw_volume_limited
+        self.shell_ratio = (self.shell_mass + self.insulation_mass) / self.mfw_volume_limited
 
-        self.mass = self.shield_mass + self.insulation_mass
+        self.mass = self.shell_mass + self.insulation_mass
         self.cg = self.fuel_total_cg
 
         self.fuel_max_fwd_cg = self.fuel_central_cg    # Fuel max forward CG, central tank is forward only within backward swept wing
@@ -1674,8 +1704,8 @@ class TankRearFuselage(Tank):
     def __init__(self, aircraft):
         super(TankRearFuselage, self).__init__(aircraft)
 
-        self.shield_parameter = get_init(self,"shield_parameter", val=self.shield_parameter(aircraft))
-        self.shield_density = get_init(self,"shield_density")
+        self.shell_parameter = get_init(self,"shell_parameter", val=self.shell_parameter(aircraft))
+        self.shell_density = get_init(self,"shell_density")
         self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
         self.insulation_thickness = get_init(self,"insulation_thickness")
         self.insulation_density = get_init(self,"insulation_density")
@@ -1686,8 +1716,8 @@ class TankRearFuselage(Tank):
         self.width_rear = None
         self.width_front = None
 
-        self.shield_volume = None
-        self.shield_mass = None
+        self.shell_volume = None
+        self.shell_mass = None
         self.insulation_volume = None
         self.insulation_mass = None
         self.shell_ratio = None
@@ -1703,7 +1733,7 @@ class TankRearFuselage(Tank):
     def get_component_type(self):
         return "rear_body_tank"
 
-    def shield_parameter(self, aircraft):
+    def shell_parameter(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
         elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
         else: return unit.Pam3pkg_barLpkg(700.)
@@ -1733,22 +1763,22 @@ class TankRearFuselage(Tank):
         # Tank is supposed to be composed of an eventual cylindrical part of length lcyl and a cone trunc
         lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
 
-        gross_volume =   0.25*np.pi*lcyl*self.width_front**2 \
-                       + (1./12.)*np.pi*self.length*(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2)
+        gross_volume = 0.9 * (  0.25*np.pi*lcyl*self.width_front**2
+                              + (1./12.)*np.pi*self.length*(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2))
 
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
-            gross_wall_area =   0.25*np.pi*self.width_front**2 \
-                              + np.pi*self.width_front*lcyl \
-                              + 0.5*np.pi*(self.width_front+self.width_rear)*np.sqrt(self.length**2+0.25*(self.width_front-self.width_rear)**2) \
-                              + 0.25*np.pi*self.width_rear**2
+            gross_wall_area = 0.9 * (  0.25*np.pi*self.width_front**2
+                                     + np.pi*self.width_front*lcyl
+                                     + 0.5*np.pi*(self.width_front+self.width_rear)*np.sqrt(self.length**2+0.25*(self.width_front-self.width_rear)**2) \
+                                     + 0.25*np.pi*self.width_rear**2)
             # Volume of the structural shielding for pressure containment
-            self.shield_volume = gross_volume * self.fuel_pressure/(self.shield_parameter*self.shield_density)
+            self.shell_volume = gross_volume / (1. + self.shell_parameter*self.shell_density/self.fuel_pressure)
             # Volume of the insulation layer
             self.insulation_volume = gross_wall_area * self.insulation_thickness
-            self.max_volume = gross_volume - self.shield_volume - self.insulation_volume
+            self.max_volume = gross_volume - self.shell_volume - self.insulation_volume
 
         else:
-            self.shield_volume = 0.
+            self.shell_volume = 0.
             self.insulation_volume = 0.
             self.max_volume = gross_volume
 
@@ -1765,12 +1795,12 @@ class TankRearFuselage(Tank):
         self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.shield_mass = self.shield_volume*self.shield_density
+        self.shell_mass = self.shell_volume*self.shell_density
         self.insulation_mass = self.insulation_volume*self.insulation_density
-        self.shell_ratio = (self.shield_mass + self.insulation_mass) / self.mfw_volume_limited
+        self.shell_ratio = (self.shell_mass + self.insulation_mass) / self.mfw_volume_limited
 
         # Tank structural mass
-        self.mass =  self.shield_mass + self.insulation_mass
+        self.mass =  self.shell_mass + self.insulation_mass
 
         lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
         V = (1./12.)*self.length*np.sqrt(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2)
@@ -1784,7 +1814,112 @@ class TankRearFuselage(Tank):
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
         self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
-class TankWingPod(Pod):
+class GenericPodTank(Pod):
+
+    def __init__(self, aircraft):
+        super(GenericPodTank, self).__init__(aircraft)
+
+        # function 1 : Structural packaging and shielding
+        self.structure_shell_surface_mass = 15.  # kg/m2
+        self.structure_shell_thickness = 0.05    # m
+
+        # function 2 : Pressure containment
+        self.min_pressure_shell_efficiency = unit.Pam3pkg_barLpkg(250.)  # bar.L/kg,  minimum pressurized tank efficiency
+        self.max_pressure_shell_efficiency = unit.Pam3pkg_barLpkg(650.)  # bar.L/kg,  maximum pressurized tank efficiency
+        self.pressure_shell_density = 2000.                         # kg/m3, pressure material density
+
+        # function 3 : Thermal insulation
+        self.insulation_steel_density = 8000.    # kg/m3, inox
+        self.insulation_sheet_tickness = 0.0013  # m, thickness of thermal walls
+        self.insulation_gap_thickness = 0.02     # m, distance in between the the thermal walls
+
+        self.external_area = None
+        self.external_volume = None
+
+        self.structure_internal_volume = None
+        self.structure_shell_volume = None
+        self.structure_shell_mass = None
+
+        self.pressure_shell_volume = None
+        self.pressure_shell_thickness = None
+        self.pressure_shell_mass = None
+
+        self.insulated_shell_mass = None
+        self.insulation_shell_thickness = None
+        self.insulated_shell_volume = None
+
+        self.tank_mass = None
+        self.fuel_volume = None
+        self.fuel_mass = None
+
+    def size_fuel_tank(self,location):
+        # Tank is supposed to be composed of a cylindrical part ended with two emisphers
+        # An unusable length of one diameter is taken
+        self.external_area = np.pi*self.width**2 + (self.length-2.*self.width) * (np.pi*self.width)
+        self.external_volume = (1./6.)*np.pi*self.width**3 + (self.length-2.*self.width) * (0.25*np.pi*self.width**2)
+
+        if location=="external":
+            self.structure_internal_volume = (1./6.)*np.pi*(self.width-2.*self.structure_shell_thickness)**3 + (self.length-2.*self.width) * (0.25*np.pi*(self.width-2.*self.structure_shell_thickness)**2)
+            self.structure_shell_volume = self.external_volume - self.structure_internal_volume
+        elif location=="internal":
+            self.structure_shell_surface_mass = 0.  # kg/m2
+            self.structure_shell_thickness = 0.     # m
+            self.structure_internal_volume = self.external_volume
+            self.structure_shell_volume = 0.
+        else:
+            raise Exception("Tank location is unknown")
+
+        self.pressure_shell_area = np.pi*(self.width-2.*self.structure_shell_thickness)**2 + (self.length-2.*self.width) * (np.pi*(self.width-2.*self.structure_shell_thickness))
+        if self.aircraft.arrangement.fuel_type=="liquid_h2":
+            pressure_shell_efficiency = self.min_pressure_shell_efficiency
+        elif self.aircraft.arrangement.fuel_type=="compressed_h2":
+            pressure_shell_efficiency = self.max_pressure_shell_efficiency
+        else:
+            pressure_shell_efficiency = 0.
+        if self.fuel_pressure>0.:
+            self.pressure_shell_volume = self.external_volume / (1.+pressure_shell_efficiency*self.pressure_shell_density/self.fuel_pressure)
+            self.pressure_shell_thickness = self.pressure_shell_volume / self.pressure_shell_area
+        else:
+            self.pressure_shell_volume = 0.
+            self.pressure_shell_thickness = 0.
+
+        thickness = self.structure_shell_thickness + self.pressure_shell_thickness
+        self.insulation_shell_area = np.pi*(self.width-2.*thickness)**2 + (self.length-2.*self.width) * (np.pi*(self.width-2.*thickness))    # insulated area
+        if self.aircraft.arrangement.fuel_type=="liquid_h2":
+            self.insulation_shell_thickness = self.insulation_gap_thickness + 2.*self.insulation_sheet_tickness
+            self.insulated_shell_volume = self.insulation_shell_area * self.insulation_shell_thickness
+        else:
+            self.insulation_shell_thickness = 0.
+            self.insulated_shell_volume = 0.
+
+        self.fuel_volume = self.external_volume - self.structure_shell_volume - self.pressure_shell_volume - self.insulated_shell_volume
+
+        return
+
+    def mass_fuel_tank(self,location):
+        if location=="external":
+            self.structure_shell_mass = self.structure_shell_surface_mass * self.external_area
+        elif location=="internal":
+            self.structure_shell_mass = 0.
+        else:
+            raise Exception("Tank location is unknown")
+
+        if self.fuel_pressure>0.:
+            self.pressure_shell_mass = self.pressure_shell_volume * self.pressure_shell_density
+        else:
+            self.pressure_shell_mass = 0.
+
+        if self.aircraft.arrangement.fuel_type=="liquid_h2":
+            self.insulated_shell_mass = self.insulation_steel_density*self.insulation_sheet_tickness*self.insulation_shell_area
+        else:
+            self.insulated_shell_mass = 0.
+
+        self.tank_mass = self.structure_shell_mass + self.pressure_shell_mass + self.insulated_shell_mass
+        self.fuel_mass = self.fuel_density * self.fuel_volume
+
+        return
+
+class TankWingPod(GenericPodTank):
 
     def __init__(self, aircraft, side):
         super(TankWingPod, self).__init__(aircraft)
@@ -1796,12 +1931,7 @@ class TankWingPod(Pod):
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
         self.span_ratio = get_init(self,"span_ratio")
-        self.surface_mass = get_init(self,"surface_mass")
-        self.shield_parameter = get_init(self,"shield_parameter", val=self.shield_parameter(aircraft))
-        self.shield_density = get_init(self,"shield_density")
         self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
-        self.insulation_thickness = get_init(self,"insulation_thickness")
-        self.insulation_density = get_init(self,"insulation_density")
         self.fuel_density = None
 
         length = 0.36*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
@@ -1814,8 +1944,8 @@ class TankWingPod(Pod):
         self.wing_axe_c = None
         self.wing_axe_x = None
         self.wing_axe_z = None
-        self.shield_volume = None
-        self.shield_mass = None
+        self.shell_volume = None
+        self.shell_mass = None
         self.insulation_volume = None
         self.insulation_mass = None
         self.shell_ratio = None
@@ -1834,7 +1964,7 @@ class TankWingPod(Pod):
     def get_component_type(self):
         return "wing_pod_tank"
 
-    def shield_parameter(self, aircraft):
+    def shell_parameter(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
         elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
         else: return unit.Pam3pkg_barLpkg(700.)
@@ -1879,21 +2009,11 @@ class TankWingPod(Pod):
         self.aero_length = self.length
         self.form_factor = 1.05
 
-        # Tank is supposed to be composed of a cylindrical part ended with two emisphers, an unusable length of one diameter is taken
-        gross_volume = 2.0 * ((1./6.)*np.pi*self.width**3 + (self.length-2.*self.width)*(0.25*np.pi*self.width**2))  # for both tanks
+        self.size_fuel_tank("external")
 
-        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
-            gross_wall_area = 2.0 * (np.pi*self.width**2 + (self.length-2.*self.width)*(np.pi*self.width))
-            # Volume of the structural shielding for pressure containment
-            self.shield_volume = gross_volume * self.fuel_pressure/(self.shield_parameter*self.shield_density)
-            # Volume of the insulation layer
-            self.insulation_volume = gross_wall_area * self.insulation_thickness
-            self.max_volume = gross_volume - self.shield_volume - self.insulation_volume
-
-        else:
-            self.shield_volume = 0.
-            self.insulation_volume = 0.
-            self.max_volume = gross_volume
+        self.shell_volume = 2.*(self.structure_shell_volume + self.pressure_shell_volume)
+        self.insulation_volume = 2.*self.insulated_shell_volume
+        self.max_volume = 2.*(self.external_volume - self.shell_volume - self.insulation_volume)
 
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type
@@ -1902,11 +2022,13 @@ class TankWingPod(Pod):
         self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.shield_mass = self.shield_volume*self.shield_density
-        self.insulation_mass = self.insulation_volume*self.insulation_density
-        self.shell_ratio = (self.shield_mass + self.insulation_mass) / self.mfw_volume_limited
+        self.mass_fuel_tank("external")
 
-        self.mass =  self.surface_mass * self.gross_wet_area + self.shield_mass + self.insulation_mass
+        self.shell_mass = 2.*(self.structure_shell_mass + self.pressure_shell_mass)
+        self.insulation_mass = 2.*self.insulated_shell_mass
+        self.shell_ratio = (self.shell_mass + self.insulation_mass) / self.mfw_volume_limited
+
+        self.mass =  2.*self.tank_mass
         self.cg = self.frame_origin + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
@@ -1915,7 +2037,7 @@ class TankWingPod(Pod):
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
         self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
-class TankPiggyBack(Pod):
+class TankPiggyBack(GenericPodTank):
 
     def __init__(self, aircraft):
         super(TankPiggyBack, self).__init__(aircraft)
@@ -1924,11 +2046,7 @@ class TankPiggyBack(Pod):
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
-        self.shield_parameter = get_init(self,"shield_parameter", val=self.shield_parameter(aircraft))
-        self.shield_density = get_init(self,"shield_density")
         self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
-        self.insulation_thickness = get_init(self,"insulation_thickness")
-        self.insulation_density = get_init(self,"insulation_density")
         self.fuel_density = None
 
         # Estimations based on fuselage dimension estimation
@@ -1942,8 +2060,8 @@ class TankPiggyBack(Pod):
         self.wing_axe_c = None
         self.wing_axe_x = None
         self.wing_axe_z = None
-        self.shield_volume = None
-        self.shield_mass = None
+        self.shell_volume = None
+        self.shell_mass = None
         self.insulation_volume = None
         self.insulation_mass = None
         self.shell_ratio = None
@@ -1959,7 +2077,7 @@ class TankPiggyBack(Pod):
     def get_component_type(self):
         return "piggyback_tank"
 
-    def shield_parameter(self, aircraft):
+    def shell_parameter(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
         elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pam3pkg_barLpkg(700.)
         else: return unit.Pam3pkg_barLpkg(700.)
@@ -1990,21 +2108,11 @@ class TankPiggyBack(Pod):
         self.aero_length = self.length
         self.form_factor = 1.05
 
-        # Tank is supposed to be composed of a cylindrical part ended with two emisphers, an unusable length of one diameter is taken
-        gross_volume = (1./6.)*np.pi*self.width**3 + (self.length-2.*self.width)*(0.25*np.pi*self.width**2)  # for one tank
+        self.size_fuel_tank("external")
 
-        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
-            gross_wall_area = np.pi*self.width**2 + (self.length-2.*self.width)*(np.pi*self.width)
-            # Volume of the structural shielding for pressure containment
-            self.shield_volume = gross_volume * self.fuel_pressure/(self.shield_parameter*self.shield_density)
-            # Volume of the insulation layer
-            self.insulation_volume = gross_wall_area * self.insulation_thickness
-            self.max_volume = gross_volume - self.shield_volume - self.insulation_volume
-
-        else:
-            self.shield_volume = 0.
-            self.insulation_volume = 0.
-            self.max_volume = gross_volume
+        self.shell_volume = self.structure_shell_volume + self.pressure_shell_volume
+        self.insulation_volume = self.insulated_shell_volume
+        self.max_volume = self.external_volume - self.shell_volume - self.insulation_volume
 
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type
@@ -2013,12 +2121,13 @@ class TankPiggyBack(Pod):
         self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
-        self.shield_mass = self.shield_volume*self.shield_density
-        self.insulation_mass = self.insulation_volume*self.insulation_density
-        self.shell_ratio = (self.shield_mass + self.insulation_mass) / self.mfw_volume_limited
+        self.mass_fuel_tank("external")
 
-        # Tank structural mass makes use of statistical regression versus fuselage built surface
-        self.mass =  5.47*(np.pi*self.width*self.length)**1.2 + self.shield_mass + self.insulation_mass
+        self.shell_mass = self.structure_shell_mass + self.pressure_shell_mass
+        self.insulation_mass = self.insulated_shell_mass
+        self.shell_ratio = (self.shell_mass + self.insulation_mass) / self.mfw_volume_limited
+
+        self.mass =  self.tank_mass
         self.cg = self.frame_origin[0] + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
