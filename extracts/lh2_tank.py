@@ -7,12 +7,9 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
+from marilib.utils import earth, unit
 
-def Pam3pkg_barLpkg(barLpkg): return barLpkg*1.e2  # Translate bar.L/kg into Pa.m3/kg
-def barLpkg_Pam3pkg(Pam3pkg): return Pam3pkg/1.e2  # Translate Pa.m3/kg into bar.L/kg
 
-def Pa_bar(bar): return bar*1.e5   # Translate bar into Pascal
-def bar_Pa(Pa): return Pa/1.e5   # Translate Pascal into bar
 
 class generic_fuel_tank(object):
 
@@ -20,17 +17,25 @@ class generic_fuel_tank(object):
 
         # function 1 : Structural packaging and shielding
         self.structure_shell_surface_mass = 15.  # kg/m2
-        self.structure_shell_thickness = 0.05    # m
+        self.structure_shell_thickness = 0.10    # m
 
         # function 2 : Pressure containment
-        self.min_pressure_shell_efficiency = Pam3pkg_barLpkg(250.)  # bar.L/kg,  minimum pressurized tank efficiency
-        self.max_pressure_shell_efficiency = Pam3pkg_barLpkg(650.)  # bar.L/kg,  maximum pressurized tank efficiency
-        self.pressure_shell_density = 2000.                         # kg/m3, pressure material density
+        self.min_pressure_shell_efficiency = unit.Pam3pkg_barLpkg(250.)  # bar.L/kg,  minimum pressurized tank efficiency
+        self.max_pressure_shell_efficiency = unit.Pam3pkg_barLpkg(650.)  # bar.L/kg,  maximum pressurized tank efficiency
+        self.pressure_shell_density = 2000.                              # kg/m3, pressure material density
 
         # function 3 : Thermal insulation
-        self.insulation_steel_density = 8000.    # kg/m3, inox
-        self.insulation_sheet_tickness = 0.0013  # m, thickness of thermal walls
-        self.insulation_gap_thickness = 0.02     # m, distance in between the the thermal walls
+        self.insulation_shell_density = 240.     # kg/m3, total insulation volumetric density
+        self.insulation_shell_thickness = 0.09   # m, thickness of thermal walls
+
+        # Function 4 : fuel management
+        self.fuel_management_density = 5.       # kg/m3, required system mass per m3 of LH2
+
+        # Dewar insulation parameters
+        self.dewar_ext_shell_thickness = 0.005   # m, Mean thickness of the external shell
+        self.dewar_int_shell_thickness = 0.003   # m, Mean thickness of the internal shell
+        self.dewar_inter_shell_gap = 0.08             # m, Mean gap between the shell
+        self.dewar_material_density = 2700.     # kg/m3, Shell material density (2700. : aluminium)
 
         self.external_area = None
         self.external_volume = None
@@ -44,14 +49,22 @@ class generic_fuel_tank(object):
         self.pressure_shell_mass = None
 
         self.insulated_shell_mass = None
-        self.insulation_shell_thickness = None
         self.insulated_shell_volume = None
 
         self.tank_mass = None
         self.fuel_volume = None
         self.fuel_mass = None
 
-    def size_fuel_tank(self,location,fuel_type,over_pressure,fuel_density,length,width):
+        self.gravimetric_enrg_density = None
+        self.volumetric_enrg_density = None
+        self.volumetric_storage_density = None
+
+    def dewar_insulation(self):
+        # Compute thickness and overall density of a Dewar's insulation
+        self.insulation_shell_thickness = self.dewar_ext_shell_thickness + self.dewar_int_shell_thickness + self.dewar_inter_shell_gap
+        self.insulation_shell_density = self.dewar_material_density * (self.dewar_ext_shell_thickness + self.dewar_int_shell_thickness) / self.insulation_shell_thickness
+
+    def size_fuel_tank(self,location,fuel_type,over_pressure,fuel_density,fuel_heat,length,width):
         # The overall shape of the tank is supposed to be a cylinder with two emispherical ends
         self.external_area = np.pi*width**2 + (length-width) * (np.pi*width)
         self.external_volume = (1./6.)*np.pi*width**3 + (length-width) * (0.25*np.pi*width**2)
@@ -88,24 +101,35 @@ class generic_fuel_tank(object):
         thickness = self.structure_shell_thickness + self.pressure_shell_thickness
         self.insulation_shell_area = np.pi*(width-2.*thickness)**2 + (length-width) * (np.pi*(width-2.*thickness))    # insulated area
         if fuel_type=="liquid_h2":
-            self.insulated_shell_mass = self.insulation_steel_density*self.insulation_sheet_tickness*self.insulation_shell_area
-            self.insulation_shell_thickness = self.insulation_gap_thickness + 2.*self.insulation_sheet_tickness
             self.insulated_shell_volume = self.insulation_shell_area * self.insulation_shell_thickness
+            self.insulated_shell_mass = self.insulated_shell_volume * self.insulation_shell_density
         else:
+            self.insulated_shell_volume = 0.
             self.insulated_shell_mass = 0.
             self.insulation_shell_thickness = 0.
-            self.insulated_shell_volume = 0.
 
-        self.tank_mass = self.structure_shell_mass + self.pressure_shell_mass + self.insulated_shell_mass
         self.fuel_volume = self.external_volume - self.structure_shell_volume - self.pressure_shell_volume - self.insulated_shell_volume
         self.fuel_mass = fuel_density * self.fuel_volume
+
+        # Basic fuel management system is already included within total aircraft system mass
+        if fuel_type in ["liquid_h2","compressed_h2"]:
+            self.specific_system_mass = self.fuel_management_density * self.fuel_volume
+        else:
+            self.specific_system_mass = 0.
+
+        self.tank_mass = self.structure_shell_mass + self.pressure_shell_mass + self.insulated_shell_mass + self.specific_system_mass
+
+        self.gravimetric_enrg_density = self.fuel_mass*fuel_heat / (self.fuel_mass+self.pressure_shell_mass+self.insulated_shell_mass+self.specific_system_mass)
+        self.volumetric_enrg_density = self.fuel_mass*fuel_heat / (self.fuel_volume+self.pressure_shell_volume+self.insulated_shell_volume)
+        self.volumetric_storage_density = self.fuel_mass / (self.fuel_volume+self.pressure_shell_volume+self.insulated_shell_volume)
 
         return
 
 # Data
 #-----------------------------------------------------------------------------------------------
 lh2_density = 71.               # kg/m3, liquid H2 density
-over_pressure = Pa_bar(5.)      # bar, fuel delta pressure
+lh2_heat = 171.e6               # MJ/kg
+over_pressure = unit.Pa_bar(5.) # bar, fuel delta pressure
 
 # Tank geometry, cylinder with emispherical ends
 length = 12.    # m, tank length
@@ -114,13 +138,16 @@ width = 2.5     # m, tank diameter
 
 tk = generic_fuel_tank()
 
-# tk.size_fuel_tank("internal","kerosene",0.,43.,length,width)
-tk.size_fuel_tank("external","liquid_h2",over_pressure,lh2_density,length,width)
+# tk.dewar_insulation()
+
+# tk.size_fuel_tank("internal","kerosene",0.,803.,43000000.,length,width)
+tk.size_fuel_tank("external","liquid_h2",over_pressure,lh2_density,lh2_heat,length,width)
 
 
 # Print
 #-----------------------------------------------------------------------------------------------
 print("--------------------------------------------------------")
+print("specific system mass = ", "%0.1f"%(tk.specific_system_mass), " kg")
 print("structure shell thickness = ", "%0.2f"%(tk.structure_shell_thickness*100.), " cm")
 print("structure shell mass = ", "%0.1f"%tk.structure_shell_mass, " kg")
 print("pressure shell thickness = ", "%0.2f"%(tk.pressure_shell_thickness*100.), " cm")
@@ -131,6 +158,11 @@ print("")
 print("fuel mass = ", "%0.1f"%tk.fuel_mass, " kg")
 print("tank mass = ", "%0.1f"%tk.tank_mass, " kg")
 print("tank mass over LH2 mass = ", "%0.3f"%(tk.tank_mass/tk.fuel_mass), " kg/kg")
+print("")
+print("LH2 energy density = ","%0.1f"%unit.kWh_J(lh2_heat), " kWh/kg")
+print("Gravimetric energy density = ","%0.1f"%unit.kWh_J(tk.gravimetric_enrg_density), " kWh/kg")
+print("Volumetric energy density = ","%0.2f"%(unit.kWh_J(tk.volumetric_enrg_density)*1.e-3), " kWh/L")
+print("Volumetric storage density = ","%0.2f"%(tk.volumetric_storage_density), " g/L")
 
 
 

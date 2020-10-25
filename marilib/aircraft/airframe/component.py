@@ -1703,7 +1703,15 @@ class TankRearFuselage(Tank):
         self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_pressure(aircraft))
         self.insulation_thickness = get_init(self,"insulation_thickness")
         self.insulation_density = get_init(self,"insulation_density")
+
+        self.fuel_management_density = get_init(self,"fuel_management_density")
         self.fuel_density = None
+
+        # Dewar insulation parameters
+        self.dewar_ext_shell_thickness = get_init(self,"dewar_ext_shell_thickness")
+        self.dewar_int_shell_thickness = get_init(self,"dewar_int_shell_thickness")
+        self.dewar_inter_shell_gap = get_init(self,"dewar_inter_shell_gap")
+        self.dewar_material_density = get_init(self,"dewar_material_density")
 
         self.length = get_init(self,"length")
         self.width_rear_factor = get_init(self,"width_rear_factor")
@@ -1736,6 +1744,11 @@ class TankRearFuselage(Tank):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pa_bar(10.)
         elif aircraft.arrangement.fuel_type=="compressed_h2": return unit.Pa_bar(700.)
         else: return 0.
+
+    def dewar_insulation(self):
+        # Compute thickness and overall density of a Dewar's insulation
+        self.insulation_shell_thickness = self.dewar_ext_shell_thickness + self.dewar_int_shell_thickness + self.dewar_inter_shell_gap
+        self.insulation_shell_density = self.dewar_material_density * (self.dewar_ext_shell_thickness + self.dewar_int_shell_thickness) / self.insulation_shell_thickness
 
     def eval_geometry(self):
         body_loc = self.aircraft.airframe.body.frame_origin
@@ -1775,6 +1788,7 @@ class TankRearFuselage(Tank):
         else:
             self.shell_volume = 0.
             self.insulation_volume = 0.
+            self.insulation_thickness = 0.
             self.max_volume = gross_volume
 
     def sketch_3view(self):
@@ -1794,8 +1808,14 @@ class TankRearFuselage(Tank):
         self.insulation_mass = self.insulation_volume*self.insulation_density
         self.shell_ratio = (self.shell_mass + self.insulation_mass) / self.mfw_volume_limited
 
-        # Tank structural mass
-        self.mass =  self.shell_mass + self.insulation_mass
+        # Basic fuel management system is already included within total aircraft system mass
+        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+            self.specific_system_mass = self.fuel_management_density * self.max_volume
+        else:
+            self.specific_system_mass = 0.
+
+        # Tank equiped structural mass
+        self.mass =  self.shell_mass + self.insulation_mass + self.specific_system_mass
 
         lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
         V = (1./12.)*self.length*np.sqrt(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2)
@@ -1814,18 +1834,31 @@ class GenericPodTank(Pod):
     def __init__(self, aircraft):
         super(GenericPodTank, self).__init__(aircraft)
 
+        class_name = "GenericPodTank"
+
         # function 1 : Structural packaging and shielding
-        self.structure_shell_surface_mass = 15.  # kg/m2
-        self.structure_shell_thickness = 0.05    # m
+        self.structure_shell_surface_mass = get_init(class_name,"structure_shell_surface_mass")
+        self.structure_shell_thickness = get_init(class_name,"structure_shell_thickness")
 
         # function 2 : Pressure containment
-        self.min_pressure_shell_efficiency = unit.Pam3pkg_barLpkg(250.)  # bar.L/kg,  minimum pressurized tank efficiency
-        self.max_pressure_shell_efficiency = unit.Pam3pkg_barLpkg(650.)  # bar.L/kg,  maximum pressurized tank efficiency
-        self.pressure_shell_density = 2000.                         # kg/m3, pressure material density
+        self.min_pressure_shell_efficiency = get_init(class_name,"min_pressure_shell_efficiency")
+        self.max_pressure_shell_efficiency = get_init(class_name,"max_pressure_shell_efficiency")
+        self.pressure_shell_density = get_init(class_name,"pressure_shell_density")
 
         # function 3 : Thermal insulation
-        self.insulation_density = 500.    # kg/m3, inox
-        self.insulation_thickness = 0.04  # m, thickness of thermal walls
+        self.insulation_density = get_init(class_name,"insulation_density")
+        self.insulation_thickness = get_init(class_name,"insulation_thickness")
+
+        # Function 4 : fuel management
+        self.fuel_management_density = get_init(class_name,"fuel_management_density")
+
+        # Dewar insulation parameters
+        self.dewar_ext_shell_thickness = get_init(class_name,"dewar_ext_shell_thickness")
+        self.dewar_int_shell_thickness = get_init(class_name,"dewar_int_shell_thickness")
+        self.dewar_inter_shell_gap = get_init(class_name,"dewar_inter_shell_gap")
+        self.dewar_material_density = get_init(class_name,"dewar_material_density")
+
+        self.dry_bay_length = None
 
         self.external_pod_area = None
         self.external_pod_volume = None
@@ -1841,18 +1874,25 @@ class GenericPodTank(Pod):
         self.insulated_shell_mass = None
         self.insulated_shell_volume = None
 
+        self.specific_system_mass = None
+
         self.tank_mass = None
         self.fuel_volume = None
         self.fuel_mass = None
 
+    def dewar_insulation(self):
+        # Compute thickness and overall density of a Dewar's insulation
+        self.insulation_shell_thickness = self.dewar_ext_shell_thickness + self.dewar_int_shell_thickness + self.dewar_inter_shell_gap
+        self.insulation_shell_density = self.dewar_material_density * (self.dewar_ext_shell_thickness + self.dewar_int_shell_thickness) / self.insulation_shell_thickness
+
     def size_fuel_tank(self,location):
         # Tank is supposed to be composed of a cylindrical part ended with two emisphers
         # An unusable length equal to one diameter is taken for tapered ends
-        self.external_pod_area = np.pi*self.width**2 + (self.length-2.*self.width) * (np.pi*self.width)
-        self.external_pod_volume = (1./6.)*np.pi*self.width**3 + (self.length-2.*self.width) * (0.25*np.pi*self.width**2)
+        self.external_pod_area = np.pi*self.width**2 + (self.length-2.*self.width-self.dry_bay_length) * (np.pi*self.width)
+        self.external_pod_volume = (1./6.)*np.pi*self.width**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*self.width**2)
 
         if location=="external":
-            self.structure_internal_volume = (1./6.)*np.pi*(self.width-2.*self.structure_shell_thickness)**3 + (self.length-2.*self.width) * (0.25*np.pi*(self.width-2.*self.structure_shell_thickness)**2)
+            self.structure_internal_volume = (1./6.)*np.pi*(self.width-2.*self.structure_shell_thickness)**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*(self.width-2.*self.structure_shell_thickness)**2)
             self.structure_shell_volume = self.external_pod_volume - self.structure_internal_volume
         elif location=="internal":
             self.structure_shell_surface_mass = 0.  # kg/m2
@@ -1862,7 +1902,7 @@ class GenericPodTank(Pod):
         else:
             raise Exception("Tank location is unknown")
 
-        self.pressure_shell_area = np.pi*(self.width-2.*self.structure_shell_thickness)**2 + (self.length-2.*self.width) * (np.pi*(self.width-2.*self.structure_shell_thickness))
+        self.pressure_shell_area = np.pi*(self.width-2.*self.structure_shell_thickness)**2 + (self.length-2.*self.width-self.dry_bay_length) * (np.pi*(self.width-2.*self.structure_shell_thickness))
         if self.aircraft.arrangement.fuel_type=="liquid_h2":
             pressure_shell_efficiency = self.min_pressure_shell_efficiency
         elif self.aircraft.arrangement.fuel_type=="compressed_h2":
@@ -1877,7 +1917,7 @@ class GenericPodTank(Pod):
             self.pressure_shell_thickness = 0.
 
         thickness = self.structure_shell_thickness + self.pressure_shell_thickness
-        self.insulation_shell_area = np.pi*(self.width-2.*thickness)**2 + (self.length-2.*self.width) * (np.pi*(self.width-2.*thickness))    # insulated area
+        self.insulation_shell_area = np.pi*(self.width-2.*thickness)**2 + (self.length-2.*self.width-self.dry_bay_length) * (np.pi*(self.width-2.*thickness))    # insulated area
         if self.aircraft.arrangement.fuel_type=="liquid_h2":
             self.insulated_shell_volume = self.insulation_shell_area * self.insulation_thickness
         else:
@@ -1905,7 +1945,13 @@ class GenericPodTank(Pod):
         else:
             self.insulated_shell_mass = 0.
 
-        self.tank_mass = self.structure_shell_mass + self.pressure_shell_mass + self.insulated_shell_mass
+        # Basic fuel management system is already included within total aircraft system mass
+        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+            self.specific_system_mass = self.fuel_management_density * self.fuel_volume
+        else:
+            self.specific_system_mass = 0.
+
+        self.tank_mass = self.structure_shell_mass + self.pressure_shell_mass + self.insulated_shell_mass + self.specific_system_mass
         self.fuel_mass = self.fuel_density * self.fuel_volume
 
         return
@@ -1928,6 +1974,7 @@ class TankWingPod(GenericPodTank):
         length = 0.40*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
         width = 0.75*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
+        self.dry_bay_length = get_init(self,"dry_bay_length")
         self.length = get_init(self,"length", val=length)
         self.width = get_init(self,"width", val=width)
         self.x_loc_ratio = get_init(self,"x_loc_ratio")
@@ -2000,6 +2047,7 @@ class TankWingPod(GenericPodTank):
         self.aero_length = self.length
         self.form_factor = 1.05
 
+        self.dewar_insulation()
         self.size_fuel_tank("external")
 
         self.shell_volume = 2.*(self.structure_shell_volume + self.pressure_shell_volume)
@@ -2041,9 +2089,10 @@ class TankPiggyBack(GenericPodTank):
         self.fuel_density = None
 
         # Estimations based on fuselage dimension estimation
-        length = 0.60*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
+        length = 0.70*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
         width = 0.70*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
+        self.dry_bay_length = get_init(self,"dry_bay_length")
         self.length = get_init(self,"length", val=length)
         self.width = get_init(self,"width", val=width)
         self.x_loc_ratio = get_init(self,"x_loc_ratio")
@@ -2099,6 +2148,7 @@ class TankPiggyBack(GenericPodTank):
         self.aero_length = self.length
         self.form_factor = 1.05
 
+        self.dewar_insulation()
         self.size_fuel_tank("external")
 
         self.shell_volume = self.structure_shell_volume + self.pressure_shell_volume
