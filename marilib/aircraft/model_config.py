@@ -76,39 +76,22 @@ model_config = {
         "volume_factor": [0.94, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"]
     },
     "TankWingBox":{
-        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
-        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency (function)"],
-        "shell_density": [1750, "kg/m3", "Tank shell material density"],
-        "insulation_thickness": [0.04, "m", "Tank insulation thickness"],
-        "insulation_density": [500., "kg/m3", "Tank insulation density"]
+        "gravimetric_energy_density_ratio": [0.25, "no_dim", "Tank system energy density over fuel energy density"],
+        "volumetric_energy_density_ratio": [0.90, "no_dim", "Tank system energy density over fuel energy density"],
+        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
     },
     "TankRearFuselage":{
         "length": [10., "m", "Length of the tank"],
         "width_rear_factor": [0.75, "m", "Diameter of the rear pressure bulkhead over fuselage diameter"],
-        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
-        "shell_parameter": ["function", "bar.l/kg", "Tank structural efficiency  (function)"],
-        "shell_density": [1750, "kg/m3", "Tank shell material density"],
-        "insulation_thickness": [0.04, "m", "Tank insulation thickness"],
-        "insulation_density": [500., "kg/m3", "Tank insulation density"],
-        "fuel_management_density": [5., "kg/m3", "Specific system density, basic fuel system mass are already included into total system mass"],
-        "dewar_ext_shell_thickness": [0.005, "m", "Mean thickness of the external shell"],
-        "dewar_int_shell_thickness": [0.003, "m", "Mean thickness of the internal shell"],
-        "dewar_inter_shell_gap": [0.08, "m", "Mean gap between the shell"],
-        "dewar_material_density": [2700., "m", "Shell material density (2700. : aluminium)"]
+        "gravimetric_energy_density_ratio": [0.25, "no_dim", "Tank system energy density over fuel energy density"],
+        "volumetric_energy_density_ratio": [0.90, "no_dim", "Tank system energy density over fuel energy density"],
+        "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
     },
     "GenericPodTank":{
         "structure_shell_surface_mass": [15., "kg/m2", "Surface mass of the surrounding support structure"],
-        "structure_shell_thickness": [0.10, "m", "Thickness of the support structure"],
-        "min_pressure_shell_efficiency": [250., "bar.l/kg", "minimum pressurized tank efficiency"],
-        "max_pressure_shell_efficiency": [650., "bar.l/kg", "maximum pressurized tank efficiency"],
-        "pressure_shell_density": [2000., "kg/m3", "material density of the pressure shield"],
-        "insulation_thickness": [0.04, "m", "Tank insulation thickness"],
-        "insulation_density": [500., "kg/m3", "Tank insulation density"],
-        "fuel_management_density": [5., "kg/m3", "Specific system density, basic fuel system mass are already included into total system mass"],
-        "dewar_ext_shell_thickness": [0.005, "m", "Mean thickness of the external shell"],
-        "dewar_int_shell_thickness": [0.003, "m", "Mean thickness of the internal shell"],
-        "dewar_inter_shell_gap": [0.08, "m", "Mean gap between the shell"],
-        "dewar_material_density": [2700., "m", "Shell material density (2700. : aluminium)"]
+        "structure_shell_thickness": [0.08, "m", "Thickness of the support structure"],
+        "gravimetric_energy_density_ratio": [0.25, "no_dim", "Tank system energy density over fuel energy density"],
+        "volumetric_energy_density_ratio": [0.90, "no_dim", "Tank system energy density over fuel energy density"]
     },
     "TankWingPod":{
         "span_ratio": [0.65, "no_dim", "Relative span wise position of the tank"],
