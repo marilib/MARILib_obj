@@ -91,7 +91,7 @@ model_config = {
         "structure_shell_surface_mass": [15., "kg/m2", "Surface mass of the surrounding support structure"],
         "structure_shell_thickness": [0.08, "m", "Thickness of the support structure"],
         "gravimetric_energy_density_ratio": [0.25, "no_dim", "Tank system energy density over fuel energy density"],
-        "volumetric_energy_density_ratio": [0.90, "no_dim", "Tank system energy density over fuel energy density"]
+        "volumetric_energy_density_ratio": [0.80, "no_dim", "Tank system energy density over fuel energy density"]
     },
     "TankWingPod":{
         "span_ratio": [0.65, "no_dim", "Relative span wise position of the tank"],

@@ -1858,8 +1858,8 @@ class TankWingPod(GenericPodTank):
         self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
         self.fuel_density = None
 
-        length = 0.45*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
-        width = 0.95*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        length = 0.35*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
+        width = 0.80*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
         self.dry_bay_length = get_init(self,"dry_bay_length")
         self.length = get_init(self,"length", val=length)
@@ -1922,7 +1922,7 @@ class TankWingPod(GenericPodTank):
 
         self.size_fuel_tank("external")
 
-        self.max_volume = self.fuel_volume
+        self.max_volume = 2.*self.fuel_volume
 
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type
@@ -1933,7 +1933,7 @@ class TankWingPod(GenericPodTank):
 
         self.mass_fuel_tank("external")
 
-        self.mass = self.structure_shell_mass + self.insulation_shell_mass
+        self.mass = 2.*(self.structure_shell_mass + self.insulation_shell_mass)
         self.cg = self.frame_origin + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
@@ -1956,7 +1956,7 @@ class TankPiggyBack(GenericPodTank):
 
         # Estimations based on fuselage dimension estimation
         length = 0.75*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
-        width = 0.72*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
+        width = 0.80*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
         self.dry_bay_length = get_init(self,"dry_bay_length")
         self.length = get_init(self,"length", val=length)
