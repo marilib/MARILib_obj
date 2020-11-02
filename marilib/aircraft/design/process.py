@@ -191,14 +191,18 @@ class Optimizer(object):
         Run the trust-constraint minimization procedure :func:`scipy.optimize.minimize` to minimize a given criterion
         and satisfy given constraints for a given aircraft.
         """
+        def cost(x,*args):
+            return self.eval_optim_data_checked(x,*args)[0]
 
-        res = minimize(lambda x,*args:self.eval_optim_data_checked(x,*args)[0],
-                       start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,), method="trust-constr",
-                       jac="2-point", bounds=var_bnd,
-                       constraints=NonlinearConstraint(fun=lambda x:self.eval_optim_data_checked(x,aircraft,var,cst,cst_mag,crt,crt_mag)[1],
+        def constraints(x):
+            return self.eval_optim_data_checked(x,aircraft,var,cst,cst_mag,crt,crt_mag)[1]
+
+        res = minimize(cost, start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,),
+                       constraints=NonlinearConstraint(fun=constraints,
                                                        lb=0., ub=np.inf, jac='2-point'),
-                       options={'maxiter':500,'xtol': np.linalg.norm(start_value)*0.01,
-                                'initial_tr_radius': np.linalg.norm(start_value)*0.05 })
+                       method="trust-constr",jac="3-point", bounds=var_bnd)
+                       #options={'maxiter':500,'xtol': np.linalg.norm(start_value)*0.01,
+                       #         'initial_tr_radius': np.linalg.norm(start_value)*0.05 })
         return res
 
     def custom_descent_search(self,cost_fun, x0, delta=0.02, delta_end=0.005, pen=1e6):

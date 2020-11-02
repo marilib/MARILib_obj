@@ -137,10 +137,10 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-# opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
-# algo_points = opt.computed_points
-algo_points = None
+opt = process.Optimizer()
+opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method="trust-constr")
+algo_points = opt.computed_points
+#algo_points = None
 
 
 # Main output
