@@ -138,9 +138,10 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method="trust-constr")
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
+opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 algo_points = opt.computed_points
-#algo_points = None
+# algo_points = None
 
 
 # Main output
@@ -200,6 +201,7 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
          ac.performance.mission.nominal.fuel_total]              # Limit values
 
-process.draw_design_space(file, res, field, const, color, limit, bound, optim_points=algo_points) # Used stored result to build a graph of the design space
+# process.draw_design_space(file, res, field, const, color, limit, bound, optim_points=algo_points) # Used stored result to build a graph of the design space
+process.draw_design_space(file, res, field, const, color, limit, bound) # Used stored result to build a graph of the design space
 
 

@@ -118,7 +118,10 @@ for chain_power in (0.15e6, 0.20e6, 0.25e6, 0.30e6, 0.35e6, 0.40e6, 0.45e6, 0.50
     ac.airframe.system.chain_power = chain_power
 
     # Perform an MDF optimization process
-    process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+    opt = process.Optimizer()
+    opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
+    # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
+    algo_points= opt.computed_points
 
     print("-------------------------------------------")
     print("Optimization : done")

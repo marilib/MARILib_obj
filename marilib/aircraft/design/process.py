@@ -199,8 +199,9 @@ class Optimizer(object):
 
         res = minimize(cost, start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,),
                        constraints=NonlinearConstraint(fun=constraints,
-                                                       lb=0., ub=np.inf, jac='2-point'),
-                       method="trust-constr",jac="3-point", bounds=var_bnd)
+                                                       lb=0., ub=np.inf, jac='3-point'),
+                       method="trust-constr", jac="3-point", bounds=var_bnd, hess=SR1(), hessp=None,
+                       options={'maxiter':500,'xtol':1.e-6})
                        #options={'maxiter':500,'xtol': np.linalg.norm(start_value)*0.01,
                        #         'initial_tr_radius': np.linalg.norm(start_value)*0.05 })
         return res
