@@ -123,6 +123,8 @@ model_config = {
     "SystemWithBattery":{
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
         "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "compressor_efficiency": [0.80, "no_dim", "Compressor efficiency, power delivered to the air flow over input power"],
+        "compressor_pw_density": [1., "kW/kg", "Compressor total power density"],
         "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
         "cooling_pw_density": [5., "kW/kg", "Cooling power density"],
         "battery_density": [2800., "kg/m3", "Battery density"],
@@ -148,7 +150,7 @@ model_config = {
         "lto_time": [0., "min", "Duration of availability of the power reserve"],
         "cruise_energy": [0., "kWh", "Energy booked for cruise"],
         "generator_efficiency": [0.95, "no_dim", "Electric generator efficiency"],
-        "generator_pw_density": [10., "kW/kg", "Electric generator power density"],
+        "generator_pw_density": [5., "kW/kg", "Electric generator power density"],
         "rectifier_efficiency": [0.98, "no_dim", "Rectifier efficiency"],
         "rectifier_pw_density": [20., "kW/kg", "Rectifier power density"],
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],

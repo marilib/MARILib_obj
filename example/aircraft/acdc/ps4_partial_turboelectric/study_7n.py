@@ -111,9 +111,9 @@ result = np.array([["e-fan power               (kW)"],
                    ["Cost mission block fuel   (kg)"],
                    ["Cost mission block CO2    (kg)"],
                    ["Cash Op Cost          ($/trip)"],
-                   ["CO2 metric (10e-4kg/km/m0.48)"]])
+                   ["CO2 metric  (10e-4kg/km/m0.48)"]])
 
-for chain_power in (0.15e6, 0.20e6, 0.25e6, 0.30e6, 0.35e6, 0.40e6, 0.45e6, 0.50e6, 0.75e6, 1.0e6, 1.25e6, 1.50e6, 1.75e6, 2.00e6):
+for chain_power in (0.15e6, 0.20e6, 0.25e6, 0.30e6, 0.35e6, 0.40e6, 0.45e6, 0.50e6, 0.75e6, 1.0e6, 1.25e6, 1.50e6, 1.75e6, 2.00e6, 2.25e6, 2.50e6):
 
     ac.airframe.system.chain_power = chain_power
 

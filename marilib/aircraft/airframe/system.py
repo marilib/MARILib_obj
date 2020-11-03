@@ -108,6 +108,9 @@ class SystemWithFuelCell(Component):
         self.wiring_efficiency = get_init(self,"wiring_efficiency")
         self.wiring_pw_density = get_init(self,"wiring_pw_density")
 
+        self.compressor_efficiency = get_init(self,"compressor_efficiency")
+        self.compressor_pw_density = get_init(self,"compressor_pw_density")
+
         self.cooling_efficiency = get_init(self,"cooling_efficiency")
         self.cooling_pw_density = get_init(self,"cooling_pw_density")
 

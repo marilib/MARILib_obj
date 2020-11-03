@@ -12,6 +12,7 @@ from scipy.optimize import fsolve
 
 from marilib.utils import earth, unit, math
 
+
 from marilib.aircraft.airframe.component import Nacelle
 
 from marilib.aircraft.model_config import get_init
