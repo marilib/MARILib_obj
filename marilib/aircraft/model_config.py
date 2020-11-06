@@ -29,6 +29,8 @@ model_config = {
         "aspect_ratio": ["function", "no_dim", "Wing aspect ratio (function)"],
         "sweep25": ["function", "deg", "Wing sweep angle at 25% of the chords of outboard trapezoid (function)"],
         "dihedral": [5., "deg", "Wing dihedral"],
+        "front_spar_ratio": [0.15, "no_dim", "Relative chord position of front spar"],
+        "rear_spar_ratio": [0.70, "no_dim", "Relative chord position of rear spar"],
         "hld_type": ["function", "int", "Type of high lift device, from 0 to 10, (function)"]
     },
     "VtpClassic":{
@@ -132,7 +134,7 @@ model_config = {
     },
     "SystemWithFuelCell":{
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
-        "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "wiring_pw_density": [10., "kW/kg", "Electric wiring power density"],
         "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
         "cooling_pw_density": [5., "kW/kg", "Cooling power density"],
         "fuel_cell_pw_density": [1., "kW/kg", "Fuell cell power density"],
@@ -152,9 +154,9 @@ model_config = {
         "generator_efficiency": [0.95, "no_dim", "Electric generator efficiency"],
         "generator_pw_density": [5., "kW/kg", "Electric generator power density"],
         "rectifier_efficiency": [0.98, "no_dim", "Rectifier efficiency"],
-        "rectifier_pw_density": [20., "kW/kg", "Rectifier power density"],
+        "rectifier_pw_density": [10., "kW/kg", "Rectifier power density"],
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
-        "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
+        "wiring_pw_density": [10., "kW/kg", "Electric wiring power density"],
         "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
         "cooling_pw_density": [5., "kW/kg", "Cooling power density"]
     },
@@ -206,8 +208,8 @@ model_config = {
         "motor_efficiency": [0.95, "no_dim", "Electric motor efficiency"],
         "motor_pw_density": [5., "kW/kg", "Electric motor power density"],
         "nacelle_pw_density": [10., "kW/kg", "Electric nacelle power density"],
-        "controller_efficiency": [0.99, "no_dim", "Electric controller efficiency"],
-        "controller_pw_density": [20., "kW/kg", "Electric controller power density"]
+        "controller_efficiency": [0.98, "no_dim", "Electric controller efficiency"],
+        "controller_pw_density": [10., "kW/kg", "Electric controller power density"]
     },
     "SemiEmpiricEfNacelle":{
         "eis_date": [2020., "year", "Entry into service date"],
@@ -217,8 +219,8 @@ model_config = {
         "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"],
         "hub_width": [0.2, "m", "Fan hub diameter"],
         "motor_efficiency": [0.95, "no_dim", "Electric motor efficiency"],
-        "controller_efficiency": [0.99, "no_dim", "Electric controller efficiency"],
-        "controller_pw_density": [20., "kW/kg", "Electric controller power density"],
+        "controller_efficiency": [0.98, "no_dim", "Electric controller efficiency"],
+        "controller_pw_density": [10., "kW/kg", "Electric controller power density"],
         "nacelle_pw_density": [10., "kW/kg", "Electric nacelle power density"],
         "motor_pw_density": [5., "kW/kg", "Electric motor power density"]
     },

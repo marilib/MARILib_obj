@@ -41,8 +41,8 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 
 # Eventual update of some values
 #------------------------------------------------------------------------------------------------------
-ac.power_system.reference_thrust = unit.N_kN(150.)
-ac.airframe.wing.area = 120.
+ac.power_system.reference_thrust = unit.N_kN(110.)
+ac.airframe.wing.area = 110.
 
 # Run MDA analysis
 #------------------------------------------------------------------------------------------------------

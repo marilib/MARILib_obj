@@ -80,7 +80,11 @@ crt = "aircraft.weight_cg.mtow"
 
 
 # Perform an MDF optimization process
-process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+opt = process.Optimizer()
+opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+algo_points = opt.computed_points
+# algo_points = None
 
 
 # Main output

@@ -330,7 +330,7 @@ class StepMission(Flight):
 
             k_altp += 1
 
-        # Computing effetive changing mass according to SAR and climb capabilities
+        # Computing effective changing mass according to SAR and climb capabilities
         constraint = ["sar","mcr","mcl"]
         self.change_altp = [best_sar_altp[0]]
         self.change_mass = [min([best_sar_mass[0], max_mcr_mass[0], max_mcl_mass[0]])]

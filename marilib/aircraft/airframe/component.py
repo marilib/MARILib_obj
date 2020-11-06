@@ -593,8 +593,8 @@ class Wing(Component):
         self.sweep100 = None
         self.setting = None
         self.hld_type = get_init(self,"hld_type", val=self.high_lift_type())
-        self.front_spar_ratio = 0.15
-        self.rear_spar_ratio = 0.70
+        self.front_spar_ratio = get_init(self,"front_spar_ratio")
+        self.rear_spar_ratio = get_init(self,"rear_spar_ratio")
 
         self.x_rout = None      # Design variable for hq_optim
 

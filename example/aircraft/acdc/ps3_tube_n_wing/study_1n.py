@@ -41,7 +41,7 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 
 # Get the values that have been set by initialization
 #------------------------------------------------------------------------------------------------------
-morphing_i = "aspect_ratio_driven" # wing morphing : "aspect_ratio_driven" or "span_driven"
+wing_morphing_i = "aspect_ratio_driven" # wing morphing : "aspect_ratio_driven" or "span_driven"
 wing_span_i = ac.airframe.wing.span
 wing_aspect_ratio_i = ac.airframe.wing.aspect_ratio
 wing_area_i = ac.airframe.wing.area
@@ -49,7 +49,7 @@ mtow_i = ac.weight_cg.mtow
 
 # Eventual update of some values
 #------------------------------------------------------------------------------------------------------
-ac.airframe.wing.wing_morphing = morphing_i
+ac.airframe.wing.wing_morphing = wing_morphing_i
 
 ac.airframe.wing.area = wing_area_i
 ac.airframe.wing.span = wing_span_i
