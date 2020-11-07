@@ -125,8 +125,6 @@ model_config = {
     "SystemWithBattery":{
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
         "wiring_pw_density": [20., "kW/kg", "Electric wiring power density"],
-        "compressor_efficiency": [0.80, "no_dim", "Compressor efficiency, power delivered to the air flow over input power"],
-        "compressor_pw_density": [1., "kW/kg", "Compressor total power density"],
         "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
         "cooling_pw_density": [5., "kW/kg", "Cooling power density"],
         "battery_density": [2800., "kg/m3", "Battery density"],
@@ -135,8 +133,11 @@ model_config = {
     "SystemWithFuelCell":{
         "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
         "wiring_pw_density": [10., "kW/kg", "Electric wiring power density"],
-        "cooling_efficiency": [0.99, "no_dim", "Cooling efficiency, ex: 0.99 means that 1% of the power is used by cooling system"],
-        "cooling_pw_density": [5., "kW/kg", "Cooling power density"],
+        "compressor_over_pressure": [100., "kPa", "Compressor over pressure"],
+        "compressor_efficiency": [0.80, "no_dim", "Compressor efficiency, power delivered to the air flow over input power"],
+        "compressor_pw_density": [1., "kW/kg", "Compressor total power density"],
+        "cooling_efficiency": [0.005, "no_dim", "Cooling efficiency, ex: 0.01 means that the required power to cool the system is 1% of the dissipated power"],
+        "cooling_pw_density": [5., "kW/kg", "Cooling power density, the ratio of the dissipated power over the required system mass to dissipate it"],
         "fuel_cell_pw_density": [1., "kW/kg", "Fuell cell power density"],
         "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
     },

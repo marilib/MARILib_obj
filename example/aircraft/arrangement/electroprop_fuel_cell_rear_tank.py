@@ -22,7 +22,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",   # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
@@ -39,8 +39,9 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(1100.)
-ac.airframe.wing.area = 45.
+ac.airframe.tank.length = 2.
+ac.power_system.reference_power = unit.W_kW(1550.)
+ac.airframe.wing.area = 75.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)

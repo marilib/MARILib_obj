@@ -55,6 +55,7 @@ def mda(aircraft, mass_mission_matching=True):
     aircraft.aerodynamics.aerodynamic_analysis()
 
     aircraft.handling_quality.analysis()
+    # aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
 
     if mass_mission_matching:
         aircraft.performance.mission.mass_mission_adaptation()
@@ -82,6 +83,7 @@ def mda_hq(aircraft):
 
     aircraft.aerodynamics.aerodynamic_analysis()
 
+    # aircraft.handling_quality.analysis()
     aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
 
     aircraft.performance.mission.mass_mission_adaptation()

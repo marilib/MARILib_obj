@@ -663,15 +663,15 @@ class Electroprop(PowerSystem, Flight):
 
         fn = dict["fn"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        pw_net = pw / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        pw_net = pw / self.aircraft.airframe.system.wiring_efficiency
         sec = pw_net / fn
 
         dict = {"fn":fn, "pw":pw_net, "sec":sec, "fn1":fn}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fuel_heat = earth.fuel_heat(fuel_type)
-            dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
-            dict["ff"] = dict["sfc"] * dict["fn"]
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            dict["sfc"] = fc_dict["fuel_flow"] / pw_net     # WARNING : PSFC here
+            dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
             dict["sfc"] = 0.
             dict["ff"] = 0.
@@ -686,13 +686,14 @@ class Electroprop(PowerSystem, Flight):
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
+        dict["sec"] = dict["sec"] / self.aircraft.airframe.system.wiring_efficiency
 
-        dict["sec"] = dict["sec"] / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        pw_net  = dict["sec"] * thrust
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fuel_heat = earth.fuel_heat(fuel_type)
-            dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
-            dict["ff"] = dict["sfc"] * thrust
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            dict["sfc"] = fc_dict["fuel_flow"] / pw_net     # WARNING : PSFC here
+            dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
             dict["sfc"] = 0.
             dict["ff"] = 0.
@@ -802,15 +803,15 @@ class Electrofan(PowerSystem, Flight):
 
         fn = dict["fn"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        pw_net = pw / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        pw_net = pw / self.aircraft.airframe.system.wiring_efficiency
         sec = pw_net / fn
 
         dict = {"fn":fn, "pw":pw_net, "sec":sec, "fn1":fn}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fuel_heat = earth.fuel_heat(fuel_type)
-            dict["sfc"] = sec / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
-            dict["ff"] = dict["sfc"] * dict["fn"]
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            dict["sfc"] = fc_dict["fuel_flow"] / fn     # TSFC here
+            dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
             dict["sfc"] = 0.
             dict["ff"] = 0.
@@ -825,13 +826,14 @@ class Electrofan(PowerSystem, Flight):
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
+        dict["sec"] = dict["sec"] / self.aircraft.airframe.system.wiring_efficiency
 
-        dict["sec"] = dict["sec"] / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        pw_net  = dict["sec"] * thrust
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fuel_heat = earth.fuel_heat(fuel_type)
-            dict["sfc"] = dict["sec"] / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
-            dict["ff"] = dict["sfc"] * thrust
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            dict["sfc"] = fc_dict["fuel_flow"] / thrust     # TSFC here
+            dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
             dict["sfc"] = 0.
             dict["ff"] = 0.

@@ -83,7 +83,7 @@ class TakeOffReq(object):
         return s2_min_path
 
     def __tofl_req(self, requirement):
-        if(requirement.design_range <= unit.m_NM(500.)): tofl_req = 1000.
+        if(requirement.design_range <= unit.m_NM(500.)): tofl_req = 1200.
         elif(requirement.design_range <= unit.m_NM(1500.)): tofl_req = 1500.
         elif(requirement.design_range <= unit.m_NM(3500.)): tofl_req = 2300.
         elif(requirement.design_range <= unit.m_NM(5500.)): tofl_req = 2800.

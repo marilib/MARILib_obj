@@ -422,6 +422,15 @@ def fuel_heat(fuel_type):
         raise Exception("fuel_type index is out of range")
     return fuel_heat
 
+def stoichiometry(oxydizer,fuel):
+    if oxydizer=="air":
+        if fuel=="hydrogen":
+            return 34.5
+        else:
+            raise Exception("Fuel type is unknown")
+    else:
+        raise Exception("Oxydizer type is unknown")
+
 def emission_index(fuel_type,compound):
     """Various emitted compound depending on energy source
     """

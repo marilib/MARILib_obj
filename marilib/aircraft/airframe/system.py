@@ -108,6 +108,7 @@ class SystemWithFuelCell(Component):
         self.wiring_efficiency = get_init(self,"wiring_efficiency")
         self.wiring_pw_density = get_init(self,"wiring_pw_density")
 
+        self.compressor_over_pressure = get_init(self,"compressor_over_pressure")
         self.compressor_efficiency = get_init(self,"compressor_efficiency")
         self.compressor_pw_density = get_init(self,"compressor_pw_density")
 
@@ -117,16 +118,81 @@ class SystemWithFuelCell(Component):
         self.fuel_cell_pw_density = get_init(self,"fuel_cell_pw_density")
         self.fuel_cell_efficiency = get_init(self,"fuel_cell_efficiency")
 
-        self.global_energy_density = None
+        self.fuel_cell_output_power_ref = None
+        self.compressor_power_ref = None
+        self.cooler_power_ref = None
+        self.heat_power_ref = None
+
         self.power_chain_efficiency = None
+        self.global_energy_density = None
 
         self.fuel_cell_mass = None
+        self.compressor_mass = None
+        self.cooling_mass = None
         self.power_chain_mass = None
 
+    def eval_fuel_cell_power(self,required_power,pamb,tamb):
+        r,gam,Cp,Cv = earth.gas_data()
+
+        n_engine = self.aircraft.power_system.n_engine
+        fuel_type = self.aircraft.arrangement.fuel_type
+        fuel_heat = earth.fuel_heat(fuel_type)
+
+        # air_mass_flow = fuel_cell_power * relative_air_mass_flow
+        st_mass_ratio = earth.stoichiometry("air","hydrogen")
+        relative_fuel_flow = (1./self.fuel_cell_efficiency) / fuel_heat
+        relative_air_mass_flow = relative_fuel_flow * st_mass_ratio
+        relative_compressor_power = (1./self.compressor_efficiency)*(relative_air_mass_flow*Cv)*tamb*(((pamb+self.compressor_over_pressure)/pamb)**((gam-1.)/gam)-1.)
+
+        # heat_power = fuel_cell_power * relative_heat_power
+        relative_heat_power = (1.-self.fuel_cell_efficiency)/self.fuel_cell_efficiency
+        relative_cooling_power = relative_heat_power*self.cooling_efficiency
+
+        fuel_cell_power = required_power / (1. - relative_compressor_power - relative_cooling_power)
+        fuel_flow = fuel_cell_power * relative_fuel_flow
+
+        compressor_power = fuel_cell_power * relative_compressor_power
+        heat_power = fuel_cell_power * relative_heat_power
+        cooling_power = heat_power * self.cooling_efficiency
+
+        return {"fuel_cell_power":fuel_cell_power,
+                "compressor_power":compressor_power,
+                "cooling_power":cooling_power,
+                "heat_power":heat_power,
+                "fuel_flow":fuel_flow}
+
     def eval_geometry(self):
+        reference_power = self.aircraft.power_system.reference_power
+        n_engine = self.aircraft.power_system.n_engine
+
+        self.power_chain_efficiency =   self.wiring_efficiency \
+                                      * self.aircraft.airframe.nacelle.controller_efficiency \
+                                      * self.aircraft.airframe.nacelle.motor_efficiency
+
+        # Fuell cell stack is designed for take off
+        disa = self.aircraft.requirement.take_off.disa
+        altp = self.aircraft.requirement.take_off.altp
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+
+        required_power = n_engine * reference_power / self.power_chain_efficiency
+
+        dict = self.eval_fuel_cell_power(required_power,pamb,tamb)
+
+        self.fuel_cell_output_power_ref = dict["fuel_cell_power"]
+        self.compressor_power_ref = dict["compressor_power"]
+        self.cooling_power_ref = dict["cooling_power"]
+
+        # Heat dissipated by wiring and nacelles must be added to heat dissipated by fuell cells
+        self.heat_power_ref = dict["heat_power"] + n_engine*reference_power*(1. - self.wiring_efficiency +
+                                                                             1. - self.aircraft.airframe.nacelle.controller_efficiency +
+                                                                             1. - self.aircraft.airframe.nacelle.motor_efficiency)
+
         self.frame_origin = [0., 0., 0.]
 
     def eval_mass(self):
+        reference_power = self.aircraft.power_system.reference_power
+
         mtow = self.aircraft.weight_cg.mtow
         body_cg = self.aircraft.airframe.body.cg
         wing_cg = self.aircraft.airframe.wing.cg
@@ -136,17 +202,16 @@ class SystemWithFuelCell(Component):
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
         n_engine = self.aircraft.power_system.n_engine
 
-        self.power_chain_efficiency =   self.wiring_efficiency * self.cooling_efficiency \
-                                      * self.aircraft.airframe.nacelle.controller_efficiency \
-                                      * self.aircraft.airframe.nacelle.motor_efficiency
+        self.fuel_cell_mass = self.fuel_cell_output_power_ref / self.fuel_cell_pw_density
+        self.compressor_mass = self.compressor_power_ref / self.compressor_pw_density
+        self.cooling_mass = self.heat_power_ref / self.cooling_pw_density
 
-        elec_power_max = self.aircraft.power_system.reference_power / self.power_chain_efficiency
+        self.power_chain_mass =   self.fuel_cell_mass \
+                                + self.compressor_mass \
+                                + self.fuel_cell_output_power_ref/self.wiring_pw_density \
+                                + self.cooling_mass
 
-        self.fuel_cell_mass = (elec_power_max * n_engine)/self.fuel_cell_pw_density
-
-        self.power_chain_mass = (1./self.wiring_pw_density + 1./self.cooling_pw_density) * elec_power_max + self.fuel_cell_mass
-
-        power_elec_cg = 0.70*nacelle_cg + 0.30*body_cg
+        power_elec_cg = 0.30*nacelle_cg + 0.70*body_cg
 
         self.mass = 0.545*mtow**0.8  + self.power_chain_mass  # global mass of all systems
 
