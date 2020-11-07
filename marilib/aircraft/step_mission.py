@@ -876,106 +876,102 @@ class StepMission(Flight):
         profile = np.delete(flight_profile,k_list,axis=0)
 
         time_ = profile[:,0]
+        nseg = len(time_) - 1   # Number of segments of the profile
+
         dist_ = profile[:,1]
         altp_ = profile[:,2]
-        # vtas_ = profile[:,3]
+        pamb_ = profile[:,3]
+        tamb_ = profile[:,4]
 
-        nseg = len(time_) - 1
-
-        # # Compute mean speed on each segment segment
-        # x_d = []
-        # z_d = []
-        # dat = []
-        # for k in range(nseg):
-        #     x_d.append((dist_[k+1]-dist_[k])/(time_[k+1]-time_[k]))
-        #     z_d.append((altp_[k+1]-altp_[k])/(time_[k+1]-time_[k]))
-        #     dat.append(0.5*(time_[k]+time_[k+1]))
+        # vtas_ = profile[:,5]
         #
-        # # Compute mean acceleration in between each segment
-        # x_ddm = [0.]
-        # z_ddm = [0.]
-        # for k in range(nseg-1):
-        #     x_ddm.append((x_d[k+1]-x_d[k])/(dat[k+1]-dat[k]))
-        #     z_ddm.append((z_d[k+1]-z_d[k])/(dat[k+1]-dat[k]))
-        # x_ddm.append(0.)
-        # z_ddm.append(0.)
-        # x_ddm[0] = x_ddm[1]
-        # x_ddm[-1] = x_ddm[-2]
-        # z_ddm[0] = z_ddm[1]
-        # z_ddm[-1] = z_ddm[-2]
-        #
-        # # Compute mean acceleration WITHIN each segment
-        # x_dd = [0.]
-        # z_dd = [0.]
+        # # Build quadratic trajectory functions by segment
+        # # With quadratic function, acceleration is supposed constant along the segment
+        # coef = {"dist":[], "altp":[], "pamb":[], "tamb":[]}
         # for k in range(nseg):
-        #     x_dd.append(0.5*(x_ddm[k]+x_ddm[k+1]))
-        #     z_dd.append(0.5*(z_ddm[k]+z_ddm[k+1]))
-        #     # print(unit.ft_m(altp_[k]),x_dd[-1],z_dd[-1])
-
-        # # Build polynomial trajectory functions by segment
-        # coef = []
-        # for k in range(nseg):
-        #     Ax   = np.array([[3.*time_[k]     , 2.*time_[k]     , 1.        , 0.],
+        #     Ax   = np.array([[3.*time_[k]**2  , 2.*time_[k]     , 1.        , 0.],
         #                      [   time_[k]**3  ,    time_[k]**2  , time_[k]  , 1.],
-        #                      [3.*time_[k+1]   , 2.*time_[k+1]   , 1.        , 0.],
-        #                      [   time_[k+1]**2,    time_[k+1]**2, time_[k+1], 1.]])
+        #                      [3.*time_[k+1]**2, 2.*time_[k+1]   , 1.        , 0.],
+        #                      [   time_[k+1]**3,    time_[k+1]**2, time_[k+1], 1.]])
         #     Bx = [vtas_[k], dist_[k], vtas_[k+1], dist_[k+1]]
         #     Cx = np.linalg.solve(Ax,Bx)
+        #     coef["dist"].append(Cx)
         #
-        #     Az   = np.array([[time_[k]  , 1.],
-        #                      [time_[k+1], 1.]])
+        #     A   = np.array([[time_[k]  , 1.],
+        #                     [time_[k+1], 1.]])
+        #
         #     Bz = [altp_[k], altp_[k+1]]
-        #     Cz = np.linalg.solve(Az,Bz)
+        #     Cz = np.linalg.solve(A,Bz)
+        #     coef["altp"].append(Cz)
         #
-        #     coef.append(np.concatenate((Cx,Cz)))
-
+        #     Bp = [pamb_[k], pamb_[k+1]]
+        #     Cp = np.linalg.solve(A,Bp)
+        #     coef["pamb"].append(Cp)
+        #
+        #     Bt = [tamb_[k], tamb_[k+1]]
+        #     Ct = np.linalg.solve(A,Bt)
+        #     coef["tamb"].append(Ct)
+        #
         # # Interpolate into the trajectory
         # def get_interp_data(t):
         #     k = max(0,np.searchsorted(time_[:-1],t)-1)
-        #     x_d = (3.*coef[k][0]*t + 2.*coef[k][1])*t + coef[k][2]
-        #     z_d = coef[k][4]
-        #     zp = coef[k][4]*t + coef[k][5]
+        #
+        #     x_d = 3.*coef["dist"][k][0]*t**2 + 2.*coef["dist"][k][1]*t + coef["dist"][k][2]
+        #     z_d = coef["altp"][k][0]
         #     sin_path = z_d/x_d
         #     tas = np.sqrt(x_d**2+z_d**2)
-        #     x_dd = 6.*coef[k][0]*t + 2.*coef[k][1]
-        #     z_dd = 0.
-        #     acc = (x_dd*x_d+z_dd*z_d)/tas
-        #     return zp,sin_path,tas,acc
+        #     acc = 6.*coef["dist"][k][0]*t + 2.*coef["dist"][k][1]
+        #     print("----------------->", acc)
+        #     zp = coef["altp"][k][0]*t + coef["altp"][k][1]
+        #     pamb = coef["pamb"][k][0]*t + coef["pamb"][k][1]
+        #     tamb = coef["tamb"][k][0]*t + coef["tamb"][k][1]
+        #     return zp,sin_path,tas,acc,pamb,tamb
+        #
 
-        # # Compute mean acceleration WITHIN each segment
-        # acc_ = []
-        # for k in range(nseg):
-        #     acc_.append((vtas_[k+1]-vtas_[k])/(time_[k+1]-time_[k]))
 
-        # Build polynomial trajectory functions by segment
-        coef = []
+        # Build linear trajectory functions by segment
+        # With linear function, speed is supposed constant along the segment
+        coef = {"dist":[], "altp":[], "pamb":[], "tamb":[]}
         for k in range(nseg):
             A   = np.array([[time_[k]  , 1.],
                             [time_[k+1], 1.]])
+
             Bx = [dist_[k], dist_[k+1]]
             Cx = np.linalg.solve(A,Bx)
+            coef["dist"].append(Cx)
 
             Bz = [altp_[k], altp_[k+1]]
             Cz = np.linalg.solve(A,Bz)
+            coef["altp"].append(Cz)
 
-            coef.append(np.concatenate((Cx,Cz)))
+            Bp = [pamb_[k], pamb_[k+1]]
+            Cp = np.linalg.solve(A,Bp)
+            coef["pamb"].append(Cp)
+
+            Bt = [tamb_[k], tamb_[k+1]]
+            Ct = np.linalg.solve(A,Bt)
+            coef["tamb"].append(Ct)
 
         # Interpolate into the trajectory
         def get_interp_data(t):
             k = max(0,np.searchsorted(time_[:-1],t)-1)
-            x_d = coef[k][0]
-            z_d = coef[k][2]
-            zp = coef[k][2]*t + coef[k][3]
+            x_d = coef["dist"][k][0]
+            z_d = coef["altp"][k][0]
+            zp = coef["altp"][k][0]*t + coef["altp"][k][1]
             sin_path = z_d/x_d
             tas = np.sqrt(x_d**2+z_d**2)
             acc = 0.
-            return zp,sin_path,tas,acc
+            pamb = coef["pamb"][k][0]*t + coef["pamb"][k][1]
+            tamb = coef["tamb"][k][0]*t + coef["tamb"][k][1]
+            return zp,sin_path,tas,acc,pamb,tamb
+
+
+
 
         # Compute airplane performances at a given trajectory point
         def all_values(t,mass):
-            altp,sin_path,tas,acc = get_interp_data(t)
-            print(t,altp,sin_path,tas,acc)
-            pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+            altp,sin_path,tas,acc,pamb,tamb = get_interp_data(t)
+            # print(t,altp,sin_path,tas,acc,pamb,tamb)
             vsnd = earth.sound_speed(tamb)
             mach = tas/vsnd
             cas = earth.vcas_from_mach(pamb,mach)
@@ -1006,7 +1002,7 @@ class StepMission(Flight):
             t0 = time_[k]
             t1 = time_[k+1]
             t_eval = [t1]
-            sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="LSODA")
+            sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="RK45")
             mass_.append(sol.y[0])
             state0[0] = sol.y[0]
 
