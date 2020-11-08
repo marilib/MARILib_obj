@@ -257,6 +257,10 @@ class Tank(Component):
 
     def __init__(self, aircraft):
         super(Tank, self).__init__(aircraft)
+        super(Tank, self).__init__(aircraft)
+
+    def get_mfw(self):
+        return self.mfw_volume_limited
 
     def performance_ratio(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
@@ -272,6 +276,67 @@ class Pod(Component):
 
     def __init__(self, aircraft):
         super(Pod, self).__init__(aircraft)
+
+        class_name = "Pod"
+
+        self.structure_shell_thickness = get_init(class_name,"structure_shell_thickness")
+        self.structure_shell_surface_mass = get_init(class_name,"structure_shell_surface_mass")
+
+        self.gravimetric_index = get_init(class_name,"gravimetric_index")
+        self.volumetric_index = get_init(class_name,"volumetric_index")
+
+        self.dry_bay_length = None
+
+        self.external_pod_area = None
+        self.external_pod_volume = None
+
+        self.structure_internal_volume = None
+        self.structure_shell_volume = None
+        self.structure_shell_mass = None
+
+        self.insulation_shell_volume = None
+        self.fuel_volume = None
+
+        self.insulation_shell_mass = None
+        self.fuel_mass = None
+
+    def size_fuel_tank(self,location):
+        # Tank is supposed to be composed of a cylindrical part ended with two emisphers
+        # An unusable length equal to one diameter is taken for tapered ends
+        self.external_pod_area = np.pi*self.width**2 + (self.length-2.*self.width-self.dry_bay_length) * (np.pi*self.width)
+        self.external_pod_volume = (1./6.)*np.pi*self.width**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*self.width**2)
+
+        if location=="external":
+            self.structure_internal_volume = (1./6.)*np.pi*(self.width-2.*self.structure_shell_thickness)**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*(self.width-2.*self.structure_shell_thickness)**2)
+            self.structure_shell_volume = self.external_pod_volume - self.structure_internal_volume
+        elif location=="internal":
+            self.structure_shell_surface_mass = 0.  # kg/m2
+            self.structure_shell_thickness = 0.     # m
+            self.structure_internal_volume = self.external_pod_volume
+            self.structure_shell_volume = 0.
+        else:
+            raise Exception("Tank location is unknown")
+
+        self.insulation_shell_volume = self.structure_internal_volume*(1.-self.volumetric_index)
+        self.fuel_volume = self.structure_internal_volume*self.volumetric_index
+
+        return
+
+    def mass_fuel_tank(self,location):
+        if location=="external":
+            self.structure_shell_mass = self.external_pod_area * self.structure_shell_surface_mass
+        elif location=="internal":
+            self.structure_shell_mass = 0.
+        else:
+            raise Exception("Tank location is unknown")
+
+        self.insulation_shell_mass = self.structure_internal_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+        self.fuel_mass = self.fuel_density * self.fuel_volume
+
+        return
+
+    def get_mfw(self):
+        return self.mfw_volume_limited
 
     def performance_ratio(self, aircraft):
         if aircraft.arrangement.fuel_type=="liquid_h2": return unit.Pam3pkg_barLpkg(250.)
@@ -1780,70 +1845,7 @@ class TankRearFuselage(Tank):
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
         self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
-class GenericPodTank(Pod):
-
-    def __init__(self, aircraft):
-        super(GenericPodTank, self).__init__(aircraft)
-
-        class_name = "GenericPodTank"
-
-        self.structure_shell_thickness = get_init(class_name,"structure_shell_thickness")
-        self.structure_shell_surface_mass = get_init(class_name,"structure_shell_surface_mass")
-
-        self.gravimetric_energy_density_ratio = get_init(class_name,"gravimetric_energy_density_ratio")
-        self.volumetric_energy_density_ratio = get_init(class_name,"volumetric_energy_density_ratio")
-
-        self.dry_bay_length = None
-
-        self.external_pod_area = None
-        self.external_pod_volume = None
-
-        self.structure_internal_volume = None
-        self.structure_shell_volume = None
-        self.structure_shell_mass = None
-
-        self.insulation_shell_volume = None
-        self.fuel_volume = None
-
-        self.insulation_shell_mass = None
-        self.fuel_mass = None
-
-    def size_fuel_tank(self,location):
-        # Tank is supposed to be composed of a cylindrical part ended with two emisphers
-        # An unusable length equal to one diameter is taken for tapered ends
-        self.external_pod_area = np.pi*self.width**2 + (self.length-2.*self.width-self.dry_bay_length) * (np.pi*self.width)
-        self.external_pod_volume = (1./6.)*np.pi*self.width**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*self.width**2)
-
-        if location=="external":
-            self.structure_internal_volume = (1./6.)*np.pi*(self.width-2.*self.structure_shell_thickness)**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*(self.width-2.*self.structure_shell_thickness)**2)
-            self.structure_shell_volume = self.external_pod_volume - self.structure_internal_volume
-        elif location=="internal":
-            self.structure_shell_surface_mass = 0.  # kg/m2
-            self.structure_shell_thickness = 0.     # m
-            self.structure_internal_volume = self.external_pod_volume
-            self.structure_shell_volume = 0.
-        else:
-            raise Exception("Tank location is unknown")
-
-        self.insulation_shell_volume = self.structure_internal_volume*(1.-self.volumetric_energy_density_ratio)
-        self.fuel_volume = self.structure_internal_volume*self.volumetric_energy_density_ratio
-
-        return
-
-    def mass_fuel_tank(self,location):
-        if location=="external":
-            self.structure_shell_mass = self.external_pod_area * self.structure_shell_surface_mass
-        elif location=="internal":
-            self.structure_shell_mass = 0.
-        else:
-            raise Exception("Tank location is unknown")
-
-        self.insulation_shell_mass = self.structure_internal_volume*(1./self.gravimetric_energy_density_ratio-1.)*self.volumetric_energy_density_ratio*self.fuel_density
-        self.fuel_mass = self.fuel_density * self.fuel_volume
-
-        return
-
-class TankWingPod(GenericPodTank):
+class TankWingPod(Pod):
 
     def __init__(self, aircraft, side):
         super(TankWingPod, self).__init__(aircraft)
@@ -1915,14 +1917,14 @@ class TankWingPod(GenericPodTank):
         self.wing_axe_x = wing_kink_loc[0] - (wing_kink_loc[0]-wing_tip_loc[0])/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
         self.wing_axe_z = wing_kink_loc[2] - (wing_kink_loc[2]-wing_tip_loc[2])/(wing_tip_loc[1]-wing_kink_loc[1])*(y_axe-wing_kink_loc[1])
 
-        self.gross_wet_area = 2.*(0.85*3.14*self.width*self.length)
+        self.gross_wet_area = 0.85*3.14*self.width*self.length
         self.net_wet_area = 0.95*self.gross_wet_area
         self.aero_length = self.length
         self.form_factor = 1.05
 
         self.size_fuel_tank("external")
 
-        self.max_volume = 2.*self.fuel_volume
+        self.max_volume = self.fuel_volume
 
     def eval_mass(self):
         fuel_type = self.aircraft.arrangement.fuel_type
@@ -1933,7 +1935,7 @@ class TankWingPod(GenericPodTank):
 
         self.mass_fuel_tank("external")
 
-        self.mass = 2.*(self.structure_shell_mass + self.insulation_shell_mass)
+        self.mass = self.structure_shell_mass + self.insulation_shell_mass
         self.cg = self.frame_origin + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
@@ -1942,7 +1944,7 @@ class TankWingPod(GenericPodTank):
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
         self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
-class TankPiggyBack(GenericPodTank):
+class TankPiggyBack(Pod):
 
     def __init__(self, aircraft):
         super(TankPiggyBack, self).__init__(aircraft)

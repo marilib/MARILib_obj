@@ -115,13 +115,17 @@ class Aircraft(object):
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.tank_architecture=="wing_box"):
             self.airframe.tank = component.TankWingBox(self)
+            self.airframe.tank_analysis_order = ["tank"]
         elif (self.arrangement.tank_architecture=="rear"):
             self.airframe.tank = component.TankRearFuselage(self)
+            self.airframe.tank_analysis_order = ["tank"]
         elif (self.arrangement.tank_architecture=="piggy_back"):
             self.airframe.tank = component.TankPiggyBack(self)
+            self.airframe.tank_analysis_order = ["tank"]
         elif (self.arrangement.tank_architecture=="pods"):
             self.airframe.tank = component.TankWingPod(self,"right")
             self.airframe.other_tank = component.TankWingPod(self,"left")
+            self.airframe.tank_analysis_order = ["tank","other_tank"]
         else:
             raise Exception("Type of tank is unknown")
 
@@ -425,7 +429,9 @@ class Aircraft(object):
 # ----------------------------------------------------------------------------------------------------------------------
         self.airframe.mass_analysis_order =   ["cabin","body","wing","landing_gear","cargo"] \
                                             + self.airframe.engine_analysis_order \
-                                            + ["vertical_stab","horizontal_stab","tank","system"]
+                                            + ["vertical_stab","horizontal_stab"] \
+                                            + self.airframe.tank_analysis_order \
+                                            + ["system"]
 
 # ----------------------------------------------------------------------------------------------------------------------
         self.aerodynamics = model.Aerodynamics(self)

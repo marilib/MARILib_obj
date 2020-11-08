@@ -496,7 +496,8 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
 
     val2 = np.random.random(len(const))*100.
     val2 = ["%8.1f" %v for v in val2]
-    val2 = list(map(list, zip(*[val2,cst_uni])))
+    cst_val = ["%8.1f" %v for v in limit]
+    val2 = list(map(list, zip(*[val2,cst_val,cst_uni])))
 
     ax3 = plt.subplot(gs[1,1])
     ax3.axis("off")

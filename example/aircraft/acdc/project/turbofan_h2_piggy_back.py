@@ -30,7 +30,7 @@ agmt = Arrangement(body_type = "fuselage",            # "fuselage" or "blended"
                    fuel_type = "liquid_h2")         # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 150.,
-                   design_range = unit.m_NM(2500.),
+                   design_range = unit.m_NM(3000.),
                    cruise_mach = 0.78,
                    cruise_altp = unit.m_ft(35000.))
 
@@ -39,6 +39,9 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
+ac.airframe.tank.width = 2.8
+ac.airframe.tank.length = 27.
+
 ac.power_system.reference_thrust = unit.N_kN(135.)
 ac.airframe.wing.area = 140.
 
@@ -61,7 +64,7 @@ cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.t
        "aircraft.performance.mcr_ceiling.vz_eff - aircraft.performance.mcr_ceiling.vz_req",
        "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
        "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff",
-       "aircraft.airframe.tank.mfw_volume_limited - aircraft.performance.mission.nominal.fuel_total"]
+       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total"]
 
 # Magnitude used to scale constraints
 cst_mag = ["aircraft.performance.take_off.tofl_req",
@@ -70,7 +73,7 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
            "unit.mps_ftpmin(100.)",
            "aircraft.performance.oei_ceiling.path_req",
            "aircraft.performance.time_to_climb.ttc_req",
-           "aircraft.airframe.tank.mfw_volume_limited"]
+           "aircraft.weight_cg.mfw"]
 
 # Optimization criteria
 crt = "aircraft.weight_cg.mtow"
@@ -113,7 +116,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["Vz_MCL", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcl_ceiling.vz_eff)"],
         ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcr_ceiling.vz_eff)"],
         ["TTC", "min", "%8.1f", "unit.min_s(aircraft.performance.time_to_climb.ttc_eff)"],
-        ["FUEL", "kg", "%8.1f", "aircraft.airframe.tank.mfw_volume_limited"],
+        ["FUEL", "kg", "%8.1f", "aircraft.weight_cg.mfw"],
         ["Cost_Block_fuel", "kg", "%8.1f", "aircraft.performance.mission.cost.fuel_block"],
         ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
         ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],

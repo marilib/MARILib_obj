@@ -16,6 +16,7 @@ from marilib.utils import earth
 from marilib.aircraft.model_config import get_init
 from marilib.aircraft.performance import Flight
 
+from marilib.aircraft.airframe.component import Nacelle, Tank, Pod
 
 # -----------------------------------------------------------------------------------
 #                            AERODYNAMIC & WEIGHTS
@@ -268,7 +269,11 @@ class WeightCg(object):
                 self.mlw = self.mtow
 
         # WARNING : for battery powered architecture, MFW corresponds to max battery weight
-        self.mfw = min(self.aircraft.airframe.tank.mfw_volume_limited, self.mtow - self.owe)
+        mfw = 0.
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Tank) or issubclass(type(comp),Pod):
+                mfw += comp.get_mfw()
+        self.mfw = min(mfw, self.mtow - self.owe)
 
         # TODO
         # calculer les cg

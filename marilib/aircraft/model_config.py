@@ -89,11 +89,11 @@ model_config = {
         "volumetric_energy_density_ratio": [0.84, "no_dim", "Tank system energy density over fuel energy density"],
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
     },
-    "GenericPodTank":{
+    "Pod":{
         "structure_shell_surface_mass": [15., "kg/m2", "Surface mass of the surrounding support structure"],
         "structure_shell_thickness": [0.08, "m", "Thickness of the support structure"],
-        "gravimetric_energy_density_ratio": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
-        "volumetric_energy_density_ratio": [0.84, "no_dim", "Tank system energy density over fuel energy density"]
+        "gravimetric_index": [0.30, "no_dim", "Tank gravimetric index, kg-LH2 / kg-LH2+Tank"],
+        "volumetric_index": [0.85, "no_dim", "Tank volumetric index, m3-LH2 / m3-LH2+Tank"]
     },
     "TankWingPod":{
         "span_ratio": [0.65, "no_dim", "Relative span wise position of the tank"],
