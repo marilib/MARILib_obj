@@ -20,7 +20,7 @@ from marilib.aircraft.design import process
 # ---------------------------------------------------------------------------------------------------------------------
 agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
-                   wing_attachment = "low",       # "low" or "high"
+                   wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
@@ -29,8 +29,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    power_source = "fuel_cell",     # "fuel", "battery", "fuel_cell"
                    fuel_type = "liquid_h2")        # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 19.,
-                   design_range = unit.m_NM(100.),
+reqs = Requirement(n_pax_ref = 70.,
+                   design_range = unit.m_NM(600.),
                    cruise_mach = 0.55,
                    cruise_altp = unit.m_ft(20000.))
 
@@ -39,9 +39,9 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.airframe.tank.length = 2.
-ac.power_system.reference_power = unit.W_kW(1550.)
-ac.airframe.wing.area = 75.
+ac.airframe.tank.length = 6.
+ac.power_system.reference_power = unit.W_kW(3500.)
+ac.airframe.wing.area = 200.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -77,9 +77,9 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-#opt = process.Optimizer()
-#opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
-#algo_points= opt.computed_points
+# opt = process.Optimizer()
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
+# algo_points= opt.computed_points
 
 
 # Main output

@@ -20,28 +20,27 @@ from marilib.aircraft.design import process
 # ---------------------------------------------------------------------------------------------------------------------
 agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
-                   wing_attachment = "low",       # "low" or "high"
-                   stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
+                   wing_attachment = "low",          # "low" or "high"
+                   stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
+                   tank_architecture = "pods",     # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
-                   power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
-                   power_source = "fuel_cell",     # "fuel", "battery", "fuel_cell"
+                   power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "liquid_h2")        # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 19.,
-                   design_range = unit.m_NM(100.),
-                   cruise_mach = 0.55,
-                   cruise_altp = unit.m_ft(20000.))
+reqs = Requirement(n_pax_ref = 150.,
+                   design_range = unit.m_NM(1900.),
+                   cruise_mach = 0.78,
+                   cruise_altp = unit.m_ft(35000.))
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.airframe.tank.length = 2.
-ac.power_system.reference_power = unit.W_kW(1550.)
-ac.airframe.wing.area = 75.
+ac.power_system.reference_thrust = unit.N_kN(145.)
+ac.airframe.wing.area = 150.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -49,11 +48,11 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
-var = ["aircraft.power_system.reference_power",
+var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.W_kW(800.), unit.W_kW(2000.)],       # Design space area where to look for an optimum solution
-           [30., 100.]]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
+           [100., 200.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -81,7 +80,6 @@ crt = "aircraft.weight_cg.mtow"
 #opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
 #algo_points= opt.computed_points
 
-
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
 ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
@@ -100,7 +98,7 @@ io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Air
 step = [0.05,
         0.05]    # Relative grid step
 
-data = [["Power", "kW", "%8.1f", var[0]+"/1000."],
+data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["Wing_area", "m2", "%8.1f", var[1]],
         ["Wing_span", "m", "%8.1f", "aircraft.airframe.wing.span"],
         ["MTOW", "kg", "%8.1f", "aircraft.weight_cg.mtow"],
@@ -108,7 +106,7 @@ data = [["Power", "kW", "%8.1f", var[0]+"/1000."],
         ["OWE", "kg", "%8.1f", "aircraft.weight_cg.owe"],
         ["MWE", "kg", "%8.1f", "aircraft.weight_cg.mwe"],
         ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.performance.mission.crz_lod"],
-        ["Cruise_SFC", "kg/kW/h", "%8.4f", "aircraft.performance.mission.crz_psfc"],
+        ["Cruise_SFC", "kg/daN/h", "%8.4f", "aircraft.performance.mission.crz_tsfc"],
         ["TOFL", "m", "%8.1f", "aircraft.performance.take_off.tofl_eff"],
         ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.performance.approach.app_speed_eff)"],
         ["OEI_path", "%", "%8.1f", "aircraft.performance.oei_ceiling.path_eff*100"],

@@ -654,7 +654,7 @@ class Wing(Component):
             print("geometry_predesign_, wing_wing_morphing index is unkown")
 
         # Correlation between span loading and tapper ratio
-        self.taper_ratio = 0.3 - 0.025*(1e-3*mtow/self.span)
+        self.taper_ratio = 0.35 - 0.025*(1e-3*mtow/self.span)
 
         y_root = 0.5*body_width
         y_kink = 1.75*body_width

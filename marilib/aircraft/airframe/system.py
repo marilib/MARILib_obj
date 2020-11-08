@@ -112,8 +112,8 @@ class SystemWithFuelCell(Component):
         self.compressor_efficiency = get_init(self,"compressor_efficiency")
         self.compressor_pw_density = get_init(self,"compressor_pw_density")
 
-        self.cooling_efficiency = get_init(self,"cooling_efficiency")
-        self.cooling_pw_density = get_init(self,"cooling_pw_density")
+        self.cooling_power_index = get_init(self,"cooling_power_index")
+        self.cooling_gravimetric_index = get_init(self,"cooling_gravimetric_index")
 
         self.fuel_cell_pw_density = get_init(self,"fuel_cell_pw_density")
         self.fuel_cell_efficiency = get_init(self,"fuel_cell_efficiency")
@@ -146,14 +146,14 @@ class SystemWithFuelCell(Component):
 
         # heat_power = fuel_cell_power * relative_heat_power
         relative_heat_power = (1.-self.fuel_cell_efficiency)/self.fuel_cell_efficiency
-        relative_cooling_power = relative_heat_power*self.cooling_efficiency
+        relative_cooling_power = relative_heat_power*self.cooling_power_index
 
         fuel_cell_power = required_power / (1. - relative_compressor_power - relative_cooling_power)
         fuel_flow = fuel_cell_power * relative_fuel_flow
 
         compressor_power = fuel_cell_power * relative_compressor_power
         heat_power = fuel_cell_power * relative_heat_power
-        cooling_power = heat_power * self.cooling_efficiency
+        cooling_power = heat_power * self.cooling_power_index
 
         return {"fuel_cell_power":fuel_cell_power,
                 "compressor_power":compressor_power,
@@ -204,7 +204,7 @@ class SystemWithFuelCell(Component):
 
         self.fuel_cell_mass = self.fuel_cell_output_power_ref / self.fuel_cell_pw_density
         self.compressor_mass = self.compressor_power_ref / self.compressor_pw_density
-        self.cooling_mass = self.heat_power_ref / self.cooling_pw_density
+        self.cooling_mass = self.heat_power_ref / self.cooling_gravimetric_index
 
         self.power_chain_mass =   self.fuel_cell_mass \
                                 + self.compressor_mass \
