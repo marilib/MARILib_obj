@@ -587,8 +587,8 @@ class StepMission(Flight):
         ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
-        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        mach = np.ones(len(sol.t))*self.mach
+        cas = [earth.vcas_from_mach(p,ma) for p,ma in zip(pamb,mach)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
@@ -612,7 +612,7 @@ class StepMission(Flight):
         ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        cas = np.ones(len(sol.t))*self.cas2
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
@@ -662,7 +662,7 @@ class StepMission(Flight):
         ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        cas = np.ones(len(sol.t))*self.cas1
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
@@ -720,7 +720,7 @@ class StepMission(Flight):
         ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        cas = np.ones(len(sol.t))*self.cas1
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
@@ -770,7 +770,7 @@ class StepMission(Flight):
         ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        cas = np.ones(len(sol.t))*self.cas2
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s3 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
@@ -805,8 +805,8 @@ class StepMission(Flight):
         ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
-        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        mach = np.ones(len(sol.t))*self.mach
+        cas = [earth.vcas_from_mach(p,ma) for p,ma in zip(pamb,mach)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
@@ -921,7 +921,6 @@ class StepMission(Flight):
         #     sin_path = z_d/x_d
         #     tas = np.sqrt(x_d**2+z_d**2)
         #     acc = 6.*coef["dist"][k][0]*t + 2.*coef["dist"][k][1]
-        #     print("----------------->", acc)
         #     zp = coef["altp"][k][0]*t + coef["altp"][k][1]
         #     pamb = coef["pamb"][k][0]*t + coef["pamb"][k][1]
         #     tamb = coef["tamb"][k][0]*t + coef["tamb"][k][1]
@@ -1002,6 +1001,7 @@ class StepMission(Flight):
             t0 = time_[k]
             t1 = time_[k+1]
             t_eval = [t1]
+            # print("------->", t0)
             sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="RK45")
             mass_.append(sol.y[0])
             state0[0] = sol.y[0]
