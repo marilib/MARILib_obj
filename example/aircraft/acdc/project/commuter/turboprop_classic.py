@@ -22,26 +22,33 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
+                   tank_architecture = "wing_box",   # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
-                   power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
-                   power_source = "fuel_cell",     # "fuel", "battery", "fuel_cell"
-                   fuel_type = "liquid_h2")        # "kerosene", "liquid_h2", "Compressed_h2", "battery"
+                   power_architecture = "tp",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_source = "fuel",            # "fuel", "battery", "fuel_cell"
+                   fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 70.,
                    design_range = unit.m_NM(600.),
                    cruise_mach = 0.55,
-                   cruise_altp = unit.m_ft(20000.))
+                   cruise_altp = unit.m_ft(25000.))
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
+# overwrite eventually default values for operational requirements
+print("------------------------------------------------------")
+print("tofl_req = ", "%.0f"%ac.requirement.take_off.tofl_req)
+print("app_speed_req = ", "%.2f"%(unit.convert_to("kt",ac.requirement.approach.app_speed_req)))
+print("mcl_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcl_ceiling.vz_req)))
+print("mcr_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcr_ceiling.vz_req)))
+print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_climb.ttc_req)))
+
 # overwrite default values for design space graph centering (see below)
-ac.airframe.tank.length = 6.
-ac.power_system.reference_power = unit.W_kW(3500.)
-ac.airframe.wing.area = 200.
+ac.power_system.reference_power = unit.W_kW(2600.)
+ac.airframe.wing.area = 68.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -52,8 +59,8 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 var = ["aircraft.power_system.reference_power",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.W_kW(800.), unit.W_kW(2000.)],       # Design space area where to look for an optimum solution
-           [30., 100.]]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
+           [100., 200.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -80,7 +87,6 @@ crt = "aircraft.weight_cg.mtow"
 # opt = process.Optimizer()
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
 # algo_points= opt.computed_points
-
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------

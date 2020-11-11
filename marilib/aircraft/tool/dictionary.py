@@ -120,8 +120,8 @@ DATA_DICT = {
     "surface_mass": {"unit":"kg/m2", "mag":1e1, "txt":"Mass of tank structure per tank surface unit"},
     "cantilever_volume": {"unit":"m3", "mag":1e1, "txt":"Tank volume outside of the main body"},
     "central_volume": {"unit":"m3", "mag":1e1, "txt":"Tank volume inside of the main body"},
-    "insulation_shell_volume": {"unit":"m3", "mag":1e1, "txt":"Tank insulation volume"},
-    "insulation_shell_mass": {"unit":"kg", "mag":1e2, "txt":"Tank insulation mass"},
+    "shell_specific_volume": {"unit":"m3", "mag":1e1, "txt":"Tank insulation volume"},
+    "shell_specific_mass": {"unit":"kg", "mag":1e2, "txt":"Tank insulation mass"},
     "fuel_cantilever_cg": {"unit":"m", "mag":1e1, "txt":"Position of the CG of the fuel volume which is outside of the main body"},
     "fuel_central_cg": {"unit":"m", "mag":1e1, "txt":"Position of the CG of the fuel volume which is in the main body"},
     "fuel_total_cg": {"unit":"m", "mag":1e1, "txt":"Position of the CG of the total fuel volume"},
@@ -341,6 +341,7 @@ DATA_DICT = {
     "max_esar_throttle": {"unit":"no_dim", "mag":1e0, "txt":"Throttle versus MCR for maximum specific air range"},
     "max_esar_sec": {"unit":"kW/daN", "mag":1e0, "txt":"Specific energy consumption for maximum specific air range"},
     "wing_morphing" : {"unit":"string", "mag":19, "txt":"Design of the wings : 'aspect_ratio_driven' or 'span_driven'"},
+    "tank_analysis_order" : {"unit":"string", "mag":1., "txt":"Gives the tank component list"},
     "engine_analysis_order" : {"unit":"string", "mag":1., "txt":"Gives the engine component list"},
     "mass_analysis_order" : {"unit":"string", "mag":1., "txt":"Gives the component order to perform the mass analysis"},
 }

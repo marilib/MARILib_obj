@@ -8,6 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
+from tabulate import tabulate
 
 from marilib.utils import unit
 from marilib.aircraft.aircraft_root import Arrangement, Aircraft
@@ -15,6 +16,7 @@ from marilib.aircraft.requirement import Requirement
 from marilib.utils.read_write import MarilibIO
 from marilib.aircraft.design import process
 
+from marilib.aircraft.step_mission import StepMission
 
 # Configure airplane arrangement
 # ---------------------------------------------------------------------------------------------------------------------
@@ -22,12 +24,12 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "pods",     # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "wing_box",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
-                   fuel_type = "liquid_h2")        # "kerosene", "liquid_h2", "Compressed_h2", "battery"
+                   fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
@@ -38,15 +40,17 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
+# overwrite eventually default values for operational requirements
+print("------------------------------------------------------")
+print("tofl_req = ", "%.0f"%ac.requirement.take_off.tofl_req)
+print("app_speed_req = ", "%.2f"%(unit.convert_to("kt",ac.requirement.approach.app_speed_req)))
+print("mcl_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcl_ceiling.vz_req)))
+print("mcr_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcr_ceiling.vz_req)))
+print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_climb.ttc_req)))
+
 # overwrite default values for design space graph centering (see below)
-ac.airframe.tank.width = 2.8
-ac.airframe.other_tank.width = ac.airframe.tank.width
-
-ac.airframe.tank.length = 15.
-ac.airframe.other_tank.length = ac.airframe.tank.length
-
-ac.power_system.reference_thrust = unit.N_kN(145.)
-ac.airframe.wing.area = 150.
+ac.power_system.reference_thrust = unit.N_kN(170.)
+ac.airframe.wing.area = 130.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -82,9 +86,12 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-#opt = process.Optimizer()
-#opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
-#algo_points= opt.computed_points
+opt = process.Optimizer()
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+# algo_points = opt.computed_points
+# algo_points = None
+
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
@@ -143,6 +150,7 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
          ac.performance.mission.nominal.fuel_total]              # Limit values
 
+# process.draw_design_space(file, res, field, const, color, limit, bound, optim_points=algo_points) # Used stored result to build a graph of the design space
 process.draw_design_space(file, res, field, const, color, limit, bound) # Used stored result to build a graph of the design space
 
 

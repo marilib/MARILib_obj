@@ -78,15 +78,15 @@ model_config = {
         "volume_factor": [0.94, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"]
     },
     "TankWingBox":{
-        "gravimetric_energy_density_ratio": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
-        "volumetric_energy_density_ratio": [0.84, "no_dim", "Tank system energy density over fuel energy density"],
+        "gravimetric_index": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
+        "volumetric_index": [0.85, "no_dim", "Tank system energy density over fuel energy density"],
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
     },
     "TankRearFuselage":{
         "length": [10., "m", "Length of the tank"],
         "width_rear_factor": [0.75, "m", "Diameter of the rear pressure bulkhead over fuselage diameter"],
-        "gravimetric_energy_density_ratio": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
-        "volumetric_energy_density_ratio": [0.84, "no_dim", "Tank system energy density over fuel energy density"],
+        "gravimetric_index": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
+        "volumetric_index": [0.85, "no_dim", "Tank system energy density over fuel energy density"],
         "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
     },
     "Pod":{
