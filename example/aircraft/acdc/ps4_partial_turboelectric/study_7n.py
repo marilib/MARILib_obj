@@ -49,15 +49,16 @@ ac.airframe.system.cruise_energy = unit.J_kWh(140)          # J, energy stored i
 
 ac.airframe.system.chain_power = unit.W_MW(1.)
 
-ac.airframe.tail_nacelle.bli_effect = "yes"         # Include BLI effect in thrust computation
+if (ac.arrangement.power_architecture=="pte"):
+    ac.airframe.tail_nacelle.bli_effect = "yes"         # Include BLI effect in thrust computation
+
+    ac.airframe.tail_nacelle.controller_efficiency = 0.99
+    ac.airframe.tail_nacelle.motor_efficiency = 0.95
 
 ac.airframe.system.generator_efficiency = 0.95
-ac.airframe.system.rectifier_efficiency = 0.98
+ac.airframe.system.rectifier_efficiency = 0.99
 ac.airframe.system.wiring_efficiency = 0.995
-ac.airframe.system.cooling_efficiency = 0.99
-
-ac.airframe.tail_nacelle.controller_efficiency = 0.99
-ac.airframe.tail_nacelle.motor_efficiency = 0.95
+ac.airframe.system.cooling_efficiency = 0.995
 
 
 # Configure optimization problem
@@ -111,15 +112,19 @@ result = np.array([["e-fan power               (kW)"],
                    ["Cost mission block fuel   (kg)"],
                    ["Cost mission block CO2    (kg)"],
                    ["Cash Op Cost          ($/trip)"],
-                   ["CO2 metric  (10e-4kg/km/m0.48)"]])
+                   ["CO2 metric  (10e-7kg/km/m0.48)"]])
 
-for chain_power in (0.15e6, 0.20e6, 0.25e6, 0.30e6, 0.35e6, 0.40e6, 0.45e6, 0.50e6, 0.75e6, 1.0e6, 1.25e6, 1.50e6, 1.75e6, 2.00e6, 2.25e6, 2.50e6):
+# for chain_power in (0.15e6, 0.20e6, 0.25e6, 0.30e6, 0.35e6, 0.40e6, 0.45e6, 0.50e6, 0.75e6, 1.0e6, 1.25e6, 1.50e6, 1.75e6, 2.00e6, 2.25e6, 2.50e6):
+# for chain_power in (0.15e6, 0.20e6, 0.25e6, 0.30e6, 0.35e6, 0.40e6, 0.45e6, 0.50e6, 0.75e6):
+for chain_power in (1.0e6, 1.25e6, 1.50e6, 1.75e6, 2.00e6, 2.25e6, 2.50e6):
+
+    print("Doing chain_power = ", "%8.0f"%(chain_power/1000), " kW")
 
     ac.airframe.system.chain_power = chain_power
 
     # Perform an MDF optimization process
     opt = process.Optimizer()
-    opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
+    opt.mdf(ac, var,var_bnd, cst,cst_mag, crt, method='trust-constr')
     # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
     algo_points= opt.computed_points
 

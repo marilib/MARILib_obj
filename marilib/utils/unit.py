@@ -10,7 +10,10 @@ Created on Thu Jan 24 23:22:21 2019
 import numpy
 from copy import deepcopy
 
-      
+
+def kg_t(t): return t*1000.
+def t_kg(kg): return kg/1000.
+
 def year_s(s): return s/31557600.
 def s_year(year): return year*31557600.
 

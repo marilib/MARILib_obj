@@ -264,12 +264,15 @@ class StepMission(Flight):
         return
 
     def cruise_profile(self,mass,vz_mcr,vz_mcl,heading):
+        # Build the list of decreasing masses, starting from current mass
         rev_mass_list = [mass]
         for m in reversed(self.mass_list):
             if m<mass: rev_mass_list.append(m)
+
+        # Build the list of flight level according to the the heading in between cross-over and max altitude
         altp_list = [zp for zp in self.heading_altp[heading] if self.altpy<=zp<=self.altpz]
 
-        rev_mass_list = list(reversed(self.mass_list))
+        # rev_mass_list = list(reversed(self.mass_list))
         k_altp = np.argmax([self.get_val("sar",z,rev_mass_list[0])[0] for z in altp_list])
 
         best_sar_altp = [altp_list[k_altp]]
@@ -750,6 +753,18 @@ class StepMission(Flight):
         cas = [earth.vcas_from_mach(pamb[0],ma) for ma in mach]
         s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
+        # Precompute cruise profile
+        #---------------------------------------------------------------------------------------------------------------
+        self.cruise_profile(mass[-1],vz_min_mcr,vz_min_mcl,heading)
+
+        print(self.mass_list)
+        print("")
+        print(mass[-1])
+        print(self.altpy)
+        print(self.change_altp)
+        print(self.change_mass)
+        print(self.change_cstr)
+
         # Second climb segment, constant cas2, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
         z0 = self.altpx
@@ -774,16 +789,6 @@ class StepMission(Flight):
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s3 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
-
-        # Precomputecruise profile
-        #---------------------------------------------------------------------------------------------------------------
-        self.cruise_profile(mass[-1],vz_min_mcr,vz_min_mcl,heading)
-
-        # print(self.mass_list)
-        # print("")
-        # print(self.change_altp)
-        # print(self.change_mass)
-        # print(self.change_cstr)
 
         # Third climb segment, constant mach, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
