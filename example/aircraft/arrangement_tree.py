@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from anytree import Node, RenderTree, AsciiStyle, LevelOrderGroupIter
 
-"""ARRANGEMENT_TREE.PY implements a tree algorithm to ceck the feasability of each Arrangement.
+"""ARRANGEMENT_TREE.PY implements a tree algorithm to check the feasability of each Arrangement.
 
 The `INCOMPATIBILITY_DICT` stores all "previous" incompatibilities for a given setting.
 The term "previous" refers to the order of the options as declared in the `ARRANGEMENT_DICT`.
@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
 
 class ArrangementTree(Node):
-    """A custom anytree.Node object to describe all feasible arrangement.
+    """A custom anytree.Node object to describe all feasible arrangements.
     For example:
 
     >>> tree = ArrangementTree(tank_architecture ="piggy_back", number_of_engine="quadri",power_source="fuel_cell")
@@ -278,7 +278,8 @@ def onclick(event):
 
 def reset_tree_color():
     for (i,j),cell in tab.get_celld().items():
-        if i>=1 and tab[i,j].get_facecolor() != (0,0,1.,0.5):
+        tab[i, j].set_text_props(color=(0, 0, 0, 1))  # black text
+        if i>=1 and tab[i,j].get_facecolor() != (0,0,1.,0.5): # if not blue
             tab[i,j].set_facecolor('w')
 
 
