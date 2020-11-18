@@ -14,17 +14,17 @@ or `"h_tail"`, because MARILIB does not handle such cases.
 
 ARRANGEMENT_DICT={
 # TODO : in Marilib 2.0, the body_type is always fixed to 'fuselage'
-          "body_type" :           ["fuselage", ""          , ""         , ""             , ""       , ""    , ""     ],
+          "body_type" :           ["fuselage", ""          , ""          , ""             , ""       , ""       , ""         , ""    , ""     ],
 # TODO : in Marilib 2.0, the wing_type is always fixed to 'classic'
-          "wing_type" :           ["classic" , ""          , ""         , ""             , ""       , ""    , ""     ],
-          "wing_attachment":      ["low"     , "high"      , ""         , ""             , ""       , ""    , ""     ],
-          "stab_architecture":    ["classic" , "t_tail"    , "h_tail"   , ""             , ""       , ""    , ""     ],
-          "tank_architecture":    ["wing_box", "piggy_back", "pods"     , ""             , ""       , ""    , ""     ],
-          "number_of_engine":     ["twin"    , "quadri"    , "hexa"     , ""             , ""       , ""    , ""     ],
-          "nacelle_attachment" :  ["wing"    , "rear"      , "pods"     , ""             , ""       , ""    , ""     ],
-          "power_architecture":   ["tf"      , "tp"        , "ef"       , "ep"           , "pte"    , "extf", "exef" ],
-          "power_source" :        ["fuel"    , "fuel_cell" , "battery"  , ""             , ""       , ""    , ""     ],
-          "fuel_type":            ["kerosene", "methane"   , "liquid_h2", "compressed_h2", "battery", ""    , ""     ]
+          "wing_type" :           ["classic" , ""          , ""          , ""             , ""       , ""       , ""         , ""    , ""     ],
+          "wing_attachment":      ["low"     , "high"      , ""          , ""             , ""       , ""       , ""         , ""    , ""     ],
+          "stab_architecture":    ["classic" , "t_tail"    , "h_tail"    , ""             , ""       , ""       , ""         , ""    , ""     ],
+          "tank_architecture":    ["wing_box", "rear"      , "piggy_back", "pods"         , ""       , ""       , ""         , ""    , ""     ],
+          "number_of_engine":     ["twin"    , "quadri"    , "hexa"      , ""             , ""       , ""       , ""         , ""    , ""     ],
+          "nacelle_attachment" :  ["wing"    , "rear"      , "pods"      , "body_cones"   , ""       , ""       , ""         , ""    , ""     ],
+          "power_architecture":   ["tf"      , "tp"        , "ef"        , "ep"           , "pte"    , "pte_pod", "pte_piggy", "extf", "exef" ],
+          "power_source" :        ["fuel"    , "fuel_cell" , "battery"   , ""             , ""       , ""       , ""         , ""    , ""     ],
+          "fuel_type":            ["kerosene", "methane"   , "liquid_h2" , "compressed_h2", "battery", ""       , ""         , ""    , ""     ]
           }
 
 
@@ -63,13 +63,22 @@ INCOMPATIBILITY_DICT = {
             "number_of_engine": ["quadri","hexa"]
         }
     },
-    "power_architecture": None,
+    "power_architecture": {
+        "pte_piggy" :{
+            "tank_architecture" : ["pods","rear","wing_box"],
+            "nacelle_attachment": ["body_cones"]
+        },
+        "pte_pod" :{
+            "tank_architecture" : ["rear", "wing_box", "piggy_back"],
+            "nacelle_attachment": ["body_cones","pods"]
+        }
+    },
     "power_source": {
         "fuel_cell": {
             "power_architecture": ["tf", "tp", "extf","pte"]
         },
         "battery": {
-            "power_architecture": ["tf", "tp", "extf","pte"]
+            "power_architecture": ["tf", "tp", "extf","pte","pte_piggy","pte_pod"]
         },
         "fuel": {
             "power_architecture": ["ef", "ep", "exef"]

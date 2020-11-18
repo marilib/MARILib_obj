@@ -133,10 +133,10 @@ class Airport(Categories):
     def get_mean_ot(self,ac_list):
         """Evaluate the mean occupation time of one runway according to the aircraft distribution
         """
-        # Mean number of passenger by airplane movement
-        mean_pax = 0.
+        # Mean number of passenger by airplane
+        mean_ac_capacity = 0.
         for ac in ac_list.keys():
-            mean_pax += ac_list[ac]["npax"] * ac_list[ac]["ratio"]
+            mean_ac_capacity += ac_list[ac]["npax"] * ac_list[ac]["ratio"]
 
         nac = self.insert_segment(ac_list)
 
@@ -170,23 +170,38 @@ class Airport(Categories):
         mean_landing_ot = sum(sum((time_separation + buffer) * probability))
         mean_take_off_ot = sum(sum(to_time_separation * probability))
 
-        return mean_pax, mean_landing_ot, mean_take_off_ot
+        # Number of aircraft passing on the airport during one day supposing that passenger traffic is balanced over a day
+        daily_ac_movements = 3600.*(self.open_slot[1] - self.open_slot[0]) / (mean_landing_ot + mean_take_off_ot)
+
+        # Daily passenger flow taking an airplane
+        daily_pax_flow = mean_ac_capacity * daily_ac_movements
+
+        dict = {"pax_flow":daily_pax_flow,
+                "ac_flow":daily_ac_movements,
+                "ac_mean_cap":mean_ac_capacity,
+                "mean_ld_ot":mean_landing_ot,
+                "mean_to_ot":mean_take_off_ot}
+
+        return dict
 
 
 
 
 ap = Airport()
 
-ac_listribution = {"ac1":{"npax":70. , "ratio":0.30},
-                   "ac2":{"npax":150., "ratio":0.50},
-                   "ac3":{"npax":300., "ratio":0.15},
-                   "ac4":{"npax":400., "ratio":0.05}
+ac_distribution = {"ac1":{"ratio":0.30, "npax":70.},
+                   "ac2":{"ratio":0.50, "npax":150.},
+                   "ac3":{"ratio":0.15, "npax":300.},
+                   "ac4":{"ratio":0.05, "npax":400.}
                   }
 
-px, ld_ot, to_ot = ap.get_mean_ot(ac_listribution)
+dict = ap.get_mean_ot(ac_distribution)
 
-print(px)
-print(ld_ot)
-print(to_ot)
+print("Passenger flow (input or output) = ", "%.0f"%dict["pax_flow"])
+print("Aircraft movements (landing or take off) = ", "%.0f"%dict["ac_flow"])
+print("")
+print("Mean airplane capacity = ", "%.0f"%dict["ac_mean_cap"])
+print("Mean runway occupation time at landing = ", "%.1f"%dict["mean_ld_ot"])
+print("Mean runway occupation time at take off = ", "%.1f"%dict["mean_to_ot"])
 
 
