@@ -61,16 +61,26 @@ INCOMPATIBILITY_DICT = {
         "pods": {
             "tank_architecture": ["wing_box", "piggy_back"],
             "number_of_engine": ["quadri","hexa"]
+        },
+        "body_cones": {
+            "tank_architecture": ["wing_box", "rear", "pods"],
+            "number_of_engine": ["quadri","hexa"]
         }
     },
     "power_architecture": {
         "pte_piggy" :{
-            "tank_architecture" : ["pods","rear","wing_box"],
+            "tank_architecture" : ["rear","pods","wing_box"],
             "nacelle_attachment": ["body_cones"]
         },
         "pte_pod" :{
-            "tank_architecture" : ["rear", "wing_box", "piggy_back"],
+            "tank_architecture" : ["wing_box", "rear", "piggy_back"],
             "nacelle_attachment": ["body_cones","pods"]
+        },
+        "tp" : {
+            "nacelle_attachment" : ["rear", "pods", "body_cones"]
+        },
+        "ep" : {
+            "nacelle_attachment" : ["rear", "pods", "body_cones"]
         }
     },
     "power_source": {
@@ -287,6 +297,7 @@ def onclick(event):
 
 def reset_tree_color():
     for (i,j),cell in tab.get_celld().items():
+        cell.set_text_props(color=(0, 0, 0, 1))
         if i>=1 and tab[i,j].get_facecolor() != (0,0,1.,0.5):
             tab[i,j].set_facecolor('w')
 
@@ -295,7 +306,7 @@ def draw_tree():
     tree = ArrangementTree(**arrangement_dict)
     N_conf = len(tree.leaves)
     reset_tree_color()
-    if N_conf <500:  # check for reasonable number of possible configurations
+    if N_conf <1000:  # check for reasonable number of possible configurations
         tit.set_text("Number of configurations : %d" % N_conf)
         tit.set_color('k')
         for leaf in tree.leaves:
