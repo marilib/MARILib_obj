@@ -149,7 +149,9 @@ class AirplaneCategories(object):
 
 
 class AirportComponent(object):
-
+    """Airport component skeleton
+    All Airport components will inherit from this one
+    """
     def __init__(self):
 
         self.area = None
@@ -158,17 +160,18 @@ class AirportComponent(object):
 
         self.peak_power = None
         self.nominal_power = None
-        self.daily_consumption = None
+        self.daily_energy = None
 
     def get_power_data(self):
-        return {"peak":self.peak_power, "nominal":self.nominal_power, "energy_day":self.daily_consumption}
+        return {"peak":self.peak_power, "nominal":self.nominal_power, "daily_energy":self.daily_energy}
 
-    def get_area(self):
+    def get_area_data(self):
         return {"length":self.area_length, "width":self.area_width, "area":self.area}
 
 
 class Runways(AirportComponent):
-
+    """Groups all the runways of the airport
+    """
     def __init__(self, count, length, open_slot):
         super(Runways, self).__init__()
 
@@ -180,13 +183,14 @@ class Runways(AirportComponent):
         self.area_width = (self.runway_width + 200.) * self.count
         self.area = self.area_length * self.area_width
 
-        self.peak_power = 20. * 2000. * self.count
-        self.nominal_power = self.peak_power
-        self.daily_consumption = self.nominal_power * max(0., open_slot[1]-open_slot[0]-10.)*3600.
+        self.nominal_power = 20. * 2000. * self.count       # 2000 spots of 20W each
+        self.peak_power = self.nominal_power
+        self.daily_energy = self.nominal_power * max(0., open_slot[1]-open_slot[0]-10.)
 
 
 class TaxiWays(AirportComponent):
-
+    """Groups all the taxiways of the airport
+    """
     def __init__(self, runway_length):
         super(TaxiWays, self).__init__()
 
@@ -194,13 +198,14 @@ class TaxiWays(AirportComponent):
         self.area_width = 400.
         self.area = self.area_length * self.area_width
 
-        self.peak_power = 0.0125 * self.area  # 12.5 mW/m2
-        self.nominal_power = self.peak_power
-        self.daily_consumption = self.nominal_power * max(0., open_slot[1]-open_slot[0]-10.)*3600.
+        self.nominal_power = 0.0125 * self.area  # 12.5 mW/m2
+        self.peak_power = self.nominal_power
+        self.daily_energy = self.nominal_power * max(0., open_slot[1]-open_slot[0]-10.)
 
 
 class AirParks(AirportComponent):
-
+    """Stands for all the airplanes parks of the airport
+    """
     def __init__(self, max_ac_flow, mean_ac_span, terminal_length, terminal_width):
         super(AirParks, self).__init__()
 
@@ -208,30 +213,47 @@ class AirParks(AirportComponent):
         self.area_length = terminal_width + terminal_width
         self.area_width = self.area / self.area_length
 
-        self.peak_power = 0.0125 * self.area  # 12.5 mW/m2
-        self.nominal_power = self.peak_power
-        self.daily_consumption = self.nominal_power * max(0., open_slot[1]-open_slot[0]-10.)*3600.
+        self.nominal_power = 0.0125 * self.area  # 12.5 mW/m2
+        self.peak_power = self.nominal_power
+        self.daily_energy = self.nominal_power * max(0., open_slot[1]-open_slot[0]-10.)
+
+
+class AirService(AirportComponent):
+    """ This component Represents all the hangars dedicated to services and maintenance
+    """
+    def __init__(self, max_ac_flow, mean_ac_span):
+        super(AirService, self).__init__()
+
+        self.area = 0.20 * max_ac_flow * mean_ac_span**2
+        self.area_length = np.sqrt(self.area)
+        self.area_width = self.area / self.area_length
+
+        self.nominal_power = 0.10 * self.area  # 100 mW/m2
+        self.peak_power = 1.20 * self.nominal_power
+        self.daily_energy = self.nominal_power * max(0., open_slot[1]-open_slot[0]-10.)
 
 
 class Terminals(AirportComponent):
-
+    """Represents the passenger terminals grouped in one single area of one single level
+    """
     def __init__(self, max_pax_flow_capacity):
         super(Terminals, self).__init__()
 
         self.departure_capacity = max_pax_flow_capacity
         self.arrival_capacity = max_pax_flow_capacity
 
-        self.area = 4.5 * (self.departure_capacity + self.arrival_capacity)
+        self.area = 4.0 * (self.departure_capacity + self.arrival_capacity)
         self.area_width = np.sqrt(self.area/2.)     # A rectangle w*(2w)
         self.area_length = 2. * self.area_width
 
-        self.peak_power = 1000. * self.area
-        self.nominal_power = 0.90 * self.peak_power
-        self.daily_consumption = self.nominal_power * max(0., open_slot[1]-open_slot[0])*3600.
+        self.nominal_power = 0.75 * self.area
+        self.peak_power = 1.25 * self.nominal_power
+        self.daily_energy = self.nominal_power * max(0., open_slot[1]-open_slot[0])
 
 
 class CarParks(AirportComponent):
-
+    """Stands for all car parks in one single level
+    """
     def __init__(self, max_pax_flow):
         super(CarParks, self).__init__()
 
@@ -241,9 +263,18 @@ class CarParks(AirportComponent):
         self.area_length = np.sqrt(self.area)
         self.area_width = self.area_length
 
-        self.peak_power = 0.005 * self.area  # 5 mW/m2
-        self.nominal_power = self.peak_power
-        self.daily_consumption = self.nominal_power * 14.*3600.
+        self.nominal_power = 0.005 * self.area  # 5 mW/m2
+        self.peak_power = self.nominal_power
+        self.daily_energy = self.nominal_power * (14.*3600.)
+
+
+class Parameter(object):
+    """Container for all study variables
+    """
+    def __init__(self, car_ratio, bus_ratio):
+        self.car_ratio = car_ratio
+        self.bus_ratio = bus_ratio
+        self.rail_ratio = (1.-self.car_ratio-self.bus_ratio)
 
 
 class Airport(object):
@@ -256,10 +287,9 @@ class Airport(object):
 
         self.approach_dist = app_dist
         self.open_slot = open_slot
-        self.car_ratio = 0.4
-        self.bus_ratio = 0.1
-        self.rail_ratio = (1.-self.car_ratio-self.bus_ratio)
 
+        # Build the airport
+        #---------------------------------------------------------------------------------------------------------------
         # Get max runway length according to ac_list
         max_rnw_length = 0.
         for ac in ac_list.keys():
@@ -274,23 +304,23 @@ class Airport(object):
         mean_ac_span = 0.
         for ac in ac_list.keys():
             mean_ac_span += self.cat.get_data_from_pax("span", ac_list[ac]["npax"], 0.5) * ac_list[ac]["ratio"]
-        print(mean_ac_span)
 
-        # Compute flows for ac_list
-        dict = self.get_flows(ac_list, 1.)
+        # Compute flows from ac_list, these values will be considered as maximum
+        data_dict = self.get_flows(ac_list, 1.)
 
-        max_pax_flow = dict["pax_flow"]
+        max_pax_flow = data_dict["pax_flow"]
         # Load terminal component
         self.terminal = Terminals(max_pax_flow)
 
-        max_ac_flow = dict["ac_flow"]
+        max_ac_flow = data_dict["ac_flow"]
         terminal_length = self.terminal.area_length
         terminal_width = self.terminal.area_width
 
         # Load air parks component
         self.air_parks = AirParks(max_ac_flow, mean_ac_span, terminal_length, terminal_width)
 
-        self.air_service = None
+        # Load air service components
+        self.air_service = AirService(max_ac_flow, mean_ac_span)
 
         self.car_parks = CarParks(max_pax_flow)
 
@@ -298,14 +328,37 @@ class Airport(object):
 
         self.railway_station = None
 
-    def insert_segment(self,ac_list):
-        r = 0.
-        for k in ac_list.keys():
-            r += ac_list[k]["ratio"]
-            ac_list[k]["seg"] = self.cat.seg_from_pax(ac_list[k]["npax"])
-        if r != 1.:
-            raise Exception("Sum of aircraft distribution ratios is different from 1")
-        return len(ac_list)
+        # Build the airport
+        #---------------------------------------------------------------------------------------------------------------
+        self.max_passenger_capacity = data_dict["pax_flow"]
+        self.max_airplane_capacity = data_dict["ac_flow"]
+
+        self.ref_mean_airplane_pax = data_dict["ac_mean_pax"]
+        self.ref_mean_landing_time = data_dict["mean_ld_ot"]
+        self.ref_mean_takeoff_time = data_dict["mean_to_ot"]
+
+        peak_power = 0.
+        nominal_power = 0.
+        daily_energy = 0.
+        total_area = 0.
+        for comp in self:
+            dict_power = comp.get_power_data()
+            peak_power += dict_power["peak"]
+            nominal_power += dict_power["nominal"]
+            daily_energy += dict_power["daily_energy"]
+
+            dict_area = comp.get_area_data()
+            total_area += dict_area["area"]
+
+        self.ref_peak_power = peak_power
+        self.ref_nominal_power = nominal_power
+        self.ref_daily_energy = daily_energy
+        self.ref_yearly_energy = daily_energy*365.
+        self.total_area = total_area
+
+    def __iter__(self):
+        public = [value for value in self.__dict__.values() if issubclass(type(value),AirportComponent)]
+        return iter(public)
 
     def get_flows(self, ac_list, capacity_ratio):
         """Evaluate the mean occupation time of one runway according to the aircraft distribution
@@ -315,8 +368,16 @@ class Airport(object):
         for ac in ac_list.keys():
             mean_ac_capacity += ac_list[ac]["npax"] * ac_list[ac]["ratio"]
 
-        nac = self.insert_segment(ac_list)
+        # Insert range segment label in ac_list
+        r = 0.
+        for k in ac_list.keys():
+            r += ac_list[k]["ratio"]
+            ac_list[k]["seg"] = self.cat.seg_from_pax(ac_list[k]["npax"])
+        if r != 1.:
+            raise Exception("Sum of aircraft distribution ratios is different from 1")
+        nac = len(ac_list)
 
+        # Prepare data for flow computations
         app_dist_separation = np.empty((nac,nac))
         to_time_separation = np.empty((nac,nac))
         probability = np.empty((nac,nac))
@@ -355,11 +416,43 @@ class Airport(object):
 
         dict = {"pax_flow":daily_pax_flow,
                 "ac_flow":daily_ac_movements,
-                "ac_mean_cap":mean_ac_capacity,
+                "ac_mean_pax":mean_ac_capacity,
                 "mean_ld_ot":mean_landing_ot,
                 "mean_to_ot":mean_take_off_ot}
 
         return dict
+
+    def print_airport_design_data(self):
+        """Print airport characteristics
+        """
+        print("")
+        print("Design daily passenger flow (input or output) = ", "%.0f"%self.max_passenger_capacity)
+        print("Design daily aircraft movements (landing or take off) = ", "%.0f"%self.max_airplane_capacity)
+        print("Total airport foot print", "%.1f"%(self.total_area*1.e-6)," km2")
+        print("")
+        print("Reference mean airplane capacity = ", "%.0f"%self.ref_mean_airplane_pax)
+        print("Reference mean runway occupation time at landing = ", "%.1f"%self.ref_mean_landing_time," ss")
+        print("Reference mean runway occupation time at take off = ", "%.1f"%self.ref_mean_takeoff_time," s")
+        print("")
+        print("reference peak power", "%.2f"%(self.ref_peak_power*1.e-6)," MW")
+        print("reference nominal power", "%.2f"%(self.ref_nominal_power*1.e-6)," MW")
+        print("reference daily consumption", "%.2f"%unit.MWh_J(self.ref_daily_energy)," MWh")
+        print("reference yearly consumption", "%.2f"%unit.GWh_J(self.ref_yearly_energy)," GWh")
+
+    def print_component_design_data(self):
+        """Print component characteristics
+        """
+        for comp in self:
+            print("")
+            print(comp.__class__.__name__)
+            print("-------------------------------------------------------------")
+            print("Area = ", "%.2f"%(comp.area)," m2")
+            print("Length = ", "%.2f"%(comp.area_length)," m")
+            print("Width = ", "%.2f"%(comp.area_width)," m")
+            print("")
+            print("Peak power = ", "%.2f"%(comp.peak_power*1.e-3)," kW")
+            print("Nominal power = ", "%.2f"%(comp.area_length*1.e-3)," kW")
+            print("Daily consumption = ", "%.2f"%unit.kWh_J(comp.daily_energy)," kWh")
 
 
 
@@ -375,24 +468,8 @@ runway_count = 3
 app_dist = unit.m_NM(7.)
 open_slot = [unit.s_h(6.), unit.s_h(23.)]
 
-
 ap = Airport(cat, ac_list, runway_count, open_slot, app_dist)
 
-ac_distribution = {"ac1":{"ratio":0.30, "npax":70.},
-                   "ac2":{"ratio":0.50, "npax":150.},
-                   "ac3":{"ratio":0.15, "npax":300.},
-                   "ac4":{"ratio":0.05, "npax":400.}
-                  }
+ap.print_airport_design_data()
 
-capacity_ratio = 0.75
-
-dict = ap.get_flows(ac_distribution, capacity_ratio)
-
-print("Passenger flow (input or output) = ", "%.0f"%dict["pax_flow"])
-print("Aircraft movements (landing or take off) = ", "%.0f"%dict["ac_flow"])
-print("")
-print("Mean airplane capacity = ", "%.0f"%dict["ac_mean_cap"])
-print("Mean runway occupation time at landing = ", "%.1f"%dict["mean_ld_ot"])
-print("Mean runway occupation time at take off = ", "%.1f"%dict["mean_to_ot"])
-
-
+ap.print_component_design_data()
