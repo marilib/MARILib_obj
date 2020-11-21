@@ -51,7 +51,7 @@ mtow_i = ac.weight_cg.mtow
 #------------------------------------------------------------------------------------------------------
 ac.airframe.wing.wing_morphing = wing_morphing_i
 
-ac.airframe.wing.area = wing_area_i
+ac.airframe.wing.area = 150.
 ac.airframe.wing.span = wing_span_i
 ac.airframe.wing.aspect_ratio = wing_aspect_ratio_i
 
@@ -94,5 +94,6 @@ print("required MTOW = ","%.0f"%mtow_req," kg")
 print("")
 print("True air speed = ","%.2f"%unit.kt_mps(vtas)," kt")
 print("Fuel mission = ","%.2f"%ac.performance.mission.nominal.fuel_block," kg")
+print("LoD max = ","%.2f"%ac.aerodynamics.cruise_lodmax," no_dim")
 print("LoD cruise = ","%.2f"%ac.performance.mission.crz_lod," no_dim")
 print("TSFC cruise = ","%.3f"%(ac.performance.mission.crz_tsfc*36000)," kg/daN/h")

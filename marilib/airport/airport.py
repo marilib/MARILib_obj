@@ -1,10 +1,11 @@
-#!/usr/bin/env python3
-"""
-Created on Thu Jan 20 20:20:20 2020
+#!/usr/bin/env python
+# coding: utf-8
 
-@author: Conceptual Airplane Design & Operations (CADO team)
-         Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Aircraft & Systems, Air Transport Departement, ENAC
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on August 20 20:20:20 2020
+@author: Cong Tam DO, Thierry DRUOT
 """
 
 import numpy as np
@@ -13,139 +14,8 @@ from marilib.utils.math import lin_interp_1d, maximize_1d
 
 from marilib.utils import unit, earth
 
+from marilib.airport.aircraft import AirplaneCategories, Aircraft, Fleet
 
-class AirplaneCategories(object):
-
-    def __init__(self):
-        """Wakevortex categories versus nominal range
-        """
-        self.design_capacity = {  "regional":[40., 80.],
-                                     "short":[80., 125.],
-                                    "medium":[125., 210.],
-                                      "long":[250., 400.],
-                                "ultra_long":[350., 850.]
-                                }
-
-        self.design_range = {  "regional":[unit.m_NM(0.), unit.m_NM(1000.)],
-                                  "short":[unit.m_NM(1000.), unit.m_NM(2500.)],
-                                 "medium":[unit.m_NM(2500.), unit.m_NM(4000.)],
-                                   "long":[unit.m_NM(4500.), unit.m_NM(6500.)],
-                             "ultra_long":[unit.m_NM(6500.), unit.m_NM(9000.)]
-                             }
-
-        self.design_mtow = {  "regional":[unit.kg_t(10.), unit.kg_t(25.)],
-                                 "short":[unit.kg_t(18.), unit.kg_t(60.)],
-                                "medium":[unit.kg_t(60.), unit.kg_t(100.)],
-                                  "long":[unit.kg_t(100.), unit.kg_t(350.)],
-                            "ultra_long":[unit.kg_t(400.), unit.kg_t(600.)]
-                            }
-
-        self.span = {  "regional":[20., 32.],
-                          "short":[20., 32.],
-                         "medium":[30., 40.],
-                           "long":[60., 65.],
-                     "ultra_long":[70., 80.]
-                     }
-
-        self.tofl = {  "regional":[1000., 1500.],
-                          "short":[1500., 2000.],
-                         "medium":[2000., 2500.],
-                           "long":[2500., 3000.],
-                     "ultra_long":[3000., 3500.]
-                     }
-
-        self.app_speed = {  "regional":[unit.mps_kt(90.), unit.mps_kt(115.)],
-                               "short":[unit.mps_kt(125.), unit.mps_kt(135.)],
-                              "medium":[unit.mps_kt(135.), unit.mps_kt(155.)],
-                                "long":[unit.mps_kt(135.), unit.mps_kt(155.)],
-                          "ultra_long":[unit.mps_kt(135.), unit.mps_kt(155.)]
-                          }
-
-        self.wakevortex = {  "regional":"E",
-                                "short":"E",
-                               "medium":"D",
-                                 "long":"C",
-                           "ultra_long":"B"
-                           }
-
-        # runway occupation time (s)
-        self.r_o_t = {  "regional":40.,
-                           "short":40.,
-                          "medium":60.,
-                            "long":70.,
-                      "ultra_long":80.
-                      }
-
-        # distance-based separation minimma on approach by pair of aircraft [LEADER][FOLLOWER]
-        # The values are based on the RECAT-EU document, values in NM
-        self.approach_separation = {"A":{"A":unit.m_NM(3. ), "B":unit.m_NM(4. ), "C":unit.m_NM(5. ), "D":unit.m_NM(5. ), "E":unit.m_NM(6. ), "F":unit.m_NM(8.)},
-                                    "B":{"A":unit.m_NM(2.5), "B":unit.m_NM(3. ), "C":unit.m_NM(4. ), "D":unit.m_NM(4. ), "E":unit.m_NM(5. ), "F":unit.m_NM(7.)},
-                                    "C":{"A":unit.m_NM(2.5), "B":unit.m_NM(2.5), "C":unit.m_NM(3. ), "D":unit.m_NM(3. ), "E":unit.m_NM(4. ), "F":unit.m_NM(6.)},
-                                    "D":{"A":unit.m_NM(2.5), "B":unit.m_NM(2.5), "C":unit.m_NM(2.5), "D":unit.m_NM(2.5), "E":unit.m_NM(2.5), "F":unit.m_NM(5.)},
-                                    "E":{"A":unit.m_NM(2.5), "B":unit.m_NM(2.5), "C":unit.m_NM(2.5), "D":unit.m_NM(2.5), "E":unit.m_NM(2.5), "F":unit.m_NM(4.)},
-                                    "F":{"A":unit.m_NM(2.5), "B":unit.m_NM(2.5), "C":unit.m_NM(2.5), "D":unit.m_NM(2.5), "E":unit.m_NM(2.5), "F":unit.m_NM(3.)}
-                                    }
-
-        # time-based separation minimma on departure by pair of aircraft [LEADER][FOLLOWER]
-        # The values are based on the RECAT-EU document, values in second
-        self.takeoff_separation = {"A":{"A":120., "B":100., "C":120., "D":140., "E":160., "F":180.},
-                                   "B":{"A":120., "B":120., "C":120., "D":100., "E":120., "F":140.},
-                                   "C":{"A":120., "B":120., "C":120., "D":80. , "E":100., "F":120.},
-                                   "D":{"A":120., "B":120., "C":120., "D":120., "E":120., "F":120.},
-                                   "E":{"A":120., "B":120., "C":120., "D":120., "E":120., "F":100.},
-                                   "F":{"A":120., "B":120., "C":120., "D":120., "E":120., "F":80.}
-                                   }
-
-        self.buffer_time = {"A":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
-                            "B":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
-                            "C":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
-                            "D":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
-                            "E":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
-                            "F":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.}
-                            }
-
-    def get_data(self, type, segment):
-        return getattr(self, type)[segment]
-
-    def seg_from_pax(self, npax):
-        """Retrieve range segment from design capacity
-        """
-        for k,r in self.design_capacity.items():
-            if r[0]<=npax and npax<=r[1]:
-                return k
-        raise Exception("Cannot categorize number of passenger")
-
-    def get_data_from_seg(self, type, segment, ratio=None):
-        """Retrieve data type from range segment
-        If ratio=None, min and max values are retrieved
-        If 0<=ratio<=1, (1-ratio)*min + ratio*max is retrieved
-        """
-        if ratio is None:
-            return self.get_data(type,segment)
-        else:
-            return (1.-ratio)*self.get_data(type,segment)[0] + ratio*self.get_data(type,segment)[1]
-
-    def get_data_from_pax(self, type, npax, ratio=None):
-        """Retrieve data type from design capacity
-        If ratio=None, min and max values are retrieved
-        If 0<=ratio<=1, (1-ratio)*min + ratio*max is retrieved
-        """
-        if type in ["design_range", "design_capacity", "design_mtow", "span", "tofl", "app_speed"]:
-            segment = self.seg_from_pax(npax)
-            if ratio is None:
-                return self.get_data(type,segment)
-            else:
-                return (1.-ratio)*self.get_data(type,segment)[0] + ratio*self.get_data(type,segment)[1]
-        else:
-            raise Exception("Data type is unknown")
-
-    def get_separation_data(self, type, cat_leader, cat_follower):
-        """This function  determines the distance-based separation minimmal on approach by pair of aircraft (LEADER, FOLLOWER).
-        The values are based on the RECAT-EU document"""
-        if type in ["approach_separation", "takeoff_separation", "buffer_time"]:
-            return getattr(self, type)[cat_leader][cat_follower]
-        else:
-            raise Exception("Data type is unknown")
 
 
 class AirportComponent(object):
@@ -167,6 +37,20 @@ class AirportComponent(object):
 
     def get_area_data(self):
         return {"length":self.area_length, "width":self.area_width, "area":self.area}
+
+    def print_design_data(self):
+        """Print component design characteristics
+        """
+        print(self.__class__.__name__)
+        print("---------------------------------------------------------------")
+        print("Area = ", "%.2f"%(self.area)," m2")
+        print("Length = ", "%.2f"%(self.area_length)," m")
+        print("Width = ", "%.2f"%(self.area_width)," m")
+        print("")
+        print("Peak power = ", "%.2f"%(self.peak_power*1.e-3)," kW")
+        print("Nominal power = ", "%.2f"%(self.area_length*1.e-3)," kW")
+        print("Daily consumption = ", "%.2f"%unit.kWh_J(self.daily_energy)," kWh")
+        print("")
 
 
 class Runways(AirportComponent):
@@ -279,11 +163,11 @@ class Parameter(object):
 
 class Airport(object):
     """Airport object is build with airport components
-    It is sized according to the characteristics of the fleet described in ac_list
+    It is sized according to the characteristics of the ac_list
     """
 
-    def __init__(self, airplane_categories, ac_list, n_runway, open_slot, app_dist):
-        self.cat = airplane_categories
+    def __init__(self, categories, ac_list, n_runway, open_slot, app_dist):
+        self.cat = categories
 
         self.approach_dist = app_dist
         self.open_slot = open_slot
@@ -292,8 +176,8 @@ class Airport(object):
         #---------------------------------------------------------------------------------------------------------------
         # Get max runway length according to ac_list
         max_rnw_length = 0.
-        for ac in ac_list.keys():
-            max_rnw_length = max(max_rnw_length, self.cat.get_data_from_pax("tofl", ac_list[ac]["npax"])[1])
+        for ac in ac_list:
+            max_rnw_length = max(max_rnw_length, self.cat.get_data_from_pax("tofl", ac["npax"])[1])
 
         # Load runway component
         self.runway = Runways(n_runway, max_rnw_length, open_slot)
@@ -302,11 +186,11 @@ class Airport(object):
 
         # Get mean aircraft span according to ac_list
         mean_ac_span = 0.
-        for ac in ac_list.keys():
-            mean_ac_span += self.cat.get_data_from_pax("span", ac_list[ac]["npax"], 0.5) * ac_list[ac]["ratio"]
+        for ac in ac_list:
+            mean_ac_span += self.cat.get_data_from_pax("span", ac["npax"], 0.5) * ac["ratio"]
 
         # Compute flows from ac_list, these values will be considered as maximum
-        data_dict = self.get_flows(ac_list, 1.)
+        data_dict = self.get_capacity(1., ac_list)
 
         max_pax_flow = data_dict["pax_flow"]
         # Load terminal component
@@ -328,7 +212,7 @@ class Airport(object):
 
         self.railway_station = None
 
-        # Build the airport
+        # Compute design characteristics
         #---------------------------------------------------------------------------------------------------------------
         self.max_passenger_capacity = data_dict["pax_flow"]
         self.max_airplane_capacity = data_dict["ac_flow"]
@@ -360,19 +244,19 @@ class Airport(object):
         public = [value for value in self.__dict__.values() if issubclass(type(value),AirportComponent)]
         return iter(public)
 
-    def get_flows(self, ac_list, capacity_ratio):
+    def get_capacity(self, capacity_ratio, ac_list):
         """Evaluate the mean occupation time of one runway according to the aircraft distribution
         """
         # Mean number of passenger by airplane
         mean_ac_capacity = 0.
-        for ac in ac_list.keys():
-            mean_ac_capacity += ac_list[ac]["npax"] * ac_list[ac]["ratio"]
+        for ac in ac_list:
+            mean_ac_capacity += ac["npax"] * ac["ratio"]
 
         # Insert range segment label in ac_list
         r = 0.
-        for k in ac_list.keys():
-            r += ac_list[k]["ratio"]
-            ac_list[k]["seg"] = self.cat.seg_from_pax(ac_list[k]["npax"])
+        for ac in ac_list:
+            r += ac["ratio"]
+            ac["seg"] = self.cat.seg_from_pax(ac["npax"])
         if r != 1.:
             raise Exception("Sum of aircraft distribution ratios is different from 1")
         nac = len(ac_list)
@@ -382,11 +266,11 @@ class Airport(object):
         to_time_separation = np.empty((nac,nac))
         probability = np.empty((nac,nac))
         buffer = np.empty((nac,nac))
-        for jl,acl in enumerate(ac_list.keys()):
-            catl = self.cat.get_data_from_seg("wakevortex", ac_list[acl]["seg"])
-            for jf,acf in enumerate(ac_list.keys()):
-                catf = self.cat.get_data_from_seg("wakevortex", ac_list[acf]["seg"])
-                probability[jl,jf] = ac_list[acl]["ratio"]*ac_list[acf]["ratio"]
+        for jl,acl in enumerate(ac_list):
+            catl = self.cat.get_data_from_seg("wakevortex", acl["seg"])
+            for jf,acf in enumerate(ac_list):
+                catf = self.cat.get_data_from_seg("wakevortex", acf["seg"])
+                probability[jl,jf] = acl["ratio"]*acf["ratio"]
                 app_dist_separation[jl,jf] = self.cat.get_separation_data("approach_separation", catl, catf)
                 to_time_separation[jl,jf] = self.cat.get_separation_data("takeoff_separation", catl, catf)
                 buffer[jl,jf] = self.cat.get_separation_data("buffer_time", catl, catf)
@@ -394,11 +278,11 @@ class Airport(object):
         # Compute the minimum time interval between 2 successive aircraft in approach
         # There are 2 cases: closing case (V_i <= V_j) and opening case (V_i > V_j)
         time_separation = np.empty((nac,nac))
-        for jl,acl in enumerate(ac_list.keys()):
-            vappl = self.cat.get_data_from_seg("app_speed", ac_list[acl]["seg"])[0]
-            rotl = self.cat.r_o_t[ac_list[acl]["seg"]]
-            for jf,acf in enumerate(ac_list.keys()):
-                vappf = self.cat.get_data_from_seg("app_speed", ac_list[acf]["seg"])[0]
+        for jl,acl in enumerate(ac_list):
+            vappl = self.cat.get_data_from_seg("app_speed", acl["seg"])[0]
+            rotl = self.cat.r_o_t[acl["seg"]]
+            for jf,acf in enumerate(ac_list):
+                vappf = self.cat.get_data_from_seg("app_speed", acf["seg"])[0]
                 if vappl > vappf:
                     t = max((app_dist_separation[jl,jf]/vappf + self.approach_dist*(1./vappf - 1./vappl)), rotl) # Opening Case
                 else:
@@ -422,10 +306,46 @@ class Airport(object):
 
         return dict
 
+    def get_flows(self, capacity_ratio, fleet, network):
+
+        ac_list = []
+        for j,ac in enumerate(fleet):
+            ac_list.append({"ratio":network[j]["ratio"], "npax":ac.npax})
+
+        data_dict = self.get_capacity(capacity_ratio, ac_list)
+
+        ac_count = []
+        for j,ac in enumerate(fleet):
+            ac_count.append(data_dict["ac_flow"]*network[j]["ratio"])
+
+        total_fuel = 0.
+        total_pax = 0.
+        ac_fuel = []
+        ac_pax = []
+        for j,ac in enumerate(fleet):
+            ac_fuel.append(0.)
+            ac_pax.append(0.)
+            for route in network[j]["route"]:
+                npax = network[j]["load_factor"] * fleet[j].npax    # Current number of passenger
+                ac_pax[-1] += npax * ac_count[j] * route[0]         # pax on the route * Number of AC on this route
+                dist = route[1]
+                fuel,time,tow = fleet[j].operation(npax,dist)
+                ac_fuel[-1] += fuel * ac_count[j] * route[0]        # Fuel on the route * Number of AC on this route
+            total_fuel += ac_fuel[-1]
+            total_pax += ac_pax[-1]
+
+        data_dict["ac_count"] = ac_count
+        data_dict["ac_fuel"] = ac_fuel
+        data_dict["ac_pax"] = ac_pax
+        data_dict["total_fuel"] = total_fuel
+        data_dict["total_pax"] = total_pax
+
+        return data_dict
+
     def print_airport_design_data(self):
         """Print airport characteristics
         """
-        print("")
+        print("==============================================================================")
         print("Design daily passenger flow (input or output) = ", "%.0f"%self.max_passenger_capacity)
         print("Design daily aircraft movements (landing or take off) = ", "%.0f"%self.max_airplane_capacity)
         print("Total airport foot print", "%.1f"%(self.total_area*1.e-6)," km2")
@@ -438,31 +358,24 @@ class Airport(object):
         print("reference nominal power", "%.2f"%(self.ref_nominal_power*1.e-6)," MW")
         print("reference daily consumption", "%.2f"%unit.MWh_J(self.ref_daily_energy)," MWh")
         print("reference yearly consumption", "%.2f"%unit.GWh_J(self.ref_yearly_energy)," GWh")
+        print("")
 
     def print_component_design_data(self):
         """Print component characteristics
         """
+        print("==============================================================================")
         for comp in self:
-            print("")
-            print(comp.__class__.__name__)
-            print("-------------------------------------------------------------")
-            print("Area = ", "%.2f"%(comp.area)," m2")
-            print("Length = ", "%.2f"%(comp.area_length)," m")
-            print("Width = ", "%.2f"%(comp.area_width)," m")
-            print("")
-            print("Peak power = ", "%.2f"%(comp.peak_power*1.e-3)," kW")
-            print("Nominal power = ", "%.2f"%(comp.area_length*1.e-3)," kW")
-            print("Daily consumption = ", "%.2f"%unit.kWh_J(comp.daily_energy)," kWh")
+            comp.print_design_data()
 
 
 
 cat = AirplaneCategories()
 
-ac_list = {"ac1":{"ratio":0.30, "npax":70.},
-           "ac2":{"ratio":0.50, "npax":150.},
-           "ac3":{"ratio":0.15, "npax":300.},
-           "ac4":{"ratio":0.05, "npax":400.}
-           }
+# Only proportion and design capacity is required to design the airport
+ac_list = [{"ratio":0.30, "npax":70. },
+           {"ratio":0.50, "npax":150.},
+           {"ratio":0.15, "npax":300.},
+           {"ratio":0.05, "npax":400.}]
 
 runway_count = 3
 app_dist = unit.m_NM(7.)
@@ -471,5 +384,36 @@ open_slot = [unit.s_h(6.), unit.s_h(23.)]
 ap = Airport(cat, ac_list, runway_count, open_slot, app_dist)
 
 ap.print_airport_design_data()
-
 ap.print_component_design_data()
+
+
+
+# For fuel evaluation, design range must be added
+fleet = [Aircraft(cat, npax=70. , range=unit.m_NM(500.) , mach=0.50),
+         Aircraft(cat, npax=150., range=unit.m_NM(3000.), mach=0.78),
+         Aircraft(cat, npax=300., range=unit.m_NM(5000.), mach=0.85),
+         Aircraft(cat, npax=400., range=unit.m_NM(7000.), mach=0.85)]
+
+# Defines the load factor and the route distribution for each airplane
+network = [{"ratio":0.30, "load_factor":0.85, "route":[[0.25, unit.m_NM(100.)], [0.5, unit.m_NM(200.)], [0.25, unit.m_NM(400.)]]},
+           {"ratio":0.50, "load_factor":0.85, "route":[[0.50, unit.m_NM(400.)], [0.35, unit.m_NM(800)], [0.15, unit.m_NM(2000.)]]},
+           {"ratio":0.15, "load_factor":0.85, "route":[[0.35, unit.m_NM(2000.)], [0.5, unit.m_NM(3500.)], [0.15, unit.m_NM(5500.)]]},
+           {"ratio":0.05, "load_factor":0.85, "route":[[0.25, unit.m_NM(1500.)], [0.5, unit.m_NM(5000.)], [0.25, unit.m_NM(7500.)]]}]
+
+capacity_ratio = 0.75
+
+data_dict = ap.get_flows(capacity_ratio, fleet, network)
+
+print("==============================================================================")
+for j in range(len(fleet)):
+    print("Daily movements (landing or take off) for airplane n°", 1+j, " = ", "%.0f"%data_dict["ac_count"][j])
+    print("Daily passenger transported by airplane n°", 1+j, " = ", "%.0f"%(data_dict["ac_pax"][j]))
+    print("Daily fuel delivered to airplane n°", 1+j, " = ", "%.0f"%(data_dict["ac_fuel"][j]/1000.), " t")
+    print("")
+print("Total passenger transported = ""%.0f"%(data_dict["total_pax"]))
+print("Total fuel delivered = ""%.0f"%(data_dict["total_fuel"]/1000.), " t")
+print("")
+
+
+
+

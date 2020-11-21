@@ -5,7 +5,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on March 22 22:09:20 2020
-@author: Thierry Druot, Weichang Lyu
+@author: Weichang LYU, Thierry DRUOT
 """
 
 import numpy as np
@@ -17,30 +17,179 @@ from marilib.utils import unit
 from marilib.utils.math import lin_interp_1d
 
 
+# ======================================================================================================
+# Category definition
+# ------------------------------------------------------------------------------------------------------
+class AirplaneCategories(object):
+
+    def __init__(self):
+        """Wakevortex categories versus nominal range
+        """
+        self.design_capacity = {  "regional":[40., 80.],
+                                     "short":[80., 125.],
+                                    "medium":[125., 210.],
+                                      "long":[250., 400.],
+                                "ultra_long":[350., 850.]
+                                }
+
+        self.design_range = {  "regional":[unit.m_NM(0.), unit.m_NM(1000.)],
+                                  "short":[unit.m_NM(1000.), unit.m_NM(2500.)],
+                                 "medium":[unit.m_NM(2500.), unit.m_NM(4000.)],
+                                   "long":[unit.m_NM(4500.), unit.m_NM(6500.)],
+                             "ultra_long":[unit.m_NM(6500.), unit.m_NM(9000.)]
+                             }
+
+        self.design_mtow = {  "regional":[unit.kg_t(10.), unit.kg_t(25.)],
+                                 "short":[unit.kg_t(18.), unit.kg_t(60.)],
+                                "medium":[unit.kg_t(60.), unit.kg_t(100.)],
+                                  "long":[unit.kg_t(100.), unit.kg_t(350.)],
+                            "ultra_long":[unit.kg_t(400.), unit.kg_t(600.)]
+                            }
+
+        self.span = {  "regional":[20., 32.],
+                          "short":[20., 32.],
+                         "medium":[30., 40.],
+                           "long":[60., 65.],
+                     "ultra_long":[70., 80.]
+                     }
+
+        self.tofl = {  "regional":[1000., 1500.],
+                          "short":[1500., 2000.],
+                         "medium":[2000., 2500.],
+                           "long":[2500., 3000.],
+                     "ultra_long":[3000., 3500.]
+                     }
+
+        self.cruise_altp = {  "regional":[unit.m_ft(25000.), unit.m_ft(27000.)],
+                                 "short":[unit.m_ft(35000.), unit.m_ft(41000.)],
+                                "medium":[unit.m_ft(35000.), unit.m_ft(41000.)],
+                                  "long":[unit.m_ft(35000.), unit.m_ft(41000.)],
+                            "ultra_long":[unit.m_ft(35000.), unit.m_ft(41000.)]
+                            }
+
+        self.cruise_speed = {  "regional":[0.45, 0.55],
+                                  "short":[0.76, 0.80],
+                                 "medium":[0.76, 0.80],
+                                   "long":[0.84, 0.86],
+                             "ultra_long":[0.84, 0.86]
+                             }
+
+        self.app_speed = {  "regional":[unit.mps_kt(90.), unit.mps_kt(115.)],
+                               "short":[unit.mps_kt(125.), unit.mps_kt(135.)],
+                              "medium":[unit.mps_kt(135.), unit.mps_kt(155.)],
+                                "long":[unit.mps_kt(135.), unit.mps_kt(155.)],
+                          "ultra_long":[unit.mps_kt(135.), unit.mps_kt(155.)]
+                          }
+
+        self.wakevortex = {  "regional":"E",
+                                "short":"E",
+                               "medium":"D",
+                                 "long":"C",
+                           "ultra_long":"B"
+                           }
+
+        # runway occupation time (s)
+        self.r_o_t = {  "regional":40.,
+                           "short":40.,
+                          "medium":60.,
+                            "long":70.,
+                      "ultra_long":80.
+                      }
+
+        # distance-based separation minimma on approach by pair of aircraft [LEADER][FOLLOWER]
+        # The values are based on the RECAT-EU document, values in NM
+        self.approach_separation = {"A":{"A":unit.m_NM(3. ), "B":unit.m_NM(4. ), "C":unit.m_NM(5. ), "D":unit.m_NM(5. ), "E":unit.m_NM(6. ), "F":unit.m_NM(8.)},
+                                    "B":{"A":unit.m_NM(2.5), "B":unit.m_NM(3. ), "C":unit.m_NM(4. ), "D":unit.m_NM(4. ), "E":unit.m_NM(5. ), "F":unit.m_NM(7.)},
+                                    "C":{"A":unit.m_NM(2.5), "B":unit.m_NM(2.5), "C":unit.m_NM(3. ), "D":unit.m_NM(3. ), "E":unit.m_NM(4. ), "F":unit.m_NM(6.)},
+                                    "D":{"A":unit.m_NM(2.5), "B":unit.m_NM(2.5), "C":unit.m_NM(2.5), "D":unit.m_NM(2.5), "E":unit.m_NM(2.5), "F":unit.m_NM(5.)},
+                                    "E":{"A":unit.m_NM(2.5), "B":unit.m_NM(2.5), "C":unit.m_NM(2.5), "D":unit.m_NM(2.5), "E":unit.m_NM(2.5), "F":unit.m_NM(4.)},
+                                    "F":{"A":unit.m_NM(2.5), "B":unit.m_NM(2.5), "C":unit.m_NM(2.5), "D":unit.m_NM(2.5), "E":unit.m_NM(2.5), "F":unit.m_NM(3.)}
+                                    }
+
+        # time-based separation minimma on departure by pair of aircraft [LEADER][FOLLOWER]
+        # The values are based on the RECAT-EU document, values in second
+        self.takeoff_separation = {"A":{"A":120., "B":100., "C":120., "D":140., "E":160., "F":180.},
+                                   "B":{"A":120., "B":120., "C":120., "D":100., "E":120., "F":140.},
+                                   "C":{"A":120., "B":120., "C":120., "D":80. , "E":100., "F":120.},
+                                   "D":{"A":120., "B":120., "C":120., "D":120., "E":120., "F":120.},
+                                   "E":{"A":120., "B":120., "C":120., "D":120., "E":120., "F":100.},
+                                   "F":{"A":120., "B":120., "C":120., "D":120., "E":120., "F":80.}
+                                   }
+
+        self.buffer_time = {"A":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
+                            "B":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
+                            "C":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
+                            "D":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
+                            "E":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.},
+                            "F":{"A":30., "B":30., "C":30., "D":30., "E":30., "F":30.}
+                            }
+
+    def get_data(self, type, segment):
+        return getattr(self, type)[segment]
+
+    def seg_from_pax(self, npax):
+        """Retrieve range segment from design capacity
+        """
+        for k,r in self.design_capacity.items():
+            if r[0]<=npax and npax<=r[1]:
+                return k
+        raise Exception("Cannot categorize number of passenger")
+
+    def get_data_from_seg(self, type, segment, ratio=None):
+        """Retrieve data type from range segment
+        If ratio=None, min and max values are retrieved
+        If 0<=ratio<=1, (1-ratio)*min + ratio*max is retrieved
+        """
+        if ratio is None:
+            return self.get_data(type,segment)
+        else:
+            return (1.-ratio)*self.get_data(type,segment)[0] + ratio*self.get_data(type,segment)[1]
+
+    def get_data_from_pax(self, type, npax, ratio=None):
+        """Retrieve data type from design capacity
+        If ratio=None, min and max values are retrieved
+        If 0<=ratio<=1, (1-ratio)*min + ratio*max is retrieved
+        """
+        if type in ["design_range", "design_capacity", "design_mtow", "span", "tofl", "cruise_altp", "cruise_speed", "app_speed"]:
+            segment = self.seg_from_pax(npax)
+            if ratio is None:
+                return self.get_data(type,segment)
+            else:
+                return (1.-ratio)*self.get_data(type,segment)[0] + ratio*self.get_data(type,segment)[1]
+        else:
+            raise Exception("Data type is unknown")
+
+    def get_separation_data(self, type, cat_leader, cat_follower):
+        """This function  determines the distance-based separation minimmal on approach by pair of aircraft (LEADER, FOLLOWER).
+        The values are based on the RECAT-EU document"""
+        if type in ["approach_separation", "takeoff_separation", "buffer_time"]:
+            return getattr(self, type)[cat_leader][cat_follower]
+        else:
+            raise Exception("Data type is unknown")
+
 
 # ======================================================================================================
-# Airplane object definition
+# Airplane object
 # ------------------------------------------------------------------------------------------------------
 class Aircraft(object):
     """Airplane object
     """
-    def __init__(self,
-                 npax=150.,
-                 range=unit.m_NM(3000.),
-                 mach=0.78):
-        self.cruise_altp = unit.m_ft(35000.)    # Reference cruise altitude
-        self.cruise_mach = mach     # Cruise Mach number
-        self.cruise_speed = None    # Cruise speed
-        self.range = range          # Range
-        self.npax = npax            # Npax
-        self.mpax = 130.            # Weight per passenger
-        self.payload = None         # Design mission payload
-        self.mtow = None            # Design mission Maximum Take Off Weight
-        self.owe = None             # Design mission Operating Empty Weight
-        self.ldw = None             # Design mission Landing Weight
-        self.fuel_mission = None    # Design mission fuel
-        self.fuel_reserve = None    # Design mission reserve fuel
-        self.kr = 0.03              # fraction of mission fuel for reserve
+    def __init__(self, cat, npax=150., range=unit.m_NM(3000.), mach=0.78):
+        self.cat = cat
+
+        self.cruise_altp = self.__altp(npax) # Reference cruise altitude
+        self.cruise_mach = mach              # Cruise Mach number
+        self.cruise_speed = None             # Cruise speed
+        self.range = range                   # Range
+        self.npax = npax                     # Npax
+        self.mpax = self.__mpax(npax)        # Weight per passenger
+        self.payload = None                  # Design mission payload
+        self.mtow = None                     # Design mission Maximum Take Off Weight
+        self.owe = None                      # Design mission Operating Empty Weight
+        self.ldw = None                      # Design mission Landing Weight
+        self.fuel_mission = None             # Design mission fuel
+        self.fuel_reserve = None             # Design mission reserve fuel
+        self.kr = self.__kr(range)           # fraction of mission fuel for reserve
 
         self.payload_max = None     # Maximum payload
         self.range_pl_max = None    # Range for maximum payload mission
@@ -54,6 +203,25 @@ class Aircraft(object):
         self.owe_coef = [-1.478e-07, 5.459e-01, 8.40e+02]   # "Structural model"
 
         self.design_aircraft()
+
+    def __altp(self, npax):
+        return self.cat.get_data_from_pax("cruise_altp", npax)[0]
+
+    def __mpax(self, npax):
+        """Weight allowance per passenger in kg
+        """
+        if   npax<=40.  : return 95.
+        elif npax<=80.  : return 105.
+        elif npax<=125. : return 115.
+        elif npax<=250. : return 125.
+        elif npax<=350. : return 135.
+        else            : return 145.
+
+    def __kr(self, dist):
+        """Reserve fuel factor
+        """
+        if   dist<=unit.m_NM(3500.)  : return 0.05
+        else: return 0.03
 
     def __eff_ratio(self, npax):
         """Ratio L/D over SFC for Breguet equation
@@ -266,13 +434,18 @@ class Aircraft(object):
         plt.show()
 
 
-
+# ======================================================================================================
+# Fleet object
+# ------------------------------------------------------------------------------------------------------
 class Fleet(object):
     """Fleet object
     """
     def __init__(self, ac_list):
+
         self.aircraft = ac_list     # List of the airplanes of the fleet
+
         self.network = None
+
         self.dist_factor = 1.15     # Factor on great circle distance
 
         n = len(ac_list)
@@ -298,10 +471,10 @@ class Fleet(object):
         utilization = [2300., 2300., 1500., 1200.,  900.,  800.,  700.,  600.,  600.]
         return lin_interp_1d(mean_range, range, utilization)
 
-    def fleet_analysis(self, data_matrix):
-        cstep = data_matrix["npax_step"]
-        rstep = data_matrix["range_step"]
-        array = data_matrix["matrix"]
+    def fleet_analysis(self, route_network):
+        cstep = route_network["npax_step"]
+        rstep = route_network["range_step"]
+        array = route_network["matrix"]
 
         mtow_list = [ac.mtow for ac in self.aircraft]           # List of MTOW of fleet airplanes
         mtow_index = np.argsort(mtow_list)                      # increaeing order of MTOWs
