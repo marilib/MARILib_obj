@@ -168,7 +168,7 @@ class Airship(object):
         self.air_max_volume = None  # Max air volume in the ballasts
 
         self.n_engine = 4.                  # Number of engines
-        self.engine_power = 1.e6            # Engine power
+        self.engine_power = 1.e6            # Engine shaft power
         self.h2_mass = 500.                 # Mass of liquid hydrogen stored in the cryogenic tank
         self.required_power = None          # Total required power
         self.fuel_cell_ref_power = None     # Fuel cell design power
@@ -201,7 +201,7 @@ class Airship(object):
 
         self.envelop_mass = None        # Mass of the envelop
         self.gondola_mass = None        # Mass of the gondola
-        self.tank_mass                  # Cryogenic tank mass
+        self.tank_mass = None           # Cryogenic tank mass
         self.engine_mass = None         # Mass of the engines
         self.nacelle_mass = None        # Nacelle and mountings mass
         self.power_system_mass = None   # Mass of power system without motors and fuel cell
@@ -214,7 +214,7 @@ class Airship(object):
 
         self.fuel_mission = None    # Design mission fuel
         self.fuel_reserve = None    # Design mission reserve fuel
-        self.kr = 0.05              # fraction of mission fuel for reserve
+        self.fuel_factor = 0.15     # fraction of mission fuel for reserve
 
     def eval_design(self, length):
         """Compute geometrical datasc
@@ -287,13 +287,23 @@ class Airship(object):
     def eval_design_constraints(self):
         """Evaluate the 3 design constraints that applies on the airship
         """
+        # Power constraint
+        pamb,tamb,g = atm.atmosphere(self.cruise_altp, self.cruise_disa)
+        thrust = self.drag_force(pamb,tamb,self.cruise_speed)
+        shaft_power = thrust*self.cruise_speed / self.nacelle_propulsive_efficiency
 
+        # Energy constraint
+        fuel_flow = self.fuel_flow(pamb, tamb, self.cruise_speed, thrust)
+        time = self.range / self.cruise_speed
+        fuel_mass = fuel_flow * time * (1.+self.fuel_factor)
 
+        # Buoyancy constraint
+        buoyancy = self.buoyancy(self.he_max_mass,pamb,tamb)
+        mass = self.owe + self.payload + self.h2_mass
 
-
-
-
-
+        return {"power": self.engine_power - shaft_power,
+                "energy": self.h2_mass - fuel_mass,
+                "buoyancy": buoyancy - mass*g}
 
     def fuel_flow(self, pamb, tamb, tas, thrust):
         shaft_power = thrust*tas / self.nacelle_propulsive_efficiency
@@ -301,7 +311,7 @@ class Airship(object):
         data_dict = self.eval_fuel_cell_power(req_power,pamb,tamb)
         return data_dict["fuel_flow"]
 
-    def drag(self, pamb, tamb, tas):
+    def drag_force(self, pamb, tamb, tas):
         re = self.atm.reynolds_number(pamb, tamb, tas)
         vsnd = self.atm.sound_speed(tamb)
         mach = tas/vsnd
@@ -309,8 +319,8 @@ class Airship(object):
         nwa, ael, frm = self.gross_area, self.length, self.form_factor
         scxf = frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * nwa
         rho = self.atm.gas_density(pamb,tamb)
-        drag = 0.5 * rho * tas**2 * scxf
-        return drag
+        drag_force = 0.5 * rho * tas**2 * scxf
+        return drag_force
 
     def buoyancy(self, he_mass,pamb,tamb):
         """Compute the buoyancy force in given conditions
@@ -318,7 +328,7 @@ class Airship(object):
         g = 9.80665
         rho_he = self.atm.gas_density(pamb,tamb,gas="helium")
         rho_air = self.atm.gas_density(pamb,tamb,gas="air")
-        he_volume = rho_he / he_mass
+        he_volume = he_mass / rho_he
         air_mass = rho_air * he_volume
         force = (air_mass - he_mass)*g
         return force
@@ -363,4 +373,6 @@ atm = Atmosphere()
 asp = Airship(atm)
 
 asp.eval_design(50.)
+
+print(asp.eval_design_constraints())
 
