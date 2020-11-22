@@ -138,7 +138,7 @@ model_config = {
         "compressor_pw_density": [1., "kW/kg", "Compressor total power density"],
         "cooling_power_index": [0.005, "no_dim", "Cooling efficiency, ex: 0.01 means that the required power to cool the system is 1% of the dissipated power"],
         "cooling_gravimetric_index": [5., "kW/kg", "Cooling power density, the ratio of the dissipated power over the required system mass to dissipate it"],
-        "fuel_cell_pw_density": [1., "kW/kg", "Fuell cell power density"],
+        "fuel_cell_pw_density": [2., "kW/kg", "Fuell cell power density"],
         "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
     },
     "SystemPartialTurboElectric":{

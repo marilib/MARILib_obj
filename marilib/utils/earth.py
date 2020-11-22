@@ -414,8 +414,10 @@ def fuel_heat(fuel_type):
     """
     if (fuel_type=="kerosene"):
         fuel_heat = 43.1e6 # J/kg, kerosene
-    elif (fuel_type in ["liquid_h2", "Compressed_h2"]):
-        fuel_heat = 121.0e6 # J/kg, hydrogene
+    elif (fuel_type=="liquid_h2"):
+        fuel_heat = 121.0e6 # J/kg, liquid hydrogene
+    elif (fuel_type=="Compressed_h2"):
+        fuel_heat = 140.0e6 # J/kg, compressed hydrogene
     elif (fuel_type=="methane"):
         fuel_heat = 50.3e6 # J/kg, Liquid methane
     else:
