@@ -14,14 +14,13 @@ from scipy.special import ellipkinc, ellipeinc
 import matplotlib.pyplot as plt
 
 from marilib.utils import unit
-from marilib.utils.math import lin_interp_1d
 
 
 
 # ======================================================================================================
 # Atmosphere
 # ------------------------------------------------------------------------------------------------------
-class Atmosphere(object):
+class PhysicalData(object):
     """Standard atmosphere
     """
     def __init__(self):
@@ -140,8 +139,8 @@ class Atmosphere(object):
 class Airship(object):
     """Airship object
     """
-    def __init__(self, atm, payload=10000., range=unit.m_NM(1000.), altp=unit.m_ft(10000.), disa=0., speed=unit.mps_kmph(100.)):
-        self.atm = atm
+    def __init__(self, phd, payload=10000., range=unit.m_NM(1000.), altp=unit.m_ft(10000.), disa=0., speed=unit.mps_kmph(100.)):
+        self.phd = phd
 
         self.payload = payload      # Design mission payload
         self.range = range          # Design mission range
@@ -158,8 +157,12 @@ class Airship(object):
         self.gross_volume = None    # Total internal gross volume
         self.gross_area = None      # External area
 
+        self.n_fin = 4              # Number of fins
+        self.fin_area = None        # Area of one fin
+
         self.gondola_gravimetric_index = 0.200  # kg/kg, Mass of structure over max payload mass
-        self.envelop_gravimetric_index = 0.200  # kg/m3, Mass of structure over total gross volume
+        self.gondola_volumetric_index = 0.020   # m3/kg, Volume of structure over max payload mass
+        self.envelop_gravimetric_index = 0.500  # kg/m2, Mass of structure over total gross area
         self.envelop_volumetric_index = 0.020   # m3/m3, Volume of structure over total gross volume
         self.buoyancy_reserve = 0.05            # m3/m3, Remaining air ballast volume over He volume at cruise altitude
 
@@ -167,24 +170,40 @@ class Airship(object):
         self.he_max_mass = None     # Max He mass
         self.air_max_volume = None  # Max air volume in the ballasts
 
+        self.envelop_mass = None    # Mass of the envelop
+        self.gondola_mass = None    # Mass of the gondola
+        self.owe = None             # Design mission Operating Empty Weight
+        self.mtow = None            # Design mission Maximum Take Off Weight
+
+        self.reference_area = None      # Aerodynamic reference area
+        self.envelop_form_factor = 1.05 # Envelop form factor for drag estimation
+        self.fin_form_factor = 1.15     # Fin form factor for drag estimation
+
+        self.fuel_mission = None    # Design mission fuel
+        self.fuel_reserve = None    # Design mission reserve fuel
+        self.fuel_factor = 0.15     # fraction of mission fuel for reserve
+
+        # Propulsion system
+        #---------------------------------------------------------------------------------------------------------------
         self.n_engine = None                # Number of engines
         self.engine_power = None            # Engine shaft power
-        self.h2_mass = None                 # Mass of liquid hydrogen stored in the cryogenic tank
-        self.required_power = None          # Total required power
-        self.fuel_cell_ref_power = None     # Fuel cell design power
-        self.compressor_ref_power = None    # Compressor design power
-        self.cooling_ref_power = None       # Cooling system design power
-        self.heat_ref_power = None          # Dissipated heat power at design point
 
         self.nacelle_propulsive_efficiency = 0.82   # Thrust*TAS / shaft_power, propeller efficiency
         self.nacelle_gravimetric_index = 10.e3      # W/kg, Power density of electric motors
-        self.h2_tank_gravimetric_index = 0.3        # kgH2/(kgH2+Tank), Tank gravimetric index
 
         self.motor_gravimetric_index = 15.e3        # W/kg, Power density of electric motors
         self.motor_efficiency = 0.95                # Electric motors efficiency
 
         self.inverter_gravimetric_index = 25.e3     # W/kg, Power density of inverters
         self.inverter_efficiency = 0.995            # Inverter efficiency
+
+        # Power system
+        #---------------------------------------------------------------------------------------------------------------
+        self.required_power = None          # Total required power
+        self.fuel_cell_ref_power = None     # Fuel cell design power
+        self.compressor_ref_power = None    # Compressor design power
+        self.cooling_ref_power = None       # Cooling system design power
+        self.heat_ref_power = None          # Dissipated heat power at design point
 
         self.wiring_gravimetric_index = 20.e3       # W/kg, Power density of wiring
         self.wiring_efficiency = 0.995              # Wiring efficiency
@@ -199,22 +218,14 @@ class Airship(object):
         self.cooling_gravimetric_index = 5.e3       # W/kg, Dissipated power over cooling system mass
         self.cooling_power_index = 0.005            # W/W, Required cooling system power over dissipated power
 
-        self.envelop_mass = None        # Mass of the envelop
-        self.gondola_mass = None        # Mass of the gondola
-        self.tank_mass = None           # Cryogenic tank mass
+        self.h2_mass = None                         # Mass of liquid hydrogen stored in the cryogenic tank
+        self.h2_tank_gravimetric_index = 0.3        # kgH2/(kgH2+Tank), Tank gravimetric index
+
         self.engine_mass = None         # Mass of the engines
         self.nacelle_mass = None        # Nacelle and mountings mass
         self.power_system_mass = None   # Mass of power system without motors and fuel cell
         self.fuel_cell_mass = None      # Mass of the fuel cell stack
-        self.owe = None                 # Design mission Operating Empty Weight
-        self.mtow = None                # Design mission Maximum Take Off Weight
-
-        self.reference_area = None  # Aerodynamic reference area
-        self.form_factor = 1.05     # Form factor for drag estimation
-
-        self.fuel_mission = None    # Design mission fuel
-        self.fuel_reserve = None    # Design mission reserve fuel
-        self.fuel_factor = 0.15     # fraction of mission fuel for reserve
+        self.tank_mass = None           # Cryogenic tank mass
 
     def eval_design(self, length, ne, power, h2_mass):
         """Compute geometrical datasc
@@ -230,20 +241,36 @@ class Airship(object):
         self.width = self.length / self.length_o_width_ratio
         self.height = self.length / self.length_o_height_ratio
 
+        self.fin_area = (0.80 * self.length) / self.n_fin
+
         self.gross_volume = (4./3.)*np.pi*self.length*self.width*self.height
 
-        self.max_he_volume = (1.-self.envelop_volumetric_index) * self.gross_volume
+        a, b, c = self.length, self.width, self.height
+        cos_phi = c/a
+        phi = np.arccos(cos_phi)
+        sin_phi = np.sin(phi)
+        k2 = (a**2 * (b**2 - c**2)) / (b**2 * (a**2 - c**2))
+        F = ellipkinc(phi, k2)
+        E = ellipeinc(phi, k2)
+
+        self.gross_area = 2.*np.pi*c**2 + ((2.*np.pi*a*b)/sin_phi) * (E*sin_phi**2 + F*cos_phi**2)
+        self.reference_area = np.pi * a * b
+        self.form_factor = 1.05
+
+        # max He volume corresponds to max internal volume minus structure volume and buoyancy reserve
+        self.max_he_volume =   (1. - self.envelop_volumetric_index - self.buoyancy_reserve) * self.gross_volume \
+                             - self.gondola_volumetric_index * self.payload
 
         # Max He volume is computed at cruise altitude and high temperature
-        pamb,tamb,g = atm.atmosphere(self.cruise_altp, 25.)
-        self.he_max_mass = self.max_he_volume * atm.gas_density(pamb,tamb, gas="helium")
+        pamb,tamb,g = phd.atmosphere(self.cruise_altp, 25.)
+        self.he_max_mass = self.max_he_volume * phd.gas_density(pamb,tamb, gas="helium")
 
         # Max air volume is computed at sea level and low temperature
-        pamb0,tamb0,g = atm.atmosphere(0., -35.)
-        he_min_volume = self.he_max_mass / atm.gas_density(pamb0,tamb0, gas="helium")
+        pamb0,tamb0,g = phd.atmosphere(0., -35.)
+        he_min_volume = self.he_max_mass / phd.gas_density(pamb0,tamb0, gas="helium")
         self.air_max_volume = self.max_he_volume - he_min_volume
 
-        self.envelop_mass = self.gross_volume * self.envelop_gravimetric_index
+        self.envelop_mass = self.gross_area * self.envelop_gravimetric_index
         self.gondola_mass = self.payload * self.gondola_gravimetric_index
 
         self.required_power =    self.n_engine * self.engine_power \
@@ -276,23 +303,11 @@ class Airship(object):
                    + self.nacelle_mass \
                    + self.motor_mass
 
-        a, b, c = self.length, self.width, self.height
-        cos_phi = c/a
-        phi = np.arccos(cos_phi)
-        sin_phi = np.sin(phi)
-        k2 = (a**2 * (b**2 - c**2)) / (b**2 * (a**2 - c**2))
-        F = ellipkinc(phi, k2)
-        E = ellipeinc(phi, k2)
-
-        self.gross_area = 2.*np.pi*c**2 + ((2.*np.pi*a*b)/sin_phi) * (E*sin_phi**2 + F*cos_phi**2)
-        self.reference_area = np.pi * a * b
-        self.form_factor = 1.05
-
     def eval_design_constraints(self):
         """Evaluate the 3 design constraints that applies on the airship
         """
         # Power constraint
-        pamb,tamb,g = atm.atmosphere(self.cruise_altp, self.cruise_disa)
+        pamb,tamb,g = phd.atmosphere(self.cruise_altp, self.cruise_disa)
         thrust = self.drag_force(pamb,tamb,self.cruise_speed)
         shaft_power = (thrust / self.n_engine) * self.cruise_speed / self.nacelle_propulsive_efficiency
 
@@ -316,22 +331,27 @@ class Airship(object):
         return data_dict["fuel_flow"]
 
     def drag_force(self, pamb, tamb, tas):
-        re = self.atm.reynolds_number(pamb, tamb, tas)
-        vsnd = self.atm.sound_speed(tamb)
+        re = self.phd.reynolds_number(pamb, tamb, tas)
+        vsnd = self.phd.sound_speed(tamb)
         mach = tas/vsnd
         fac = ( 1. + 0.126*mach**2 )
-        nwa, ael, frm = self.gross_area, self.length, self.form_factor
-        scxf = frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * nwa
-        rho = self.atm.gas_density(pamb,tamb)
-        drag_force = 0.5 * rho * tas**2 * scxf
+
+        nwa, ael, frm = self.gross_area, self.length, self.envelop_form_factor
+        scxf_env = frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * nwa
+
+        nwa, ael, frm = self.fin_area*self.n_fin*2., np.sqrt(self.fin_area), self.fin_form_factor
+        scxf_fin = frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * nwa
+
+        rho = self.phd.gas_density(pamb,tamb)
+        drag_force = 0.5 * rho * tas**2 * (scxf_env + scxf_fin)
         return drag_force
 
     def buoyancy(self, he_mass,pamb,tamb):
         """Compute the buoyancy force in given conditions
         """
         g = 9.80665
-        rho_he = self.atm.gas_density(pamb,tamb,gas="helium")
-        rho_air = self.atm.gas_density(pamb,tamb,gas="air")
+        rho_he = self.phd.gas_density(pamb,tamb,gas="helium")
+        rho_air = self.phd.gas_density(pamb,tamb,gas="air")
         he_volume = he_mass / rho_he
         air_mass = rho_air * he_volume
         force = (air_mass - he_mass)*g
@@ -340,12 +360,12 @@ class Airship(object):
     def eval_fuel_cell_power(self, required_power,pamb,tamb):
         """Compute the power delivered by fuel cell stack according to required power and ambiant conditions
         """
-        r,gam,Cp,Cv = self.atm.gas_data()
+        r,gam,Cp,Cv = self.phd.gas_data()
 
-        fuel_heat = self.atm.fuel_heat("liquid_h2")
+        fuel_heat = self.phd.fuel_heat("liquid_h2")
 
         # air_mass_flow = fuel_cell_power * relative_air_mass_flow
-        st_mass_ratio = self.atm.stoichiometry("air","hydrogen")
+        st_mass_ratio = self.phd.stoichiometry("air","hydrogen")
         relative_fuel_flow = (1./self.fuel_cell_efficiency) / fuel_heat
         relative_air_mass_flow = relative_fuel_flow * st_mass_ratio
         relative_compressor_power = (1./self.compressor_efficiency)*(relative_air_mass_flow*Cv)*tamb*(((pamb+self.compressor_over_pressure)/pamb)**((gam-1.)/gam)-1.)
@@ -372,7 +392,7 @@ class Airship(object):
 
 
 
-atm = Atmosphere()
+phd = PhysicalData()
 
 payload = 10000.
 range = unit.m_NM(1000.)
@@ -381,11 +401,11 @@ speed = unit.mps_kmph(100.)
 altp = unit.m_ft(10000.)
 disa = 0.
 
-asp = Airship(atm, payload, range, altp, disa, speed)
+asp = Airship(phd, payload, range, altp, disa, speed)
 
-length = 50.    # length
-ne = 4.         # Number of engines
-power = 6.0e4   # Shaft power of each engine
+length = 45.    # length
+ne = 6.         # Number of engines
+power = 4.0e4   # Shaft power of each engine
 h2_mass = 500.  # Hydrogen mass for tank definition
 
 asp.eval_design(length, ne, power, h2_mass)
