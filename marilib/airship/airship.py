@@ -167,9 +167,9 @@ class Airship(object):
         self.he_max_mass = None     # Max He mass
         self.air_max_volume = None  # Max air volume in the ballasts
 
-        self.n_engine = 4.                  # Number of engines
-        self.engine_power = 1.e6            # Engine shaft power
-        self.h2_mass = 500.                 # Mass of liquid hydrogen stored in the cryogenic tank
+        self.n_engine = None                # Number of engines
+        self.engine_power = None            # Engine shaft power
+        self.h2_mass = None                 # Mass of liquid hydrogen stored in the cryogenic tank
         self.required_power = None          # Total required power
         self.fuel_cell_ref_power = None     # Fuel cell design power
         self.compressor_ref_power = None    # Compressor design power
@@ -216,13 +216,17 @@ class Airship(object):
         self.fuel_reserve = None    # Design mission reserve fuel
         self.fuel_factor = 0.15     # fraction of mission fuel for reserve
 
-    def eval_design(self, length):
+    def eval_design(self, length, ne, power, h2_mass):
         """Compute geometrical datasc
         """
         if self.length_o_width_ratio > self.length_o_height_ratio:
             raise Exception("length_o_width must be lower than length_o_height")
 
-        self.length = length
+        self.n_engine = ne                  # Number of engines
+        self.engine_power = power           # Engine shaft power
+        self.h2_mass = h2_mass              # Mass of liquid hydrogen stored in the cryogenic tank
+
+        self.length = length                # Length of the ellipsoide
         self.width = self.length / self.length_o_width_ratio
         self.height = self.length / self.length_o_height_ratio
 
@@ -290,7 +294,7 @@ class Airship(object):
         # Power constraint
         pamb,tamb,g = atm.atmosphere(self.cruise_altp, self.cruise_disa)
         thrust = self.drag_force(pamb,tamb,self.cruise_speed)
-        shaft_power = thrust*self.cruise_speed / self.nacelle_propulsive_efficiency
+        shaft_power = (thrust / self.n_engine) * self.cruise_speed / self.nacelle_propulsive_efficiency
 
         # Energy constraint
         fuel_flow = self.fuel_flow(pamb, tamb, self.cruise_speed, thrust)
@@ -370,9 +374,26 @@ class Airship(object):
 
 atm = Atmosphere()
 
-asp = Airship(atm)
+payload = 10000.
+range = unit.m_NM(1000.)
 
-asp.eval_design(50.)
+speed = unit.mps_kmph(100.)
+altp = unit.m_ft(10000.)
+disa = 0.
 
-print(asp.eval_design_constraints())
+asp = Airship(atm, payload, range, altp, disa, speed)
+
+length = 50.    # length
+ne = 4.         # Number of engines
+power = 6.0e4   # Shaft power of each engine
+h2_mass = 500.  # Hydrogen mass for tank definition
+
+asp.eval_design(length, ne, power, h2_mass)
+
+cst = asp.eval_design_constraints()
+
+print("")
+print("Power constraint = ", cst["power"], "Capability to sustain required cruise speed")
+print("Energy constraint = ", cst["energy"], "Capability to fly the required range")
+print("Buoyancy constraint = ", cst["buoyancy"], "Capability to reach required altitude")
 
