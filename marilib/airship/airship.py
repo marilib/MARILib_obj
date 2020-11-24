@@ -10,6 +10,7 @@ Created on November 20 20:20:20 2020
 
 import numpy as np
 from scipy.special import ellipkinc, ellipeinc
+from scipy.optimize import fsolve
 
 import matplotlib.pyplot as plt
 
@@ -161,6 +162,14 @@ class Propulsion(object):
         self.motor_mass = None          # Mass of the engines
         self.nacelle_mass = None        # Mass of the nacelles and mountings
 
+    def get_max_power(self):
+        return self.total_ref_max_power
+
+    def req_power(self, tas, thrust):
+        shaft_power = thrust*tas / self.nacelle_propulsive_efficiency
+        req_power = shaft_power / self.motor_efficiency / self.inverter_efficiency / self.wiring_efficiency
+        return req_power
+
     def design(self, power):
         self.engine_power = power
         self.total_ref_max_power = 1.10 * self.n_engine * self.engine_power \
@@ -175,14 +184,6 @@ class Propulsion(object):
 
     def get_mass(self):
         return self.motor_mass + self.nacelle_mass
-
-    def get_max_power(self):
-        return self.total_ref_max_power
-
-    def req_power(self, tas, thrust):
-        shaft_power = thrust*tas / self.nacelle_propulsive_efficiency
-        req_power = shaft_power / self.motor_efficiency / self.inverter_efficiency / self.wiring_efficiency
-        return req_power
 
     def print(self):
         print("")
@@ -230,28 +231,6 @@ class Power(object):
         self.power_system_volume = None     # Volume of the power system
         self.power_system_mass = None       # Mass of the power system including fuel cell stacks
 
-    def design(self, pamb, tamb, power):
-        self.output_power = power
-
-        data_dict = self.fuel_cell_power(self.output_power,pamb,tamb)
-
-        self.fuel_cell_ref_power = data_dict["fuel_cell_power"]
-        self.compressor_ref_power = data_dict["compressor_power"]
-        self.cooling_ref_power = data_dict["cooling_power"]
-        self.heat_ref_power = data_dict["heat_power"]
-
-        self.fuel_cell_mass = self.fuel_cell_ref_power / self.fuel_cell_gravimetric_index
-        self.compressor_mass = self.compressor_ref_power / self.compressor_gravimetric_index
-        self.cooling_mass = self.heat_ref_power / self.cooling_gravimetric_index
-        self.power_system_mass = self.fuel_cell_mass + self.compressor_mass + self.cooling_mass
-        self.power_system_volume = self.fuel_cell_ref_power / self.total_volumetric_index
-
-    def get_volume(self):
-        return self.power_system_volume
-
-    def get_mass(self):
-        return self.power_system_mass
-
     def fuel_flow(self, pamb, tamb, tas, req_power):
         data_dict = self.fuel_cell_power(req_power,pamb,tamb)
         return data_dict["fuel_flow"]
@@ -286,18 +265,27 @@ class Power(object):
                 "heat_power":heat_power,
                 "fuel_flow":fuel_flow}
 
-        self.output_power = None          # Total required power
-        self.fuel_cell_ref_power = None     # Fuel cell design power
-        self.compressor_ref_power = None    # Compressor design power
-        self.cooling_ref_power = None       # Cooling system design power
-        self.heat_ref_power = None          # Dissipated heat power at design point
+    def design(self, pamb, tamb, power):
+        self.output_power = power
 
-        self.fuel_cell_mass = None          # Mass of the fuel cell stack
-        self.compressor_mass = None         # Mass of the air compressor
-        self.cooling_mass = None            # Mass of the cooling system
+        data_dict = self.fuel_cell_power(self.output_power,pamb,tamb)
 
-        self.power_system_volume = None     # Volume of the power system
-        self.power_system_mass = None       # Mass of the power system including fuel cell stacks
+        self.fuel_cell_ref_power = data_dict["fuel_cell_power"]
+        self.compressor_ref_power = data_dict["compressor_power"]
+        self.cooling_ref_power = data_dict["cooling_power"]
+        self.heat_ref_power = data_dict["heat_power"]
+
+        self.fuel_cell_mass = self.fuel_cell_ref_power / self.fuel_cell_gravimetric_index
+        self.compressor_mass = self.compressor_ref_power / self.compressor_gravimetric_index
+        self.cooling_mass = self.heat_ref_power / self.cooling_gravimetric_index
+        self.power_system_mass = self.fuel_cell_mass + self.compressor_mass + self.cooling_mass
+        self.power_system_volume = self.fuel_cell_ref_power / self.total_volumetric_index
+
+    def get_volume(self):
+        return self.power_system_volume
+
+    def get_mass(self):
+        return self.power_system_mass
 
     def print(self):
         print("")
@@ -413,6 +401,37 @@ class Airship(object):
         #---------------------------------------------------------------------------------------------------------------
         self.tank = Tank(phd)
 
+        # Design the airship
+        #---------------------------------------------------------------------------------------------------------------
+        self.design()
+
+    def drag_force(self, pamb, tamb, tas):
+        re = self.phd.reynolds_number(pamb, tamb, tas)
+        vsnd = self.phd.sound_speed(tamb)
+        mach = tas/vsnd
+        fac = ( 1. + 0.126*mach**2 )
+
+        nwa, ael, frm = self.gross_area, self.length, self.envelop_form_factor
+        scxf_env = frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * nwa
+
+        nwa, ael, frm = self.fin_area*self.n_fin*2., np.sqrt(self.fin_area), self.fin_form_factor
+        scxf_fin = frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * nwa
+
+        rho = self.phd.gas_density(pamb,tamb)
+        drag_force = 0.5 * rho * tas**2 * (scxf_env + scxf_fin)
+        return drag_force
+
+    def buoyancy_force(self, he_mass,pamb,tamb):
+        """Compute the buoyancy force in given conditions
+        """
+        g = 9.80665
+        rho_he = self.phd.gas_density(pamb,tamb,gas="helium")
+        rho_air = self.phd.gas_density(pamb,tamb,gas="air")
+        he_volume = he_mass / rho_he
+        air_mass = rho_air * he_volume
+        force = (air_mass - he_mass)*g
+        return force
+
     def eval_design(self, length, power, h2_mass):
         """Compute geometrical datasc
         """
@@ -475,33 +494,6 @@ class Airship(object):
 
         self.mtow = self.owe + self.payload + h2_mass
 
-    def drag_force(self, pamb, tamb, tas):
-        re = self.phd.reynolds_number(pamb, tamb, tas)
-        vsnd = self.phd.sound_speed(tamb)
-        mach = tas/vsnd
-        fac = ( 1. + 0.126*mach**2 )
-
-        nwa, ael, frm = self.gross_area, self.length, self.envelop_form_factor
-        scxf_env = frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * nwa
-
-        nwa, ael, frm = self.fin_area*self.n_fin*2., np.sqrt(self.fin_area), self.fin_form_factor
-        scxf_fin = frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * nwa
-
-        rho = self.phd.gas_density(pamb,tamb)
-        drag_force = 0.5 * rho * tas**2 * (scxf_env + scxf_fin)
-        return drag_force
-
-    def buoyancy_force(self, he_mass,pamb,tamb):
-        """Compute the buoyancy force in given conditions
-        """
-        g = 9.80665
-        rho_he = self.phd.gas_density(pamb,tamb,gas="helium")
-        rho_air = self.phd.gas_density(pamb,tamb,gas="air")
-        he_volume = he_mass / rho_he
-        air_mass = rho_air * he_volume
-        force = (air_mass - he_mass)*g
-        return force
-
     def eval_design_constraints(self):
         """Evaluate the 3 design constraints that applies on the airship
         """
@@ -524,6 +516,25 @@ class Airship(object):
         return {"power": self.propulsion.engine_power - shaft_power,
                 "energy": self.tank.h2_max_mass - fuel_mass,
                 "buoyancy": buoyancy - mass*g}
+
+    def design(self):
+        """This method designs the airship according to TLARs
+        """
+        def fct(X):
+            length, power, h2_mass = X
+            self.eval_design(length, power, h2_mass)
+            cst = self.eval_design_constraints()
+            return [cst["power"], cst["energy"], cst["buoyancy"]]
+
+        Xini = [50., 5.e4, 500.]
+
+        out_dict = fsolve(fct, x0=Xini, args=(), full_output=True)
+        if (out_dict[2]!=1): raise Exception("Convergence problem")
+        length, power, h2_mass = altg = out_dict[0]
+
+        self.eval_design(length, power, h2_mass)
+
+
 
     def print(self):
         """Print all airship data
@@ -576,12 +587,6 @@ altp = unit.m_ft(10000.)    # Nominal cruise altitude
 disa = 0.                   # Nominal temperature shift
 
 asp = Airship(phd, ne, payload, range, altp, disa, speed)
-
-length = 45.    # length
-power = 4.0e4   # Shaft power of each engine
-h2_mass = 500.  # Hydrogen mass for tank definition
-
-asp.eval_design(length, power, h2_mass)
 
 asp.print()
 
