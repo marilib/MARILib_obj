@@ -206,7 +206,7 @@ class Power(object):
     def __init__(self, phd):
         self.phd = phd
 
-        self.output_power = None          # Total required power
+        self.output_power = None            # Total required power
         self.fuel_cell_ref_power = None     # Fuel cell design power
         self.compressor_ref_power = None    # Compressor design power
         self.cooling_ref_power = None       # Cooling system design power
@@ -302,7 +302,7 @@ class Power(object):
         print("Cooler mass = ", "%.0f"%self.cooling_mass, " kg")
         print("")
         print("Total power system mass = ", "%.0f"%self.power_system_mass, " kg")
-        print("Total power system volume = ", "%.0f"%self.power_system_volume, " m2")
+        print("Total power system volume = ", "%.1f"%self.power_system_volume, " m2")
 
 # ======================================================================================================
 # Tank system
@@ -339,7 +339,7 @@ class Tank(object):
         print("Maximum capacity of LH2 = ", "%.0f"%self.h2_max_mass, " kg")
         print("")
         print("Total tank mass = ", "%.0f"%self.tank_mass, " kg")
-        print("Total tank volume = ", "%.0f"%self.tank_volume, " m3")
+        print("Total tank volume = ", "%.1f"%self.tank_volume, " m3")
 
 # ======================================================================================================
 # Airship
@@ -356,8 +356,8 @@ class Airship(object):
         self.cruise_disa = disa     # Reference standard temperature shift in cruise
         self.cruise_speed = speed   # Cruise speed
 
-        self.length_o_width_ratio = 3.  # Length over width ratio
-        self.length_o_height_ratio = 4. # Length over height ratio, WARNING l/h MUST BE HIGHER THAN l/w
+        self.length_o_width_ratio = 4.3  # Length over width ratio
+        self.length_o_height_ratio = 4.3 # Length over height ratio, WARNING l/h MUST BE HIGHER THAN l/w
 
         self.length = None          # Length of the ellipsoide
         self.width = None           # Width of the ellipsoide
@@ -365,14 +365,16 @@ class Airship(object):
         self.gross_volume = None    # Total internal gross volume
         self.gross_area = None      # External area
 
-        self.n_fin = 4              # Number of fins
-        self.fin_area = None        # Area of one fin
+        self.n_fin = 3                      # Number of fins
+        self.fin_area = None                # Area of one fin
+        self.fin_gravimetric_index = 5.0    # kg/m2, Mass of structure over total gross area
 
-        self.gondola_gravimetric_index = 0.200  # kg/kg, Mass of structure over max payload mass
+        self.gondola_gravimetric_index = 0.450  # kg/kg, Mass of structure over max payload mass
         self.gondola_volumetric_index = 0.020   # m3/kg, Volume of structure over max payload mass
-        self.envelop_gravimetric_index = 0.500  # kg/m2, Mass of structure over total gross area
-        self.envelop_volumetric_index = 0.020   # m3/m3, Volume of structure over total gross volume
+        self.envelop_gravimetric_index = 0.900  # kg/m2, Mass of structure over total gross area
+        self.envelop_volumetric_index = 0.005   # m3/m3, Volume of structure over total gross volume
         self.buoyancy_reserve = 0.05            # m3/m3, Remaining air ballast volume over He volume at cruise altitude
+        self.operational_weight_factor = 0.045  # Fraction of the mtow which is not compensated
 
         self.he_max_volume = None       # Max He volume
         self.he_max_mass = None         # Max He mass
@@ -380,14 +382,16 @@ class Airship(object):
 
         self.envelop_mass = None        # Mass of the envelop
         self.gondola_mass = None        # Mass of the gondola
-        self.owe = None                 # Design mission Operating Empty Weight
-        self.mtow = None                # Design mission Maximum Take Off Weight
+        self.fin_mass = None            # Mass of the fins
+        self.owe = None                 # Design mission Operating Empty Weight (without He)
+        self.mtow = None                # Design mission Maximum Take Off Weight (without He)
+        self.operational_weight = None  # Uncompensated weight
 
         self.reference_area = None      # Aerodynamic reference area
         self.envelop_form_factor = 1.05 # Envelop form factor for drag estimation
         self.fin_form_factor = 1.15     # Fin form factor for drag estimation
 
-        self.fuel_factor = 0.15         # fraction of mission fuel for reserve
+        self.fuel_factor = 0.20         # fraction of mission fuel for reserve
 
         # Propulsion system
         #---------------------------------------------------------------------------------------------------------------
@@ -404,6 +408,28 @@ class Airship(object):
         # Design the airship
         #---------------------------------------------------------------------------------------------------------------
         self.design()
+
+    def cylinder(self, width, height, length):
+        a, b = 0.5*width, 0.5*height
+        h = ((a-b)/(a+b))**2
+        p = np.pi * (a+b) * (3.-np.sqrt(4.-h))  # First formula of Srinivasa Ramanudjan
+        s = p * length
+        v = np.pi*a*b*length
+        return {"area":s, "volume":v}
+
+    def half_ellipsoide(self, width, height, length_factor):
+        a = np.sqrt(width*height) * length_factor
+        b = 0.5 * width
+        c = 0.5 * height
+        v = (4./3.)*np.pi*a*b*c    # Total volume of the ellipsoide
+        cos_phi = c/a
+        phi = np.arccos(cos_phi)
+        sin_phi = np.sin(phi)
+        k2 = (a**2 * (b**2 - c**2)) / (b**2 * (a**2 - c**2))
+        F = ellipkinc(phi, k2)
+        E = ellipeinc(phi, k2)
+        s = 2.*np.pi*c**2 + ((2.*np.pi*a*b)/sin_phi) * (E*sin_phi**2 + F*cos_phi**2) # Total area
+        return {"length":a, "area":s/2, "volume":v/2}
 
     def drag_force(self, pamb, tamb, tas):
         re = self.phd.reynolds_number(pamb, tamb, tas)
@@ -435,27 +461,28 @@ class Airship(object):
     def eval_design(self, length, power, h2_mass):
         """Compute geometrical datasc
         """
-        if self.length_o_width_ratio > self.length_o_height_ratio:
+        if min(self.length_o_width_ratio,self.length_o_height_ratio)<2.:
+            raise Exception("length_o_width and length_o_height must be higher or equal to 2.")
+        elif self.length_o_width_ratio > self.length_o_height_ratio:
             raise Exception("length_o_width must be lower than length_o_height")
 
         self.length = length                # Length of the ellipsoide
-        self.width = self.length / self.length_o_width_ratio
-        self.height = self.length / self.length_o_height_ratio
 
         self.fin_area = (0.80 * self.length) / self.n_fin
 
-        self.gross_volume = (4./3.)*np.pi*self.length*self.width*self.height
+        self.width = self.length / self.length_o_width_ratio
+        self.height = self.length / self.length_o_height_ratio
 
-        a, b, c = self.length, self.width, self.height
-        cos_phi = c/a
-        phi = np.arccos(cos_phi)
-        sin_phi = np.sin(phi)
-        k2 = (a**2 * (b**2 - c**2)) / (b**2 * (a**2 - c**2))
-        F = ellipkinc(phi, k2)
-        E = ellipeinc(phi, k2)
+        nose_dict = self.half_ellipsoide(self.width, self.height, 1.0)
+        tail_dict = self.half_ellipsoide(self.width, self.height, 2.0)
+        cyl_length = self.length - nose_dict["length"] - tail_dict["length"]
+        cyl_dict = self.cylinder(self.width, self.height, cyl_length)
 
-        self.gross_area = 2.*np.pi*c**2 + ((2.*np.pi*a*b)/sin_phi) * (E*sin_phi**2 + F*cos_phi**2)
-        self.reference_area = np.pi * a * b
+        self.gross_volume = nose_dict["volume"] + cyl_dict["volume"] + tail_dict["volume"]
+
+        self.gross_area = nose_dict["area"] + cyl_dict["area"] + tail_dict["area"]
+
+        self.reference_area = 0.25 * np.pi * self.length * self.width
 
         # Propulsion system design
         self.propulsion.design(power)
@@ -485,22 +512,31 @@ class Airship(object):
 
         self.envelop_mass = self.gross_area * self.envelop_gravimetric_index
         self.gondola_mass = self.payload * self.gondola_gravimetric_index
+        self.fin_mass = self.n_fin * self.fin_area * self.fin_gravimetric_index
 
         self.owe =   self.envelop_mass \
                    + self.gondola_mass \
+                   + self.fin_mass \
                    + self.propulsion.get_mass() \
                    + self.power.get_mass() \
                    + self.tank.get_mass()
 
         self.mtow = self.owe + self.payload + h2_mass
 
+        self.operational_weight = self.mtow * self.operational_weight_factor
+
     def eval_design_constraints(self):
         """Evaluate the 3 design constraints that applies on the airship
         """
-        # Power constraint
+        # Cruise power constraint
         pamb,tamb,g = phd.atmosphere(self.cruise_altp, self.cruise_disa)
         thrust = self.drag_force(pamb,tamb,self.cruise_speed) / self.propulsion.n_engine
-        shaft_power = self.propulsion.req_power(self.cruise_speed, thrust)
+        cr_shaft_power = self.propulsion.req_power(self.cruise_speed, thrust)
+
+        # Take off power constraint
+        pamb,tamb,g = phd.atmosphere(0., 0.)
+        thrust = 1.05 * self.operational_weight * g
+        to_shaft_power = self.propulsion.req_power(self.cruise_speed, thrust)
 
         # Energy constraint
         req_power = self.propulsion.req_power(self.cruise_speed, thrust)
@@ -513,7 +549,7 @@ class Airship(object):
         buoyancy = self.buoyancy_force(self.he_max_mass,pamb,tamb)
         mass = self.mtow
 
-        return {"power": self.propulsion.engine_power - shaft_power,
+        return {"power": self.propulsion.engine_power - max(cr_shaft_power,to_shaft_power),
                 "energy": self.tank.h2_max_mass - fuel_mass,
                 "buoyancy": buoyancy - mass*g}
 
@@ -526,7 +562,7 @@ class Airship(object):
             cst = self.eval_design_constraints()
             return [cst["power"], cst["energy"], cst["buoyancy"]]
 
-        Xini = [50., 5.e4, 500.]
+        Xini = [50., 1.e5, 500.]
 
         out_dict = fsolve(fct, x0=Xini, args=(), full_output=True)
         if (out_dict[2]!=1): raise Exception("Convergence problem")
@@ -547,11 +583,11 @@ class Airship(object):
         print("Cruise altitude = ", "%.0f"%unit.ft_m(self.cruise_altp), " ft")
         print("Cruise disa = ", "%.0f"%self.cruise_disa, " K")
         print("Cruise speed = ", "%.0f"%unit.kmph_mps(self.cruise_speed), " km/h")
-        print("Reserve fuel factor = ", "%.0f"%self.fuel_factor)
+        print("Reserve fuel factor = ", "%.2f"%self.fuel_factor)
         print("")
         print("Envelop length = ", "%.0f"%self.length, " m")
-        print("Envelop widdh = ", "%.0f"%self.width, " m")
-        print("Envelop height = ", "%.0f"%self.height, " m")
+        print("Envelop widdh = ", "%.1f"%self.width, " m")
+        print("Envelop height = ", "%.1f"%self.height, " m")
         print("Envelop gross area = ", "%.0f"%self.gross_area, " m2")
         print("Envelop gross volume = ", "%.0f"%self.gross_volume, " m3")
         print("Reference area = ", "%.0f"%self.reference_area, " m2")
@@ -565,8 +601,10 @@ class Airship(object):
         print("")
         print("Total envelop mass = ", "%.0f"%self.envelop_mass, " kg")
         print("Total gondola mass = ", "%.0f"%self.gondola_mass, " kg")
+        print("Total fin mass = ", "%.0f"%self.fin_mass, " kg")
         print("Operating weight empty (without He) = ", "%.0f"%self.owe, " kg")
         print("Maximum take off weight (without He) = ", "%.0f"%self.mtow, " kg")
+        print("Operational (uncompensated) weight (with He) = ", "%.0f"%self.operational_weight, " kg")
 
         self.propulsion.print()
         self.power.print()
@@ -578,9 +616,9 @@ class Airship(object):
 
 phd = PhysicalData()
 
-ne = 6                      # Number of engines
-payload = 10000.            # Design payload
-range = unit.m_NM(1000.)    # Design range
+ne = 3                      # Number of engines
+payload = 1900.            # Design payload
+range = unit.m_km(1000.)    # Design range
 
 speed = unit.mps_kmph(100.) # Nominal cruise speed
 altp = unit.m_ft(10000.)    # Nominal cruise altitude
