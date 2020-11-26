@@ -584,10 +584,9 @@ class SemiEmpiricTfNacelle(object):
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
             PtotJet = earth.total_pressure(pamb, MachJet)               # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q0 = CQoA1*self.nozzle_area
-            qf = q * self.engine_bpr/(1.+self.engine_bpr)               # Here, it is fan air flow only
-            y = q0 - qf
-            return y
+            qf = CQoA1*self.nozzle_area
+            qc = qf / self.engine_bpr
+            return qf+qc - q
 
         pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
@@ -637,10 +636,10 @@ class SemiEmpiricTfNacelle(object):
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
             PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q0 = CQoA1*self.nozzle_area
-            qf = q * self.engine_bpr/(1.+self.engine_bpr)               # Here, it is fan air flow only
+            qf = CQoA1*self.nozzle_area
+            qc = qf / self.engine_bpr
             fn = qf*(Vjet - Vinlet)
-            return [q0-qf, thrust-(fn+core_thrust)]
+            return [qf+qc-q, thrust-(fn+core_thrust)]
 
         Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
         Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
@@ -657,7 +656,6 @@ class SemiEmpiricTfNacelle(object):
         output_dict = fsolve(fct, x0=x_init, args=fct_arg, full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
-        q0 = output_dict[0][0]
         throttle = output_dict[0][1]
 
         pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
@@ -734,9 +732,9 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
             MachJet = Vjet/VsndJet                          # Mach number at nozzle output, ignoring when Mach > 1
             PtotJet = earth.total_pressure(pamb,MachJet)    # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q = CQoA1*self.nozzle_area
-            qf = q1 * self.engine_bpr/(1.+self.engine_bpr)               # Here, it is fan air flow only
-            return q - qf
+            qf = CQoA1*self.nozzle_area
+            qc = qf / self.engine_bpr
+            return qf+qc - q1
 
         pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
@@ -753,15 +751,16 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
 
         # Computation of y1 : thikness of the vein swallowed by the inlet
         output_dict = fsolve(fct, x0=0.5, args=fct_arg, full_output=True)
-
-        y1 = output_dict[0][0]
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
+        y1 = output_dict[0][0]
+
         q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y1)
+        qf = q1 * self.engine_bpr/(1.+self.engine_bpr)               # Here, it is fan air flow only
 
         pw_input = self.fan_efficiency*pw_shaft
         Vjet = np.sqrt(2.*pw_input/q1 + Vinlet**2)
-        fan_thrust = q1*(Vjet - Vinlet)
+        fan_thrust = qf*(Vjet - Vinlet)
 
         total_thrust = fan_thrust + core_thrust
 
@@ -794,10 +793,10 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
             PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q = CQoA1*self.nozzle_area
-            qf = q1 * self.engine_bpr/(1.+self.engine_bpr)               # Here, it is fan air flow only
+            qf = CQoA1*self.nozzle_area
+            qc = qf / self.engine_bpr
             fn = qf*(Vjet - Vinlet)
-            return [q-qf, thrust-(fn+core_thrust)]
+            return [qf+qc-q1, thrust-(fn+core_thrust)]
 
         Re = earth.reynolds_number(pamb,tamb,mach)
         rho,sig = earth.air_density(pamb,tamb)
@@ -816,7 +815,6 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
         output_dict = fsolve(fct, x0=x_init, args=fct_arg, full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
-        y1 = output_dict[0][0]
         throttle = output_dict[0][1]
 
         pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
@@ -985,9 +983,8 @@ class SemiEmpiricEfNacelle(object):
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
             PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q0 = CQoA1*self.nozzle_area
-            y = q0 - q
-            return y
+            qf = CQoA1*self.nozzle_area
+            return qf-q
 
         pw_shaft = reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
         pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
@@ -1004,9 +1001,9 @@ class SemiEmpiricEfNacelle(object):
 
         # Computation of the air flow swallowed by the inlet
         output_dict = fsolve(fct, x0=q0init, args=fct_arg, full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         q0 = output_dict[0][0]
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         Vinlet = Vair
         pw_input = self.fan_efficiency*pw_shaft
@@ -1037,9 +1034,9 @@ class SemiEmpiricEfNacelle(object):
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
             PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q0 = CQoA1*self.nozzle_area
+            qf = CQoA1*self.nozzle_area
             eFn = q*(Vjet - Vinlet)
-            return [q0-q, thrust-eFn]
+            return [qf-q, thrust-eFn]
 
         Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
         Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
@@ -1137,8 +1134,8 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
             MachJet = Vjet/VsndJet                          # Mach number at nozzle output, ignoring when Mach > 1
             PtotJet = earth.total_pressure(pamb,MachJet)    # total pressure at nozzle exhaust (P = pamb)
             CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q = CQoA1*self.nozzle_area
-            return q1 - q
+            qf = CQoA1*self.nozzle_area
+            return qf - q1
 
         reference_power = self.aircraft.power_system.get_reference_power(self.get_component_type())
         pw_shaft = reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
@@ -1157,9 +1154,9 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
 
         # Computation of y1 : thikness of the vein swallowed by the inlet
         output_dict = fsolve(fct, x0=0.5, args=fct_arg, full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         y1 = output_dict[0][0]
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y1)
 
