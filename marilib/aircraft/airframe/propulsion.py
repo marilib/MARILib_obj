@@ -582,9 +582,12 @@ class SemiEmpiricTfNacelle(object):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
-            PtotJet = earth.total_pressure(pamb, MachJet)               # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            qf = CQoA1*self.nozzle_area
+            if MachJet>1.:
+                qf = pw_shaft * (1.-gam+(1.+gam)*self.fan_efficiency) / (r*gam*Ttot-0.5*(gam+1.)*Vinlet**2)
+            else:
+                PtotJet = earth.total_pressure(pamb, MachJet)               # total pressure at nozzle exhaust (P = pamb)
+                CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+                qf = CQoA1*self.nozzle_area
             qc = qf / self.engine_bpr
             return qf+qc - q
 
@@ -634,9 +637,12 @@ class SemiEmpiricTfNacelle(object):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
-            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            qf = CQoA1*self.nozzle_area
+            if MachJet>1.:
+                qf = pw_shaft * (1.-gam+(1.+gam)*self.fan_efficiency) / (r*gam*Ttot-0.5*(gam+1.)*Vinlet**2)
+            else:
+                PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
+                CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+                qf = CQoA1*self.nozzle_area
             qc = qf / self.engine_bpr
             fn = qf*(Vjet - Vinlet)
             return [qf+qc-q, thrust-(fn+core_thrust)]
@@ -730,9 +736,12 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp             # Static temperature
             VsndJet = earth.sound_speed(TstatJet)           # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                          # Mach number at nozzle output, ignoring when Mach > 1
-            PtotJet = earth.total_pressure(pamb,MachJet)    # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            qf = CQoA1*self.nozzle_area
+            if MachJet>1.:
+                qf = pw_shaft * (1.-gam+(1.+gam)*self.fan_efficiency) / (r*gam*Ttot-0.5*(gam+1.)*Vinlet**2)
+            else:
+                PtotJet = earth.total_pressure(pamb,MachJet)    # total pressure at nozzle exhaust (P = pamb)
+                CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+                qf = CQoA1*self.nozzle_area
             qc = qf / self.engine_bpr
             return qf+qc - q1
 
@@ -791,9 +800,12 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
-            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            qf = CQoA1*self.nozzle_area
+            if MachJet>1.:
+                qf = pw_shaft * (1.-gam+(1.+gam)*self.fan_efficiency) / (r*gam*Ttot-0.5*(gam+1.)*Vinlet**2)
+            else:
+                PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
+                CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+                qf = CQoA1*self.nozzle_area
             qc = qf / self.engine_bpr
             fn = qf*(Vjet - Vinlet)
             return [qf+qc-q1, thrust-(fn+core_thrust)]
@@ -981,9 +993,12 @@ class SemiEmpiricEfNacelle(object):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
-            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            qf = CQoA1*self.nozzle_area
+            if MachJet>1.:
+                qf = pw_shaft * (1.-gam+(1.+gam)*self.fan_efficiency) / (r*gam*Ttot-0.5*(gam+1.)*Vinlet**2)
+            else:
+                PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
+                CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+                qf = CQoA1*self.nozzle_area
             return qf-q
 
         pw_shaft = reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
@@ -1032,9 +1047,12 @@ class SemiEmpiricEfNacelle(object):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
-            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            qf = CQoA1*self.nozzle_area
+            if MachJet>1.:
+                qf = pw_shaft * (1.-gam+(1.+gam)*self.fan_efficiency) / (r*gam*Ttot-0.5*(gam+1.)*Vinlet**2)
+            else:
+                PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
+                CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+                qf = CQoA1*self.nozzle_area
             eFn = q*(Vjet - Vinlet)
             return [qf-q, thrust-eFn]
 
@@ -1132,9 +1150,12 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp             # Static temperature
             VsndJet = earth.sound_speed(TstatJet)           # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                          # Mach number at nozzle output, ignoring when Mach > 1
-            PtotJet = earth.total_pressure(pamb,MachJet)    # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            qf = CQoA1*self.nozzle_area
+            if MachJet>1.:
+                qf = pw_shaft * (1.-gam+(1.+gam)*self.fan_efficiency) / (r*gam*Ttot-0.5*(gam+1.)*Vinlet**2)
+            else:
+                PtotJet = earth.total_pressure(pamb,MachJet)    # total pressure at nozzle exhaust (P = pamb)
+                CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+                qf = CQoA1*self.nozzle_area
             return qf - q1
 
         reference_power = self.aircraft.power_system.get_reference_power(self.get_component_type())
@@ -1187,9 +1208,12 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
             TstatJet = TtotJet - 0.5*Vjet**2/Cp         # Static temperature
             VsndJet = earth.sound_speed(TstatJet)       # Sound speed at nozzle exhaust
             MachJet = Vjet/VsndJet                      # Mach number at nozzle output, ignoring when Mach > 1
-            PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
-            CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
-            q = CQoA1*self.nozzle_area
+            if MachJet>1.:
+                q = pw_shaft * (1.-gam+(1.+gam)*self.fan_efficiency) / (r*gam*Ttot-0.5*(gam+1.)*Vinlet**2)
+            else:
+                PtotJet = earth.total_pressure(pamb, MachJet)    # total pressure at nozzle exhaust (P = pamb)
+                CQoA1 = self.corrected_air_flow(PtotJet,TtotJet,MachJet)    # Corrected air flow per area at fan position
+                q = CQoA1*self.nozzle_area
             eFn = q*(Vjet - Vinlet)
             return [q1-q, thrust-eFn]
 
