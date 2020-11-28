@@ -396,6 +396,8 @@ def fuel_density(fuel_type, press=101325.):
     """
     if (fuel_type=="kerosene"):
         fuel_density = 803. # Kerosene : between 775-840 kg/m3
+    elif (fuel_type=="gasoline"):
+        fuel_density = 800.
     elif (fuel_type=="liquid_h2"):
         fuel_density = 70.8 # Liquid hydrogene
     elif (fuel_type=="Compressed_h2"):
@@ -414,6 +416,8 @@ def fuel_heat(fuel_type):
     """
     if (fuel_type=="kerosene"):
         fuel_heat = 43.1e6 # J/kg, kerosene
+    elif (fuel_type=="gasoline"):
+        fuel_heat = 46.41e6 # J/kg, kerosene
     elif (fuel_type=="liquid_h2"):
         fuel_heat = 121.0e6 # J/kg, liquid hydrogene
     elif (fuel_type=="Compressed_h2"):

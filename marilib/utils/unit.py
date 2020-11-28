@@ -75,12 +75,16 @@ def J_GWh(GWh): return GWh*3.6e12   # Translate MWh into J
 def GWh_J(J): return J/3.6e12   # Translate J into MWh
 
 def J_TWh(TWh): return TWh*3.6e15   # Translate MWh into J
-
 def TWh_J(J): return J/3.6e15   # Translate J into MWh
-def daN_N(N): return N/10.   # Translate N into daN
 
+def Jpm_kWhpkm(kWhpkm): return kWhpkm*3.6e3   # Translate kWh/km into J/m
+def kWhpkm_Jpm(Jpm): return Jpm/3.6e3   # Translate J/m into kWh/km
+
+def daN_N(N): return N/10.   # Translate N into daN
 def N_daN(daN): return daN*10.   # Translate daN into N
+
 def N_kN(kN): return kN*1000.   # Translate kN into N
+def kN_N(N): return N/1000.   # Translate N into kN
 
 def Pa_bar(bar): return bar*1.e5   # Translate bar into Pascal
 def bar_Pa(Pa): return Pa/1.e5   # Translate Pascal into bar
