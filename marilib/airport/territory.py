@@ -19,48 +19,103 @@ from marilib.airport.aircraft import AirplaneCategories, Aircraft
 from marilib.airport.airport import Airport
 
 
-class TaxiNetwork(object):
-    """Bus station
+
+class RoadNetwork(object):
+    """Road network
     """
     def __init__(self):
-        self.h2_ratio = 0.
-        self.battery_ratio = 0.
-        self.gasoline_ratio = 1. - (self.h2_ratio + self.battery_ratio)
+        self.distance_ratio = 1.15     # Road distance over great circle distance ratio
 
-        self.taxi_capacity = 1.    # passenger
-        gas_efficiency = (7.)*1.e-8*earth.fuel_density("gasoline")*earth.fuel_heat("gasoline")  # 7. L/100km
-        self.taxi_efficiency = {"hydrogene":0., "electricity":0., "gasoline":gas_efficiency}    # J/m
-
-    def set_energy_ratio(self, h2_ratio, battery_ratio):
-        self.h2_ratio = h2_ratio
-        self.battery_ratio = battery_ratio
-        self.gasoline_ratio = 1. - (self.h2_ratio + self.battery_ratio)
-
-
-class BusNetwork(object):
-    """Bus station
-    """
-    def __init__(self):
-        self.h2_ratio = 0.
-        self.battery_ratio = 0.
-        self.gasoline_ratio = 1. - (self.h2_ratio + self.battery_ratio)
-
-        self.bus_capacity = 64.    # passenger
-        gas_efficiency = (30.)*1.e-8*earth.fuel_density("gasoline")*earth.fuel_heat("gasoline") # 30. L/100km
-        self.bus_efficiency = {"hydrogene":0., "electricity":0., "gasoline":gas_efficiency}     # J/m
-
-    def set_energy_ratio(self, h2_ratio, battery_ratio):
-        self.h2_ratio = h2_ratio
-        self.battery_ratio = battery_ratio
-        self.gasoline_ratio = 1. - (self.h2_ratio + self.battery_ratio)
+    def road_distance(self, r0, r1, d):
+        """Compute the mean distance between a focal point and a cloud of points arranged into a ring
+        Travels are supposed direct
+        :param r0: internal radius of the ring (can be zero)
+        :param r1: external radius of the ring (must be greater than r0)
+        :param d: distance between the center of the ring and the focal point
+        :return: Mean distance per travel
+        """
+        # n: Number of points within the radius
+        # m: Number of points in the circonference
+        n,m = 100,100
+        dist = 0.
+        for i in range(n):
+            for j in range(m):
+                dist += np.sqrt( ((r0+(r1-r0)*((1+i)/n))*np.cos(2*np.pi*(j/m)) - d)**2 + ((r0+(r1-r0)*((1+i)/n))*np.sin(2*np.pi*(j/m)))**2 )
+        return (dist*self.distance_ratio)/(m*n)
 
 
 class RailNetwork(object):
     """Bus station
     """
     def __init__(self):
-        self.train_set_capacity = 380.                      # passenger
-        self.train_set_efficiency = unit.Jpm_kWhpkm(20.)    # J/m
+        pass
+
+class TrainFleet(object):
+    """Train fleet
+    """
+    def __init__(self):
+        self.set_capacity = 380.                      # passenger
+        self.load_factor = 0.5
+        self.set_efficiency = unit.Jpm_kWhpkm(20.)    # J/m
+
+    def get_travel_energy(self, pass_flow, distance):
+        n_set = pass_flow / (self.set_capacity*self.load_factor)
+        energy = n_set * distance * self.set_efficiency
+        return energy
+
+
+class TaxiFleet(object):
+    """Taxi fleet
+    """
+    def __init__(self):
+
+        h = 0.
+        b = 0.
+        g = 1.-h-b
+        self.fleet = {"hydrogen":h, "battery":b, "gasoline":g}    # Proportion of each type in taxi fleet
+
+        self.capacity = 1.    # passenger
+
+        gas_efficiency = (7.)*1.e-8*earth.fuel_density("gasoline")*earth.fuel_heat("gasoline")  # 7. L/100km
+        self.efficiency = {"hydrogen":0., "battery":0., "gasoline":gas_efficiency}    # J/m
+
+    def set_energy_ratio(self, hydrogen, battery):
+        self.fleet["hydrogen"] = hydrogen
+        self.fleet["battery"] = battery
+        self.fleet["gasoline"] = 1. - hydrogen - battery
+
+    def get_travel_energy(self, pass_flow, distance):
+        pk = pass_flow * distance
+        energy = 0.
+        for type in self.fleet.keys():
+            energy += pk * self.efficiency[type] * self.fleet[type]
+        return energy
+
+
+class BusFleet(object):
+    """Bus fleet
+    """
+    def __init__(self):
+        h = 0.
+        b = 0.
+        g = 1.-h-b
+        self.fleet = {"hydrogen":h, "battery":b, "gasoline":g}    # Proportion of each type in taxi fleet
+
+        self.capacity = 64.    # passenger
+        gas_efficiency = (30.)*1.e-8*earth.fuel_density("gasoline")*earth.fuel_heat("gasoline") # 30. L/100km
+        self.efficiency = {"hydrogen":0., "electricity":0., "gasoline":gas_efficiency}     # J/m
+
+    def set_energy_ratio(self, hydrogen, battery):
+        self.fleet["hydrogen"] = hydrogen
+        self.fleet["battery"] = battery
+        self.fleet["gasoline"] = 1. - hydrogen - battery
+
+    def get_travel_energy(self, pass_flow, distance):
+        pk = pass_flow * distance
+        energy = 0.
+        for type in self.fleet.keys():
+            energy += pk * self.efficiency[type] * self.fleet[type]
+        return energy
 
 
 class Territory(object):
@@ -87,56 +142,52 @@ class Territory(object):
         # Set population distribution
         self.population = {"town": {"radius": 4.e3,
                                     "density": 1500./unit.m2_km2(1.)},
-                           "first": {"radius": 10.e3,
+                           "ring1": {"radius": 10.e3,
                                     "density": 250./unit.m2_km2(1.)},
-                           "second": {"radius": 20.e3,
+                           "ring2": {"radius": 20.e3,
                                       "density": 50./unit.m2_km2(1.)},
-                           "third": {"radius": self.radius,
+                           "ring3": {"radius": self.radius,
                                       "density": None}
                            }
 
         self.population["town"]["area"] = np.pi * self.population["town"]["radius"]**2
         self.population["town"]["inhab"] =  self.population["town"]["density"] / self.population["town"]["area"]
-        self.population["town"]["dist"] = 0.
 
-        self.population["first"]["area"] = np.pi * (self.population["first"]["radius"]**2 - self.population["town"]["radius"]**2)
-        self.population["first"]["inhab"] = self.population["first"]["density"] / self.population["first"]["area"]
-        self.population["first"]["dist"] = 0.5 * (self.population["first"]["radius"] + self.population["town"]["radius"])
+        self.population["ring1"]["area"] = np.pi * (self.population["ring1"]["radius"]**2 - self.population["town"]["radius"]**2)
+        self.population["ring1"]["inhab"] = self.population["ring1"]["density"] / self.population["ring1"]["area"]
 
-        self.population["second"]["area"] = np.pi * (self.population["second"]["radius"]**2 - self.population["first"]["radius"]**2)
-        self.population["second"]["inhab"] = self.population["second"]["density"] / self.population["second"]["area"]
-        self.population["second"]["dist"] = 0.5 * (self.population["second"]["radius"] + self.population["first"]["radius"])
+        self.population["ring2"]["area"] = np.pi * (self.population["ring2"]["radius"]**2 - self.population["ring1"]["radius"]**2)
+        self.population["ring2"]["inhab"] = self.population["ring2"]["density"] / self.population["ring2"]["area"]
 
-        self.population["third"]["area"] = np.pi * (self.population["third"]["radius"]**2 - self.population["second"]["radius"]**2)
-        third_ring_inhab = self.inhabitant - self.population["town"]["inhab"] - self.population["first"]["inhab"] - self.population["second"]["inhab"]
+        self.population["ring3"]["area"] = np.pi * (self.population["ring3"]["radius"]**2 - self.population["ring2"]["radius"]**2)
+        third_ring_inhab = self.inhabitant - self.population["town"]["inhab"] - self.population["ring1"]["inhab"] - self.population["ring2"]["inhab"]
         if third_ring_inhab<0.:
             raise Exception("inner rings population is not compatible with territory total population")
-        self.population["third"]["density"] = third_ring_inhab / self.population["third"]["area"]
-        self.population["third"]["inhab"] = third_ring_inhab
-        self.population["third"]["dist"] = 0.5 * (self.population["third"]["radius"] + self.population["second"]["radius"])
+        self.population["ring3"]["density"] = third_ring_inhab / self.population["ring3"]["area"]
+        self.population["ring3"]["inhab"] = third_ring_inhab
+
+        # Probability for a territory habitant to be in a given area
+        for area in self.population.keys():
+            self.population[area]["prob"] = self.population[area]["inhab"] / self.inhabitant
 
         # Complete the territory
-        self.airport = airport
-        self.taxi_network = taxi_network
-        self.bus_network = bus_network
-        self.rail_network = rail_network
+        self.airport = Airport()
+        self.rail_network = RailNetwork()
+        self.road_network = RoadNetwork()
+        self.train_fleet = TrainFleet()
+        self.taxi_fleet = TaxiFleet()
+        self.bus_fleet = BusFleet()
 
-    def travel_distance(self, r0, r1, d):
-        """Compute the mean distance between a focal point and a cloud of points arranged into a ring
-        Travels are supposed direct
-        :param r0: internal radius of the ring (can be zero)
-        :param r1: external radius of the ring (must be greater than r0)
-        :param n: Number of points within the radius
-        :param m: Number of points in the circonference
-        :param d: distance between the center of th edisk and the focal point
-        :return: Mean distance per travel
-        """
-        n,m = 100,100
+    def service_energy(self, pass_flow):
+
+        r0 = 0.
         dist = 0.
-        for i in range(n):
-            for j in range(m):
-                dist += np.sqrt( ((r0+(r1-r0)*((1+i)/n))*np.cos(2*np.pi*(j/m)) - d)**2 + ((r0+(r1-r0)*((1+i)/n))*np.sin(2*np.pi*(j/m)))**2 )
-        return dist/(m*n)
+        for area in self.population.keys():
+            r1 = self.population[area]["radius"]
+            dist +=   self.road_network.road_distance(self, r0, r1, self.airport.town_distance) \
+                    * self.population[area]["prob"]
+            r0 = r1
+
 
 
 

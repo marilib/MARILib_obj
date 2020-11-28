@@ -180,9 +180,6 @@ class TaxiStation(AirportComponent):
         self.peak_power = self.nominal_power
         self.daily_energy = self.nominal_power * (14.*3600.)
 
-    def get_service_energy(self, pass_flow):
-        pass
-
 
 class BusStation(AirportComponent):
     """Bus station
@@ -197,9 +194,6 @@ class BusStation(AirportComponent):
         self.peak_power = self.nominal_power
         self.daily_energy = self.nominal_power * (14.*3600.)
 
-    def get_service_energy(self, pass_flow):
-        pass
-
 
 class RailStation(AirportComponent):
     """Railway station
@@ -213,9 +207,6 @@ class RailStation(AirportComponent):
         self.nominal_power = 0.005 * self.area  # 5 mW/m2
         self.peak_power = self.nominal_power
         self.daily_energy = self.nominal_power * (14.*3600.)
-
-    def get_service_energy(self, pass_flow):
-        pass
 
 
 class Passenger(object):
