@@ -417,28 +417,18 @@ class Airport(object):
             ac_pax.append(0.)
             for route in network[j]["route"]:
                 npax = network[j]["load_factor"] * fleet[j].npax    # Current number of passenger
-                ac_pax[-1] += npax * ac_count[j] * route[0]         # pax on the route * Number of AC on this route
+                ac_pax[-1] += npax * (ac_count[j] * route[0])       # pax on the route * Number of AC on this route
                 dist = route[1]
                 fuel,time,tow = fleet[j].operation(npax,dist)
                 ac_fuel[-1] += fuel * ac_count[j] * route[0]        # Fuel on the route * Number of AC on this route
             total_fuel += ac_fuel[-1]
             total_pax += ac_pax[-1]
 
-        rail_pass = total_pax * self.passenger.rail_ratio
-        bus_pass = total_pax * self.passenger.bus_ratio
-        taxi_pass = total_pax * self.passenger.taxi_ratio
-        car_pass = total_pax * self.passenger.car_ratio
-
-        data_dict["ac_count"] = ac_count
-        data_dict["ac_fuel"] = ac_fuel
-        data_dict["ac_pax"] = ac_pax
-        data_dict["total_fuel"] = total_fuel
-        data_dict["total_pax"] = total_pax
-
-        data_dict["rail_pass"] = rail_pass
-        data_dict["bus_pass"] = bus_pass
-        data_dict["taxi_pass"] = taxi_pass
-        data_dict["car_pass"] = car_pass
+        data_dict["fleet_count"] = ac_count     # Number of aircraft of each category in the fleet
+        data_dict["fleet_fuel"] = ac_fuel       # Fuel consumed by aircraft of each category in the fleet
+        data_dict["fleet_pax"] = ac_pax         # Number of passengers taken by aircraft of each category in the fleet
+        data_dict["total_fuel"] = total_fuel    # Total fuel delivered to the fleet
+        data_dict["total_pax"] = total_pax      # Total number of passenger dropped or taken by the fleet
 
         return data_dict
 
