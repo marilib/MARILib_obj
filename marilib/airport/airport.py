@@ -214,16 +214,11 @@ class Passenger(object):
     for now, ground transport distribution profile only
     """
     def __init__(self):
+        # Proportion of passengers that will prefer a taxi, others will distribute among train, bus and car
         self.taxi_ratio = 0.05
-        self.bus_ratio = 0.15
-        self.rail_ratio = 0.20
-        self.car_ratio = 1. - (self.taxi_ratio + self.bus_ratio + self.rail_ratio)
 
-    def set_trans_ratio(self, taxi_ratio, bus_ratio, rail_ratio):
+    def set_taxi_ratio(self, taxi_ratio):
         self.taxi_ratio = taxi_ratio
-        self.bus_ratio = bus_ratio
-        self.rail_ratio = rail_ratio
-        self.car_ratio = 1. - (self.taxi_ratio + self.bus_ratio + self.rail_ratio)
 
 
 class Airport(object):
