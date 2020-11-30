@@ -9,12 +9,12 @@ Created on March 22 22:09:20 2020
 """
 
 import numpy as np
+from scipy.interpolate import interp1d
 from scipy.optimize import fsolve
 
 import matplotlib.pyplot as plt
 
 from marilib.utils import unit
-from marilib.utils.math import lin_interp_1d
 
 
 # ======================================================================================================
@@ -174,7 +174,8 @@ class AirplaneCategories(object):
 class Aircraft(object):
     """Airplane object
     """
-    def __init__(self, cat, npax=150., range=unit.m_NM(3000.), mach=0.78):
+    def __init__(self, phd, cat, npax=150., range=unit.m_NM(3000.), mach=0.78):
+        self.phd = phd
         self.cat = cat
 
         self.cruise_altp = self.__altp(npax) # Reference cruise altitude
@@ -230,7 +231,8 @@ class Aircraft(object):
         """
         pax_list = [10., 60., 260., 360.]
         lod_list = [15., 15.,  19.,  19.]
-        lod = lin_interp_1d(npax, pax_list, lod_list)
+        f_lod = interp1d(pax_list, lod_list, kind="linear", fill_value='extrapolate')
+        lod = f_lod(npax)
         sfc = unit.convert_from("kg/daN/h", 0.60)  # Techno assumption
         return lod/sfc
 
@@ -246,7 +248,8 @@ class Aircraft(object):
         Warning : if given effr must be expressed in N.s/kg
         """
         if effr is not None: self.eff_ratio = effr
-        pamb,tamb,vsnd,g = self.atmosphere(self.cruise_altp)
+        pamb,tamb,g = self.phd.atmosphere(self.cruise_altp)
+        vsnd = self.phd.sound_speed(tamb)
         range_factor = (self.cruise_mach*vsnd*self.eff_ratio)/g
         range = range_factor*np.log(tow/(tow-fuel_mission))       # Breguet equation
         return range
@@ -304,7 +307,8 @@ class Aircraft(object):
 
         self.eval_design(np.array([dict[0][0], dict[0][1]]))
 
-        pamb,tamb,vsnd,g = self.atmosphere(self.cruise_altp)
+        pamb,tamb,g = self.phd.atmosphere(self.cruise_altp)
+        vsnd = self.phd.sound_speed(tamb)
         self.cruise_speed = vsnd*self.cruise_mach
 
         self.payload_max = self.payload * 1.20
@@ -369,38 +373,6 @@ class Aircraft(object):
         else:
             range = self.range_no_pl + payload * (self.range_fuel_max-self.range_no_pl) / self.payload_fuel_max
         return range
-
-    def atmosphere(self, altp, disa=0.):
-        """Ambiant data from pressure altitude from ground to 50 km according to Standard Atmosphere
-        """
-        g = 9.80665
-        r = 287.053
-        gam = 1.4
-
-        Z = np.array([0., 11000., 20000., 32000., 47000., 50000.])
-        dtodz = np.array([-0.0065, 0., 0.0010, 0.0028, 0.])
-        P = np.array([101325., 0., 0., 0., 0., 0.])
-        T = np.array([288.15, 0., 0., 0., 0., 0.])
-
-        if (Z[-1] < altp):
-            raise Exception("atmosphere, altitude cannot exceed 50km")
-
-        j = 0
-        while (Z[1+j] <= altp):
-            T[j+1] = T[j] + dtodz[j]*(Z[j+1]-Z[j])
-            if (0. < np.abs(dtodz[j])):
-                P[j+1] = P[j]*(1. + (dtodz[j]/T[j]) * (Z[j+1]-Z[j]))**(-g/(r*dtodz[j]))
-            else:
-                P[j+1] = P[j]*np.exp(-(g/r)*((Z[j+1]-Z[j])/T[j]))
-            j = j + 1
-
-        if (0. < np.abs(dtodz[j])):
-            pamb = P[j]*(1 + (dtodz[j]/T[j])*(altp-Z[j]))**(-g/(r*dtodz[j]))
-        else:
-            pamb = P[j]*np.exp(-(g/r)*((altp-Z[j])/T[j]))
-        tamb = T[j] + dtodz[j]*(altp-Z[j]) + disa
-        vsnd = np.sqrt(gam*r*tamb)
-        return pamb, tamb, vsnd, g
 
     def payload_range(self):
         """Print the payload - range diagram
@@ -469,7 +441,8 @@ class Fleet(object):
         range = unit.convert_from("NM",
                       [ 100.,  500., 1000., 1500., 2000., 2500., 3000., 3500., 4000.])
         utilization = [2300., 2300., 1500., 1200.,  900.,  800.,  700.,  600.,  600.]
-        return lin_interp_1d(mean_range, range, utilization)
+        f_util = interp1d(range, utilization, kind="linear", fill_value='extrapolate')
+        return f_util(mean_range)
 
     def fleet_analysis(self, route_network):
         cstep = route_network["npax_step"]

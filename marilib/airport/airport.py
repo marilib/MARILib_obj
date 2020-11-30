@@ -9,13 +9,8 @@ Created on August 20 20:20:20 2020
 """
 
 import numpy as np
-from scipy.optimize import fsolve
-from marilib.utils.math import lin_interp_1d, maximize_1d
 
-from marilib.utils import unit, earth
-
-from marilib.airport.aircraft import AirplaneCategories, Aircraft, Fleet
-
+from marilib.utils import unit
 
 
 class AirportComponent(object):
@@ -195,7 +190,7 @@ class BusStation(AirportComponent):
         self.daily_energy = self.nominal_power * (14.*3600.)
 
 
-class RailStation(AirportComponent):
+class TrainStation(AirportComponent):
     """Railway station
     """
     def __init__(self, max_pax_flow):
@@ -297,7 +292,7 @@ class Airport(object):
 
         self.bus_station = BusStation(max_pax_flow)
 
-        self.railway_station = RailStation(max_pax_flow)
+        self.train_station = TrainStation(max_pax_flow)
 
         self.passenger = Passenger()
 
@@ -399,30 +394,30 @@ class Airport(object):
     def get_flows(self, capacity_ratio, fleet, network):
 
         ac_list = []
-        for j,ac in enumerate(fleet):
-            ac_list.append({"ratio":network[j]["ratio"], "npax":ac.npax})
+        for seg,ac in fleet.items():
+            ac_list.append({"ratio":network[seg]["ratio"], "npax":ac.npax})
 
         data_dict = self.get_capacity(capacity_ratio, ac_list)
 
-        ac_count = []
-        for j,ac in enumerate(fleet):
-            ac_count.append(data_dict["ac_flow"]*network[j]["ratio"])
+        ac_count = {}
+        for seg,ac in fleet.items():
+            ac_count[seg] = data_dict["ac_flow"]*network[seg]["ratio"]
 
         total_fuel = 0.
         total_pax = 0.
-        ac_fuel = []
-        ac_pax = []
-        for j,ac in enumerate(fleet):
-            ac_fuel.append(0.)
-            ac_pax.append(0.)
-            for route in network[j]["route"]:
-                npax = network[j]["load_factor"] * fleet[j].npax    # Current number of passenger
-                ac_pax[-1] += npax * (ac_count[j] * route[0])       # pax on the route * Number of AC on this route
+        ac_fuel = {}
+        ac_pax = {}
+        for seg in fleet.keys():
+            ac_fuel[seg] = 0.
+            ac_pax[seg] = 0.
+            for route in network[seg]["route"]:
+                npax = network[seg]["load_factor"] * fleet[seg].npax    # Current number of passenger
+                ac_pax[seg] += npax * (ac_count[seg] * route[0])       # pax on the route * Number of AC on this route
                 dist = route[1]
-                fuel,time,tow = fleet[j].operation(npax,dist)
-                ac_fuel[-1] += fuel * ac_count[j] * route[0]        # Fuel on the route * Number of AC on this route
-            total_fuel += ac_fuel[-1]
-            total_pax += ac_pax[-1]
+                fuel,time,tow = fleet[seg].operation(npax,dist)
+                ac_fuel[seg] += fuel * ac_count[seg] * route[0]        # Fuel on the route * Number of AC on this route
+            total_fuel += ac_fuel[seg]
+            total_pax += ac_pax[seg]
 
         data_dict["fleet_count"] = ac_count     # Number of aircraft of each category in the fleet
         data_dict["fleet_fuel"] = ac_fuel       # Fuel consumed by aircraft of each category in the fleet

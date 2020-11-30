@@ -9,13 +9,11 @@ Created on August 20 20:20:20 2020
 """
 
 import numpy as np
-from scipy.optimize import fsolve
-from marilib.utils.math import lin_interp_1d, maximize_1d
 
-from marilib.utils import unit, earth
+from marilib.utils import unit
 
+from marilib.airport.physical_data import PhysicalData
 from marilib.airport.aircraft import AirplaneCategories, Aircraft
-
 from marilib.airport.airport import Airport
 
 
@@ -25,7 +23,7 @@ class RoadNetwork(object):
     """
     def __init__(self):
         # Coverage defines the proportion of destinations addressed into each area, this represents the transport offer of the medium
-        # Note that road network can reach any destinations in all territory area
+        # Note that road network can reach any destinations in the whole territory area
         self.coverage = {"town":1.,
                          "ring1":1.,
                          "ring2":1.,
@@ -57,14 +55,14 @@ class RailNetwork(object):
     def __init__(self):
         # Coverage defines the proportion of destinations addressed into each area, this represents the transport offer of the medium
         # Note that the sum of these proportions is not necessarely equal to 1
-        self.coverage = {"town":0.90,
-                         "ring1":0.10,
-                         "ring2":0.01,
-                         "ring3":0.01}  # TO BE CHECKED
+        self.coverage = {"town":0.60,
+                         "ring1":0.40,
+                         "ring2":0.10,
+                         "ring3":0.05}  # TO BE CHECKED
 
     def rail_distance(self, r0, r1, d):
         """Compute the mean distance between a focal point and a cloud of points arranged into a ring
-        Travels are supposed direct
+        IMPORTANT NOTE : All travels from or to the airport are supposed to pass via the town center
         :param r0: internal radius of the ring (can be zero)
         :param r1: external radius of the ring (must be greater than r0)
         :param d: distance between the center of the ring and the focal point
@@ -76,15 +74,17 @@ class RailNetwork(object):
         dist = d            # WE SUPPOSE THAT ALL DSESTINATIONS IN THE TERRITORY IS CONNECTED TO THE TOWN, THGUS, PASSENGERS MUST REACH THE TOWN FIRST
         for i in range(n):
             for j in range(m):
-                dist += np.sqrt( ((r0+(r1-r0)*((1+i)/n))*np.cos(2*np.pi*(j/m)) - d)**2 + ((r0+(r1-r0)*((1+i)/n))*np.sin(2*np.pi*(j/m)))**2 )
+                dist += np.sqrt( ((r0+(r1-r0)*((1+i)/n))*np.cos(2*np.pi*(j/m)))**2 + ((r0+(r1-r0)*((1+i)/n))*np.sin(2*np.pi*(j/m)))**2 )
         return dist/(m*n)
 
 
 class TrainFleet(object):
     """Train fleet
     """
-    def __init__(self):
-        self.capacity = 377                       # passengers
+    def __init__(self, phd):
+        self.phd = phd
+
+        self.capacity = 380                       # passengers
         self.load_factor = 0.50                   # Mean load factor within a day
         self.efficiency = unit.Jpm_kWhpkm(20.)    # J/m
 
@@ -102,7 +102,7 @@ class BusNetwork(object):
         # Coverage defines the proportion of destinations addressed into each area, this represents the transport offer of the medium
         # Note that the sum of these proportions is not necessarely equal to 1
         # Even if busses are using the road network they do not address all destinations
-        self.coverage = {"town":0.50,
+        self.coverage = {"town":0.80,
                          "ring1":0.25,
                          "ring2":0.10,
                          "ring3":0.05}
@@ -111,7 +111,9 @@ class BusNetwork(object):
 class BusFleet(object):
     """Bus fleet
     """
-    def __init__(self):
+    def __init__(self, phd):
+        self.phd = phd
+
         h = 0.
         b = 0.
         g = 1.-h-b
@@ -119,8 +121,12 @@ class BusFleet(object):
 
         self.capacity = 100.        # passengers
         self.load_factor = 0.50     # Mean load factor within a day
-        gas_efficiency = (30.)*1.e-8*earth.fuel_density("gasoline")*earth.fuel_heat("gasoline") # 30. L/100km
-        self.efficiency = {"hydrogen":0., "electric":0., "gasoline":gas_efficiency}     # J/m
+
+        # Efficiencies refer to internal energy, use fuel energy density to compute fuel flow
+        gas_eff = (32.)*1.e-8*self.phd.fuel_density("gasoline")*self.phd.fuel_heat("gasoline")  # 32. L/100km
+        gh2_eff = gas_eff * (0.30/0.45)
+        bat_eff = gas_eff * (0.30/0.90)
+        self.efficiency = {"hydrogen":gh2_eff, "electric":bat_eff, "gasoline":gas_eff}    # J/m
 
     def set_energy_ratio(self, hydrogen, battery):
         self.fleet["hydrogen"] = hydrogen
@@ -139,7 +145,8 @@ class BusFleet(object):
 class TaxiFleet(object):
     """Taxi fleet
     """
-    def __init__(self):
+    def __init__(self, phd):
+        self.phd = phd
 
         h = 0.
         b = 0.05
@@ -149,9 +156,9 @@ class TaxiFleet(object):
         self.capacity = 1.    # passenger
 
         # Efficiencies refer to internal energy, use fuel energy density to compute fuel flow
-        gh2_eff = unit.J_kWh(34.*1.e-5)  # J/m, 34. kWh/100km
-        bat_eff = unit.J_kWh(20.*1.e-5)  # J/m, 20. kWh/100km
-        gas_eff = (7.)*1.e-8*earth.fuel_density("gasoline")*earth.fuel_heat("gasoline")  # 7. L/100km
+        gas_eff = (7.)*1.e-8*self.phd.fuel_density("gasoline")*self.phd.fuel_heat("gasoline")  # 7. L/100km
+        gh2_eff = gas_eff * (0.30/0.45)
+        bat_eff = gas_eff * (0.30/0.90)
         self.efficiency = {"hydrogen":gh2_eff, "electric":bat_eff, "gasoline":gas_eff}    # J/m
 
     def set_energy_ratio(self, hydrogen, battery):
@@ -170,7 +177,8 @@ class TaxiFleet(object):
 class CarFleet(object):
     """Car fleet
     """
-    def __init__(self):
+    def __init__(self, phd):
+        self.phd = phd
 
         h = 0.
         b = 0.01
@@ -180,9 +188,9 @@ class CarFleet(object):
         self.capacity = 1.1    # passenger
 
         # Efficiencies refer to internal energy, use fuel energy density to compute fuel flow
-        gh2_eff = unit.J_kWh(34.*1.e-5)  # J/m, 34. kWh/100km
-        bat_eff = unit.J_kWh(20.*1.e-5)  # J/m, 20. kWh/100km
-        gas_eff = (7.)*1.e-8*earth.fuel_density("gasoline")*earth.fuel_heat("gasoline")  # 7. L/100km
+        gas_eff = (7.)*1.e-8*self.phd.fuel_density("gasoline")*self.phd.fuel_heat("gasoline")  # 7. L/100km
+        gh2_eff = gas_eff * (0.30/0.45)
+        bat_eff = gas_eff * (0.30/0.90)
         self.efficiency = {"hydrogen":gh2_eff, "electric":bat_eff, "gasoline":gas_eff}    # J/m
 
     def set_energy_ratio(self, hydrogen, battery):
@@ -211,23 +219,18 @@ class Territory(object):
     Each network connects a given ratio of the habitation of each ring to the town center
     """
 
-    def __init__(self, airport):
-
-        self.radius = 50.e3     # 50 km
-        self.inhabitant = 2.e6  # 2 million
-
-        self.area = np.pi * self.radius**2
-        self.density = self.inhabitant / self.area
+    def __init__(self, phd, airport):
+        self.phd = phd
 
         # Set population distribution TO BE CHECKED
-        self.population = {"town": {"radius": 4.e3,
-                                    "density": 1500./unit.m2_km2(1.)},
-                           "ring1": {"radius": 10.e3,
-                                     "density": 1000./unit.m2_km2(1.)},
-                           "ring2": {"radius": 20.e3,
-                                     "density": 500./unit.m2_km2(1.)},
-                           "ring3": {"radius": self.radius,
-                                     "density": None}
+        self.population = {"town": {"radius": 6.1e3,
+                                    "density": 4050./unit.m2_km2(1.)},
+                           "ring1": {"radius": 12.1e3,
+                                     "density": 850./unit.m2_km2(1.)},
+                           "ring2": {"radius": 22.e3,
+                                     "density": 200./unit.m2_km2(1.)},
+                           "ring3": {"radius": 40.e3,
+                                     "density": 100./unit.m2_km2(1.)}
                            }
 
         self.population["town"]["area"] = np.pi * self.population["town"]["radius"]**2
@@ -240,11 +243,14 @@ class Territory(object):
         self.population["ring2"]["inhab"] = self.population["ring2"]["density"] * self.population["ring2"]["area"]
 
         self.population["ring3"]["area"] = np.pi * (self.population["ring3"]["radius"]**2 - self.population["ring2"]["radius"]**2)
-        third_ring_inhab = self.inhabitant - self.population["town"]["inhab"] - self.population["ring1"]["inhab"] - self.population["ring2"]["inhab"]
-        if third_ring_inhab<0.:
-            raise Exception("inner rings population is not compatible with territory total population")
-        self.population["ring3"]["density"] = third_ring_inhab / self.population["ring3"]["area"]
-        self.population["ring3"]["inhab"] = third_ring_inhab
+        self.population["ring3"]["inhab"] = self.population["ring3"]["density"] * self.population["ring3"]["area"]
+
+        self.area = np.pi * self.population["ring3"]["radius"]**2
+        self.inhabitant = 0.
+        for area in self.population.keys():
+            self.inhabitant += self.population[area]["inhab"]
+        self.density = self.inhabitant / self.area
+
 
         # Probability for a territory habitant to be in a given area
         for area in self.population.keys():
@@ -252,14 +258,14 @@ class Territory(object):
 
         # Complete the territory
         self.rail_network = RailNetwork()
-        self.train_fleet = TrainFleet()
+        self.train_fleet = TrainFleet(phd)
 
         self.bus_network = BusNetwork()
-        self.bus_fleet = BusFleet()
+        self.bus_fleet = BusFleet(phd)
 
         self.road_network = RoadNetwork()
-        self.taxi_fleet = TaxiFleet()
-        self.car_fleet = TaxiFleet()
+        self.taxi_fleet = TaxiFleet(phd)
+        self.car_fleet = TaxiFleet(phd)
 
         self.airport = airport
 
@@ -276,9 +282,9 @@ class Territory(object):
         # Relative efficiency versus kerosene
         relative_efficiency = {"battery":0.36/0.95, "hydrogen":0.36/0.55, "kerosene":1.}
 
-        for j,tech in enumerate(technology):
+        for seg,tech in technology.items():
             for type in at_energy.keys():
-                at_energy[type] = fleet_fuel[j] * earth.fuel_heat("kerosene") * tech[type] * relative_efficiency[type]
+                at_energy[type] = fleet_fuel[seg] * self.phd.fuel_heat("kerosene") * tech[type] * relative_efficiency[type]
 
         # Number of passenger going to AND coming from the airport
         pass_flow = airport_flows["total_pax"] * 2
@@ -348,7 +354,7 @@ class Territory(object):
 
 
 
-
+phd = PhysicalData()
 cat = AirplaneCategories()
 
 # Only proportion and design capacity is required to design the airport
@@ -365,7 +371,7 @@ open_slot = [unit.s_h(6.), unit.s_h(23.)]
 ap = Airport(cat, ac_list, runway_count, open_slot, app_dist, town_dist)
 
 
-tr = Territory(ap)
+tr = Territory(phd, ap)
 
 tr.airport.print_airport_design_data()
 tr.airport.print_component_design_data()
@@ -373,22 +379,22 @@ tr.airport.print_component_design_data()
 
 
 # Fleet definition, all aircraft types are designed according to TLARs : npax, range, mach
-fleet = [Aircraft(cat, npax=70. , range=unit.m_NM(500.) , mach=0.50),
-         Aircraft(cat, npax=150., range=unit.m_NM(3000.), mach=0.78),
-         Aircraft(cat, npax=300., range=unit.m_NM(5000.), mach=0.85),
-         Aircraft(cat, npax=400., range=unit.m_NM(7000.), mach=0.85)]
+fleet = {    "regional":Aircraft(phd,cat, npax=70. , range=unit.m_NM(500.) , mach=0.50),
+          "short_range":Aircraft(phd,cat, npax=150., range=unit.m_NM(3000.), mach=0.78),
+         "medium_range":Aircraft(phd,cat, npax=300., range=unit.m_NM(5000.), mach=0.85),
+           "long_range":Aircraft(phd,cat, npax=400., range=unit.m_NM(7000.), mach=0.85)}
 
 # Defines the load factor and the route distribution for each airplane
-air_network = [{"ratio":0.30, "load_factor":0.95, "route":[[0.25, unit.m_NM(100.)], [0.5, unit.m_NM(200.)], [0.25, unit.m_NM(400.)]]},
-               {"ratio":0.50, "load_factor":0.85, "route":[[0.50, unit.m_NM(400.)], [0.35, unit.m_NM(800)], [0.15, unit.m_NM(2000.)]]},
-               {"ratio":0.15, "load_factor":0.85, "route":[[0.35, unit.m_NM(2000.)], [0.5, unit.m_NM(3500.)], [0.15, unit.m_NM(5500.)]]},
-               {"ratio":0.05, "load_factor":0.85, "route":[[0.25, unit.m_NM(1500.)], [0.5, unit.m_NM(5000.)], [0.25, unit.m_NM(7500.)]]}]
+air_network = {    "regional":{"ratio":0.30, "load_factor":0.95, "route":[[0.25, unit.m_NM(100.)], [0.5, unit.m_NM(200.)], [0.25, unit.m_NM(400.)]]},
+                "short_range":{"ratio":0.50, "load_factor":0.85, "route":[[0.50, unit.m_NM(400.)], [0.35, unit.m_NM(800)], [0.15, unit.m_NM(2000.)]]},
+               "medium_range":{"ratio":0.15, "load_factor":0.85, "route":[[0.35, unit.m_NM(2000.)], [0.5, unit.m_NM(3500.)], [0.15, unit.m_NM(5500.)]]},
+                 "long_range":{"ratio":0.05, "load_factor":0.85, "route":[[0.25, unit.m_NM(1500.)], [0.5, unit.m_NM(5000.)], [0.25, unit.m_NM(7500.)]]}}
 
 # Defines the proportion of each technology in each aircraft type of the fleet
-technology = [{"battery":0., "hydrogen":0., "kerosene":1.},
-              {"battery":0., "hydrogen":0., "kerosene":1.},
-              {"battery":0., "hydrogen":0., "kerosene":1.},
-              {"battery":0., "hydrogen":0., "kerosene":1.}]
+technology = {    "regional":{"battery":0., "hydrogen":0., "kerosene":1.},
+               "short_range":{"battery":0., "hydrogen":0., "kerosene":1.},
+              "medium_range":{"battery":0., "hydrogen":0., "kerosene":1.},
+                "long_range":{"battery":0., "hydrogen":0., "kerosene":1.}}
 
 
 
@@ -397,10 +403,10 @@ capacity_ratio = 0.75   # Capacity ratio of the airport, 1. means that the airpo
 airport_flows, at_energy, gt_energy = tr.get_transport_energy(capacity_ratio, fleet, air_network, technology)
 
 print("==============================================================================")
-for j in range(len(fleet)):
-    print("Daily movements (landing or take off) for airplane n°", 1+j, " = ", "%.0f"%airport_flows["fleet_count"][j])
-    print("Daily passenger transported by airplane n°", 1+j, " = ", "%.0f"%(airport_flows["fleet_pax"][j]))
-    print("Daily fuel delivered to airplane n°", 1+j, " = ", "%.0f"%(airport_flows["fleet_fuel"][j]/1000.), " t")
+for seg in fleet.keys():
+    print("Daily movements (landing or take off) for ", seg, " = ", "%.0f"%airport_flows["fleet_count"][seg])
+    print("Daily passenger transported for ",seg, " = ", "%.0f"%(airport_flows["fleet_pax"][seg]))
+    print("Daily fuel delivered to ", seg, " = ", "%.0f"%(airport_flows["fleet_fuel"][seg]/1000.), " t")
     print("")
 print("Daily total passenger going to or coming from the airport = ""%.0f"%(airport_flows["total_pax"]))
 print("Daily total fuel delivered = ""%.0f"%(airport_flows["total_fuel"]/1000.), " t")
@@ -412,5 +418,15 @@ print("")
 print("Daily energy consumed by air transport as hydrogen = ", "%.0f"%unit.MWh_J(at_energy["hydrogen"]), " MWh")
 print("Daily energy consumed by air transport as electricity = ", "%.0f"%unit.MWh_J(at_energy["battery"]), " MWh")
 print("Daily energy consumed by air transport as kerosene = ", "%.0f"%unit.MWh_J(at_energy["kerosene"]), " MWh")
+
+print("")
+print("==============================================================================")
+print("Total population = ", "%.0f"%tr.inhabitant)
+print("Total area = ", "%.0f"%unit.km2_m2(tr.area))
+print("Total density = ", "%.0f"%(tr.density/unit.km2_m2(1.)))
+print("")
+for area,info in tr.population.items():
+    print(area,", population = ","%.0f"%info["inhab"], ", area = " "%.0f"%unit.km2_m2(info["area"])," m2")
+
 
 
