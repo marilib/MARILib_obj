@@ -12,6 +12,9 @@ import numpy as np
 
 from marilib.utils import unit
 
+import matplotlib.pyplot as plt
+
+import marilib.airport.utils as tool
 
 class AirportComponent(object):
     """Airport component skeleton
@@ -47,6 +50,16 @@ class AirportComponent(object):
         print("Daily consumption = ", "%.2f"%unit.kWh_J(self.daily_energy)," kWh")
         print("")
 
+    def patch(self, s,o,a,c):
+        # Airport componnent basic shape
+        l = self.area_length
+        w = self.area_width
+        x = o[0] - s[1]*np.sin(a) + s[0]*np.cos(a)
+        y = o[1] + s[1]*np.cos(a) + s[0]*np.sin(a)
+        ptch = tool.rect(l, w, x, y, a, c)
+        ptch_list = [ptch]
+        return ptch_list
+
 
 class Runways(AirportComponent):
     """Groups all the runways of the airport
@@ -57,24 +70,47 @@ class Runways(AirportComponent):
         self.count = count
         self.runway_length = length
         self.runway_width = 45.
+        self.runnway_side = 75.
 
         self.area_length = self.runway_length + 1000.
-        self.area_width = (self.runway_width + 200.) * self.count
+        self.area_width = (self.runway_width + 2*self.runnway_side) * self.count
         self.area = self.area_length * self.area_width
 
         self.nominal_power = 20. * 2000. * self.count       # 2000 spots of 20W each
         self.peak_power = self.nominal_power
         self.daily_energy = self.nominal_power * max(0., open_time - 10.)
 
+    def patch(self, s,o,a,c):
+        # Runway area
+        color = c
+        l = self.area_length
+        w = self.area_width
+        x = o[0] - s[1]*np.sin(a) + s[0]*np.cos(a)
+        y = o[1] + s[1]*np.cos(a) + s[0]*np.sin(a)
+        ptch = tool.rect(l, w, x, y, a, color)
+        ptch_list = [ptch]
+
+        # Runways
+        color = "grey"
+        l = self.runway_length
+        w = self.runway_width
+        side = self.runnway_side
+        for n in range(self.count):
+            xref = o[0] - (s[1] + side + n*(w+2*side))*np.sin(a) + s[0]*np.cos(a)
+            yref = o[1] + (s[1] + side + n*(w+2*side))*np.cos(a) + s[0]*np.sin(a)
+            ptch_list.append(tool.rect(l, w, xref, yref, a, color))
+
+        return ptch_list
+
 
 class RadarStation(AirportComponent):
     """Groups all the taxiways of the airport
     """
     def __init__(self, open_time):
-        super(TaxiWays, self).__init__()
+        super(RadarStation, self).__init__()
 
-        self.area_length = 100.
-        self.area_width = 100.
+        self.area_length = 200.
+        self.area_width = 200.
         self.area = self.area_length * self.area_width
 
         self.nominal_power = 500.e3     # 500 kW
@@ -88,7 +124,7 @@ class TaxiWays(AirportComponent):
     def __init__(self, runway_length, open_time):
         super(TaxiWays, self).__init__()
 
-        self.area_length = runway_length
+        self.area_length = runway_length + 1000.
         self.area_width = 400.
         self.area = self.area_length * self.area_width
 
@@ -118,7 +154,7 @@ class AirService(AirportComponent):
     def __init__(self, max_ac_flow, mean_ac_span, open_time):
         super(AirService, self).__init__()
 
-        self.area = 0.20 * max_ac_flow * mean_ac_span**2
+        self.area = 0.75 * max_ac_flow * mean_ac_span**2
         self.area_length = np.sqrt(self.area)
         self.area_width = self.area / self.area_length
 
@@ -151,9 +187,9 @@ class CarParks(AirportComponent):
     def __init__(self, max_pax_flow):
         super(CarParks, self).__init__()
 
-        self.space_count = 0.15 * max_pax_flow
+        self.space_count = 0.90 * max_pax_flow
 
-        self.area = 2.5 * 5.0 * self.space_count
+        self.area = 1.5 * (2.5 * 5.0 * self.space_count)
         self.area_length = np.sqrt(self.area)
         self.area_width = self.area_length
 
@@ -167,11 +203,11 @@ class TaxiStation(AirportComponent):
     """
     def __init__(self, max_pax_flow):
 
-        self.area = 0.002 * max_pax_flow
+        self.area = 0.5 * max_pax_flow
         self.area_length = np.sqrt(0.5*self.area)
-        self.area_width = self.area_length
+        self.area_width = self.area / self.area_length
 
-        self.nominal_power = 0.005 * self.area  # 5 mW/m2
+        self.nominal_power = 1. * self.area  # 1 W/m2
         self.peak_power = self.nominal_power
         self.daily_energy = self.nominal_power * (14.*3600.)
 
@@ -181,11 +217,11 @@ class BusStation(AirportComponent):
     """
     def __init__(self, max_pax_flow):
 
-        self.area = 0.004 * max_pax_flow
+        self.area = 0.5 * max_pax_flow
         self.area_length = np.sqrt(0.5*self.area)
-        self.area_width = self.area_length
+        self.area_width = self.area / self.area_length
 
-        self.nominal_power = 0.005 * self.area  # 5 mW/m2
+        self.nominal_power = 1. * self.area  # 1 W/m2
         self.peak_power = self.nominal_power
         self.daily_energy = self.nominal_power * (14.*3600.)
 
@@ -195,11 +231,11 @@ class TrainStation(AirportComponent):
     """
     def __init__(self, max_pax_flow):
 
-        self.area = 0.004 * max_pax_flow
-        self.area_length = np.sqrt(0.5*self.area)
-        self.area_width = self.area_length
+        self.area_length = 50.
+        self.area_width = 300.
+        self.area = self.area_length * self.area_width
 
-        self.nominal_power = 0.005 * self.area  # 5 mW/m2
+        self.nominal_power = 1. * self.area  # 1 W/m2
         self.peak_power = self.nominal_power
         self.daily_energy = self.nominal_power * (14.*3600.)
 
@@ -282,6 +318,9 @@ class Airport(object):
 
         # Load air parks component
         self.air_parks = AirParks(max_ac_flow, mean_ac_span, terminal_length, terminal_width, open_time)
+
+        # Load radar service components
+        self.radar_station = RadarStation(open_time)
 
         # Load air service components
         self.air_service = AirService(max_ac_flow, mean_ac_span, open_time)
@@ -452,4 +491,64 @@ class Airport(object):
         for comp in self:
             comp.print_design_data()
 
+    def draw(self):
+        """Plot the airport
+        """
+        window_title = "My Airport"
+        plot_title = "This airport"
 
+        xmax = 3.
+        ymax = 3.
+        angle = unit.rad_deg(0.)
+
+        origin = [0., 0.]
+
+        fig,axes = plt.subplots(1,1)
+        fig.canvas.set_window_title(window_title)
+        fig.suptitle(plot_title, fontsize=14)
+        axes.set_aspect('equal', 'box')
+        axes.set_xbound(-xmax, xmax)
+        axes.set_ybound(-ymax, ymax)
+        plt.plot(np.array([-xmax,xmax,xmax,-xmax,-xmax]), np.array([-ymax,-ymax,ymax,ymax,-ymax]))      # Draw a square box of 20km x 20km
+
+        patch_list = []
+
+        shift = [0., 0.]
+        patch_list += self.air_parks.patch(shift, origin, angle, "fuchsia")
+
+        shift = [0., self.air_parks.area_width]
+        patch_list += self.taxiway.patch(shift, origin, angle, "plum")
+
+        shift = [0., self.air_parks.area_width + self.taxiway.area_width + self.runway.area_width + 1000.]
+        patch_list += self.radar_station.patch(shift, origin, angle, "red")
+
+        shift = [0., self.air_parks.area_width + self.taxiway.area_width]
+        patch_list += self.runway.patch(shift, origin, angle, "palegreen")
+
+        shift = [-0.5*(self.air_parks.area_length + self.air_service.area_length),
+                 self.air_parks.area_width - self.air_service.area_width]
+        patch_list += self.air_service.patch(shift, origin, angle, "khaki")
+
+        shift = [0., -self.terminal.area_width]
+        patch_list += self.terminal.patch(shift, origin, angle, "cornflowerblue")
+
+        shift = [0.5*(self.air_parks.area_length + self.car_parks.area_length),
+                 self.air_parks.area_width - self.car_parks.area_width]
+        patch_list += self.car_parks.patch(shift, origin, angle, "lightgrey")
+
+        shift = [0.5*(self.terminal.area_length - self.taxi_station.area_length),
+                 -self.terminal.area_width - self.taxi_station.area_width]
+        patch_list += self.taxi_station.patch(shift, origin, angle, "thistle")
+
+        shift = [0.5*(-self.terminal.area_length + self.bus_station.area_length),
+                 -self.terminal.area_width - self.bus_station.area_width]
+        patch_list += self.bus_station.patch(shift, origin, angle, "yellowgreen")
+
+        shift = [0.,
+                 -self.terminal.area_width - self.train_station.area_width]
+        patch_list += self.train_station.patch(shift, origin, angle, "orange")
+
+        for ptch in patch_list:
+            axes.add_patch(ptch)
+
+        plt.show()
