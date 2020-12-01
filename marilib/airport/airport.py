@@ -22,6 +22,7 @@ class AirportComponent(object):
     """
     def __init__(self):
 
+        self.label = None
         self.area = None
         self.area_width = None
         self.area_length = None
@@ -56,7 +57,7 @@ class AirportComponent(object):
         w = self.area_width
         x = o[0] - s[1]*np.sin(a) + s[0]*np.cos(a)
         y = o[1] + s[1]*np.cos(a) + s[0]*np.sin(a)
-        ptch = tool.rect(l, w, x, y, a, c)
+        ptch = tool.rect(l, w, x, y, a, c, self.label)
         ptch_list = [ptch]
         return ptch_list
 
@@ -67,6 +68,7 @@ class Runways(AirportComponent):
     def __init__(self, count, length, open_time):
         super(Runways, self).__init__()
 
+        self.label = "Runway"
         self.count = count
         self.runway_length = length
         self.runway_width = 45.
@@ -87,7 +89,7 @@ class Runways(AirportComponent):
         w = self.area_width
         x = o[0] - s[1]*np.sin(a) + s[0]*np.cos(a)
         y = o[1] + s[1]*np.cos(a) + s[0]*np.sin(a)
-        ptch = tool.rect(l, w, x, y, a, color)
+        ptch = tool.rect(l, w, x, y, a, color, self.label)
         ptch_list = [ptch]
 
         # Runways
@@ -98,7 +100,7 @@ class Runways(AirportComponent):
         for n in range(self.count):
             xref = o[0] - (s[1] + side + n*(w+2*side))*np.sin(a) + s[0]*np.cos(a)
             yref = o[1] + (s[1] + side + n*(w+2*side))*np.cos(a) + s[0]*np.sin(a)
-            ptch_list.append(tool.rect(l, w, xref, yref, a, color))
+            ptch_list.append(tool.rect(l, w, xref, yref, a, color, "field"))
 
         return ptch_list
 
@@ -109,6 +111,7 @@ class RadarStation(AirportComponent):
     def __init__(self, open_time):
         super(RadarStation, self).__init__()
 
+        self.label = "Radar station"
         self.area_length = 200.
         self.area_width = 200.
         self.area = self.area_length * self.area_width
@@ -124,6 +127,7 @@ class TaxiWays(AirportComponent):
     def __init__(self, runway_length, open_time):
         super(TaxiWays, self).__init__()
 
+        self.label = "Taxiway"
         self.area_length = runway_length + 1000.
         self.area_width = 400.
         self.area = self.area_length * self.area_width
@@ -139,6 +143,7 @@ class AirParks(AirportComponent):
     def __init__(self, max_ac_flow, mean_ac_span, terminal_length, terminal_width, open_time):
         super(AirParks, self).__init__()
 
+        self.label = "Air park"
         self.area = max_ac_flow * mean_ac_span**2
         self.area_length = terminal_length + terminal_width
         self.area_width = self.area / self.area_length
@@ -154,6 +159,7 @@ class AirService(AirportComponent):
     def __init__(self, max_ac_flow, mean_ac_span, open_time):
         super(AirService, self).__init__()
 
+        self.label = "Air service"
         self.area = 0.75 * max_ac_flow * mean_ac_span**2
         self.area_length = np.sqrt(self.area)
         self.area_width = self.area / self.area_length
@@ -172,6 +178,7 @@ class Terminals(AirportComponent):
         self.departure_capacity = max_pax_flow_capacity
         self.arrival_capacity = max_pax_flow_capacity
 
+        self.label = "Terminal"
         self.area = 4.0 * (self.departure_capacity + self.arrival_capacity)
         self.area_width = np.sqrt(0.5*self.area)     # A rectangle w*(2w)
         self.area_length = 2. * self.area_width
@@ -189,6 +196,7 @@ class CarParks(AirportComponent):
 
         self.space_count = 0.90 * max_pax_flow
 
+        self.label = "Car parks"
         self.area = 1.5 * (2.5 * 5.0 * self.space_count)
         self.area_length = np.sqrt(self.area)
         self.area_width = self.area_length
@@ -203,6 +211,7 @@ class TaxiStation(AirportComponent):
     """
     def __init__(self, max_pax_flow):
 
+        self.label = "Taxi station"
         self.area = 0.5 * max_pax_flow
         self.area_length = np.sqrt(0.5*self.area)
         self.area_width = self.area / self.area_length
@@ -217,6 +226,7 @@ class BusStation(AirportComponent):
     """
     def __init__(self, max_pax_flow):
 
+        self.label = "Bus station"
         self.area = 0.5 * max_pax_flow
         self.area_length = np.sqrt(0.5*self.area)
         self.area_width = self.area / self.area_length
@@ -231,6 +241,7 @@ class TrainStation(AirportComponent):
     """
     def __init__(self, max_pax_flow):
 
+        self.label = "Train station"
         self.area_length = 50.
         self.area_width = 300.
         self.area = self.area_length * self.area_width
@@ -266,6 +277,7 @@ class Airport(object):
 
         self.max_passenger_capacity = None
         self.max_airplane_capacity = None
+        self.overall_width = None
 
         self.ref_mean_airplane_pax = None
         self.ref_mean_landing_time = None
@@ -287,6 +299,8 @@ class Airport(object):
 
         open_time = open_slot[1] - open_slot[0]
         self.open_time = open_time
+
+        self.overall_width = unit.m_km(4.)
 
         # Build the airport
         #---------------------------------------------------------------------------------------------------------------

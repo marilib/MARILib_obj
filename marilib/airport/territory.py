@@ -379,12 +379,20 @@ class Territory(object):
         ring1 = plt.Circle(origin, unit.km_m(self.population["ring1"]["radius"]), color="plum", label="%.0f"%(self.population["ring1"]["density"]/unit.km2_m2(1.)))
         town = plt.Circle(origin, unit.km_m(self.population["town"]["radius"]), color="fuchsia", label="%.0f"%(self.population["town"]["density"]/unit.km2_m2(1.)))
 
+        angle = unit.rad_deg(155.)
+
+        airport_loc = (origin[0]+unit.km_m(self.airport.town_distance*np.cos(angle)),
+                       origin[1]+unit.km_m(self.airport.town_distance*np.sin(angle)))
+
+        airport = plt.Circle(airport_loc, unit.km_m(0.5*self.airport.overall_width), color="red", label="Airport")
+
         axes.add_artist(ring3)
         axes.add_artist(ring2)
         axes.add_artist(ring1)
         axes.add_artist(town)
+        axes.add_artist(airport)
 
-        axes.legend(handles=[town,ring1,ring2,ring3], loc="upper right")
+        axes.legend(handles=[town,ring1,ring2,ring3,airport], loc="upper right")
 
         plt.show()
 
@@ -399,12 +407,12 @@ ac_list = [{"ratio":0.30, "npax":70. },
 
 runway_count = 3
 app_dist = unit.m_NM(7.)
-town_dist = unit.m_km(20.)
+town_dist = unit.m_km(8.)
 open_slot = [unit.s_h(6.), unit.s_h(23.)]
 
 ap = Airport(cat, ac_list, runway_count, open_slot, app_dist, town_dist)
 
-# ap.draw()
+ap.draw()
 
 tr = Territory(phd, ap)
 
