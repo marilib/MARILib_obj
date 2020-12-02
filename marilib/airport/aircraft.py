@@ -412,15 +412,19 @@ class Aircraft(object):
 class Fleet(object):
     """Fleet object
     """
-    def __init__(self, ac_list):
+    def __init__(self, phd,cat,ac_def):
 
-        self.aircraft = ac_list     # List of the airplanes of the fleet
+        self.aircraft = []     # List of the airplanes of the fleet
+        self.segment = []      # List of the segment names of the airplanes
+        for seg,dat in ac_def.items():
+            self.segment.append(seg)
+            self.aircraft.append(Aircraft(phd,cat, npax=dat["npax"] , range=dat["range"] , mach=dat["mach"]))
 
         self.network = None
 
         self.dist_factor = 1.15     # Factor on great circle distance
 
-        n = len(ac_list)
+        n = len(self.aircraft)
 
         self.fleet_trip = [0]*n
         self.fleet_npax = [0]*n

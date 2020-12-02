@@ -58,8 +58,9 @@ class AirportComponent(object):
         x = o[0] - s[1]*np.sin(a) + s[0]*np.cos(a)
         y = o[1] + s[1]*np.cos(a) + s[0]*np.sin(a)
         ptch = tool.rect(l, w, x, y, a, c, self.label)
-        ptch_list = [ptch]
-        return ptch_list
+        ptch_draw = [ptch]
+        ptch_lgnd = [ptch]
+        return [ptch_draw,ptch_lgnd]
 
 
 class Runways(AirportComponent):
@@ -89,8 +90,9 @@ class Runways(AirportComponent):
         w = self.area_width
         x = o[0] - s[1]*np.sin(a) + s[0]*np.cos(a)
         y = o[1] + s[1]*np.cos(a) + s[0]*np.sin(a)
-        ptch = tool.rect(l, w, x, y, a, color, self.label)
-        ptch_list = [ptch]
+        ptch = tool.rect(l, w, x, y, a, color, "Runway field")
+        ptch_draw = [ptch]
+        ptch_lgnd = [ptch]
 
         # Runways
         color = "grey"
@@ -100,9 +102,10 @@ class Runways(AirportComponent):
         for n in range(self.count):
             xref = o[0] - (s[1] + side + n*(w+2*side))*np.sin(a) + s[0]*np.cos(a)
             yref = o[1] + (s[1] + side + n*(w+2*side))*np.cos(a) + s[0]*np.sin(a)
-            ptch_list.append(tool.rect(l, w, xref, yref, a, color, "field"))
+            ptch_draw.append(tool.rect(l, w, xref, yref, a, color, self.label))
+            if n==0: ptch_lgnd.append(ptch_draw[-1])
 
-        return ptch_list
+        return [ptch_draw,ptch_lgnd]
 
 
 class RadarStation(AirportComponent):
@@ -110,6 +113,8 @@ class RadarStation(AirportComponent):
     """
     def __init__(self, open_time):
         super(RadarStation, self).__init__()
+
+        self.distance = 1000.   # Lateral distance to runway field
 
         self.label = "Radar station"
         self.area_length = 200.
@@ -447,27 +452,27 @@ class Airport(object):
     def get_flows(self, capacity_ratio, fleet, network):
 
         ac_list = []
-        for seg,ac in fleet.items():
+        for seg,ac in zip(network.keys(), fleet.aircraft):
             ac_list.append({"ratio":network[seg]["ratio"], "npax":ac.npax})
 
         data_dict = self.get_capacity(capacity_ratio, ac_list)
 
         ac_count = {}
-        for seg,ac in fleet.items():
+        for seg in network.keys():
             ac_count[seg] = data_dict["ac_flow"]*network[seg]["ratio"]
 
         total_fuel = 0.
         total_pax = 0.
         ac_fuel = {}
         ac_pax = {}
-        for seg in fleet.keys():
+        for seg,ac in zip(network.keys(), fleet.aircraft):
             ac_fuel[seg] = 0.
             ac_pax[seg] = 0.
             for route in network[seg]["route"]:
-                npax = network[seg]["load_factor"] * fleet[seg].npax    # Current number of passenger
+                npax = network[seg]["load_factor"] * ac.npax    # Current number of passenger
                 ac_pax[seg] += npax * (ac_count[seg] * route[0])       # pax on the route * Number of AC on this route
                 dist = route[1]
-                fuel,time,tow = fleet[seg].operation(npax,dist)
+                fuel,time,tow = ac.operation(npax,dist)
                 ac_fuel[seg] += fuel * ac_count[seg] * route[0]        # Fuel on the route * Number of AC on this route
             total_fuel += ac_fuel[seg]
             total_pax += ac_pax[seg]
@@ -513,6 +518,7 @@ class Airport(object):
 
         xmax = 3.
         ymax = 3.
+        margin = 3
         angle = unit.rad_deg(0.)
 
         origin = [0., 0.]
@@ -521,48 +527,55 @@ class Airport(object):
         fig.canvas.set_window_title(window_title)
         fig.suptitle(plot_title, fontsize=14)
         axes.set_aspect('equal', 'box')
-        axes.set_xbound(-xmax, xmax)
+        axes.set_xbound(-xmax, xmax+margin)
         axes.set_ybound(-ymax, ymax)
-        plt.plot(np.array([-xmax,xmax,xmax,-xmax,-xmax]), np.array([-ymax,-ymax,ymax,ymax,-ymax]))      # Draw a square box of 20km x 20km
 
-        patch_list = []
+        data = []
 
         shift = [0., 0.]
-        patch_list += self.air_parks.patch(shift, origin, angle, "fuchsia")
+        data.append(self.air_parks.patch(shift, origin, angle, "fuchsia"))
 
         shift = [0., self.air_parks.area_width]
-        patch_list += self.taxiway.patch(shift, origin, angle, "plum")
+        data.append(self.taxiway.patch(shift, origin, angle, "plum"))
 
-        shift = [0., self.air_parks.area_width + self.taxiway.area_width + self.runway.area_width + 1000.]
-        patch_list += self.radar_station.patch(shift, origin, angle, "red")
+        shift = [0., self.air_parks.area_width + self.taxiway.area_width + self.runway.area_width + self.radar_station.distance]
+        data.append(self.radar_station.patch(shift, origin, angle, "red"))
 
         shift = [0., self.air_parks.area_width + self.taxiway.area_width]
-        patch_list += self.runway.patch(shift, origin, angle, "palegreen")
+        data.append(self.runway.patch(shift, origin, angle, "palegreen"))
 
         shift = [-0.5*(self.air_parks.area_length + self.air_service.area_length),
                  self.air_parks.area_width - self.air_service.area_width]
-        patch_list += self.air_service.patch(shift, origin, angle, "khaki")
+        data.append(self.air_service.patch(shift, origin, angle, "khaki"))
 
         shift = [0., -self.terminal.area_width]
-        patch_list += self.terminal.patch(shift, origin, angle, "cornflowerblue")
+        data.append(self.terminal.patch(shift, origin, angle, "cornflowerblue"))
 
         shift = [0.5*(self.air_parks.area_length + self.car_parks.area_length),
                  self.air_parks.area_width - self.car_parks.area_width]
-        patch_list += self.car_parks.patch(shift, origin, angle, "lightgrey")
+        data.append(self.car_parks.patch(shift, origin, angle, "lightgrey"))
 
         shift = [0.5*(self.terminal.area_length - self.taxi_station.area_length),
                  -self.terminal.area_width - self.taxi_station.area_width]
-        patch_list += self.taxi_station.patch(shift, origin, angle, "thistle")
+        data.append(self.taxi_station.patch(shift, origin, angle, "thistle"))
 
         shift = [0.5*(-self.terminal.area_length + self.bus_station.area_length),
                  -self.terminal.area_width - self.bus_station.area_width]
-        patch_list += self.bus_station.patch(shift, origin, angle, "yellowgreen")
+        data.append(self.bus_station.patch(shift, origin, angle, "yellowgreen"))
 
         shift = [0.,
                  -self.terminal.area_width - self.train_station.area_width]
-        patch_list += self.train_station.patch(shift, origin, angle, "orange")
+        data.append(self.train_station.patch(shift, origin, angle, "orange"))
 
-        for ptch in patch_list:
-            axes.add_patch(ptch)
+        lgd = []
+        for dat in data:
+            for ptch in dat[0]:
+                axes.add_patch(ptch)
+            for ptch in dat[1]:
+                lgd.append(ptch)
+
+        axes.legend(handles=lgd, loc="upper right")
+
+
 
         plt.show()
