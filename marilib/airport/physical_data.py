@@ -106,7 +106,7 @@ class PhysicalData(object):
         if (fuel_type=="kerosene"): return 803. # Kerosene : between 775-840 kg/m3
         elif (fuel_type=="gasoline"): return 800. # Gasoline : between 775-840 kg/m3
         elif (fuel_type=="liquid_h2"): return 70.8 # Liquid hydrogene
-        elif (fuel_type=="Compressed_h2"):
+        elif (fuel_type=="compressed_h2"):
             p = press*1.e-5
             return (-3.11480362e-05*p + 7.82320891e-02)*p + 1.03207822e-01 # Compressed hydrogen at 293.15 K
         elif (fuel_type=="methane"): return 422.6 # Liquid methane
@@ -119,7 +119,7 @@ class PhysicalData(object):
         if (fuel_type=="kerosene"): return 43.1e6 # J/kg, kerosene
         elif (fuel_type=="gasoline"): return 46.4e6 # J/kg, gasoline
         elif (fuel_type=="liquid_h2"): return 121.0e6 # J/kg, liquid hydrogene
-        elif (fuel_type=="Compressed_h2"): return 140.0e6 # J/kg, compressed hydrogene
+        elif (fuel_type=="compressed_h2"): return 140.0e6 # J/kg, compressed hydrogene
         elif (fuel_type=="methane"): return 50.3e6 # J/kg, Liquid methane
         elif (fuel_type=="battery"): return unit.J_Wh(200.) # J/kg, State of the art for lithium-ion
         else: raise Exception("fuel_type index is out of range")

@@ -628,6 +628,74 @@ class EnergyMix(object):
 
 
 
+class PowerToHydrogen(object):
+
+    def __init__(self, phd):
+        self.phd = phd
+
+        self.electrolysis_efficiency = 0.80
+        self.liquefaction_efficiency = 0.65
+        self.compression_efficiency = 0.85
+
+    def get_flows(self, state, h2_mass):
+        """Compute input and output to produce a given mass of H2 in gaseous form, state="compressed_h2" or in liquid form state="liquid_h2"
+        """
+        electrolysis_energy = self.phd.fuel_heat("liquid_h2") * h2_mass / self.electrolysis_efficiency
+
+        if state=="liquid_h2":
+            formating_energy = self.phd.fuel_heat("liquid_h2") * h2_mass * (1. - self.liquefaction_efficiency)
+        elif state=="compressed_h2":
+            formating_energy = self.phd.fuel_heat("compressed_h2") * h2_mass * (1. - self.liquefaction_efficiency)
+        else:
+            raise Exception("H2 state delivery is not valid, must be 'liquid_h2' or 'compressed_h2'")
+
+        total_energy = electrolysis_energy + formating_energy
+        water_mass = 9. * h2_mass
+        oxygen_mass = 8. * h2_mass
+
+        heat = total_energy - self.phd.fuel_heat("liquid_h2")*h2_mass
+
+        return {"input":{"energy":total_energy, "water_mass":water_mass},
+                "output":{"h2_mass":h2_mass, "oxygen_mass":oxygen_mass, "heat":heat}}
+
+
+
+class PowerToFuel(object):
+
+    def __init__(self, phd):
+        self.phd = phd
+
+        self.production_efficiency = 0.50
+
+        # Ref : Life cycle carbon efficiency of Direct Air Capture systems with strong hydroxide sorbents (keyword : DAC for Direct Air Capture)
+        self.air_co2_capture_efficiency = unit.J_kWh(100.)/unit.kg_t(1.)    # 100 kWh/t of CO2
+
+        # Ref : Estimated value (keyword CCS for Carbon Capture and Storage)
+        self.industry_co2_capture_efficiency = unit.J_kWh(35.)/unit.kg_t(1.)    # 35 kWh/t of CO2
+
+    def get_flows(self, co2_capture, fuel_mass):
+        """Compute input and output to produce a given mass of fuel depending on the capture mode of CO2, "air" or "industry"
+        industry means that the CO2 is captured directly on production sites
+        Note that fuel stands for kerosene or gasoline
+        """
+        production_energy = self.phd.fuel_heat("liquid_h2") * fuel_mass / self.production_efficiency
+
+        co2_mass = (528./170.) * fuel_mass  # Assuming fuel is CnH2n+2 with n~12
+
+        if co2_capture=="air":
+            co2_capture_energy = self.air_co2_capture_efficiency * co2_mass
+        elif co2_capture=="industry":
+            co2_capture_energy = self.industry_co2_capture_efficiency * co2_mass
+        else:
+            raise Exception("CO2 capture mode is not valid, must be 'air' or 'industry'")
+
+        total_energy = production_energy + co2_capture_energy
+
+        return {"input":{"energy":total_energy, "co2_mass":co2_mass},
+                "output":{"fuel_mass":fuel_mass}}
+
+
+
 if __name__ == "__main__":
 
     # ======================================================================================================

@@ -400,7 +400,7 @@ def fuel_density(fuel_type, press=101325.):
         fuel_density = 800.
     elif (fuel_type=="liquid_h2"):
         fuel_density = 70.8 # Liquid hydrogene
-    elif (fuel_type=="Compressed_h2"):
+    elif (fuel_type=="compressed_h2"):
         p = press*1.e-5
         fuel_density = (-3.11480362e-05*p + 7.82320891e-02)*p + 1.03207822e-01 # Compressed hydrogen at 293.15 K
     elif (fuel_type=="methane"):
@@ -420,7 +420,7 @@ def fuel_heat(fuel_type):
         fuel_heat = 46.41e6 # J/kg, kerosene
     elif (fuel_type=="liquid_h2"):
         fuel_heat = 121.0e6 # J/kg, liquid hydrogene
-    elif (fuel_type=="Compressed_h2"):
+    elif (fuel_type=="compressed_h2"):
         fuel_heat = 140.0e6 # J/kg, compressed hydrogene
     elif (fuel_type=="methane"):
         fuel_heat = 50.3e6 # J/kg, Liquid methane

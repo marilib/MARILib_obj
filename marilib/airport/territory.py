@@ -285,6 +285,9 @@ class Territory(object):
         n_core = 4      # Number of reactor in one plant
         atom1 = NuclearPowerPlant(n_core)
 
+
+
+
         tech_mix =  [atom1,  eol1,  pv1]
         power_mix = [4.e9,   1.e9,  1.e9]
 
