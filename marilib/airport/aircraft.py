@@ -414,10 +414,12 @@ class Fleet(object):
     """
     def __init__(self, phd,cat,ac_def):
 
-        self.aircraft = []     # List of the airplanes of the fleet
-        self.segment = []      # List of the segment names of the airplanes
+        self.aircraft = []      # List of the airplanes of the fleet
+        self.segment = []       # List of the segment names of the airplanes
+        self.ratio = []         # Proportion of each aircraft in the fleet
         for seg,dat in ac_def.items():
             self.segment.append(seg)
+            self.ratio.append(dat["ratio"])
             self.aircraft.append(Aircraft(phd,cat, npax=dat["npax"] , range=dat["range"] , mach=dat["mach"]))
 
         self.network = None

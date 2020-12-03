@@ -19,6 +19,7 @@ from marilib.airport.aircraft import AirplaneCategories, Fleet
 from marilib.airport.airport import Airport
 
 from marilib.airport.power_plant import PvPowerPlant, CspPowerPlant, EolPowerPlant, NuclearPowerPlant, EnergyMix
+from marilib.airport.power_plant import PowerToFuel, PowerToHydrogen, FuelMix
 
 
 
@@ -223,7 +224,7 @@ class Territory(object):
     Each network connects a given ratio of the habitation of each ring to the town center
     """
 
-    def __init__(self, phd, airport):
+    def __init__(self, phd, airport, fuel_plant, energy_mix):
         self.phd = phd
 
         # Set population distribution TO BE CHECKED
@@ -273,25 +274,8 @@ class Territory(object):
 
         self.airport = airport
 
-        # Add energy production components to the territory
-        #---------------------------------------------------------------------------------------------------------------
-        n_panel = 1.e6  # Number of panels of 2m2 in one plant (Cestas)
-        sol_pw = 250.   # W/m2, Mean solar irradiation
-        pv1 = PvPowerPlant(n_panel, sol_pw, reg_factor=0.50)
-
-        n_turbine = 20. # Number of turbines in one plant
-        eol1 = EolPowerPlant(n_turbine, "onshore")
-
-        n_core = 4      # Number of reactor in one plant
-        atom1 = NuclearPowerPlant(n_core)
-
-
-
-
-        tech_mix =  [atom1,  eol1,  pv1]
-        power_mix = [4.e9,   1.e9,  1.e9]
-
-        self.energy_mix = EnergyMix(tech_mix, power_mix)
+        self.transport_fuel_plant = fuel_plant
+        self.transport_energy_mix = energy_mix
 
     def get_transport_energy(self, capacity_ratio, fleet, air_network, technology):
 
@@ -301,7 +285,7 @@ class Territory(object):
         # Rough evaluation of the energy consumption versus propulsive technology
         fleet_fuel = airport_flows["fleet_fuel"]
 
-        at_energy = {"battery":0., "hydrogen":0., "kerosene":1.}
+        at_energy = {"battery":0., "hydrogen":0., "kerosene":0.}
 
         # Relative efficiency versus kerosene
         relative_efficiency = {"battery":0.36/0.95, "hydrogen":0.36/0.55, "kerosene":1.}
@@ -309,6 +293,10 @@ class Territory(object):
         for seg,tech in technology.items():
             for type in at_energy.keys():
                 at_energy[type] = fleet_fuel[seg] * self.phd.fuel_heat("kerosene") * tech[type] * relative_efficiency[type]
+
+        at_fuel = {"hydrogen":0., "kerosene":0.}
+        at_fuel["hydrogen"] = at_energy["hydrogen"] / self.phd.fuel_heat("liquid_h2")
+        at_fuel["kerosene"] = at_energy["kerosene"] / self.phd.fuel_heat("kerosene")
 
         # Number of passenger going to AND coming from the airport
         pass_flow = airport_flows["total_pax"] * 2
@@ -340,7 +328,7 @@ class Territory(object):
             offer[area]["train"] = self.rail_network.coverage[area] / total
 
         # All energies consumed by passengers coming from or going to the airport will be summed
-        gt_energy = {"hydrogen":0., "electric":0., "gasoline":0.}
+        gt_energy = {"electric":0., "hydrogen":0., "gasoline":0.}
 
         # Energies consumed by taxis
         for area in offer.keys():
@@ -374,7 +362,11 @@ class Territory(object):
             for type in gt_energy.keys():
                 gt_energy[type] += enrg[type]
 
-        return airport_flows, at_energy, gt_energy
+        gt_fuel = {"hydrogen":0., "gasoline":0.}
+        gt_fuel["hydrogen"] = gt_energy["hydrogen"] / self.phd.fuel_heat("compressed_h2")
+        gt_fuel["gasoline"] = gt_energy["gasoline"] / self.phd.fuel_heat("gasoline")
+
+        return {"airport_flows":airport_flows, "air_energy":at_energy, "air_fuel":at_fuel, "ground_energy":gt_energy, "ground_fuel":gt_fuel}
 
     def draw(self):
         """Draw the territory
@@ -417,86 +409,140 @@ class Territory(object):
 
         plt.show()
 
-phd = PhysicalData()
-cat = AirplaneCategories()
-
-# Only proportion and design capacity is required to design the airport
-ac_list = [{"ratio":0.30, "npax":70. },
-           {"ratio":0.50, "npax":150.},
-           {"ratio":0.15, "npax":300.},
-           {"ratio":0.05, "npax":400.}]
-
-runway_count = 3
-app_dist = unit.m_NM(7.)
-town_dist = unit.m_km(8.)
-open_slot = [unit.s_h(6.), unit.s_h(23.)]
-
-ap = Airport(cat, ac_list, runway_count, open_slot, app_dist, town_dist)
-
-tr = Territory(phd, ap)
-
-# tr.draw()
-#
-# ap.draw()
 
 
-fleet_definition = {    "regional":{"npax":70. , "range":unit.m_NM(500.) , "mach":0.50},
-                     "short_range":{"npax":150., "range":unit.m_NM(3000.), "mach":0.78},
-                    "medium_range":{"npax":300., "range":unit.m_NM(5000.), "mach":0.85},
-                      "long_range":{"npax":400., "range":unit.m_NM(7000.), "mach":0.85}}
+if __name__ == "__main__":
 
-fleet = Fleet(phd,cat,fleet_definition)
-
-# Defines the load factor and the route distribution for each airplane
-air_network = {    "regional":{"ratio":0.30, "load_factor":0.95, "route":[[0.25, unit.m_NM(100.)], [0.5, unit.m_NM(200.)], [0.25, unit.m_NM(400.)]]},
-                "short_range":{"ratio":0.50, "load_factor":0.85, "route":[[0.50, unit.m_NM(400.)], [0.35, unit.m_NM(800)], [0.15, unit.m_NM(2000.)]]},
-               "medium_range":{"ratio":0.15, "load_factor":0.85, "route":[[0.35, unit.m_NM(2000.)], [0.5, unit.m_NM(3500.)], [0.15, unit.m_NM(5500.)]]},
-                 "long_range":{"ratio":0.05, "load_factor":0.85, "route":[[0.25, unit.m_NM(1500.)], [0.5, unit.m_NM(5000.)], [0.25, unit.m_NM(7500.)]]}}
-
-# Defines the proportion of each technology in each aircraft type of the fleet
-technology = {    "regional":{"battery":0., "hydrogen":0., "kerosene":1.},
-               "short_range":{"battery":0., "hydrogen":0., "kerosene":1.},
-              "medium_range":{"battery":0., "hydrogen":0., "kerosene":1.},
-                "long_range":{"battery":0., "hydrogen":0., "kerosene":1.}}
+    # Tool objects
+    #-----------------------------------------------------------------------------------------------------------------------
+    phd = PhysicalData()
+    cat = AirplaneCategories()
 
 
+    # Fleet definition
+    #-----------------------------------------------------------------------------------------------------------------------
+    fleet_definition = {    "regional":{"ratio":0.30, "npax":70. , "range":unit.m_NM(500.) , "mach":0.50},
+                         "short_range":{"ratio":0.50, "npax":150., "range":unit.m_NM(3000.), "mach":0.78},
+                        "medium_range":{"ratio":0.15, "npax":300., "range":unit.m_NM(5000.), "mach":0.85},
+                          "long_range":{"ratio":0.05, "npax":400., "range":unit.m_NM(7000.), "mach":0.85}}
 
-capacity_ratio = 0.75   # Capacity ratio of the airport, 1. means that the airport is at full capacity
+    fleet = Fleet(phd,cat,fleet_definition)
 
-airport_flows, at_energy, gt_energy = tr.get_transport_energy(capacity_ratio, fleet, air_network, technology)
+    # Defines the load factor and the route distribution for each airplane
+    air_network = {    "regional":{"load_factor":0.95, "route":[[0.25, unit.m_NM(100.)], [0.5, unit.m_NM(200.)], [0.25, unit.m_NM(400.)]]},
+                    "short_range":{"load_factor":0.85, "route":[[0.50, unit.m_NM(400.)], [0.35, unit.m_NM(800)], [0.15, unit.m_NM(2000.)]]},
+                   "medium_range":{"load_factor":0.85, "route":[[0.35, unit.m_NM(2000.)], [0.5, unit.m_NM(3500.)], [0.15, unit.m_NM(5500.)]]},
+                     "long_range":{"load_factor":0.85, "route":[[0.25, unit.m_NM(1500.)], [0.5, unit.m_NM(5000.)], [0.25, unit.m_NM(7500.)]]}}
+
+    # Defines the proportion of each technology in each aircraft type of the fleet
+    technology = {    "regional":{"battery":0., "hydrogen":0., "kerosene":1.},
+                   "short_range":{"battery":0., "hydrogen":0., "kerosene":1.},
+                  "medium_range":{"battery":0., "hydrogen":0., "kerosene":1.},
+                    "long_range":{"battery":0., "hydrogen":0., "kerosene":1.}}
 
 
-print("")
-print("==============================================================================")
-print("Total population = ", "%.0f"%tr.inhabitant)
-print("Total area = ", "%.0f"%unit.km2_m2(tr.area))
-print("Total density = ", "%.0f"%(tr.density/unit.km2_m2(1.)))
-print("")
-for area,info in tr.population.items():
-    print(area,", population = ","%.0f"%info["inhab"], ", area = " "%.0f"%unit.km2_m2(info["area"])," m2")
-print("")
+    # Design the airport
+    #-----------------------------------------------------------------------------------------------------------------------
+    runway_count = 3
+    app_dist = unit.m_NM(7.)
+    town_dist = unit.m_km(8.)
+    open_slot = [unit.s_h(6.), unit.s_h(23.)]
 
-tr.airport.print_airport_design_data()
+    # Design the airport
+    ap = Airport(cat, fleet_definition, runway_count, open_slot, app_dist, town_dist)
 
-tr.airport.print_component_design_data()
 
-print("")
-print("==============================================================================")
-for seg in fleet.segment:
-    print("Daily movements (landing or take off) for ", seg, " = ", "%.0f"%airport_flows["fleet_count"][seg])
-    print("Daily passenger transported for ",seg, " = ", "%.0f"%(airport_flows["fleet_pax"][seg]))
-    print("Daily fuel equivalent kerosene delivered to ", seg, " = ", "%.0f"%(airport_flows["fleet_fuel"][seg]/1000.), " t")
+    # Design the fuel mix
+    #-----------------------------------------------------------------------------------------------------------------------
+    compressed_h2 = PowerToHydrogen(phd, "compressed_h2")
+
+    liquid_h2 = PowerToHydrogen(phd, "liquid_h2")
+
+    fuel = PowerToFuel(phd, co2_capture="air")
+
+    fuel_mix = {"compressed_h2":compressed_h2, "liquid_h2":liquid_h2, "fuel":fuel}
+
+    ren_ratio = 0.10    # Ratio of energy demand coming from renewable energies
+
+    fp = FuelMix(phd, fuel_mix, ren_ratio)
+
+
+    # Design the transport energy mix
+    #-----------------------------------------------------------------------------------------------------------------------
+    n_panel = 1.e6  # Number of panels of 2m2 in one plant (Cestas)
+    sol_pw = 250.   # W/m2, Mean solar irradiation
+    pv = PvPowerPlant(n_panel, sol_pw, reg_factor=0.50)
+
+    n_turbine = 20. # Number of turbines in one plant
+    wind = EolPowerPlant(n_turbine, "onshore")
+
+    n_core = 4      # Number of reactor in one plant
+    atom = NuclearPowerPlant(n_core)
+
+    tech_mix =  {"pv":pv,  "wind":wind, "nuclear":atom}
+    power_mix = {"pv":1.e9, "wind":1.e9, "nuclear":4.e9}
+
+    em = EnergyMix(tech_mix, power_mix)
+
+
+    # Design the territory
+    #-----------------------------------------------------------------------------------------------------------------------
+    tr = Territory(phd, ap, fp, em)
+
+
+
+            # self.pv_ratio = 0.50    # Ratio of renewable energies demand provided by photovoltaïc
+            # self.wind_ratio = 0.50  # Ratio of renewable energies demand provided by onshore wind turbines
+
+
+
+
+    # tr.draw()
+    #
+    # ap.draw()
+
+
+
+    capacity_ratio = 0.75   # Capacity ratio of the airport, 1. means that the airport is at full capacity
+
+    data_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, technology)
+
+
     print("")
-print("Daily total passenger going to or coming from the airport = ""%.0f"%(airport_flows["total_pax"]))
-print("Daily total fuel delivered = ""%.0f"%(airport_flows["total_fuel"]/1000.), " t")
-print("")
-print("Daily energy consumed by ground transport as hydrogen = ", "%.0f"%unit.MWh_J(gt_energy["hydrogen"]), " MWh")
-print("Daily energy consumed by ground transport as electricity = ", "%.0f"%unit.MWh_J(gt_energy["electric"]), " MWh")
-print("Daily energy consumed by ground transport as gasoline = ", "%.0f"%unit.MWh_J(gt_energy["gasoline"]), " MWh")
-print("")
-print("Daily energy consumed by air transport as hydrogen = ", "%.0f"%unit.MWh_J(at_energy["hydrogen"]), " MWh")
-print("Daily energy consumed by air transport as electricity = ", "%.0f"%unit.MWh_J(at_energy["battery"]), " MWh")
-print("Daily energy consumed by air transport as kerosene = ", "%.0f"%unit.MWh_J(at_energy["kerosene"]), " MWh")
+    print("==============================================================================")
+    print("Total population = ", "%.0f"%tr.inhabitant)
+    print("Total area = ", "%.0f"%unit.km2_m2(tr.area))
+    print("Total density = ", "%.0f"%(tr.density/unit.km2_m2(1.)))
+    print("")
+    for area,info in tr.population.items():
+        print(area,", population = ","%.0f"%info["inhab"], ", area = " "%.0f"%unit.km2_m2(info["area"])," m2")
+    print("")
+
+    tr.airport.print_airport_design_data()
+
+    tr.airport.print_component_design_data()
+
+    print("")
+    print("==============================================================================")
+    for seg in fleet.segment:
+        print("Daily movements (landing or take off) for ", seg, " = ", "%.0f"%data_dict["airport_flows"]["fleet_count"][seg])
+        print("Daily passenger transported for ",seg, " = ", "%.0f"%(data_dict["airport_flows"]["fleet_pax"][seg]))
+        print("Daily fuel equivalent kerosene delivered to ", seg, " = ", "%.0f"%(data_dict["airport_flows"]["fleet_fuel"][seg]/1000.), " t")
+        print("")
+    print("Daily total passenger going to or coming from the airport = ""%.0f"%(data_dict["airport_flows"]["total_pax"]))
+    print("Daily total fuel delivered = ""%.0f"%(data_dict["airport_flows"]["total_fuel"]/1000.), " t")
+    print("")
+    print("Daily energy consumed by ground transport as electricity = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["electric"]), " MWh")
+    print("Daily energy consumed by ground transport as hydrogen = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["hydrogen"]), " MWh")
+    print("Daily energy consumed by ground transport as gasoline = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["gasoline"]), " MWh")
+    print("Daily hydrogen mass consumed by ground transport = ", "%.0f"%unit.t_kg(data_dict["ground_fuel"]["hydrogen"]), " t")
+    print("Daily gasoline mass consumed by ground transport = ", "%.0f"%unit.t_kg(data_dict["ground_fuel"]["gasoline"]), " t")
+    print("")
+    print("Daily energy consumed by air transport as electricity = ", "%.0f"%unit.MWh_J(data_dict["air_energy"]["battery"]), " MWh")
+    print("Daily energy consumed by air transport as hydrogen = ", "%.0f"%unit.MWh_J(data_dict["air_energy"]["hydrogen"]), " MWh")
+    print("Daily energy consumed by air transport as kerosene = ", "%.0f"%unit.MWh_J(data_dict["air_energy"]["kerosene"]), " MWh")
+    print("Daily hydrogen mass consumed by air transport = ", "%.0f"%unit.t_kg(data_dict["air_fuel"]["hydrogen"]), " t")
+    print("Daily kerosene mass consumed by air transport = ", "%.0f"%unit.t_kg(data_dict["air_fuel"]["kerosene"]), " t")
 
 
 

@@ -273,7 +273,7 @@ class Airport(object):
     It is sized according to the characteristics of the ac_list
     """
 
-    def __init__(self, categories, ac_list, n_runway, open_slot, app_dist, town_dist):
+    def __init__(self, categories, fleet_def, n_runway, open_slot, app_dist, town_dist):
         self.cat = categories
 
         self.approach_dist = None
@@ -294,9 +294,12 @@ class Airport(object):
         self.ref_yearly_energy = None
         self.total_area = None
 
-        self.design(ac_list, n_runway, open_slot, app_dist, town_dist)
+        self.design(fleet_def, n_runway, open_slot, app_dist, town_dist)
 
-    def design(self, ac_list, n_runway, open_slot, app_dist, town_dist):
+    def design(self, fleet_def, n_runway, open_slot, app_dist, town_dist):
+
+        # Create a list with the fleet  definition dictionary
+        ac_list = [ac for k,ac in fleet_def.items()]
 
         self.town_distance = town_dist
         self.approach_dist = app_dist
@@ -452,14 +455,14 @@ class Airport(object):
     def get_flows(self, capacity_ratio, fleet, network):
 
         ac_list = []
-        for seg,ac in zip(network.keys(), fleet.aircraft):
-            ac_list.append({"ratio":network[seg]["ratio"], "npax":ac.npax})
+        for r,ac in zip(fleet.ratio, fleet.aircraft):
+            ac_list.append({"ratio":r, "npax":ac.npax})
 
         data_dict = self.get_capacity(capacity_ratio, ac_list)
 
         ac_count = {}
-        for seg in network.keys():
-            ac_count[seg] = data_dict["ac_flow"]*network[seg]["ratio"]
+        for j,seg in enumerate(fleet.segment):
+            ac_count[seg] = data_dict["ac_flow"]*fleet.ratio[j]
 
         total_fuel = 0.
         total_pax = 0.

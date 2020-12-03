@@ -543,8 +543,15 @@ class EnergyMix(object):
     def __init__(self, tech_mix, power_mix):
         self.tech_mix = tech_mix
         self.power_mix = None
-        self.n_unit = [pp.get_n_unit() for pp in self.tech_mix]
-        self.plant_power = [pp.nominal_peak_power for pp in self.tech_mix]
+
+        self.n_unit = {}
+        for k,pp in self.tech_mix.items():
+            self.n_unit[k] = pp.get_n_unit()
+
+        self.plant_power = {}
+        for k,pp in self.tech_mix.items():
+            self.plant_power[k] = pp.nominal_peak_power
+
         self.n_plant = None
 
         self.mix_peak_power = 0.
@@ -562,11 +569,15 @@ class EnergyMix(object):
 
     def update(self, power_mix):
         self.power_mix = power_mix
-        self.n_plant = [np.ceil(tpw/upw) for tpw,upw in zip(power_mix, self.plant_power)]
 
-        for j,pw in enumerate(self.power_mix):
-            plt = self.tech_mix[j]
-            upw = self.plant_power[j] / self.n_unit[j]
+        # Compute the number of power plant of each technology
+        self.n_plant = {}
+        for k,tpw in power_mix.items():
+            self.n_plant[k] = np.ceil(tpw/self.plant_power[k])
+
+        for k,pw in self.power_mix.items():
+            plt = self.tech_mix[k]
+            upw = self.plant_power[k] / self.n_unit[k]
             plt.set_n_unit(pw/upw)
             plt.update()
 
@@ -578,7 +589,7 @@ class EnergyMix(object):
         self.mix_material_grey_energy = 0.
         self.mix_mean_daily_energy = 0.
         self.mix_potential_energy_default = 0.
-        for plt in self.tech_mix:
+        for k,plt in self.tech_mix.items():
             self.mix_peak_power += plt.nominal_peak_power
             self.mix_mean_power += plt.nominal_mean_power
             self.mix_er_o_ei += plt.er_o_ei * plt.nominal_peak_power
@@ -592,9 +603,9 @@ class EnergyMix(object):
         self.mix_potential_default_ratio = self.mix_potential_energy_default / self.mix_mean_daily_energy
 
     def print(self):
-        for j,plt in enumerate(self.tech_mix):
+        for k,plt in self.tech_mix.items():
             print("")
-            print("Number of "+plt.type+" plants = ","%5.0f" % self.n_plant[j])
+            print("Number of "+plt.type+" plants = ","%5.0f" % self.n_plant[k])
             print("Footprint of all these plants = ","%8.1f" % (plt.total_footprint*1e-6)," km2")
             print("Peak power of all these plants = ","%8.3f" % (plt.nominal_peak_power*1e-9)," GWh")
             print("ERoEI of all these plants = ","%8.1f" % plt.er_o_ei)
@@ -628,26 +639,29 @@ class EnergyMix(object):
 
 
 
+
 class PowerToHydrogen(object):
 
-    def __init__(self, phd):
+    def __init__(self, phd, h2_form):
         self.phd = phd
 
+        if h2_form not in ["liquid_h2", "compressed_h2"]:
+            raise Exception("H2 state delivery is not valid, must be 'liquid_h2' or 'compressed_h2'")
+
+        self.h2_form = h2_form
         self.electrolysis_efficiency = 0.80
         self.liquefaction_efficiency = 0.65
         self.compression_efficiency = 0.85
 
-    def get_flows(self, state, h2_mass):
+    def get_flows(self, h2_mass):
         """Compute input and output to produce a given mass of H2 in gaseous form, state="compressed_h2" or in liquid form state="liquid_h2"
         """
         electrolysis_energy = self.phd.fuel_heat("liquid_h2") * h2_mass / self.electrolysis_efficiency
 
-        if state=="liquid_h2":
+        if self.h2_form=="liquid_h2":
             formating_energy = self.phd.fuel_heat("liquid_h2") * h2_mass * (1. - self.liquefaction_efficiency)
-        elif state=="compressed_h2":
+        elif self.h2_form=="compressed_h2":
             formating_energy = self.phd.fuel_heat("compressed_h2") * h2_mass * (1. - self.liquefaction_efficiency)
-        else:
-            raise Exception("H2 state delivery is not valid, must be 'liquid_h2' or 'compressed_h2'")
 
         total_energy = electrolysis_energy + formating_energy
         water_mass = 9. * h2_mass
@@ -662,9 +676,13 @@ class PowerToHydrogen(object):
 
 class PowerToFuel(object):
 
-    def __init__(self, phd):
+    def __init__(self, phd, co2_capture="air"):
         self.phd = phd
 
+        if co2_capture not in ["air", "industry"]:
+            raise Exception("CO2 capture mode is not valid, must be 'air' or 'industry'")
+
+        self.co2_capture = co2_capture
         self.production_efficiency = 0.50
 
         # Ref : Life cycle carbon efficiency of Direct Air Capture systems with strong hydroxide sorbents (keyword : DAC for Direct Air Capture)
@@ -673,7 +691,7 @@ class PowerToFuel(object):
         # Ref : Estimated value (keyword CCS for Carbon Capture and Storage)
         self.industry_co2_capture_efficiency = unit.J_kWh(35.)/unit.kg_t(1.)    # 35 kWh/t of CO2
 
-    def get_flows(self, co2_capture, fuel_mass):
+    def get_flows(self, fuel_mass):
         """Compute input and output to produce a given mass of fuel depending on the capture mode of CO2, "air" or "industry"
         industry means that the CO2 is captured directly on production sites
         Note that fuel stands for kerosene or gasoline
@@ -682,17 +700,26 @@ class PowerToFuel(object):
 
         co2_mass = (528./170.) * fuel_mass  # Assuming fuel is CnH2n+2 with n~12
 
-        if co2_capture=="air":
+        if self.co2_capture=="air":
             co2_capture_energy = self.air_co2_capture_efficiency * co2_mass
-        elif co2_capture=="industry":
+        elif self.co2_capture=="industry":
             co2_capture_energy = self.industry_co2_capture_efficiency * co2_mass
-        else:
-            raise Exception("CO2 capture mode is not valid, must be 'air' or 'industry'")
 
         total_energy = production_energy + co2_capture_energy
 
         return {"input":{"energy":total_energy, "co2_mass":co2_mass},
                 "output":{"fuel_mass":fuel_mass}}
+
+
+
+class FuelMix(object):
+
+    def __init__(self, phd, tech_mix, ren_ratio):
+        self.phd = phd
+
+        self.tech_mix = tech_mix
+        self.ren_ratio = ren_ratio
+
 
 
 
