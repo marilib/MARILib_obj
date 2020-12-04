@@ -19,7 +19,7 @@ from marilib.airport.aircraft import AirplaneCategories, Fleet
 from marilib.airport.airport import Airport
 
 from marilib.airport.power_plant import PvPowerPlant, CspPowerPlant, EolPowerPlant, NuclearPowerPlant, EnergyMix
-from marilib.airport.power_plant import PowerToFuel, PowerToHydrogen, FuelMix
+from marilib.airport.power_plant import PowerToFuel, PowerToHydrogen, PowerToElectric, FuelMix
 
 
 
@@ -452,17 +452,22 @@ if __name__ == "__main__":
     ap = Airport(cat, fleet_definition, runway_count, open_slot, app_dist, town_dist)
 
 
-    # Design the fuel mix
+    # Design the transport fuel mix
     #-----------------------------------------------------------------------------------------------------------------------
+    electric = PowerToElectric(phd)
+
     compressed_h2 = PowerToHydrogen(phd, "compressed_h2")
 
     liquid_h2 = PowerToHydrogen(phd, "liquid_h2")
 
-    fuel = PowerToFuel(phd, co2_capture="air")
+    gasoline = PowerToFuel(phd, fuel_type="gasoline", co2_capture="air")
 
-    fuel_mix = {"compressed_h2":compressed_h2, "liquid_h2":liquid_h2, "fuel":fuel}
+    kerosene = PowerToFuel(phd, fuel_type="kerosene", co2_capture="air")
 
-    ren_ratio = 0.10    # Ratio of energy demand coming from renewable energies
+    fuel_mix = {"electric":electric, "compressed_h2":compressed_h2, "liquid_h2":liquid_h2, "gasoline":gasoline, "kerosene":kerosene}
+
+    # Ratio of energy demand coming from renewable energies invested to fuel
+    ren_ratio = {"electric":1., "compressed_h2":1., "liquid_h2":1., "gasoline":1., "kerosene":1.}
 
     fp = FuelMix(phd, fuel_mix, ren_ratio)
 
@@ -479,8 +484,8 @@ if __name__ == "__main__":
     n_core = 4      # Number of reactor in one plant
     atom = NuclearPowerPlant(n_core)
 
-    tech_mix =  {"pv":pv,  "wind":wind, "nuclear":atom}
-    power_mix = {"pv":1.e9, "wind":1.e9, "nuclear":4.e9}
+    tech_mix =  {"photovoltaic":pv,   "wind_turbine":wind, "nuclear":atom}
+    power_mix = {"photovoltaic":1.e9, "wind_turbine":1.e9, "nuclear":4.e9}
 
     em = EnergyMix(tech_mix, power_mix)
 

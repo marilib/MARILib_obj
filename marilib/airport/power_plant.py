@@ -639,6 +639,21 @@ class EnergyMix(object):
 
 
 
+class PowerToElectric(object):
+
+    def __init__(self, phd):
+        self.phd = phd
+
+        self.distribution_efficiency = 0.90
+
+    def get_flows(self, output_energy):
+        """Compute input and output to produce a given mass of H2 in gaseous form, state="compressed_h2" or in liquid form state="liquid_h2"
+        """
+        input_energy = output_energy / self.distribution_efficiency
+        return {"input":{"energy":input_energy},
+                "output":{"energy":output_energy}}
+
+
 
 class PowerToHydrogen(object):
 
@@ -649,9 +664,13 @@ class PowerToHydrogen(object):
             raise Exception("H2 state delivery is not valid, must be 'liquid_h2' or 'compressed_h2'")
 
         self.h2_form = h2_form
-        self.electrolysis_efficiency = 0.80
+        self.electrolysis_efficiency = 0.70
+
         self.liquefaction_efficiency = 0.65
+        self.liquid_h2_distribution_efficiency = 0.95
+
         self.compression_efficiency = 0.85
+        self.compressed_h2_distribution_efficiency = 0.95
 
     def get_flows(self, h2_mass):
         """Compute input and output to produce a given mass of H2 in gaseous form, state="compressed_h2" or in liquid form state="liquid_h2"
@@ -660,10 +679,12 @@ class PowerToHydrogen(object):
 
         if self.h2_form=="liquid_h2":
             formating_energy = self.phd.fuel_heat("liquid_h2") * h2_mass * (1. - self.liquefaction_efficiency)
+            distribution_energy = self.phd.fuel_heat("liquid_h2") * h2_mass * (1. - self.liquid_h2_distribution_efficiency)
         elif self.h2_form=="compressed_h2":
             formating_energy = self.phd.fuel_heat("compressed_h2") * h2_mass * (1. - self.liquefaction_efficiency)
+            distribution_energy = self.phd.fuel_heat("liquid_h2") * h2_mass * (1. - self.compressed_h2_distribution_efficiency)
 
-        total_energy = electrolysis_energy + formating_energy
+        total_energy = electrolysis_energy + formating_energy + distribution_energy
         water_mass = 9. * h2_mass
         oxygen_mass = 8. * h2_mass
 
@@ -676,14 +697,16 @@ class PowerToHydrogen(object):
 
 class PowerToFuel(object):
 
-    def __init__(self, phd, co2_capture="air"):
+    def __init__(self, phd, fuel_type="kerosene", co2_capture="air"):
         self.phd = phd
 
         if co2_capture not in ["air", "industry"]:
             raise Exception("CO2 capture mode is not valid, must be 'air' or 'industry'")
 
+        self.fuel_type = fuel_type
         self.co2_capture = co2_capture
         self.production_efficiency = 0.50
+        self.distribution_efficiency = 0.98
 
         # Ref : Life cycle carbon efficiency of Direct Air Capture systems with strong hydroxide sorbents (keyword : DAC for Direct Air Capture)
         self.air_co2_capture_efficiency = unit.J_kWh(100.)/unit.kg_t(1.)    # 100 kWh/t of CO2
@@ -696,7 +719,12 @@ class PowerToFuel(object):
         industry means that the CO2 is captured directly on production sites
         Note that fuel stands for kerosene or gasoline
         """
-        production_energy = self.phd.fuel_heat("liquid_h2") * fuel_mass / self.production_efficiency
+        if self.fuel_type=="gasoline":
+            production_energy = self.phd.fuel_heat("gasoline") * fuel_mass / self.production_efficiency
+            distribution_energy = self.phd.fuel_heat("gasoline") * fuel_mass * (1. - self.distribution_efficiency)
+        elif self.fuel_type=="kerosene":
+            production_energy = self.phd.fuel_heat("kerosene") * fuel_mass / self.production_efficiency
+            distribution_energy = self.phd.fuel_heat("kerosene") * fuel_mass * (1. - self.distribution_efficiency)
 
         co2_mass = (528./170.) * fuel_mass  # Assuming fuel is CnH2n+2 with n~12
 
@@ -705,7 +733,7 @@ class PowerToFuel(object):
         elif self.co2_capture=="industry":
             co2_capture_energy = self.industry_co2_capture_efficiency * co2_mass
 
-        total_energy = production_energy + co2_capture_energy
+        total_energy = production_energy + co2_capture_energy + distribution_energy
 
         return {"input":{"energy":total_energy, "co2_mass":co2_mass},
                 "output":{"fuel_mass":fuel_mass}}
@@ -714,12 +742,26 @@ class PowerToFuel(object):
 
 class FuelMix(object):
 
-    def __init__(self, phd, tech_mix, ren_ratio):
+    def __init__(self, phd,tech_mix, ren_ratio):
         self.phd = phd
 
         self.tech_mix = tech_mix
         self.ren_ratio = ren_ratio
 
+    def set_ren_ratio(self, ren_ratio):
+        self.ren_ratio = ren_ratio
+
+    def get_fuel_flows(self, fuel_req):
+        """Compute the varius input required to satisfy the fuel demand according to the renewable energy ratio
+        Note that the fuel_req inout must be a dictionary with the same keys as tech_mix
+        """
+        flows = {"ren_electric":0.}
+        for k,fuel in self.tech_mix.items():
+            dict = fuel.get_flows(fuel_req[k])
+            flows["ren_electric"] += dict["input"]["energy"] * self.ren_ratio[k]
+            flows[k] = fuel_req[k] * (1. - self.ren_ratio[k])
+
+        return flows
 
 
 
