@@ -224,7 +224,7 @@ class Territory(object):
     Each network connects a given ratio of the habitation of each ring to the town center
     """
 
-    def __init__(self, phd, airport, fuel_plant, energy_mix):
+    def __init__(self, phd, airport, fuel_mix, energy_mix):
         self.phd = phd
 
         # Set population distribution TO BE CHECKED
@@ -274,13 +274,38 @@ class Territory(object):
 
         self.airport = airport
 
-        self.transport_fuel_plant = fuel_plant
+        self.transport_fuel_mix = fuel_mix
+
         self.transport_energy_mix = energy_mix
+
+    def design(self, town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_mix):
+
+        # Design the airport
+        self.airport.design(town_airport_dist, fleet.profile)
+
+        capacity_ratio = 1.   # Capacity ratio of the airport, 1. means that the airport is at full capacity
+
+        data_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, power_technology)
+
+
+
+        elec_ratio = {"compressed_h2":1., "liquid_h2":1., "gasoline":1., "kerosene":1.}
+
+        self.transport_fuel_mix.design(elec_ratio, fuel_mix)
+
+
+
+
+        power_mix = {"photovoltaic":0.5, "wind_turbine":0.5, "nuclear":0.}
+
+        self.transport_energy_mix.design(power_mix)
+
+
 
     def get_transport_energy(self, capacity_ratio, fleet, air_network, technology):
 
         # Compute the passenger flow
-        airport_flows = self.airport.get_flows(capacity_ratio, fleet, air_network)
+        airport_flows = self.airport.operate(capacity_ratio, fleet, air_network)
 
         # Rough evaluation of the energy consumption versus propulsive technology
         fleet_fuel = airport_flows["fleet_fuel"]
@@ -421,12 +446,12 @@ if __name__ == "__main__":
 
     # Fleet definition
     #-----------------------------------------------------------------------------------------------------------------------
-    fleet_definition = {    "regional":{"ratio":0.30, "npax":70. , "range":unit.m_NM(500.) , "mach":0.50},
-                         "short_range":{"ratio":0.50, "npax":150., "range":unit.m_NM(3000.), "mach":0.78},
-                        "medium_range":{"ratio":0.15, "npax":300., "range":unit.m_NM(5000.), "mach":0.85},
-                          "long_range":{"ratio":0.05, "npax":400., "range":unit.m_NM(7000.), "mach":0.85}}
+    fleet_profile = {    "regional":{"ratio":0.30, "npax":70. , "range":unit.m_NM(500.) , "mach":0.50},
+                      "short_range":{"ratio":0.50, "npax":150., "range":unit.m_NM(3000.), "mach":0.78},
+                     "medium_range":{"ratio":0.15, "npax":300., "range":unit.m_NM(5000.), "mach":0.85},
+                       "long_range":{"ratio":0.05, "npax":400., "range":unit.m_NM(7000.), "mach":0.85}}
 
-    fleet = Fleet(phd,cat,fleet_definition)
+    fleet = Fleet(phd,cat,fleet_profile)
 
     # Defines the load factor and the route distribution for each airplane
     air_network = {    "regional":{"load_factor":0.95, "route":[[0.25, unit.m_NM(100.)], [0.5, unit.m_NM(200.)], [0.25, unit.m_NM(400.)]]},
@@ -435,27 +460,25 @@ if __name__ == "__main__":
                      "long_range":{"load_factor":0.85, "route":[[0.25, unit.m_NM(1500.)], [0.5, unit.m_NM(5000.)], [0.25, unit.m_NM(7500.)]]}}
 
     # Defines the proportion of each technology in each aircraft type of the fleet
-    technology = {    "regional":{"battery":0., "hydrogen":0., "kerosene":1.},
-                   "short_range":{"battery":0., "hydrogen":0., "kerosene":1.},
-                  "medium_range":{"battery":0., "hydrogen":0., "kerosene":1.},
-                    "long_range":{"battery":0., "hydrogen":0., "kerosene":1.}}
+    power_technology = {    "regional":{"battery":0., "hydrogen":0., "kerosene":1.},
+                         "short_range":{"battery":0., "hydrogen":0., "kerosene":1.},
+                        "medium_range":{"battery":0., "hydrogen":0., "kerosene":1.},
+                          "long_range":{"battery":0., "hydrogen":0., "kerosene":1.}}
 
 
-    # Design the airport
+    # Airport
     #-----------------------------------------------------------------------------------------------------------------------
     runway_count = 3
     app_dist = unit.m_NM(7.)
-    town_dist = unit.m_km(8.)
     open_slot = [unit.s_h(6.), unit.s_h(23.)]
 
-    # Design the airport
-    ap = Airport(cat, fleet_definition, runway_count, open_slot, app_dist, town_dist)
+    # Instantiate an airport component
+    ap = Airport(cat, runway_count, open_slot, app_dist)
 
+    # ap is not design here, it will be design with the territory
 
-    # Design the transport fuel mix
+    # Fuel mix
     #-----------------------------------------------------------------------------------------------------------------------
-    electric = PowerToElectric(phd)
-
     compressed_h2 = PowerToHydrogen(phd, "compressed_h2")
 
     liquid_h2 = PowerToHydrogen(phd, "liquid_h2")
@@ -464,13 +487,12 @@ if __name__ == "__main__":
 
     kerosene = PowerToFuel(phd, fuel_type="kerosene", co2_capture="air")
 
-    fuel_mix = {"electric":electric, "compressed_h2":compressed_h2, "liquid_h2":liquid_h2, "gasoline":gasoline, "kerosene":kerosene}
+    fuel_mix = {"compressed_h2":compressed_h2, "liquid_h2":liquid_h2, "gasoline":gasoline, "kerosene":kerosene}
 
-    # Ratio of energy demand coming from renewable energies invested to fuel
-    ren_ratio = {"electric":1., "compressed_h2":1., "liquid_h2":1., "gasoline":1., "kerosene":1.}
+    # Instantiate a fuel mix production system component
+    fp = FuelMix(phd, fuel_mix)
 
-    fp = FuelMix(phd, fuel_mix, ren_ratio)
-
+    # fp is not design here because the amount of fuel required is not yet known
 
     # Design the transport energy mix
     #-----------------------------------------------------------------------------------------------------------------------
@@ -485,20 +507,26 @@ if __name__ == "__main__":
     atom = NuclearPowerPlant(n_core)
 
     tech_mix =  {"photovoltaic":pv,   "wind_turbine":wind, "nuclear":atom}
-    power_mix = {"photovoltaic":1.e9, "wind_turbine":1.e9, "nuclear":4.e9}
 
-    em = EnergyMix(tech_mix, power_mix)
+    # Instantiate an energy mix
+    em = EnergyMix(tech_mix)
 
+    # em is not designed here because the amount of energy required is not yet known
 
     # Design the territory
     #-----------------------------------------------------------------------------------------------------------------------
     tr = Territory(phd, ap, fp, em)
 
+    # Ratio of each fuel type produced with electricity as primary energy
+    elec_ratio = {"compressed_h2":1., "liquid_h2":1., "gasoline":1., "kerosene":1.}
 
+    # Ratio of the total electric energy demand delivered by each power plant type
+    power_mix = {"photovoltaic":0.5, "wind_turbine":0.5, "nuclear":0.}
 
-            # self.pv_ratio = 0.50    # Ratio of renewable energies demand provided by photovoltaïc
-            # self.wind_ratio = 0.50  # Ratio of renewable energies demand provided by onshore wind turbines
+    town_airport_dist = unit.m_km(8.)
 
+    # the design of tr will include the design of ap, fp and em
+    tr.design(town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_mix)
 
 
 

@@ -540,19 +540,14 @@ class NuclearPowerPlant(PowerPlant):
 
 class EnergyMix(object):
 
-    def __init__(self, tech_mix, power_mix):
+    def __init__(self, tech_mix):
         self.tech_mix = tech_mix
         self.power_mix = None
 
-        self.n_unit = {}
-        for k,pp in self.tech_mix.items():
-            self.n_unit[k] = pp.get_n_unit()
+        self.n_unit = {}        # Number of production unit in each power plant type
+        self.plant_power = {}   # Nominal peak power of each power plant type
 
-        self.plant_power = {}
-        for k,pp in self.tech_mix.items():
-            self.plant_power[k] = pp.nominal_peak_power
-
-        self.n_plant = None
+        self.n_plant = {}       # Number of plant required for each type
 
         self.mix_peak_power = 0.
         self.mix_mean_power = 0.
@@ -565,10 +560,14 @@ class EnergyMix(object):
         self.mix_potential_energy_default = 0.
         self.mix_potential_default_ratio = 0.
 
-        self.update(power_mix)
-
-    def update(self, power_mix):
+    def design(self, power_mix):
         self.power_mix = power_mix
+
+        for k,pp in self.tech_mix.items():
+            self.n_unit[k] = pp.get_n_unit()
+
+        for k,pp in self.tech_mix.items():
+            self.plant_power[k] = pp.nominal_peak_power
 
         # Compute the number of power plant of each technology
         self.n_plant = {}
@@ -742,24 +741,34 @@ class PowerToFuel(object):
 
 class FuelMix(object):
 
-    def __init__(self, phd,tech_mix, ren_ratio):
+    def __init__(self, phd, tech_mix):
         self.phd = phd
 
+        # Dictionary of the differents power plant productions of the mix
+        # tech_mix is of the form : {"compressed_h2":PowerToH2, "liquid_h2":PowerToH2, "gasoline":PowerToFuel, "kerosene":PowerToFuel}
         self.tech_mix = tech_mix
-        self.ren_ratio = ren_ratio
 
-    def set_ren_ratio(self, ren_ratio):
-        self.ren_ratio = ren_ratio
+        # Dictionary, for each fuel type, the maximum daily production
+        # ren_ratio is of the form : {"compressed_h2":m1, "liquid_h2":m2, "gasoline":m3, "kerosene":m4}
+        self.fuel_mix = None
 
-    def get_fuel_flows(self, fuel_req):
+        # Ratio of each fuel type produced with electricity as primary energy
+        self.elec_ratio = None
+
+    def design(self, elec_ratio, fuel_mix):
+        # This method is empty because
+        self.elec_ratio = elec_ratio
+        self.fuel_mix = fuel_mix
+
+    def operate(self, fuel_req):
         """Compute the varius input required to satisfy the fuel demand according to the renewable energy ratio
         Note that the fuel_req inout must be a dictionary with the same keys as tech_mix
         """
-        flows = {"ren_electric":0.}
+        flows = {"electric":0.}
         for k,fuel in self.tech_mix.items():
             dict = fuel.get_flows(fuel_req[k])
-            flows["ren_electric"] += dict["input"]["energy"] * self.ren_ratio[k]
-            flows[k] = fuel_req[k] * (1. - self.ren_ratio[k])
+            flows["electric"] += dict["input"]["energy"] * self.elec_ratio[k]
+            flows[k] = fuel_req[k] * (1. - self.elec_ratio[k])
 
         return flows
 

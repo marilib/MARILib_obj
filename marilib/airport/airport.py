@@ -273,12 +273,15 @@ class Airport(object):
     It is sized according to the characteristics of the ac_list
     """
 
-    def __init__(self, categories, fleet_def, n_runway, open_slot, app_dist, town_dist):
+    def __init__(self, categories, runway_count, open_slot, app_dist):
         self.cat = categories
 
-        self.approach_dist = None
-        self.open_slot = None
-        self.open_time = None
+        self.runway_count = runway_count
+        self.approach_dist = app_dist
+        self.open_slot = open_slot
+        self.open_time = open_slot[1] - open_slot[0]
+
+        self.town_distance = None
 
         self.max_passenger_capacity = None
         self.max_airplane_capacity = None
@@ -294,21 +297,17 @@ class Airport(object):
         self.ref_yearly_energy = None
         self.total_area = None
 
-        self.design(fleet_def, n_runway, open_slot, app_dist, town_dist)
+    # Iterator to be able to loop over all airport components
+    def __iter__(self):
+        public = [value for value in self.__dict__.values() if issubclass(type(value),AirportComponent)]
+        return iter(public)
 
-    def design(self, fleet_def, n_runway, open_slot, app_dist, town_dist):
+    def design(self, town_dist, fleet_def):
 
         # Create a list with the fleet  definition dictionary
         ac_list = [ac for k,ac in fleet_def.items()]
 
         self.town_distance = town_dist
-        self.approach_dist = app_dist
-        self.open_slot = open_slot
-
-        open_time = open_slot[1] - open_slot[0]
-        self.open_time = open_time
-
-        self.overall_width = unit.m_km(4.)
 
         # Build the airport
         #---------------------------------------------------------------------------------------------------------------
@@ -317,10 +316,12 @@ class Airport(object):
         for ac in ac_list:
             max_rnw_length = max(max_rnw_length, self.cat.get_data_from_pax("tofl", ac["npax"])[1])
 
+        self.overall_width = max_rnw_length
+
         # Load runway component
-        self.runway = Runways(n_runway, max_rnw_length, open_time)
+        self.runway = Runways(self.runway_count, max_rnw_length, self.open_time)
         # Load taxiway component
-        self.taxiway = TaxiWays(max_rnw_length, open_time)
+        self.taxiway = TaxiWays(max_rnw_length, self.open_time)
 
         # Get mean aircraft span according to ac_list
         mean_ac_span = 0.
@@ -332,20 +333,20 @@ class Airport(object):
 
         max_pax_flow = data_dict["pax_flow"]
         # Load terminal component
-        self.terminal = Terminals(max_pax_flow, open_time)
+        self.terminal = Terminals(max_pax_flow, self.open_time)
 
         max_ac_flow = data_dict["ac_flow"]
         terminal_length = self.terminal.area_length
         terminal_width = self.terminal.area_width
 
         # Load air parks component
-        self.air_parks = AirParks(max_ac_flow, mean_ac_span, terminal_length, terminal_width, open_time)
+        self.air_parks = AirParks(max_ac_flow, mean_ac_span, terminal_length, terminal_width, self.open_time)
 
         # Load radar service components
-        self.radar_station = RadarStation(open_time)
+        self.radar_station = RadarStation(self.open_time)
 
         # Load air service components
-        self.air_service = AirService(max_ac_flow, mean_ac_span, open_time)
+        self.air_service = AirService(max_ac_flow, mean_ac_span, self.open_time)
 
         self.car_parks = CarParks(max_pax_flow)
 
@@ -385,10 +386,41 @@ class Airport(object):
         self.ref_yearly_energy = daily_energy*365.
         self.total_area = total_area
 
-    # Iterator to be able to loop over all airport components
-    def __iter__(self):
-        public = [value for value in self.__dict__.values() if issubclass(type(value),AirportComponent)]
-        return iter(public)
+    def operate(self, capacity_ratio, fleet, network):
+
+        ac_list = []
+        for r,ac in zip(fleet.ratio, fleet.aircraft):
+            ac_list.append({"ratio":r, "npax":ac.npax})
+
+        data_dict = self.get_capacity(capacity_ratio, ac_list)
+
+        ac_count = {}
+        for j,seg in enumerate(fleet.segment):
+            ac_count[seg] = data_dict["ac_flow"]*fleet.ratio[j]
+
+        total_fuel = 0.
+        total_pax = 0.
+        ac_fuel = {}
+        ac_pax = {}
+        for seg,ac in zip(network.keys(), fleet.aircraft):
+            ac_fuel[seg] = 0.
+            ac_pax[seg] = 0.
+            for route in network[seg]["route"]:
+                npax = network[seg]["load_factor"] * ac.npax    # Current number of passenger
+                ac_pax[seg] += npax * (ac_count[seg] * route[0])       # pax on the route * Number of AC on this route
+                dist = route[1]
+                fuel,time,tow = ac.operation(npax,dist)
+                ac_fuel[seg] += fuel * ac_count[seg] * route[0]        # Fuel on the route * Number of AC on this route
+            total_fuel += ac_fuel[seg]
+            total_pax += ac_pax[seg]
+
+        data_dict["fleet_count"] = ac_count     # Number of aircraft of each category in the fleet
+        data_dict["fleet_fuel"] = ac_fuel       # Fuel consumed by aircraft of each category in the fleet
+        data_dict["fleet_pax"] = ac_pax         # Number of passengers taken by aircraft of each category in the fleet
+        data_dict["total_fuel"] = total_fuel    # Total fuel delivered to the fleet
+        data_dict["total_pax"] = total_pax      # Total number of passenger dropped or taken by the fleet
+
+        return data_dict
 
     def get_capacity(self, capacity_ratio, ac_list):
         """Evaluate airplane, passenger flow and the mean occupation time of one runway according to the aircraft distribution
@@ -451,42 +483,6 @@ class Airport(object):
                 "mean_to_ot":mean_take_off_ot}
 
         return dict
-
-    def get_flows(self, capacity_ratio, fleet, network):
-
-        ac_list = []
-        for r,ac in zip(fleet.ratio, fleet.aircraft):
-            ac_list.append({"ratio":r, "npax":ac.npax})
-
-        data_dict = self.get_capacity(capacity_ratio, ac_list)
-
-        ac_count = {}
-        for j,seg in enumerate(fleet.segment):
-            ac_count[seg] = data_dict["ac_flow"]*fleet.ratio[j]
-
-        total_fuel = 0.
-        total_pax = 0.
-        ac_fuel = {}
-        ac_pax = {}
-        for seg,ac in zip(network.keys(), fleet.aircraft):
-            ac_fuel[seg] = 0.
-            ac_pax[seg] = 0.
-            for route in network[seg]["route"]:
-                npax = network[seg]["load_factor"] * ac.npax    # Current number of passenger
-                ac_pax[seg] += npax * (ac_count[seg] * route[0])       # pax on the route * Number of AC on this route
-                dist = route[1]
-                fuel,time,tow = ac.operation(npax,dist)
-                ac_fuel[seg] += fuel * ac_count[seg] * route[0]        # Fuel on the route * Number of AC on this route
-            total_fuel += ac_fuel[seg]
-            total_pax += ac_pax[seg]
-
-        data_dict["fleet_count"] = ac_count     # Number of aircraft of each category in the fleet
-        data_dict["fleet_fuel"] = ac_fuel       # Fuel consumed by aircraft of each category in the fleet
-        data_dict["fleet_pax"] = ac_pax         # Number of passengers taken by aircraft of each category in the fleet
-        data_dict["total_fuel"] = total_fuel    # Total fuel delivered to the fleet
-        data_dict["total_pax"] = total_pax      # Total number of passenger dropped or taken by the fleet
-
-        return data_dict
 
     def print_airport_design_data(self):
         """Print airport characteristics
