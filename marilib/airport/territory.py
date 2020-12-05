@@ -11,6 +11,7 @@ Created on August 20 20:20:20 2020
 import numpy as np
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as pat
 
 from marilib.utils import unit
 
@@ -19,7 +20,7 @@ from marilib.airport.aircraft import AirplaneCategories, Fleet
 from marilib.airport.airport import Airport
 
 from marilib.airport.power_plant import PvPowerPlant, CspPowerPlant, EolPowerPlant, NuclearPowerPlant, EnergyMix
-from marilib.airport.power_plant import PowerToFuel, PowerToHydrogen, PowerToElectric, FuelMix
+from marilib.airport.power_plant import PowerToFuel, PowerToHydrogen, FuelMix
 
 
 
@@ -96,7 +97,7 @@ class TrainFleet(object):
     def get_travel_energy(self, pass_flow, distance):
         n_set = pass_flow / (self.capacity * self.load_factor)
         elec = n_set * distance * self.efficiency
-        energy = {"hydrogen":0., "electric":elec, "gasoline":0.}
+        energy = {"electricity":elec}
         return energy
 
 
@@ -122,7 +123,7 @@ class BusFleet(object):
         h = 0.
         b = 0.
         g = 1.-h-b
-        self.fleet = {"hydrogen":h, "electric":b, "gasoline":g}    # Proportion of each type in taxi fleet
+        self.fleet = {"electricity":b, "compressed_h2":h, "gasoline":g}    # Proportion of each type in taxi fleet
 
         self.capacity = 100.        # passengers
         self.load_factor = 0.50     # Mean load factor within a day
@@ -131,17 +132,17 @@ class BusFleet(object):
         gas_eff = (32.)*1.e-8*self.phd.fuel_density("gasoline")*self.phd.fuel_heat("gasoline")  # 32. L/100km
         gh2_eff = gas_eff * (0.30/0.45)
         bat_eff = gas_eff * (0.30/0.90)
-        self.efficiency = {"hydrogen":gh2_eff, "electric":bat_eff, "gasoline":gas_eff}    # J/m
+        self.efficiency = {"electricity":bat_eff, "compressed_h2":gh2_eff, "gasoline":gas_eff}    # J/m
 
     def set_energy_ratio(self, hydrogen, battery):
-        self.fleet["hydrogen"] = hydrogen
-        self.fleet["electric"] = battery
+        self.fleet["compressed_h2"] = hydrogen
+        self.fleet["electricity"] = battery
         self.fleet["gasoline"] = 1. - hydrogen - battery
 
     def get_travel_energy(self, pass_flow, distance):
         n_bus = pass_flow / (self.capacity * self.load_factor)
         pk = n_bus * distance
-        energy = {"hydrogen":0., "electric":0., "gasoline":0.}
+        energy = {"electricity":0., "compressed_h2":0., "gasoline":0.}
         for type in self.fleet.keys():
             energy[type] = pk * self.efficiency[type] * self.fleet[type]
         return energy
@@ -156,7 +157,7 @@ class TaxiFleet(object):
         h = 0.
         b = 0.05
         g = 1.-h-b
-        self.fleet = {"hydrogen":h, "electric":b, "gasoline":g}    # Proportion of each type in taxi fleet
+        self.fleet = {"electricity":b, "compressed_h2":h, "gasoline":g}    # Proportion of each type in taxi fleet
 
         self.capacity = 1.    # passenger
 
@@ -164,16 +165,16 @@ class TaxiFleet(object):
         gas_eff = (7.)*1.e-8*self.phd.fuel_density("gasoline")*self.phd.fuel_heat("gasoline")  # 7. L/100km
         gh2_eff = gas_eff * (0.30/0.45)
         bat_eff = gas_eff * (0.30/0.90)
-        self.efficiency = {"hydrogen":gh2_eff, "electric":bat_eff, "gasoline":gas_eff}    # J/m
+        self.efficiency = {"electricity":bat_eff, "compressed_h2":gh2_eff, "gasoline":gas_eff}    # J/m
 
     def set_energy_ratio(self, hydrogen, battery):
-        self.fleet["hydrogen"] = hydrogen
-        self.fleet["electric"] = battery
+        self.fleet["compressed_h2"] = hydrogen
+        self.fleet["electricity"] = battery
         self.fleet["gasoline"] = 1. - hydrogen - battery
 
     def get_travel_energy(self, pass_flow, distance):
         pk = pass_flow * distance
-        energy = {"hydrogen":0., "electric":0., "gasoline":0.}
+        energy = {"electricity":0., "compressed_h2":0., "gasoline":0.}
         for type in self.fleet.keys():
             energy[type] = pk * self.efficiency[type] * self.fleet[type]
         return energy
@@ -188,7 +189,7 @@ class CarFleet(object):
         h = 0.
         b = 0.01
         g = 1.-h-b
-        self.fleet = {"hydrogen":h, "electric":b, "gasoline":g}    # Proportion of each type in taxi fleet
+        self.fleet = {"electricity":b, "compressed_h2":h, "gasoline":g}    # Proportion of each type in taxi fleet
 
         self.capacity = 1.1    # passenger
 
@@ -196,16 +197,16 @@ class CarFleet(object):
         gas_eff = (7.)*1.e-8*self.phd.fuel_density("gasoline")*self.phd.fuel_heat("gasoline")  # 7. L/100km
         gh2_eff = gas_eff * (0.30/0.45)
         bat_eff = gas_eff * (0.30/0.90)
-        self.efficiency = {"hydrogen":gh2_eff, "electric":bat_eff, "gasoline":gas_eff}    # J/m
+        self.efficiency = {"electricity":bat_eff, "compressed_h2":gh2_eff, "gasoline":gas_eff}    # J/m
 
     def set_energy_ratio(self, hydrogen, battery):
-        self.fleet["hydrogen"] = hydrogen
-        self.fleet["electric"] = battery
+        self.fleet["compressed_h2"] = hydrogen
+        self.fleet["electricity"] = battery
         self.fleet["gasoline"] = 1. - hydrogen - battery
 
     def get_travel_energy(self, pass_flow, distance):
         pk = pass_flow * distance
-        energy = {"hydrogen":0., "electric":0., "gasoline":0.}
+        energy = {"electricity":0., "compressed_h2":0., "gasoline":0.}
         for type in self.fleet.keys():
             energy[type] = pk * self.efficiency[type] * self.fleet[type]
         return energy
@@ -227,14 +228,17 @@ class Territory(object):
     def __init__(self, phd, airport, fuel_mix, energy_mix):
         self.phd = phd
 
+        # Maximum distance where people are likely to use town services
+        self.influence_radius = unit.m_km(100.)
+
         # Set population distribution TO BE CHECKED
-        self.population = {"town": {"radius": 6.1e3,
+        self.population = {"town": {"radius": unit.m_km(6.1),
                                     "density": 4050./unit.m2_km2(1.)},
-                           "ring1": {"radius": 12.1e3,
+                           "ring1": {"radius": unit.m_km(12.1),
                                      "density": 850./unit.m2_km2(1.)},
-                           "ring2": {"radius": 22.e3,
+                           "ring2": {"radius": unit.m_km(22.),
                                      "density": 200./unit.m2_km2(1.)},
-                           "ring3": {"radius": 40.e3,
+                           "ring3": {"radius": unit.m_km(40.),
                                      "density": 100./unit.m2_km2(1.)}
                            }
 
@@ -277,40 +281,58 @@ class Territory(object):
         self.transport_fuel_mix = fuel_mix
 
         self.transport_energy_mix = energy_mix
+        self.power_ratio = None
 
-    def design(self, town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_ratio, load_factor):
+    def design(self, town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_ratio):
 
         # Design the airport
         self.airport.design(town_airport_dist, fleet.profile)
 
         capacity_ratio = 0.5   # Capacity ratio of the airport, 1. means that the airport is at full capacity
 
-        data_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, power_technology)
+        energy_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, power_technology)
 
-        air_fuel = data_dict["air_fuel"]
-        ground_fuel = data_dict["ground_fuel"]
+        air_fuel = energy_dict["air_fuel"]
+        ground_fuel = energy_dict["ground_fuel"]
 
         fuel_mix = {}
-
-        fuel_mix["compressed_h2"] = ground_fuel["hydrogen"]
-        fuel_mix["gasoline"] = ground_fuel["gasoline"]
-
-        fuel_mix["liquid_h2"] = air_fuel["hydrogen"]
-        fuel_mix["kerosene"] = air_fuel["kerosene"]
+        for f in ground_fuel.keys():
+            fuel_mix[f] = ground_fuel[f]
+        for f in air_fuel.keys():
+            fuel_mix[f] = air_fuel[f]
 
         data_dict = self.transport_fuel_mix.design(elec_ratio, fuel_mix)
 
-        total_power = data_dict["electric"] / (3600. * 24.)    # Energy per day must be converted into mean power
+        total_power = data_dict["electricity"] / (3600. * 24.)    # Energy per day must be converted into mean power
+
+        self.power_ratio = power_ratio
 
         power_mix = {}
-        for k in power_ratio.keys():
-            power_mix[k] = total_power * power_ratio[k]
+        for k,pr in self.power_ratio.items():
+            power_mix[k] = total_power * pr
+
+        load_factor = 1.
 
         self.transport_energy_mix.design(load_factor, power_mix)
 
+    def get_air_transport_fuel_flow(self, capacity_ratio, fleet, air_network, power_technology):
 
+        energy_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, power_technology)
 
+        air_fuel = energy_dict["air_fuel"]
+        ground_fuel = energy_dict["ground_fuel"]
 
+        fuel_mix = {}
+        for f in ground_fuel.keys():
+            fuel_mix[f] = ground_fuel[f]
+        for f in air_fuel.keys():
+            fuel_mix[f] = air_fuel[f]
+
+        data_dict = self.transport_fuel_mix.operate(fuel_mix)
+
+        energy_dict["total_flows"] = data_dict
+
+        return energy_dict
 
 
     def get_transport_energy(self, capacity_ratio, fleet, air_network, technology):
@@ -321,18 +343,19 @@ class Territory(object):
         # Rough evaluation of the energy consumption versus propulsive technology
         fleet_fuel = airport_flows["fleet_fuel"]
 
-        at_energy = {"battery":0., "hydrogen":0., "kerosene":0.}
+        # All energies consumed by airplanes
+        at_energy = {"electricity":0., "compressed_h2":0., "liquid_h2":0., "kerosene":0.}
 
         # Relative efficiency versus kerosene
-        relative_efficiency = {"battery":0.36/0.95, "hydrogen":0.36/0.55, "kerosene":1.}
+        relative_efficiency = {"electricity":0.36/0.95, "compressed_h2":0.36/0.55, "liquid_h2":0.36/0.55, "kerosene":1.}
 
         for seg,tech in technology.items():
-            for type in at_energy.keys():
+            for type in tech.keys():
                 at_energy[type] = fleet_fuel[seg] * self.phd.fuel_heat("kerosene") * tech[type] * relative_efficiency[type]
 
-        at_fuel = {"hydrogen":0., "kerosene":0.}
-        at_fuel["hydrogen"] = at_energy["hydrogen"] / self.phd.fuel_heat("liquid_h2")
-        at_fuel["kerosene"] = at_energy["kerosene"] / self.phd.fuel_heat("kerosene")
+        at_fuel = {"compressed_h2":0., "liquid_h2":0., "kerosene":0.}
+        for f in at_fuel.keys():
+            at_fuel[f] = at_energy[f] / self.phd.fuel_heat(f)
 
         # Number of passenger going to AND coming from the airport
         pass_flow = airport_flows["total_pax"] * 2
@@ -364,14 +387,14 @@ class Territory(object):
             offer[area]["train"] = self.rail_network.coverage[area] / total
 
         # All energies consumed by passengers coming from or going to the airport will be summed
-        gt_energy = {"electric":0., "hydrogen":0., "gasoline":0.}
+        gt_energy = {"electricity":0., "compressed_h2":0., "liquid_h2":0., "gasoline":0.}
 
         # Energies consumed by taxis
         for area in offer.keys():
             pass_flow = taxi_pass_flow * self.population[area]["prob"]
             distance = road_dist[area]
             enrg = self.taxi_fleet.get_travel_energy(pass_flow, distance)
-            for type in gt_energy.keys():
+            for type in enrg.keys():
                 gt_energy[type] += enrg[type]
 
         # Energies consumed by others transportation means
@@ -381,28 +404,40 @@ class Territory(object):
             pass_flow = cbtr_pass_flow * self.population[area]["prob"] * offer[area]["car"]
             distance = road_dist[area]
             enrg = self.car_fleet.get_travel_energy(pass_flow, distance)
-            for type in gt_energy.keys():
+            for type in enrg.keys():
                 gt_energy[type] += enrg[type]
 
             # Energy consumed by busses
             pass_flow = cbtr_pass_flow * self.population[area]["prob"] * offer[area]["bus"]
             distance = road_dist[area]
             enrg = self.bus_fleet.get_travel_energy(pass_flow, distance)
-            for type in gt_energy.keys():
+            for type in enrg.keys():
                 gt_energy[type] += enrg[type]
 
             # Energy consumed by trains
             pass_flow = cbtr_pass_flow * self.population[area]["prob"] * offer[area]["train"]
             distance = rail_dist[area]
             enrg = self.train_fleet.get_travel_energy(pass_flow, distance)
-            for type in gt_energy.keys():
+            for type in enrg.keys():
                 gt_energy[type] += enrg[type]
 
-        gt_fuel = {"hydrogen":0., "gasoline":0.}
-        gt_fuel["hydrogen"] = gt_energy["hydrogen"] / self.phd.fuel_heat("compressed_h2")
-        gt_fuel["gasoline"] = gt_energy["gasoline"] / self.phd.fuel_heat("gasoline")
+        gt_fuel = {"compressed_h2":0., "liquid_h2":0., "gasoline":0.}
+        for f in gt_fuel.keys():
+            gt_fuel[f] = gt_energy[f] / self.phd.fuel_heat(f)
 
         return {"airport_flows":airport_flows, "air_energy":at_energy, "air_fuel":at_fuel, "ground_energy":gt_energy, "ground_fuel":gt_fuel}
+
+    def print(self):
+        print("Territory")
+        print("==============================================================================")
+        print("Total population = ", "%.0f"%self.inhabitant)
+        print("Total area = ", "%.0f"%unit.km2_m2(self.area))
+        print("Total density = ", "%.0f"%(self.density/unit.km2_m2(1.)))
+        print("")
+        for area,info in self.population.items():
+            print(area,", population = ","%.0f"%info["inhab"], ", area = " "%.0f"%unit.km2_m2(info["area"])," m2")
+        print("")
+
 
     def draw(self):
         """Draw the territory
@@ -410,9 +445,9 @@ class Territory(object):
         window_title = "My Territory"
         plot_title = "This territory"
 
-        xmax = 55.
-        ymax = 55.
-        margin = 20.
+        xmax = 120.
+        ymax = 120.
+        margin = 0.
 
         origin = (0., 0.)
 
@@ -423,6 +458,7 @@ class Territory(object):
         axes.set_xbound(-xmax, xmax+margin)
         axes.set_ybound(-ymax, ymax)
 
+        ring4 = plt.Circle(origin, unit.km_m(self.influence_radius), color="whitesmoke", label="Influence")
         ring3 = plt.Circle(origin, unit.km_m(self.population["ring3"]["radius"]), color="palegreen", label="%.0f"%(self.population["ring3"]["density"]/unit.km2_m2(1.)))
         ring2 = plt.Circle(origin, unit.km_m(self.population["ring2"]["radius"]), color="lightblue", label="%.0f"%(self.population["ring2"]["density"]/unit.km2_m2(1.)))
         ring1 = plt.Circle(origin, unit.km_m(self.population["ring1"]["radius"]), color="plum", label="%.0f"%(self.population["ring1"]["density"]/unit.km2_m2(1.)))
@@ -434,6 +470,19 @@ class Territory(object):
                        origin[1]+unit.km_m(self.airport.town_distance*np.cos(airport_azimut)))
 
         airport = plt.Circle(airport_loc, unit.km_m(0.5*self.airport.overall_width), color="red", label="Airport")
+
+
+        area_pv = tr.transport_energy_mix.tech_mix["photovoltaic"].total_footprint
+        area_wt = unit.km2_m2(tr.transport_energy_mix.tech_mix["wind_turbine"].total_footprint)
+        rr = 0.75
+        radius = (1.-rr)*unit.km_m(self.population["ring3"]["radius"]) + rr*unit.km_m(self.influence_radius)
+        width = 0.25*unit.km_m(self.influence_radius - self.population["ring3"]["radius"])
+        theta1 = 90.
+        theta2 = theta1 + (360.*area_wt) / (np.pi*width*(2.*radius-width))
+        wedge = pat.Wedge(origin, radius, theta1, theta2, width=width, color="palegoldenrod")
+
+        axes.add_artist(ring4)
+        axes.add_artist(wedge)
 
         axes.add_artist(ring3)
         axes.add_artist(ring2)
@@ -471,10 +520,10 @@ if __name__ == "__main__":
                      "long_range":{"load_factor":0.85, "route":[[0.25, unit.m_NM(1500.)], [0.5, unit.m_NM(5000.)], [0.25, unit.m_NM(7500.)]]}}
 
     # Defines the proportion of each technology in each aircraft type of the fleet
-    power_technology = {    "regional":{"battery":0., "hydrogen":0., "kerosene":1.},
-                         "short_range":{"battery":0., "hydrogen":0., "kerosene":1.},
-                        "medium_range":{"battery":0., "hydrogen":0., "kerosene":1.},
-                          "long_range":{"battery":0., "hydrogen":0., "kerosene":1.}}
+    power_technology = {    "regional":{"electricity":0., "liquid_h2":0., "kerosene":1.},
+                         "short_range":{"electricity":0., "liquid_h2":0., "kerosene":1.},
+                        "medium_range":{"electricity":0., "liquid_h2":0., "kerosene":1.},
+                          "long_range":{"electricity":0., "liquid_h2":0., "kerosene":1.}}
 
 
     # Airport
@@ -488,7 +537,8 @@ if __name__ == "__main__":
 
     # ap is not design here, it will be design with the territory
 
-    # Fuel mix
+
+    # Air transport fuel mix
     #-----------------------------------------------------------------------------------------------------------------------
     compressed_h2 = PowerToHydrogen(phd, "compressed_h2")
 
@@ -505,7 +555,8 @@ if __name__ == "__main__":
 
     # fp is not design here because the amount of fuel required is not yet known
 
-    # Design the transport energy mix
+
+    # Air transport energy mix
     #-----------------------------------------------------------------------------------------------------------------------
     n_panel = 1.e6  # Number of panels of 2m2 in one plant (Cestas)
     sol_pw = 250.   # W/m2, Mean solar irradiation
@@ -524,7 +575,8 @@ if __name__ == "__main__":
 
     # em is not designed here because the amount of energy required is not yet known
 
-    # Design the territory
+
+    # Territory
     #-----------------------------------------------------------------------------------------------------------------------
     tr = Territory(phd, ap, fp, em)
 
@@ -534,61 +586,60 @@ if __name__ == "__main__":
     # Ratio of the total electric energy demand delivered by each power plant type
     power_ratio = {"photovoltaic":0.85, "wind_turbine":0.15}
 
-    load_factor = 1.
-
     town_airport_dist = unit.m_km(8.)
 
     # the design of tr will include the design of ap, fp and em
-    tr.design(town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_ratio, load_factor)
+    tr.design(town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_ratio)
 
-    tr.transport_energy_mix.print()
-
-    tr.draw()
-
-    # ap.draw()
-
-
-
-    capacity_ratio = 0.75   # Capacity ratio of the airport, 1. means that the airport is at full capacity
-
-    data_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, power_technology)
-
-
-    print("")
-    print("==============================================================================")
-    print("Total population = ", "%.0f"%tr.inhabitant)
-    print("Total area = ", "%.0f"%unit.km2_m2(tr.area))
-    print("Total density = ", "%.0f"%(tr.density/unit.km2_m2(1.)))
-    print("")
-    for area,info in tr.population.items():
-        print(area,", population = ","%.0f"%info["inhab"], ", area = " "%.0f"%unit.km2_m2(info["area"])," m2")
-    print("")
 
     tr.airport.print_airport_design_data()
-
     tr.airport.print_component_design_data()
+    ap.draw()
 
-    print("")
+    tr.print()
+    tr.transport_energy_mix.print()
+    tr.draw()
+
+
+
+
+
+
+
+
+    # Print One day of air transport operation
+    #-------------------------------------------------------------------------------------------------------------------
+    capacity_ratio = 0.75   # Capacity ratio of the airport, 1. means that the airport is at full capacity
+
+    data_dict = tr.get_air_transport_fuel_flow(capacity_ratio, fleet, air_network, power_technology)
+
+    print("One day of air transport operation")
     print("==============================================================================")
     for seg in fleet.segment:
-        print("Daily movements (landing or take off) for ", seg, " = ", "%.0f"%data_dict["airport_flows"]["fleet_count"][seg])
-        print("Daily passenger transported for ",seg, " = ", "%.0f"%(data_dict["airport_flows"]["fleet_pax"][seg]))
-        print("Daily fuel equivalent kerosene delivered to ", seg, " = ", "%.0f"%(data_dict["airport_flows"]["fleet_fuel"][seg]/1000.), " t")
+        print("Airplane movements (landing or take off) for ", seg, " = ", "%.0f"%data_dict["airport_flows"]["fleet_count"][seg])
+        print("Passenger transported by ",seg, " = ", "%.0f"%(data_dict["airport_flows"]["fleet_pax"][seg]))
+        print("Fuel equivalent kerosene delivered to ", seg, " = ", "%.0f"%(data_dict["airport_flows"]["fleet_fuel"][seg]/1000.), " t")
         print("")
-    print("Daily total passenger going to or coming from the airport = ""%.0f"%(data_dict["airport_flows"]["total_pax"]))
-    print("Daily total fuel delivered = ""%.0f"%(data_dict["airport_flows"]["total_fuel"]/1000.), " t")
+    print("Total passenger going to or coming from the airport = ""%.0f"%(data_dict["airport_flows"]["total_pax"]))
+    print("Total fuel delivered = ""%.0f"%(data_dict["airport_flows"]["total_fuel"]/1000.), " t")
     print("")
-    print("Daily energy consumed by ground transport as electricity = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["electric"]), " MWh")
-    print("Daily energy consumed by ground transport as hydrogen = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["hydrogen"]), " MWh")
-    print("Daily energy consumed by ground transport as gasoline = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["gasoline"]), " MWh")
-    print("Daily hydrogen mass consumed by ground transport = ", "%.0f"%unit.t_kg(data_dict["ground_fuel"]["hydrogen"]), " t")
-    print("Daily gasoline mass consumed by ground transport = ", "%.0f"%unit.t_kg(data_dict["ground_fuel"]["gasoline"]), " t")
+    print("Energy consumed by ground transport as electricity = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["electricity"]), " MWh")
+    print("Energy consumed by ground transport as compressed hydrogen = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["compressed_h2"]), " MWh")
+    print("Energy consumed by ground transport as liquid hydrogen = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["liquid_h2"]), " MWh")
+    print("Energy consumed by ground transport as gasoline = ", "%.0f"%unit.MWh_J(data_dict["ground_energy"]["gasoline"]), " MWh")
+    print("Total hydrogen mass consumed by ground transport = ", "%.0f"%unit.t_kg(data_dict["ground_fuel"]["liquid_h2"]), " t")
+    print("Total gasoline mass consumed by ground transport = ", "%.0f"%unit.t_kg(data_dict["ground_fuel"]["gasoline"]), " t")
     print("")
-    print("Daily energy consumed by air transport as electricity = ", "%.0f"%unit.MWh_J(data_dict["air_energy"]["battery"]), " MWh")
-    print("Daily energy consumed by air transport as hydrogen = ", "%.0f"%unit.MWh_J(data_dict["air_energy"]["hydrogen"]), " MWh")
-    print("Daily energy consumed by air transport as kerosene = ", "%.0f"%unit.MWh_J(data_dict["air_energy"]["kerosene"]), " MWh")
-    print("Daily hydrogen mass consumed by air transport = ", "%.0f"%unit.t_kg(data_dict["air_fuel"]["hydrogen"]), " t")
-    print("Daily kerosene mass consumed by air transport = ", "%.0f"%unit.t_kg(data_dict["air_fuel"]["kerosene"]), " t")
+    print("Energy consumed by air transport as electricity = ", "%.0f"%unit.MWh_J(data_dict["air_energy"]["electricity"]), " MWh")
+    print("Energy consumed by air transport as hydrogen = ", "%.0f"%unit.MWh_J(data_dict["air_energy"]["liquid_h2"]), " MWh")
+    print("Energy consumed by air transport as kerosene = ", "%.0f"%unit.MWh_J(data_dict["air_energy"]["kerosene"]), " MWh")
+    print("Total hydrogen mass consumed by air transport = ", "%.0f"%unit.t_kg(data_dict["air_fuel"]["liquid_h2"]), " t")
+    print("Total kerosene mass consumed by air transport = ", "%.0f"%unit.t_kg(data_dict["air_fuel"]["kerosene"]), " t")
+    print("")
+    print("Total energy consumed by air transport as electricity = ", "%.0f"%unit.MWh_J(data_dict["total_flows"]["electricity"]), " MWh")
+    print("Total compressed hydrogen mass consumed = ", "%.0f"%unit.t_kg(data_dict["total_flows"]["compressed_h2"]), " t")
+    print("Total gasoline mass consumed = ", "%.0f"%unit.t_kg(data_dict["total_flows"]["gasoline"]), " t")
+    print("Total kerosene mass consumed = ", "%.0f"%unit.t_kg(data_dict["total_flows"]["kerosene"]), " t")
 
 
 

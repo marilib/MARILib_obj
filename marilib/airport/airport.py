@@ -12,6 +12,7 @@ import numpy as np
 
 from marilib.utils import unit
 
+from tabulate import tabulate
 import matplotlib.pyplot as plt
 
 import marilib.airport.utils as tool
@@ -42,13 +43,13 @@ class AirportComponent(object):
         """
         print(self.__class__.__name__)
         print("---------------------------------------------------------------")
-        print("Area = ", "%.2f"%(self.area)," m2")
-        print("Length = ", "%.2f"%(self.area_length)," m")
-        print("Width = ", "%.2f"%(self.area_width)," m")
+        print("Area = ", "%.3f"%unit.km2_m2(self.area)," km2")
+        print("Length = ", "%.0f"%(self.area_length)," m")
+        print("Width = ", "%.0f"%(self.area_width)," m")
         print("")
         print("Peak power = ", "%.2f"%(self.peak_power*1.e-3)," kW")
-        print("Nominal power = ", "%.2f"%(self.area_length*1.e-3)," kW")
-        print("Daily consumption = ", "%.2f"%unit.kWh_J(self.daily_energy)," kWh")
+        print("Nominal power = ", "%.2f"%(self.nominal_power*1.e-3)," kW")
+        print("Daily consumption = ", "%.0f"%unit.kWh_J(self.daily_energy)," kWh")
         print("")
 
     def patch(self, s,o,a,c):
@@ -81,7 +82,7 @@ class Runways(AirportComponent):
 
         self.nominal_power = 20. * 2000. * self.count       # 2000 spots of 20W each
         self.peak_power = self.nominal_power
-        self.daily_energy = self.nominal_power * max(0., open_time - 10.)
+        self.daily_energy = self.nominal_power * max(0., open_time - 9.)
 
     def patch(self, s,o,a,c):
         # Runway area
@@ -139,7 +140,7 @@ class TaxiWays(AirportComponent):
 
         self.nominal_power = 0.0125 * self.area  # 12.5 mW/m2
         self.peak_power = self.nominal_power
-        self.daily_energy = self.nominal_power * max(0., open_time - 10.)
+        self.daily_energy = self.nominal_power * max(0., open_time - 9.)
 
 
 class AirParks(AirportComponent):
@@ -155,7 +156,7 @@ class AirParks(AirportComponent):
 
         self.nominal_power = 0.0125 * self.area  # 12.5 mW/m2
         self.peak_power = self.nominal_power
-        self.daily_energy = self.nominal_power * max(0., open_time - 10.)
+        self.daily_energy = self.nominal_power * max(0., open_time - 9.)
 
 
 class AirService(AirportComponent):
@@ -171,7 +172,7 @@ class AirService(AirportComponent):
 
         self.nominal_power = 0.10 * self.area  # 100 mW/m2
         self.peak_power = 1.20 * self.nominal_power
-        self.daily_energy = self.nominal_power * max(0., open_time - 10.)
+        self.daily_energy = self.nominal_power * max(0., open_time - 9.)
 
 
 class Terminals(AirportComponent):
@@ -196,7 +197,7 @@ class Terminals(AirportComponent):
 class CarParks(AirportComponent):
     """Stands for all car parks in one single level
     """
-    def __init__(self, max_pax_flow):
+    def __init__(self, max_pax_flow, open_time):
         super(CarParks, self).__init__()
 
         self.space_count = 0.90 * max_pax_flow
@@ -208,7 +209,7 @@ class CarParks(AirportComponent):
 
         self.nominal_power = 0.005 * self.area  # 5 mW/m2
         self.peak_power = self.nominal_power
-        self.daily_energy = self.nominal_power * (14.*3600.)
+        self.daily_energy = self.nominal_power * max(0., open_time - 9.)
 
 
 class TaxiStation(AirportComponent):
@@ -348,7 +349,7 @@ class Airport(object):
         # Load air service components
         self.air_service = AirService(max_ac_flow, mean_ac_span, self.open_time)
 
-        self.car_parks = CarParks(max_pax_flow)
+        self.car_parks = CarParks(max_pax_flow, self.open_time)
 
         self.taxi_station = TaxiStation(max_pax_flow)
 
@@ -487,6 +488,7 @@ class Airport(object):
     def print_airport_design_data(self):
         """Print airport characteristics
         """
+        print("Airport")
         print("==============================================================================")
         print("Design daily passenger flow (input or output) = ", "%.0f"%self.max_passenger_capacity)
         print("Design daily aircraft movements (landing or take off) = ", "%.0f"%self.max_airplane_capacity)
@@ -505,9 +507,22 @@ class Airport(object):
     def print_component_design_data(self):
         """Print component characteristics
         """
+        print("Airport components")
         print("==============================================================================")
+        title = ["area", "area_length", "area_width", "peak_power", "nominal_power", "daily_energy"]
+        units = ["km2", "m", "m", "kW", "kW", "kWh"]
+        coefs = [1.e-6, 1., 1., 1.e-3, 1.e-3, 2.77778e-7]
+        format = ["%.3f", "%.0f", "%.0f", "%.2f", "%.2f", "%.0f"]
+        line = []
         for comp in self:
-            comp.print_design_data()
+            line.append(comp.__class__.__name__)
+        table = [line]
+        for j,dat in enumerate(title):
+            line = [dat,units[j]]
+            for comp in self:
+                line.append(format[j]%(getattr(comp,dat)*coefs[j]))
+            table.append(line)
+        print(tabulate(table))
 
     def draw(self):
         """Plot the airport

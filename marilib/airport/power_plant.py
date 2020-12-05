@@ -121,7 +121,7 @@ class PowerPlant(object):
     def set_n_unit(self, n_unit):
         raise NotImplementedError
 
-    def update(self):
+    def design(self):
         raise NotImplementedError
 
     def print(self, *kwargs):
@@ -250,7 +250,7 @@ class CspPowerPlant(PowerPlant):
 
         self.total_mirror_area = None
 
-        self.update()
+        self.design()
 
     def get_n_unit(self):
         return self.n_mirror
@@ -258,7 +258,7 @@ class CspPowerPlant(PowerPlant):
     def set_n_unit(self, n_unit):
         self.n_mirror = n_unit
 
-    def update(self):
+    def design(self):
         self.storage_efficiency = self.heat_storage(self.storage_medium)
 
         self.total_mirror_area = self.mirror_area * self.n_mirror
@@ -330,7 +330,7 @@ class PvPowerPlant(PowerPlant):
 
         self.total_panel_area = None
 
-        self.update()
+        self.design()
 
     def get_n_unit(self):
         return self.n_panel
@@ -338,7 +338,7 @@ class PvPowerPlant(PowerPlant):
     def set_n_unit(self, n_unit):
         self.n_panel = n_unit
 
-    def update(self):
+    def design(self):
         self.ref_yearly_sun_power = self.ref_sun_power * (self.mean_yearly_sun_power/250.)
 
         self.storage_efficiency = self.elec_storage(self.storage_medium)
@@ -405,7 +405,7 @@ class EolPowerPlant(PowerPlant):
         self.rotor_footprint = None
         self.rotor_grey_enrg = None
 
-        self.update()
+        self.design()
 
     def get_n_unit(self):
         return self.n_rotor
@@ -413,7 +413,7 @@ class EolPowerPlant(PowerPlant):
     def set_n_unit(self, n_unit):
         self.n_rotor = n_unit
 
-    def update(self):
+    def design(self):
         if (self.rotor_width is None):
             self.rotor_width = 100. + 12.5*(self.rotor_peak_power*1e-6 - 2.5)
 
@@ -488,7 +488,7 @@ class NuclearPowerPlant(PowerPlant):
         self.grey_energy_ratio = grey_energy_ratio
         self.unit_footprint = unit_footprint
 
-        self.update()
+        self.design()
 
     def get_n_unit(self):
         return self.n_core
@@ -496,7 +496,7 @@ class NuclearPowerPlant(PowerPlant):
     def set_n_unit(self, n_unit):
         self.n_core = n_unit
 
-    def update(self):
+    def design(self):
         self.nominal_peak_power = self.core_peak_power * self.n_core
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
         self.total_footprint = self.unit_footprint * self.n_core
@@ -581,7 +581,7 @@ class EnergyMix(object):
             plt = self.tech_mix[k]
             upw = self.plant_power[k] / self.n_unit[k]
             plt.set_n_unit(pw/upw)
-            plt.update()
+            plt.design()
 
         self.mix_peak_power = 0.
         self.mix_mean_power = 0.
@@ -605,19 +605,21 @@ class EnergyMix(object):
         self.mix_potential_default_ratio = self.mix_potential_energy_default / self.mix_mean_daily_energy
 
     def print(self):
+        print("Energy production")
+        print("==============================================================================")
         for k,plt in self.tech_mix.items():
+            print("Number of "+plt.type+" farms = ","%5.0f" % self.n_plant[k])
+            print("Footprint of all these farms = ","%8.1f" % (plt.total_footprint*1e-6)," km2")
+            print("Peak power of all these farms = ","%8.3f" % (plt.nominal_peak_power*1e-9)," GWh")
+            print("ERoEI of all these farms = ","%8.1f" % plt.er_o_ei)
             print("")
-            print("Number of "+plt.type+" plants = ","%5.0f" % self.n_plant[k])
-            print("Footprint of all these plants = ","%8.1f" % (plt.total_footprint*1e-6)," km2")
-            print("Peak power of all these plants = ","%8.3f" % (plt.nominal_peak_power*1e-9)," GWh")
-            print("ERoEI of all these plants = ","%8.1f" % plt.er_o_ei)
-        print("")
         print("Total mix peak power = ","%8.2f" % (self.mix_peak_power*1e-9)," GW")
         print("Total mix mean power = ","%8.2f" % (self.mix_mean_power*1e-9)," GW")
         print("Total mix ERoEI = ","%8.2f" % (self.mix_er_o_ei))
         print("Total mix footprint = ","%8.0f" % (self.mix_footprint*1e-6)," km2")
         print("Total mix grey energy = ","%8.3f" % (self.mix_grey_energy*1e-18)," EWh (1e18 Wh)")
         print("Total mix potential default ratio = ","%8.3f" % self.mix_potential_default_ratio)
+        print("")
 
     def param_iso_power(self,param):
         """Compute a set of of power values which sum is exactly total_power
@@ -771,10 +773,10 @@ class FuelMix(object):
         """Compute the varius input required to satisfy the fuel demand according to the renewable energy ratio
         Note that the fuel_req inout must be a dictionary with the same keys as tech_mix
         """
-        flows = {"electric":0.}
+        flows = {"electricity":0.}
         for k,fuel in self.tech_mix.items():
             dict = fuel.get_flows(fuel_req[k])
-            flows["electric"] += dict["input"]["energy"] * self.elec_ratio[k]
+            flows["electricity"] += dict["input"]["energy"] * self.elec_ratio[k]
             flows[k] = fuel_req[k] * (1. - self.elec_ratio[k])
 
         return flows
@@ -832,5 +834,5 @@ if __name__ == "__main__":
 
     print("--------------------------------------------------")
     pw_mix = mix.param_iso_power([0.5, 0.5, 0.5, 0.5])
-    mix.update(pw_mix)
+    mix.design(pw_mix)
     mix.print()
