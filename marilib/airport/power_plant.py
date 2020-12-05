@@ -560,14 +560,17 @@ class EnergyMix(object):
         self.mix_potential_energy_default = 0.
         self.mix_potential_default_ratio = 0.
 
-    def design(self, power_mix):
+    def design(self, load_factor, power_mix):
+        """Design the mix according to required power on each type of plant and load factor
+        The load_factor determines if the mix is design for mean power lf=1. or for peak power lf=0.
+        """
         self.power_mix = power_mix
 
         for k,pp in self.tech_mix.items():
             self.n_unit[k] = pp.get_n_unit()
 
         for k,pp in self.tech_mix.items():
-            self.plant_power[k] = pp.nominal_peak_power
+            self.plant_power[k] = (1.-load_factor)*pp.nominal_peak_power + load_factor*pp.nominal_mean_power
 
         # Compute the number of power plant of each technology
         self.n_plant = {}
@@ -759,6 +762,10 @@ class FuelMix(object):
         # This method is empty because
         self.elec_ratio = elec_ratio
         self.fuel_mix = fuel_mix
+
+        flows = self.operate(fuel_mix)
+
+        return flows
 
     def operate(self, fuel_req):
         """Compute the varius input required to satisfy the fuel demand according to the renewable energy ratio

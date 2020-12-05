@@ -278,27 +278,38 @@ class Territory(object):
 
         self.transport_energy_mix = energy_mix
 
-    def design(self, town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_mix):
+    def design(self, town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_ratio, load_factor):
 
         # Design the airport
         self.airport.design(town_airport_dist, fleet.profile)
 
-        capacity_ratio = 1.   # Capacity ratio of the airport, 1. means that the airport is at full capacity
+        capacity_ratio = 0.5   # Capacity ratio of the airport, 1. means that the airport is at full capacity
 
         data_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, power_technology)
 
+        air_fuel = data_dict["air_fuel"]
+        ground_fuel = data_dict["ground_fuel"]
+
+        fuel_mix = {}
+
+        fuel_mix["compressed_h2"] = ground_fuel["hydrogen"]
+        fuel_mix["gasoline"] = ground_fuel["gasoline"]
+
+        fuel_mix["liquid_h2"] = air_fuel["hydrogen"]
+        fuel_mix["kerosene"] = air_fuel["kerosene"]
+
+        data_dict = self.transport_fuel_mix.design(elec_ratio, fuel_mix)
+
+        total_power = data_dict["electric"] / (3600. * 24.)    # Energy per day must be converted into mean power
+
+        power_mix = {}
+        for k in power_ratio.keys():
+            power_mix[k] = total_power * power_ratio[k]
+
+        self.transport_energy_mix.design(load_factor, power_mix)
 
 
-        elec_ratio = {"compressed_h2":1., "liquid_h2":1., "gasoline":1., "kerosene":1.}
 
-        self.transport_fuel_mix.design(elec_ratio, fuel_mix)
-
-
-
-
-        power_mix = {"photovoltaic":0.5, "wind_turbine":0.5, "nuclear":0.}
-
-        self.transport_energy_mix.design(power_mix)
 
 
 
@@ -506,7 +517,7 @@ if __name__ == "__main__":
     n_core = 4      # Number of reactor in one plant
     atom = NuclearPowerPlant(n_core)
 
-    tech_mix =  {"photovoltaic":pv,   "wind_turbine":wind, "nuclear":atom}
+    tech_mix =  {"photovoltaic":pv,   "wind_turbine":wind}
 
     # Instantiate an energy mix
     em = EnergyMix(tech_mix)
@@ -521,24 +532,26 @@ if __name__ == "__main__":
     elec_ratio = {"compressed_h2":1., "liquid_h2":1., "gasoline":1., "kerosene":1.}
 
     # Ratio of the total electric energy demand delivered by each power plant type
-    power_mix = {"photovoltaic":0.5, "wind_turbine":0.5, "nuclear":0.}
+    power_ratio = {"photovoltaic":0.85, "wind_turbine":0.15}
+
+    load_factor = 1.
 
     town_airport_dist = unit.m_km(8.)
 
     # the design of tr will include the design of ap, fp and em
-    tr.design(town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_mix)
+    tr.design(town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_ratio, load_factor)
 
+    tr.transport_energy_mix.print()
 
+    tr.draw()
 
-    # tr.draw()
-    #
     # ap.draw()
 
 
 
     capacity_ratio = 0.75   # Capacity ratio of the airport, 1. means that the airport is at full capacity
 
-    data_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, technology)
+    data_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, power_technology)
 
 
     print("")
