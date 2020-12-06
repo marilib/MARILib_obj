@@ -283,12 +283,10 @@ class Territory(object):
         self.transport_energy_mix = energy_mix
         self.power_ratio = None
 
-    def design(self, town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_ratio):
+    def design(self, town_airport_dist, fleet, air_network, power_technology, capacity_ratio, elec_ratio, power_ratio):
 
         # Design the airport
         self.airport.design(town_airport_dist, fleet.profile)
-
-        capacity_ratio = 0.5   # Capacity ratio of the airport, 1. means that the airport is at full capacity
 
         energy_dict = tr.get_transport_energy(capacity_ratio, fleet, air_network, power_technology)
 
@@ -459,10 +457,10 @@ class Territory(object):
         axes.set_ybound(-ymax, ymax)
 
         ring4 = plt.Circle(origin, unit.km_m(self.influence_radius), color="whitesmoke", label="Influence")
-        ring3 = plt.Circle(origin, unit.km_m(self.population["ring3"]["radius"]), color="palegreen", label="%.0f"%(self.population["ring3"]["density"]/unit.km2_m2(1.)))
-        ring2 = plt.Circle(origin, unit.km_m(self.population["ring2"]["radius"]), color="lightblue", label="%.0f"%(self.population["ring2"]["density"]/unit.km2_m2(1.)))
-        ring1 = plt.Circle(origin, unit.km_m(self.population["ring1"]["radius"]), color="plum", label="%.0f"%(self.population["ring1"]["density"]/unit.km2_m2(1.)))
-        town = plt.Circle(origin, unit.km_m(self.population["town"]["radius"]), color="fuchsia", label="%.0f"%(self.population["town"]["density"]/unit.km2_m2(1.)))
+        ring3 = plt.Circle(origin, unit.km_m(self.population["ring3"]["radius"]), color="palegreen", label="%.0f"%(self.population["ring3"]["density"]/unit.km2_m2(1.))+" h/km2")
+        ring2 = plt.Circle(origin, unit.km_m(self.population["ring2"]["radius"]), color="lightblue", label="%.0f"%(self.population["ring2"]["density"]/unit.km2_m2(1.))+" h/km2")
+        ring1 = plt.Circle(origin, unit.km_m(self.population["ring1"]["radius"]), color="plum", label="%.0f"%(self.population["ring1"]["density"]/unit.km2_m2(1.))+" h/km2")
+        town = plt.Circle(origin, unit.km_m(self.population["town"]["radius"]), color="fuchsia", label="%.0f"%(self.population["town"]["density"]/unit.km2_m2(1.))+" h/km2")
 
         airport_azimut = unit.rad_deg(65.)  # Angle between the North and the direction town center -> airport
 
@@ -472,17 +470,29 @@ class Territory(object):
         airport = plt.Circle(airport_loc, unit.km_m(0.5*self.airport.overall_width), color="red", label="Airport")
 
 
-        area_pv = tr.transport_energy_mix.tech_mix["photovoltaic"].total_footprint
+        area_pv = unit.km2_m2(tr.transport_energy_mix.tech_mix["photovoltaic"].total_footprint)
+        rr = 0.50   # Proportion of the width of the influence area ring
+        rad_pv = (1.-rr)*unit.km_m(self.population["ring3"]["radius"]) + rr*unit.km_m(self.influence_radius)
+        wid_pv = 0.25*unit.km_m(self.influence_radius - self.population["ring3"]["radius"])
+        tht_pv = [45., 135., 225., 315.]
+
         area_wt = unit.km2_m2(tr.transport_energy_mix.tech_mix["wind_turbine"].total_footprint)
-        rr = 0.75
-        radius = (1.-rr)*unit.km_m(self.population["ring3"]["radius"]) + rr*unit.km_m(self.influence_radius)
-        width = 0.25*unit.km_m(self.influence_radius - self.population["ring3"]["radius"])
-        theta1 = 90.
-        theta2 = theta1 + (360.*area_wt) / (np.pi*width*(2.*radius-width))
-        wedge = pat.Wedge(origin, radius, theta1, theta2, width=width, color="palegoldenrod")
+        rr = 0.75   # Proportion of the width of the influence area ring
+        rad_wt = (1.-rr)*unit.km_m(self.population["ring3"]["radius"]) + rr*unit.km_m(self.influence_radius)
+        wid_wt = 0.25*unit.km_m(self.influence_radius - self.population["ring3"]["radius"])
+        tht_wt = [0., 90., 180., 270.]
 
         axes.add_artist(ring4)
-        axes.add_artist(wedge)
+
+        for t in tht_pv:
+            theta2 = t + (360.*(area_pv/4)) / (np.pi*wid_pv*(2.*rad_pv-wid_pv))
+            wedge_pv = pat.Wedge(origin, rad_pv, t, theta2, width=wid_pv, color="cornflowerblue", label="PV farms")
+            axes.add_artist(wedge_pv)
+
+        for t in tht_wt:
+            theta2 = t + (360.*(area_wt/4)) / (np.pi*wid_wt*(2.*rad_wt-wid_wt))
+            wedge_wt = pat.Wedge(origin, rad_wt, t, theta2, width=wid_wt, color="palegoldenrod", label="Wind farms")
+            axes.add_artist(wedge_wt)
 
         axes.add_artist(ring3)
         axes.add_artist(ring2)
@@ -490,7 +500,7 @@ class Territory(object):
         axes.add_artist(town)
         axes.add_artist(airport)
 
-        axes.legend(handles=[town,ring1,ring2,ring3,airport], loc="upper right")
+        axes.legend(handles=[town,ring1,ring2,ring3,airport,wedge_wt,wedge_pv], loc="upper right")
 
         plt.show()
 
@@ -558,12 +568,14 @@ if __name__ == "__main__":
 
     # Air transport energy mix
     #-----------------------------------------------------------------------------------------------------------------------
-    n_panel = 1.e6  # Number of panels of 2m2 in one plant (Cestas)
-    sol_pw = 250.   # W/m2, Mean solar irradiation
-    pv = PvPowerPlant(n_panel, sol_pw, reg_factor=0.50)
+    n_panel = 1.e6      # Number of panels of 2m2 in one plant (Cestas)
+    sol_pw = 250.       # W/m2, Mean solar irradiation
+    reg_factor = 0.5    # Regulation factor, 0.:no storage, 1.:regulation period is 24h
+    pv = PvPowerPlant(n_panel, sol_pw, reg_factor=reg_factor)
 
-    n_turbine = 20. # Number of turbines in one plant
-    wind = EolPowerPlant(n_turbine, "onshore")
+    n_turbine = 20.             # Number of turbines in one plant
+    peak_power = unit.W_MW(5.)  # MW
+    wind = EolPowerPlant(n_turbine, "onshore", rotor_peak_power=peak_power)
 
     n_core = 4      # Number of reactor in one plant
     atom = NuclearPowerPlant(n_core)
@@ -580,22 +592,27 @@ if __name__ == "__main__":
     #-----------------------------------------------------------------------------------------------------------------------
     tr = Territory(phd, ap, fp, em)
 
+    # Distance between center town and airport
+    town_airport_dist = unit.m_km(8.)
+
+    # Capacity ratio of the airport, 1. means that the airport is at full capacity
+    capacity_ratio = 0.65
+
     # Ratio of each fuel type produced with electricity as primary energy
     elec_ratio = {"compressed_h2":1., "liquid_h2":1., "gasoline":1., "kerosene":1.}
 
     # Ratio of the total electric energy demand delivered by each power plant type
-    power_ratio = {"photovoltaic":0.85, "wind_turbine":0.15}
+    power_ratio = {"photovoltaic":0.50, "wind_turbine":0.50}
 
-    town_airport_dist = unit.m_km(8.)
+    # The design of tr will include the design of ap, fp and em
+    tr.design(town_airport_dist, fleet, air_network, power_technology, capacity_ratio, elec_ratio, power_ratio)
 
-    # the design of tr will include the design of ap, fp and em
-    tr.design(town_airport_dist, fleet, air_network, power_technology, elec_ratio, power_ratio)
-
-
+    # Airport data
     tr.airport.print_airport_design_data()
     tr.airport.print_component_design_data()
     ap.draw()
 
+    # Territory
     tr.print()
     tr.transport_energy_mix.print()
     tr.draw()
