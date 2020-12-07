@@ -10,7 +10,7 @@ Created on November 20 20:20:20 2020
 
 import numpy as np
 
-from marilib.utils import unit
+import unit
 
 
 # ======================================================================================================

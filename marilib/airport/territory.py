@@ -13,14 +13,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as pat
 
-from marilib.utils import unit
+import unit
 
-from marilib.airport.physical_data import PhysicalData
-from marilib.airport.aircraft import AirplaneCategories, Fleet
-from marilib.airport.airport import Airport
-
-from marilib.airport.power_plant import PvPowerPlant, CspPowerPlant, EolPowerPlant, NuclearPowerPlant, EnergyMix
-from marilib.airport.power_plant import PowerToFuel, PowerToHydrogen, FuelMix
+from physical_data import PhysicalData
+from aircraft import AirplaneCategories, Fleet
+from airport import Airport
+     
+from power_plant import PvPowerPlant, CspPowerPlant, EolPowerPlant, NuclearPowerPlant, EnergyMix
+from power_plant import PowerToFuel, PowerToHydrogen, FuelMix
 
 
 
@@ -338,18 +338,21 @@ class Territory(object):
         # Compute the passenger flow
         airport_flows = self.airport.operate(capacity_ratio, fleet, air_network)
 
+        # Energy consumed by the airport itself
+        airport_energy = self.airport.ref_daily_energy
+
         # Rough evaluation of the energy consumption versus propulsive technology
         fleet_fuel = airport_flows["fleet_fuel"]
 
-        # All energies consumed by airplanes
-        at_energy = {"electricity":0., "compressed_h2":0., "liquid_h2":0., "kerosene":0.}
+        # All energies consumed by airplanes including the airport itself
+        at_energy = {"electricity":airport_energy, "compressed_h2":0., "liquid_h2":0., "kerosene":0.}
 
         # Relative efficiency versus kerosene
         relative_efficiency = {"electricity":0.36/0.95, "compressed_h2":0.36/0.55, "liquid_h2":0.36/0.55, "kerosene":1.}
 
         for seg,tech in technology.items():
             for type in tech.keys():
-                at_energy[type] = fleet_fuel[seg] * self.phd.fuel_heat("kerosene") * tech[type] * relative_efficiency[type]
+                at_energy[type] += fleet_fuel[seg] * self.phd.fuel_heat("kerosene") * tech[type] * relative_efficiency[type]
 
         at_fuel = {"compressed_h2":0., "liquid_h2":0., "kerosene":0.}
         for f in at_fuel.keys():
@@ -369,7 +372,7 @@ class Territory(object):
             rail_dist[area] =   self.rail_network.distance(r0, r1, self.airport.town_distance)
             r0 = r1
 
-        # Compute proportion of the total passenger flow that using taxi
+        # Compute proportion of the total passenger flow that are using taxi
         taxi_pass_flow = pass_flow * self.airport.passenger.taxi_ratio
         cbtr_pass_flow = pass_flow - taxi_pass_flow
 
@@ -423,7 +426,9 @@ class Territory(object):
         for f in gt_fuel.keys():
             gt_fuel[f] = gt_energy[f] / self.phd.fuel_heat(f)
 
-        return {"airport_flows":airport_flows, "air_energy":at_energy, "air_fuel":at_fuel, "ground_energy":gt_energy, "ground_fuel":gt_fuel}
+        return {"airport_energy":airport_energy, "airport_flows":airport_flows,
+                "ground_energy":gt_energy, "ground_fuel":gt_fuel,
+                "air_energy":at_energy, "air_fuel":at_fuel}
 
     def print(self):
         print("Territory")
@@ -608,9 +613,8 @@ if __name__ == "__main__":
     tr.design(town_airport_dist, fleet, air_network, power_technology, capacity_ratio, elec_ratio, power_ratio)
 
     # Airport data
-    tr.airport.print_airport_design_data()
-    tr.airport.print_component_design_data()
-    ap.draw()
+    tr.airport.print()
+    tr.airport.draw()
 
     # Territory
     tr.print()

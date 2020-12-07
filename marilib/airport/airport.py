@@ -485,7 +485,7 @@ class Airport(object):
 
         return dict
 
-    def print_airport_design_data(self):
+    def print(self):
         """Print airport characteristics
         """
         print("Airport")
@@ -503,17 +503,13 @@ class Airport(object):
         print("reference daily consumption", "%.2f"%unit.MWh_J(self.ref_daily_energy)," MWh")
         print("reference yearly consumption", "%.2f"%unit.GWh_J(self.ref_yearly_energy)," GWh")
         print("")
-
-    def print_component_design_data(self):
-        """Print component characteristics
-        """
         print("Airport components")
         print("==============================================================================")
         title = ["area", "area_length", "area_width", "peak_power", "nominal_power", "daily_energy"]
         units = ["km2", "m", "m", "kW", "kW", "kWh"]
         coefs = [1.e-6, 1., 1., 1.e-3, 1.e-3, 2.77778e-7]
         format = ["%.3f", "%.0f", "%.0f", "%.2f", "%.2f", "%.0f"]
-        line = []
+        line = ["",""]
         for comp in self:
             line.append(comp.__class__.__name__)
         table = [line]
@@ -590,6 +586,8 @@ class Airport(object):
 
         axes.legend(handles=lgd, loc="upper right")
 
-
-
         plt.show()
+
+
+
+

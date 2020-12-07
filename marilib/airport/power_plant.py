@@ -7,8 +7,9 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 
-from marilib.utils import unit
-from marilib.power_plant.tool import Material
+import unit
+
+from utils import Material
 
 # TODO : comlete dictionnary
 # TODO : add data for heat and elec storage
@@ -140,7 +141,7 @@ class PowerPlant(object):
         print("Marginal efficiency = ", "%8.3f" % self.marginal_efficiency)
         print("Net power efficiency = ", "%8.3f" % self.net_power_efficiency)
         print("Total grey energy = ", "%8.1f" % unit.GWh_J(self.total_grey_enrg), " GWh")
-        print("Total footprint = ", "%8.1f" % unit.km2_m2(self.total_footprint), " km2")
+        print("Total footprint = ", "%8.3f" % unit.km2_m2(self.total_footprint), " km2")
         print("Energy returned over energy invested = ", "%8.1f" % self.er_o_ei)
         print("Total material embodied energy = ", "%8.1f" % unit.GWh_J(self.material_grey_enrg), " GWh")
         if (self.material.concrete > 0.):     print("    Concrete = ", "%8.0f" % (self.material.concrete*1.e-3), " t")
@@ -376,6 +377,31 @@ class PvPowerPlant(PowerPlant):
         self.elec_storage(self.storage_medium, self.storage_capacity, self.material)
 
         self.material_grey_enrg = self.material.grey_energy()
+
+class PvPowerPlantE(PvPowerPlant):
+
+    def __init__(self, yearly_mean_pw, mean_sun_pw,
+                 ref_sun_power = 1000.,
+                 reg_factor = 0.,
+                 panel_area = 2.,
+                 ground_ratio = 2.6,
+                 life_time = 25.,
+                 gross_power_efficiency = 0.15,
+                 storage_medium = "flow_battery",
+                 grey_energy_ratio = 0.11,
+                 load_factor = 0.14):
+        super(PvPowerPlantE, self).__init__(1., mean_sun_pw,
+                 ref_sun_power,
+                 reg_factor,
+                 panel_area,
+                 ground_ratio,
+                 life_time,
+                 gross_power_efficiency,
+                 storage_medium,
+                 grey_energy_ratio,
+                 load_factor)
+        self.n_panel = np.ceil(yearly_mean_pw / self.net_yearly_enrg)
+        self.design()
 
 
 

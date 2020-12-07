@@ -14,7 +14,7 @@ from scipy.optimize import fsolve
 
 import matplotlib.pyplot as plt
 
-from marilib.utils import unit
+import unit
 
 
 # ======================================================================================================
