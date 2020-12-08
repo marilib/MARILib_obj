@@ -39,8 +39,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(2800.)      # twin
-ac.airframe.wing.area = 76.                             # twin
+ac.power_system.reference_power = unit.W_kW(2400.)      # twin
+ac.airframe.wing.area = 77.5                             # twin
 # ac.power_system.reference_power = unit.W_kW(1550.)      # quadri
 # ac.airframe.wing.area = 83.                             # quadri
 
@@ -63,7 +63,7 @@ cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.t
        "aircraft.performance.mcr_ceiling.vz_eff - aircraft.performance.mcr_ceiling.vz_req",
        "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
        "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff",
-       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total"]
+       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.battery_mass"]
 
 # Magnitude used to scale constraints
 cst_mag = ["aircraft.performance.take_off.tofl_req",
@@ -78,9 +78,9 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-#opt = process.Optimizer()
-#opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
-#algo_points= opt.computed_points
+# opt = process.Optimizer()
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
+# algo_points= opt.computed_points
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------

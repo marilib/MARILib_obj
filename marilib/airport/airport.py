@@ -166,7 +166,7 @@ class AirService(AirportComponent):
         super(AirService, self).__init__()
 
         self.label = "Air service"
-        self.area = 0.75 * max_ac_flow * mean_ac_span**2
+        self.area = 0.5 * max_ac_flow * mean_ac_span**2
         self.area_length = np.sqrt(self.area)
         self.area_width = self.area / self.area_length
 
@@ -185,7 +185,7 @@ class Terminals(AirportComponent):
         self.arrival_capacity = max_pax_flow_capacity
 
         self.label = "Terminal"
-        self.area = 4.0 * (self.departure_capacity + self.arrival_capacity)
+        self.area = 2.0 * (self.departure_capacity + self.arrival_capacity)
         self.area_width = np.sqrt(0.5*self.area)     # A rectangle w*(2w)
         self.area_length = 2. * self.area_width
 
@@ -197,10 +197,10 @@ class Terminals(AirportComponent):
 class CarParks(AirportComponent):
     """Stands for all car parks in one single level
     """
-    def __init__(self, max_pax_flow, open_time):
+    def __init__(self, open_time):
         super(CarParks, self).__init__()
 
-        self.space_count = 0.90 * max_pax_flow
+        self.space_count = 15000.
 
         self.label = "Car parks"
         self.area = 1.5 * (2.5 * 5.0 * self.space_count)
@@ -218,7 +218,7 @@ class TaxiStation(AirportComponent):
     def __init__(self, max_pax_flow):
 
         self.label = "Taxi station"
-        self.area = 0.5 * max_pax_flow
+        self.area = 0.1 * max_pax_flow
         self.area_length = np.sqrt(0.5*self.area)
         self.area_width = self.area / self.area_length
 
@@ -233,7 +233,7 @@ class BusStation(AirportComponent):
     def __init__(self, max_pax_flow):
 
         self.label = "Bus station"
-        self.area = 0.5 * max_pax_flow
+        self.area = 0.1 * max_pax_flow
         self.area_length = np.sqrt(0.5*self.area)
         self.area_width = self.area / self.area_length
 
@@ -349,7 +349,7 @@ class Airport(object):
         # Load air service components
         self.air_service = AirService(max_ac_flow, mean_ac_span, self.open_time)
 
-        self.car_parks = CarParks(max_pax_flow, self.open_time)
+        self.car_parks = CarParks(self.open_time)
 
         self.taxi_station = TaxiStation(max_pax_flow)
 
@@ -388,7 +388,8 @@ class Airport(object):
         self.total_area = total_area
 
     def operate(self, capacity_ratio, fleet, network):
-
+        """Operate the airport considering a given fleet and route network
+        """
         ac_list = []
         for r,ac in zip(fleet.ratio, fleet.aircraft):
             ac_list.append({"ratio":r, "npax":ac.npax})
@@ -561,8 +562,8 @@ class Airport(object):
         shift = [0., -self.terminal.area_width]
         data.append(self.terminal.patch(shift, origin, angle, "cornflowerblue"))
 
-        shift = [0.5*(self.air_parks.area_length + self.car_parks.area_length),
-                 self.air_parks.area_width - self.car_parks.area_width]
+        shift = [0.5*(self.terminal.area_length + self.car_parks.area_length),
+                 - self.car_parks.area_width]
         data.append(self.car_parks.patch(shift, origin, angle, "lightgrey"))
 
         shift = [0.5*(self.terminal.area_length - self.taxi_station.area_length),
