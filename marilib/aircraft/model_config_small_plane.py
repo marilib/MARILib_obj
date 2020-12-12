@@ -18,84 +18,84 @@ class ModelConfiguration(object):
         "Cabin":{
             "n_pax_front": ["function", "int", "Number of front seats in economic class (function)"],
             "n_aisle": ["function", "int", "Number of aisle in economic class (function)"],
-            "m_pax_nominal": ["function", "kg", "Reference mass allowance per passenger for design (function)"],
-            "m_pax_max": ["function", "kg", "Maximum mass allowance per passenger for design (function)"],
+            "m_pax_nominal": [95, "kg", "Reference mass allowance per passenger for design (function)"],
+            "m_pax_max": [105, "kg", "Maximum mass allowance per passenger for design (function)"],
             "m_pax_cabin": [80., "kg", "Mean passenger mass in the cabin including its hand luggage"]
         },
         "Fuselage":{
-            "forward_limit": [4., "m", "Distance between fuselage nose and forward cabin wall"],
-            "wall_thickness": [0.2, "m", "Fuselage wall total tchickness"],
+            "forward_limit": [2., "m", "Distance between fuselage nose and forward cabin wall"],
+            "wall_thickness": [0.10, "m", "Fuselage wall total tchickness"],
             "tail_cone_ratio": [3.45, "no_dim", "Fuselage tail cone length (evolutive part) over fuselage diameter"],
             "rear_bulkhead_ratio": [1.5, "no_dim", "Distance from rear pressure bulkhead to fuselage cone end over fuselage diameter"],
-            "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
+            "mass_correction_factor": [0.4, "no_dim", "Correction factor on mass estimation"]
         },
         "Wing":{
             "wing_morphing": ["aspect_ratio_driven", "no_dim", "Wing deformation mode, 'aspect_ratio_driven' or 'span_driven'"],
             "aspect_ratio": ["function", "no_dim", "Wing aspect ratio (function)"],
-            "taper_ratio": ["function", "no_dim", "Wing taper ratio (function)"],
+            "taper_ratio": [1., "no_dim", "Wing taper ratio (function)"],
             "sweep25": ["function", "deg", "Wing sweep angle at 25% of the chords of outboard trapezoid (function)"],
             "dihedral": [5., "deg", "Wing dihedral"],
             "front_spar_ratio": [0.15, "no_dim", "Relative chord position of front spar"],
             "rear_spar_ratio": [0.70, "no_dim", "Relative chord position of rear spar"],
-            "hld_type": ["function", "int", "Type of high lift device, from 0 to 10, (function)"],
-            "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
+            "hld_type": [4, "int", "Type of high lift device, from 0 to 10, (function)"],
+            "mass_correction_factor": [0.30, "no_dim", "Correction factor on mass estimation"]
         },
         "VtpClassic":{
             "aspect_ratio": [1.7, "no_dim", "Vertical tail aspect ratio"],
             "taper_ratio": [0.4, "no_dim", "Vertical tail taper ratio"],
-            "sweep25": [0., "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
+            "sweep25": ["function", "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the vertical tail"],
             "thrust_volume_factor": [0.4, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
             "wing_volume_factor": [0.07, "no_dim", "Volume coefficient of the vertical stabilizer according to wing"],
             "anchor_ratio": [0.85, "no_dim", "Relative position of the reference point of the stabilization surface"],
-            "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "VtpTtail":{
             "aspect_ratio": [1.2, "no_dim", "Vertical tail aspect ratio"],
             "taper_ratio": [0.8, "no_dim", "Vertical tail taper ratio"],
-            "sweep25": [0., "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
+            "sweep25": ["function", "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the vertical tail"],
             "thrust_volume_factor": [0.4, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
             "wing_volume_factor": [0.07, "no_dim", "Volume coefficient of the vertical stabilizer according to wing"],
             "anchor_ratio": [0.85, "no_dim", "Relative position of the reference point of the stabilization surface"],
-            "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "VtpHtail":{
             "aspect_ratio": [1.5, "no_dim", "Vertical tail aspect ratio"],
             "taper_ratio": [0.4, "no_dim", "Vertical tail taper ratio"],
-            "sweep25": [0., "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
+            "sweep25": ["function", "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the vertical tail"],
             "thrust_volume_factor": [0.4, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
             "wing_volume_factor": [0.07, "no_dim", "Volume coefficient of the vertical stabilizer according to wing"],
-            "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "HtpClassic":{
             "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
-            "taper_ratio": [0.35, "no_dim", "Horizontal tail taper ratio"],
+            "taper_ratio": [1., "no_dim", "Horizontal tail taper ratio"],
             "sweep25": [0., "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the Horizontal tail"],
-            "dihedral": [5, "deg", "Dihedral angle of the horizontal tail"],
+            "dihedral": [0., "deg", "Dihedral angle of the horizontal tail"],
             "volume_factor": [0.94, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
-            "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "HtpTtail":{
             "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
-            "taper_ratio": [0.35, "no_dim", "Horizontal tail taper ratio"],
+            "taper_ratio": [1., "no_dim", "Horizontal tail taper ratio"],
             "height_ratio": [0.3, "no_dim", "Horizontal tail height ratio versus vertical tail height"],
             "sweep25": [0., "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the Horizontal tail"],
-            "dihedral": [5, "deg", "Dihedral angle of the horizontal tail"],
+            "dihedral": [0., "deg", "Dihedral angle of the horizontal tail"],
             "volume_factor": [0.94, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
-            "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "HtpHtail":{
             "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
-            "taper_ratio": [0.35, "no_dim", "Horizontal tail taper ratio"],
+            "taper_ratio": [1., "no_dim", "Horizontal tail taper ratio"],
             "sweep25": [0., "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the Horizontal tail"],
-            "dihedral": [5, "deg", "Dihedral angle of the horizontal tail"],
+            "dihedral": [0., "deg", "Dihedral angle of the horizontal tail"],
             "volume_factor": [0.94, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
-            "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "TankWingBox":{
             "gravimetric_index": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
@@ -132,7 +132,7 @@ class ModelConfiguration(object):
             "width": ["function", "m", "Diameter of the tank"],
             "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         },
-        "LandingGear":{"mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
+        "LandingGear":{"mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "InboardWingMountedNacelle":{
         },
@@ -218,13 +218,13 @@ class ModelConfiguration(object):
             "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
             "hub_width": [0.2, "m", "Propeller hub diameter"],
             "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
-            "propeller_disk_load": [3000., "N/m2", "Propeller disk load"]
+            "propeller_disk_load": [1500., "N/m2", "Propeller disk load"]
         },
         "SemiEmpiricEpNacelle":{
             "eis_date": [2020., "year", "Entry into service date"],
             "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
             "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
-            "propeller_disk_load": [3000., "N/m2", "Propeller disk load"],
+            "propeller_disk_load": [1500., "N/m2", "Propeller disk load"],
             "hub_width": [0.2, "m", "Propeller hub diameter"],
             "motor_efficiency": [0.95, "no_dim", "Electric motor efficiency"],
             "motor_pw_density": [5., "kW/kg", "Electric motor power density"],
@@ -305,7 +305,7 @@ class ModelConfiguration(object):
             "altp": [0., "ft", "Altitude for approach speed evaluation"],
             "kmlw": [1., "no_dim", "Ratio of MLW defining the aircraft weight"],
             "kvs1g": [1.23, "no_dim", "Ratio of MTOW defining the aircraft weight"],
-            "app_speed_req": ["function", "kt", "Maximum approach speed required in given conditions (function)"]
+            "app_speed_req": ["function", "m", "Maximum approach speed required in given conditions (function)"]
         },
         "OeiCeilingReq":{
             "disa": [15., "degK", "Temperature shift for one engine performance evaluation"],

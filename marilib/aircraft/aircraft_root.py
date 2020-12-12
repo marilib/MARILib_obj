@@ -6,6 +6,7 @@ Created on Thu Jan 20 20:20:20 2020
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
          Aircraft & Systems, Air Transport Departement, ENAC
 """
+from marilib.utils import earth, unit
 
 from marilib.aircraft.airframe.airframe_root import Airframe
 from marilib.aircraft.airframe import propulsion, component, system, model
@@ -15,10 +16,11 @@ from marilib.engine import interface
 from marilib.aircraft.handling_quality import HandlingQuality
 from marilib.aircraft.performance import Performance
 from marilib.aircraft.mission import AllMissionVarMass, AllMissionIsoMass
-from marilib.aircraft.environment import Economics
-from marilib.aircraft.environment import Environment
+from marilib.aircraft.environment import Environment, Economics
 
 from marilib.aircraft.tool.drawing import Drawing
+
+
 
 
 class Arrangement(object):
@@ -67,6 +69,9 @@ class Aircraft(object):
         self.economics = None
         self.environment = None
         self.draw = Drawing(self)
+
+    def get_init(self, obj,key,val=None):
+        return self.requirement.model_config.get__init(obj,key,val=val)
 
     def factory(self, arrangement, requirement):
         """Build an aircraft according to architectural choices

@@ -416,11 +416,11 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
     ny = len(ord)
 
     dat = {}
-    for j in range(2,len(data[0])):
+    for j in range(2,len(data[:,0])):
         dat[name[j]] = data[j,:]
 
     uni = {}
-    for j in range(2,len(data[0])):
+    for j in range(2,len(data[:,0])):
         uni[name[j]] = uni_[j]
 
     res = []

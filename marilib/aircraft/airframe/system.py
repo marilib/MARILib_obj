@@ -15,9 +15,6 @@ from scipy.optimize import fsolve
 from marilib.utils import earth, unit
 from marilib.aircraft.airframe.component import Component
 from marilib.aircraft.airframe.model import init_power
-from marilib.aircraft.model_config import get_init
-
-
 class System(Component):
 
     def __init__(self, aircraft):
@@ -53,14 +50,14 @@ class SystemWithBattery(Component):
     def __init__(self, aircraft):
         super(SystemWithBattery, self).__init__(aircraft)
 
-        self.wiring_efficiency = get_init(self,"wiring_efficiency")
-        self.wiring_pw_density = get_init(self,"wiring_pw_density")
+        self.wiring_efficiency = aircraft.get_init(self,"wiring_efficiency")
+        self.wiring_pw_density = aircraft.get_init(self,"wiring_pw_density")
 
-        self.cooling_efficiency = get_init(self,"cooling_efficiency")
-        self.cooling_pw_density = get_init(self,"cooling_pw_density")
+        self.cooling_efficiency = aircraft.get_init(self,"cooling_efficiency")
+        self.cooling_pw_density = aircraft.get_init(self,"cooling_pw_density")
 
-        self.battery_density = get_init(self,"battery_density")
-        self.battery_energy_density = get_init(self,"battery_energy_density")
+        self.battery_density = aircraft.get_init(self,"battery_density")
+        self.battery_energy_density = aircraft.get_init(self,"battery_energy_density")
 
         self.power_chain_efficiency = None
 
@@ -105,18 +102,18 @@ class SystemWithFuelCell(Component):
     def __init__(self, aircraft):
         super(SystemWithFuelCell, self).__init__(aircraft)
 
-        self.wiring_efficiency = get_init(self,"wiring_efficiency")
-        self.wiring_pw_density = get_init(self,"wiring_pw_density")
+        self.wiring_efficiency = aircraft.get_init(self,"wiring_efficiency")
+        self.wiring_pw_density = aircraft.get_init(self,"wiring_pw_density")
 
-        self.compressor_over_pressure = get_init(self,"compressor_over_pressure")
-        self.compressor_efficiency = get_init(self,"compressor_efficiency")
-        self.compressor_pw_density = get_init(self,"compressor_pw_density")
+        self.compressor_over_pressure = aircraft.get_init(self,"compressor_over_pressure")
+        self.compressor_efficiency = aircraft.get_init(self,"compressor_efficiency")
+        self.compressor_pw_density = aircraft.get_init(self,"compressor_pw_density")
 
-        self.cooling_power_index = get_init(self,"cooling_power_index")
-        self.cooling_gravimetric_index = get_init(self,"cooling_gravimetric_index")
+        self.cooling_power_index = aircraft.get_init(self,"cooling_power_index")
+        self.cooling_gravimetric_index = aircraft.get_init(self,"cooling_gravimetric_index")
 
-        self.fuel_cell_pw_density = get_init(self,"fuel_cell_pw_density")
-        self.fuel_cell_efficiency = get_init(self,"fuel_cell_efficiency")
+        self.fuel_cell_pw_density = aircraft.get_init(self,"fuel_cell_pw_density")
+        self.fuel_cell_efficiency = aircraft.get_init(self,"fuel_cell_efficiency")
 
         self.fuel_cell_output_power_ref = None
         self.compressor_power_ref = None
@@ -231,26 +228,26 @@ class SystemPartialTurboElectric(Component):
 
         class_name = "SystemPartialTurboElectric"
 
-        self.chain_power = get_init(class_name,"chain_power", val=0.2*init_power(aircraft))
+        self.chain_power = aircraft.get_init(class_name,"chain_power", val=0.2*init_power(aircraft))
 
-        self.battery = get_init(class_name,"battery")
-        self.battery_density = get_init(class_name,"battery_density")
-        self.battery_energy_density = get_init(class_name,"battery_energy_density")
-        self.lto_power = get_init(class_name,"lto_power")
-        self.lto_time = get_init(class_name,"lto_time")
-        self.cruise_energy = get_init(class_name,"cruise_energy")
+        self.battery = aircraft.get_init(class_name,"battery")
+        self.battery_density = aircraft.get_init(class_name,"battery_density")
+        self.battery_energy_density = aircraft.get_init(class_name,"battery_energy_density")
+        self.lto_power = aircraft.get_init(class_name,"lto_power")
+        self.lto_time = aircraft.get_init(class_name,"lto_time")
+        self.cruise_energy = aircraft.get_init(class_name,"cruise_energy")
 
-        self.generator_efficiency = get_init(class_name,"generator_efficiency")
-        self.generator_pw_density = get_init(class_name,"generator_pw_density")
+        self.generator_efficiency = aircraft.get_init(class_name,"generator_efficiency")
+        self.generator_pw_density = aircraft.get_init(class_name,"generator_pw_density")
 
-        self.rectifier_efficiency = get_init(class_name,"rectifier_efficiency")
-        self.rectifier_pw_density = get_init(class_name,"rectifier_pw_density")
+        self.rectifier_efficiency = aircraft.get_init(class_name,"rectifier_efficiency")
+        self.rectifier_pw_density = aircraft.get_init(class_name,"rectifier_pw_density")
 
-        self.wiring_efficiency = get_init(class_name,"wiring_efficiency")
-        self.wiring_pw_density = get_init(class_name,"wiring_pw_density")
+        self.wiring_efficiency = aircraft.get_init(class_name,"wiring_efficiency")
+        self.wiring_pw_density = aircraft.get_init(class_name,"wiring_pw_density")
 
-        self.cooling_efficiency = get_init(class_name,"cooling_efficiency")
-        self.cooling_pw_density = get_init(class_name,"cooling_pw_density")
+        self.cooling_efficiency = aircraft.get_init(class_name,"cooling_efficiency")
+        self.cooling_pw_density = aircraft.get_init(class_name,"cooling_pw_density")
 
         self.power_chain_efficiency = None
 
@@ -317,8 +314,8 @@ class SystemPartialTurboElectricPods(SystemPartialTurboElectric):
 
         class_name = "SystemPartialTurboElectric"
 
-        self.chain_power_body = get_init(class_name,"chain_power_body", val=0.1*init_power(aircraft))
-        self.chain_power_pod = get_init(class_name,"chain_power_pod", val=0.05*init_power(aircraft))
+        self.chain_power_body = aircraft.get_init(class_name,"chain_power_body", val=0.1*init_power(aircraft))
+        self.chain_power_pod = aircraft.get_init(class_name,"chain_power_pod", val=0.05*init_power(aircraft))
 
     def eval_geometry(self):
         self.frame_origin = [0., 0., 0.]
@@ -332,8 +329,8 @@ class SystemPartialTurboElectricPiggyBack(SystemPartialTurboElectric):
 
         class_name = "SystemPartialTurboElectric"
 
-        self.chain_power_body = get_init(class_name,"chain_power_body", val=0.1*init_power(aircraft))
-        self.chain_power_piggyback = get_init(class_name,"chain_power_piggyback", val=0.1*init_power(aircraft))
+        self.chain_power_body = aircraft.get_init(class_name,"chain_power_body", val=0.1*init_power(aircraft))
+        self.chain_power_piggyback = aircraft.get_init(class_name,"chain_power_piggyback", val=0.1*init_power(aircraft))
 
     def eval_geometry(self):
         self.frame_origin = [0., 0., 0.]

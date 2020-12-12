@@ -13,9 +13,7 @@ import numpy as np
 from scipy.optimize import fsolve
 
 from marilib.aircraft.performance import Flight
-from marilib.aircraft.model_config import get_init
 
-from marilib.utils.math import vander3, trinome, maximize_1d
 
 
 class HandlingQuality(Flight):
@@ -25,7 +23,7 @@ class HandlingQuality(Flight):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.static_stab_margin = get_init(self,"static_stab_margin")
+        self.static_stab_margin = aircraft.get_init(self,"static_stab_margin")
 
         self.forward_cg_mass = None
         self.forward_cg_req = None

@@ -12,10 +12,7 @@ from scipy.optimize import fsolve
 
 from marilib.utils import earth, unit, math
 
-
 from marilib.aircraft.airframe.component import Nacelle
-
-from marilib.aircraft.model_config import get_init
 
 
 
@@ -121,10 +118,10 @@ class BodyTailConeMountedNacelle(Nacelle):
     def __init__(self, aircraft):
         super(BodyTailConeMountedNacelle, self).__init__(aircraft)
 
-        self.tail_cone_height_ratio = get_init("BodyTailConeMountedNacelle","tail_cone_height_ratio")
-        self.specific_nacelle_cost = get_init("BodyTailConeMountedNacelle","specific_nacelle_cost")
-        self.bli_effect = get_init("BodyTailConeMountedNacelle","bli_effect")
-        self.hub_width = get_init("BodyTailConeMountedNacelle","hub_width")
+        self.tail_cone_height_ratio = aircraft.get_init("BodyTailConeMountedNacelle","tail_cone_height_ratio")
+        self.specific_nacelle_cost = aircraft.get_init("BodyTailConeMountedNacelle","specific_nacelle_cost")
+        self.bli_effect = aircraft.get_init("BodyTailConeMountedNacelle","bli_effect")
+        self.hub_width = aircraft.get_init("BodyTailConeMountedNacelle","hub_width")
         self.body_width = None
         self.body_length = None
         self.bnd_layer = None
@@ -152,12 +149,12 @@ class PodTailConeMountedNacelle(Nacelle):
     def __init__(self, aircraft):
         super(PodTailConeMountedNacelle, self).__init__(aircraft)
 
-        self.lateral_margin = get_init("PodTailConeMountedNacelle","lateral_margin")
-        self.x_loc_ratio = get_init("PodTailConeMountedNacelle","x_loc_ratio")
-        self.z_loc_ratio = get_init("PodTailConeMountedNacelle","z_loc_ratio")
-        self.specific_nacelle_cost = get_init("PodTailConeMountedNacelle","specific_nacelle_cost")
-        self.hub_width = get_init("PodTailConeMountedNacelle","hub_width")
-        self.bli_effect = get_init("PodTailConeMountedNacelle","bli_effect")
+        self.lateral_margin = aircraft.get_init("PodTailConeMountedNacelle","lateral_margin")
+        self.x_loc_ratio = aircraft.get_init("PodTailConeMountedNacelle","x_loc_ratio")
+        self.z_loc_ratio = aircraft.get_init("PodTailConeMountedNacelle","z_loc_ratio")
+        self.specific_nacelle_cost = aircraft.get_init("PodTailConeMountedNacelle","specific_nacelle_cost")
+        self.hub_width = aircraft.get_init("PodTailConeMountedNacelle","hub_width")
+        self.bli_effect = aircraft.get_init("PodTailConeMountedNacelle","bli_effect")
         self.body_width = None
         self.body_length = None
         self.bnd_layer = None
@@ -185,9 +182,9 @@ class PiggyBackTailConeMountedNacelle(Nacelle):
     def __init__(self, aircraft):
         super(PiggyBackTailConeMountedNacelle, self).__init__(aircraft)
 
-        self.specific_nacelle_cost = get_init("PiggyBackTailConeMountedNacelle","specific_nacelle_cost")
-        self.hub_width = get_init("PiggyBackTailConeMountedNacelle","hub_width")
-        self.bli_effect = get_init("PiggyBackTailConeMountedNacelle","bli_effect")
+        self.specific_nacelle_cost = aircraft.get_init("PiggyBackTailConeMountedNacelle","specific_nacelle_cost")
+        self.hub_width = aircraft.get_init("PiggyBackTailConeMountedNacelle","hub_width")
+        self.bli_effect = aircraft.get_init("PiggyBackTailConeMountedNacelle","bli_effect")
         self.body_width = None
         self.body_length = None
         self.bnd_layer = None
@@ -232,16 +229,16 @@ class SemiEmpiricTf0Nacelle(object):
         n_pax_ref = self.aircraft.requirement.n_pax_ref
         design_range = self.aircraft.requirement.design_range
 
-        self.eis_date = get_init(class_name,"eis_date")
+        self.eis_date = aircraft.get_init(class_name,"eis_date")
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.05)
         self.reference_offtake = 0.
         self.tune_factor = 1.
-        self.engine_bpr = get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
-        self.engine_opr = get_init(class_name,"engine_opr", val=self.__turbofan_opr())
-        self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
-        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
-        self.lateral_margin = get_init(class_name,"lateral_margin")
-        self.vertical_margin = get_init(class_name,"vertical_margin")
+        self.engine_bpr = aircraft.get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
+        self.engine_opr = aircraft.get_init(class_name,"engine_opr", val=self.__turbofan_opr())
+        self.core_thrust_ratio = aircraft.get_init(class_name,"core_thrust_ratio")
+        self.propeller_efficiency = aircraft.get_init(class_name,"propeller_efficiency")
+        self.lateral_margin = aircraft.get_init(class_name,"lateral_margin")
+        self.vertical_margin = aircraft.get_init(class_name,"vertical_margin")
 
         self.thrust_factor = None
         self.width = None
@@ -393,18 +390,18 @@ class SemiEmpiricTfNacelle(object):
 
         class_name = "SemiEmpiricTfNacelle"
 
-        self.eis_date = get_init(class_name,"eis_date")
+        self.eis_date = aircraft.get_init(class_name,"eis_date")
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.05)
         self.reference_offtake = 0.
         self.tune_factor = 1.
-        self.engine_bpr = get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
-        self.engine_opr = get_init(class_name,"engine_opr", val=self.__turbofan_opr())
-        self.core_thrust_ratio = get_init(class_name,"core_thrust_ratio")
-        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
-        self.fan_efficiency = get_init(class_name,"fan_efficiency")
-        self.lateral_margin = get_init(class_name,"lateral_margin")
-        self.vertical_margin = get_init(class_name,"vertical_margin")
-        self.hub_width = get_init(class_name,"hub_width")
+        self.engine_bpr = aircraft.get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
+        self.engine_opr = aircraft.get_init(class_name,"engine_opr", val=self.__turbofan_opr())
+        self.core_thrust_ratio = aircraft.get_init(class_name,"core_thrust_ratio")
+        self.propeller_efficiency = aircraft.get_init(class_name,"propeller_efficiency")
+        self.fan_efficiency = aircraft.get_init(class_name,"fan_efficiency")
+        self.lateral_margin = aircraft.get_init(class_name,"lateral_margin")
+        self.vertical_margin = aircraft.get_init(class_name,"vertical_margin")
+        self.hub_width = aircraft.get_init(class_name,"hub_width")
 
         self.engine_fpr = None
         self.fan_width = None
@@ -849,16 +846,16 @@ class SemiEmpiricEfNacelle(object):
 
         self.eis_date = 2020
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.05)
-        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
-        self.fan_efficiency = get_init(class_name,"fan_efficiency")
-        self.motor_efficiency = get_init(class_name,"motor_efficiency")
-        self.controller_efficiency = get_init(class_name,"controller_efficiency")
-        self.controller_pw_density = get_init(class_name,"controller_pw_density")
-        self.nacelle_pw_density = get_init(class_name,"nacelle_pw_density")
-        self.motor_pw_density = get_init(class_name,"motor_pw_density")
-        self.lateral_margin = get_init(class_name,"lateral_margin")
-        self.vertical_margin = get_init(class_name,"vertical_margin")
-        self.hub_width = get_init(class_name,"hub_width")
+        self.propeller_efficiency = aircraft.get_init(class_name,"propeller_efficiency")
+        self.fan_efficiency = aircraft.get_init(class_name,"fan_efficiency")
+        self.motor_efficiency = aircraft.get_init(class_name,"motor_efficiency")
+        self.controller_efficiency = aircraft.get_init(class_name,"controller_efficiency")
+        self.controller_pw_density = aircraft.get_init(class_name,"controller_pw_density")
+        self.nacelle_pw_density = aircraft.get_init(class_name,"nacelle_pw_density")
+        self.motor_pw_density = aircraft.get_init(class_name,"motor_pw_density")
+        self.lateral_margin = aircraft.get_init(class_name,"lateral_margin")
+        self.vertical_margin = aircraft.get_init(class_name,"vertical_margin")
+        self.hub_width = aircraft.get_init(class_name,"hub_width")
 
         self.engine_fpr = None
         self.fan_width = None
@@ -1262,10 +1259,10 @@ class SemiEmpiricTpNacelle(object):
 
         self.eis_date = 2020
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.95, MCL=0.90, MCR=0.70, FID=0.05)
-        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
-        self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
-        self.lateral_margin = get_init(class_name,"lateral_margin")
-        self.hub_width = get_init(class_name,"hub_width")
+        self.propeller_efficiency = aircraft.get_init(class_name,"propeller_efficiency")
+        self.propeller_disk_load = aircraft.get_init(class_name,"propeller_disk_load")
+        self.lateral_margin = aircraft.get_init(class_name,"lateral_margin")
+        self.hub_width = aircraft.get_init(class_name,"hub_width")
         self.engine_bpr = 100.
 
         self.propeller_width = None
@@ -1375,15 +1372,15 @@ class SemiEmpiricEpNacelle(object):
 
         self.eis_date = 2020
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.90, MCR=0.90, FID=0.05)
-        self.propeller_efficiency = get_init(class_name,"propeller_efficiency")
-        self.propeller_disk_load = get_init(class_name,"propeller_disk_load")
-        self.motor_efficiency = get_init(class_name,"motor_efficiency")
-        self.controller_efficiency = get_init(class_name,"controller_efficiency")
-        self.controller_pw_density = get_init(class_name,"controller_pw_density")
-        self.nacelle_pw_density = get_init(class_name,"nacelle_pw_density")
-        self.motor_pw_density = get_init(class_name,"motor_pw_density")
-        self.lateral_margin = get_init(class_name,"lateral_margin")
-        self.hub_width = get_init(class_name,"hub_width")
+        self.propeller_efficiency = aircraft.get_init(class_name,"propeller_efficiency")
+        self.propeller_disk_load = aircraft.get_init(class_name,"propeller_disk_load")
+        self.motor_efficiency = aircraft.get_init(class_name,"motor_efficiency")
+        self.controller_efficiency = aircraft.get_init(class_name,"controller_efficiency")
+        self.controller_pw_density = aircraft.get_init(class_name,"controller_pw_density")
+        self.nacelle_pw_density = aircraft.get_init(class_name,"nacelle_pw_density")
+        self.motor_pw_density = aircraft.get_init(class_name,"motor_pw_density")
+        self.lateral_margin = aircraft.get_init(class_name,"lateral_margin")
+        self.hub_width = aircraft.get_init(class_name,"hub_width")
         self.engine_bpr = 100.
 
         self.propeller_width = None

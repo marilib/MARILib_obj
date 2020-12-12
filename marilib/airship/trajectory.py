@@ -96,9 +96,9 @@ class AirShip(object):
         vgnd = np.array([vx,vy,vz])
         wind = np.array([wx,wy,wz])
         drag = self.drag(rho,vgnd,wind)
-        state_d = np.array([vx/earth_radius,
-                            vy/earth_radius,
-                            vz/earth_radius,
+        state_d = np.array([vx/(earth_radius+alt),
+                            vy/(earth_radius+alt),
+                            vz/(earth_radius+alt),
                             drag[0]/self.mass,
                             drag[1]/self.mass,
                             drag[2]/self.mass])

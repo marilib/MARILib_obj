@@ -15,6 +15,7 @@ from marilib.aircraft.requirement import Requirement
 from marilib.utils.read_write import MarilibIO
 from marilib.aircraft.design import process
 
+from marilib.aircraft.model_config_small_plane import ModelConfiguration
 
 # Configure airplane arrangement
 # ---------------------------------------------------------------------------------------------------------------------
@@ -29,18 +30,68 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 9.,
-                   design_range = unit.m_NM(400.),
-                   cruise_mach = 0.45,
-                   cruise_altp = unit.m_ft(15000.))
+reqs = Requirement(n_pax_ref = 19.,
+                   design_range = unit.m_km(740.),
+                   cruise_mach = 0.30,
+                   cruise_altp = unit.m_ft(25000.),
+                   model_config = ModelConfiguration)
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 
+
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
+# overwrite eventually default values for operational requirements
+print("------------------------------------------------------")
+# Take off
+print("tofl_req = ", "%.0f"%ac.requirement.take_off.tofl_req)
+print("")
+# Approach
+print("app_speed_req = ", "%.2f"%(unit.convert_to("kt",ac.requirement.approach.app_speed_req)))
+# Climb
+print("mcl_vz_altp = ", "%.2f"%(unit.convert_to("ft",ac.requirement.mcl_ceiling.altp)))
+print("mcl_vz_mach = ", "%.2f"%(ac.requirement.mcl_ceiling.mach))
+print("mcl_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcl_ceiling.vz_req)))
+print("")
+print("mcr_vz_altp = ", "%.2f"%(unit.convert_to("ft",ac.requirement.mcr_ceiling.altp)))
+print("mcr_vz_mach = ", "%.2f"%(ac.requirement.mcr_ceiling.mach))
+print("mcr_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcr_ceiling.vz_req)))
+print("")
+print("oei_altp_req = ", "%.2f"%(unit.convert_to("ft",ac.requirement.oei_ceiling.altp)))
+print("")
+print("time_to_climb_cas1 = ", "%.1f"%(unit.convert_to("kt",ac.requirement.time_to_climb.cas1)))
+print("time_to_climb_altp1 = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp1)))
+print("time_to_climb_cas2 = ", "%.1f"%(unit.convert_to("kt",ac.requirement.time_to_climb.cas2)))
+print("time_to_climb_altp2 = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp2)))
+print("time_to_climb_toc = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp)))
+print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_climb.ttc_req)))
+
+# Take off
+ac.requirement.take_off.tofl_req = 460.
+
+# Approach
+ac.requirement.approach.app_speed_req = unit.convert_from("kt",73.)
+# Climb
+ac.requirement.mcl_ceiling.altp = unit.convert_from("ft",16000.)
+ac.requirement.mcl_ceiling.mach = 0.2
+ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",1400.)
+
+ac.requirement.mcr_ceiling.altp = unit.convert_from("ft",16000.)
+ac.requirement.mcr_ceiling.mach = 0.2
+ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",900.)
+
+ac.requirement.oei_ceiling.altp = unit.convert_from("ft",16000.)
+
+ac.requirement.time_to_climb.cas1 = unit.convert_from("kt",80.)
+ac.requirement.time_to_climb.altp1 = unit.convert_from("ft",1500.)
+ac.requirement.time_to_climb.cas2 = unit.convert_from("kt",80.)
+ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",10000.)
+ac.requirement.time_to_climb.altp = unit.convert_from("ft",16000.)
+ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",10.)
+
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(740.)
-ac.airframe.wing.area = 31.
+ac.power_system.reference_power = unit.W_kW(560.)
+ac.airframe.wing.area = 39.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -76,18 +127,18 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-#opt = process.Optimizer()
-#opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
-#algo_points= opt.computed_points
+# opt = process.Optimizer()
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
+# algo_points= opt.computed_points
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
-
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 # dico = io.from_string(json)
+
+ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
 # ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file

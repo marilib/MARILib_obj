@@ -11,8 +11,6 @@ from scipy.optimize import fsolve
 
 from marilib.utils import earth
 
-from marilib.aircraft.model_config import get_init
-
 from marilib.engine.ExergeticEngine import Turbofan, ElectricFan
 
 from marilib.aircraft.airframe.component import Component
@@ -49,9 +47,9 @@ class ExergeticTfNacelle(Component):
         self.engine_opr = None
         self.engine_T4max = 1700.
         self.cooling_flow = 0.1
-        self.lateral_margin = get_init(class_name,"lateral_margin")
-        self.vertical_margin = get_init(class_name,"vertical_margin")
-        self.hub_width = get_init(class_name,"hub_width")
+        self.lateral_margin = aircraft.get_init(class_name,"lateral_margin")
+        self.vertical_margin = aircraft.get_init(class_name,"vertical_margin")
+        self.hub_width = aircraft.get_init(class_name,"hub_width")
 
         self.TF_model = Turbofan()
 

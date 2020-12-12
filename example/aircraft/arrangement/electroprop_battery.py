@@ -30,7 +30,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    fuel_type = "battery")          # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 19.,
-                   design_range = unit.m_NM(100.),
+                   design_range = unit.m_NM(50.),
                    cruise_mach = 0.45,
                    cruise_altp = unit.m_ft(20000.))
 
@@ -39,8 +39,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(2400.)      # twin
-ac.airframe.wing.area = 77.5                             # twin
+ac.power_system.reference_power = unit.W_kW(1750.)      # twin
+ac.airframe.wing.area = 56.                             # twin
 # ac.power_system.reference_power = unit.W_kW(1550.)      # quadri
 # ac.airframe.wing.area = 83.                             # quadri
 

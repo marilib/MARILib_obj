@@ -13,10 +13,9 @@ from marilib.utils.math import lin_interp_1d, maximize_1d
 
 from marilib.utils import earth
 
-from marilib.aircraft.model_config import get_init
+from marilib.aircraft.airframe.component import Nacelle, Tank, Pod
 from marilib.aircraft.performance import Flight
 
-from marilib.aircraft.airframe.component import Nacelle, Tank, Pod
 
 # -----------------------------------------------------------------------------------
 #                            AERODYNAMIC & WEIGHTS
@@ -27,17 +26,17 @@ class Aerodynamics(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.cx_correction = get_init(self,"cx_correction")  # Drag correction on cx coefficient
-        self.cruise_lodmax = get_init(self,"cruise_lodmax")  # Assumption on L/D max for some initializations
+        self.cx_correction = aircraft.get_init(self,"cx_correction")  # Drag correction on cx coefficient
+        self.cruise_lodmax = aircraft.get_init(self,"cruise_lodmax")  # Assumption on L/D max for some initializations
         self.cz_cruise_lodmax = None
 
-        self.hld_conf_clean = get_init(self,"hld_conf_clean")
+        self.hld_conf_clean = aircraft.get_init(self,"hld_conf_clean")
         self.czmax_conf_clean = None
 
-        self.hld_conf_to = get_init(self,"hld_conf_to")
+        self.hld_conf_to = aircraft.get_init(self,"hld_conf_to")
         self.czmax_conf_to = None
 
-        self.hld_conf_ld = get_init(self,"hld_conf_ld")
+        self.hld_conf_ld = aircraft.get_init(self,"hld_conf_ld")
         self.czmax_conf_ld = None
 
     def aerodynamic_analysis(self):

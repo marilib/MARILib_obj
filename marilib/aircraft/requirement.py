@@ -10,7 +10,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 from marilib.utils import unit
 
-from marilib.aircraft.model_config import get_init
+from marilib.aircraft.model_config import ModelConfiguration
 
 
 class Requirement(object):
@@ -18,7 +18,8 @@ class Requirement(object):
     def __init__(self, n_pax_ref = 150.,
                  design_range = unit.m_NM(3000.),
                  cruise_mach = 0.78,
-                 cruise_altp = unit.m_ft(35000.)):
+                 cruise_altp = unit.m_ft(35000.),
+                 model_config=None):
         """Initialize top level aircraft requirements. The default requirements are for a typical jet liner.
 
         :param n_pax_ref: number of passangers. Default is 150.
@@ -31,6 +32,11 @@ class Requirement(object):
         self.design_range = design_range
         self.n_pax_ref = n_pax_ref
 
+        if model_config is None:
+            self.model_config = ModelConfiguration()
+        else:
+            self.model_config = model_config()
+        
     def init_all_requirements(self,arrangement):
         """Initialize the following categories of requirements:
 
@@ -43,7 +49,7 @@ class Requirement(object):
 
          """
         self.cruise_disa = 0.
-        self.cost_range = get_init(self, "cost_range", val=self.__cost_mission_range())
+        self.cost_range = self.model_config.get__init(self, "cost_range", val=self.__cost_mission_range())
         self.take_off = TakeOffReq(arrangement, self)
         self.approach = ApproachReq(arrangement, self)
         self.oei_ceiling = OeiCeilingReq(arrangement, self)
@@ -65,12 +71,12 @@ class TakeOffReq(object):
     """Initialize take off requirements
     """
     def __init__(self, arrangement, requirement):
-        self.disa = get_init(self,"disa")
-        self.altp = get_init(self,"altp")
-        self.kmtow = get_init(self,"kmtow")
-        self.kvs1g = get_init(self,"kvs1g")
-        self.s2_min_path = get_init(self,"s2_min_path", val=self.__s2_min_path(arrangement))
-        self.tofl_req = get_init(self,"tofl_req", val=self.__tofl_req(requirement))
+        self.disa = requirement.model_config.get__init(self,"disa")
+        self.altp = requirement.model_config.get__init(self,"altp")
+        self.kmtow = requirement.model_config.get__init(self,"kmtow")
+        self.kvs1g = requirement.model_config.get__init(self,"kvs1g")
+        self.s2_min_path = requirement.model_config.get__init(self,"s2_min_path", val=self.__s2_min_path(arrangement))
+        self.tofl_req = requirement.model_config.get__init(self,"tofl_req", val=self.__tofl_req(requirement))
 
     def __s2_min_path(self,arrangement):
         """Regulatory min climb path versus number of engine
@@ -95,11 +101,11 @@ class ApproachReq(object):
     """Initialize approach requirements
     """
     def __init__(self, arrangement, requirement):
-        self.disa = get_init(self,"disa")
-        self.altp = get_init(self,"altp")
-        self.kmlw = get_init(self,"kmlw")
-        self.kvs1g = get_init(self,"kvs1g")
-        self.app_speed_req = get_init(self,"app_speed_req", val=self.__app_speed_req(requirement))
+        self.disa = requirement.model_config.get__init(self,"disa")
+        self.altp = requirement.model_config.get__init(self,"altp")
+        self.kmlw = requirement.model_config.get__init(self,"kmlw")
+        self.kvs1g = requirement.model_config.get__init(self,"kvs1g")
+        self.app_speed_req = requirement.model_config.get__init(self,"app_speed_req", val=self.__app_speed_req(requirement))
 
     def __app_speed_req(self, requirement):
         if (requirement.n_pax_ref<=40): app_speed_req = unit.mps_kt(110.)
@@ -113,12 +119,12 @@ class OeiCeilingReq(object):
     """Initialize one engine inoperative ceiling requirements
     """
     def __init__(self, arrangement, requirement):
-        self.disa = get_init(self,"disa")
-        self.altp = get_init(self,"altp", val=0.75*requirement.cruise_altp)
-        self.kmtow = get_init(self,"kmtow")
-        self.rating = get_init(self,"rating")
-        self.speed_mode = get_init(self,"speed_mode")
-        self.path_req = get_init(self,"path_req", val=self.__oei_min_path(arrangement))
+        self.disa = requirement.model_config.get__init(self,"disa")
+        self.altp = requirement.model_config.get__init(self,"altp", val=0.75*requirement.cruise_altp)
+        self.kmtow = requirement.model_config.get__init(self,"kmtow")
+        self.rating = requirement.model_config.get__init(self,"rating")
+        self.speed_mode = requirement.model_config.get__init(self,"speed_mode")
+        self.path_req = requirement.model_config.get__init(self,"path_req", val=self.__oei_min_path(arrangement))
 
     def __oei_min_path(self, arrangement):
         """Regulatory min climb path depending on the number of engine
@@ -135,10 +141,10 @@ class ClimbReq(object):
     """A generic Climb requirement definition
     """
     def __init__(self, arrangement, requirement):
-        self.disa = get_init(self,"disa")
-        self.altp = get_init(self,"altp", val=self.top_of_climb(arrangement,requirement))
-        self.mach = get_init(self,"mach", val=self.trajectory_speed(arrangement,requirement))
-        self.kmtow = get_init(self,"kmtow")
+        self.disa = requirement.model_config.get__init(self,"disa")
+        self.altp = requirement.model_config.get__init(self,"altp", val=self.top_of_climb(arrangement,requirement))
+        self.mach = requirement.model_config.get__init(self,"mach", val=self.trajectory_speed(arrangement,requirement))
+        self.kmtow = requirement.model_config.get__init(self,"kmtow")
 
     def trajectory_speed(self, arrangement, requirement):
         if (arrangement.power_architecture in ["tp","ep"]):
@@ -161,9 +167,9 @@ class MclCeilingReq(ClimbReq):
     """
     def __init__(self, arrangement, requirement):
         super(MclCeilingReq, self).__init__(arrangement, requirement)
-        self.rating = get_init(self,"rating")
-        self.speed_mode = get_init(self,"speed_mode")
-        self.vz_req = get_init(self,"vz_req", val=unit.mps_ftpmin(300.))
+        self.rating = requirement.model_config.get__init(self,"rating")
+        self.speed_mode = requirement.model_config.get__init(self,"speed_mode")
+        self.vz_req = requirement.model_config.get__init(self,"vz_req", val=unit.mps_ftpmin(300.))
 
 
 class McrCeilingReq(ClimbReq):
@@ -171,9 +177,9 @@ class McrCeilingReq(ClimbReq):
     """
     def __init__(self, arrangement, requirement):
         super(McrCeilingReq, self).__init__(arrangement, requirement)
-        self.rating = get_init(self,"rating")
-        self.speed_mode = get_init(self,"speed_mode")
-        self.vz_req = get_init(self,"vz_req", val=unit.mps_ftpmin(0.))
+        self.rating = requirement.model_config.get__init(self,"rating")
+        self.speed_mode = requirement.model_config.get__init(self,"speed_mode")
+        self.vz_req = requirement.model_config.get__init(self,"vz_req", val=unit.mps_ftpmin(0.))
 
 
 class TtcReq(ClimbReq):
@@ -181,12 +187,12 @@ class TtcReq(ClimbReq):
     """
     def __init__(self, arrangement, requirement):
         super(TtcReq, self).__init__(arrangement, requirement)
-        self.cas1 = get_init(self,"cas1", val=self.__ttc_cas1(requirement))
-        self.altp1 = get_init(self,"altp1")
-        self.cas2 = get_init(self,"cas2", val=self.__ttc_cas2(requirement))
-        self.altp2 = get_init(self,"altp2")
-        self.altp = get_init(self,"altp", val=self.top_of_climb(arrangement,requirement))
-        self.ttc_req = get_init(self,"ttc_req")
+        self.cas1 = requirement.model_config.get__init(self,"cas1", val=self.__ttc_cas1(requirement))
+        self.altp1 = requirement.model_config.get__init(self,"altp1")
+        self.cas2 = requirement.model_config.get__init(self,"cas2", val=self.__ttc_cas2(requirement))
+        self.altp2 = requirement.model_config.get__init(self,"altp2")
+        self.altp = requirement.model_config.get__init(self,"altp", val=self.top_of_climb(arrangement,requirement))
+        self.ttc_req = requirement.model_config.get__init(self,"ttc_req")
 
     def __ttc_cas1(self, requirement):
         if (requirement.cruise_mach>=0.6): cas1 = unit.mps_kt(180.)

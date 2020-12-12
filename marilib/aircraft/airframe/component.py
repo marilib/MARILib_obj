@@ -12,8 +12,6 @@ import numpy as np
 
 from marilib.utils import earth, unit
 
-from marilib.aircraft.model_config import get_init
-
 
 
 class Component(object):
@@ -279,11 +277,11 @@ class Pod(Component):
 
         class_name = "Pod"
 
-        self.structure_shell_thickness = get_init(class_name,"structure_shell_thickness")
-        self.structure_shell_surface_mass = get_init(class_name,"structure_shell_surface_mass")
+        self.structure_shell_thickness = aircraft.get_init(class_name,"structure_shell_thickness")
+        self.structure_shell_surface_mass = aircraft.get_init(class_name,"structure_shell_surface_mass")
 
-        self.gravimetric_index = get_init(class_name,"gravimetric_index")
-        self.volumetric_index = get_init(class_name,"volumetric_index")
+        self.gravimetric_index = aircraft.get_init(class_name,"gravimetric_index")
+        self.volumetric_index = aircraft.get_init(class_name,"volumetric_index")
 
         self.dry_bay_length = None
 
@@ -389,16 +387,16 @@ class Cabin(Component):
         super(Cabin, self).__init__(aircraft)
 
         self.n_pax_ref = self.aircraft.requirement.n_pax_ref
-        self.n_pax_front = get_init(self,"n_pax_front", val=self.__n_pax_front())
-        self.n_aisle = get_init(self,"n_aisle", val=self.__n_aisle())
+        self.n_pax_front = aircraft.get_init(self,"n_pax_front", val=self.__n_pax_front())
+        self.n_aisle = aircraft.get_init(self,"n_aisle", val=self.__n_aisle())
 
         self.width = None
         self.length = None
         self.co2_metric_area = None
 
-        self.m_pax_nominal = get_init(self,"m_pax_nominal", val=self.__m_pax_nominal())
-        self.m_pax_max = get_init(self,"m_pax_max", val=self.__m_pax_max())
-        self.m_pax_cabin = get_init(self,"m_pax_cabin")
+        self.m_pax_nominal = aircraft.get_init(self,"m_pax_nominal", val=self.__m_pax_nominal())
+        self.m_pax_max = aircraft.get_init(self,"m_pax_max", val=self.__m_pax_max())
+        self.m_pax_cabin = aircraft.get_init(self,"m_pax_cabin")
         self.m_furnishing = None
         self.m_op_item = None
         self.nominal_payload = None
@@ -565,15 +563,17 @@ class Fuselage(Component):
     def __init__(self, aircraft):
         super(Fuselage, self).__init__(aircraft)
 
-        self.forward_limit = get_init(self,"forward_limit")
-        self.wall_thickness = get_init(self,"wall_thickness")
-        self.rear_bulkhead_ratio = get_init(self,"rear_bulkhead_ratio")
-        self.tail_cone_ratio = get_init(self,"tail_cone_ratio")
+        self.forward_limit = aircraft.get_init(self,"forward_limit")
+        self.wall_thickness = aircraft.get_init(self,"wall_thickness")
+        self.rear_bulkhead_ratio = aircraft.get_init(self,"rear_bulkhead_ratio")
+        self.tail_cone_ratio = aircraft.get_init(self,"tail_cone_ratio")
 
         self.width = None
         self.height = None
         self.length = None
         self.tail_cone_length = None
+        
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
     def get_component_type(self):
         return "body"
@@ -604,7 +604,7 @@ class Fuselage(Component):
 
     def eval_mass(self):
         kfus = np.pi*self.length*np.sqrt(self.width*self.height)
-        self.mass = 5.47*kfus**1.2      # Statistical regression versus fuselage built surface
+        self.mass = self.mass_correction_factor * 5.47*kfus**1.2      # Statistical regression versus fuselage built surface
         self.cg = np.array([0.50*self.length, 0., 0.40*self.height])     # Middle of the fuselage
 
     def sketch_3view(self):
@@ -647,19 +647,19 @@ class Wing(Component):
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
-        self.wing_morphing = get_init(self,"wing_morphing")   # "aspect_ratio_driven" or "span_driven"
+        self.wing_morphing = aircraft.get_init(self,"wing_morphing")   # "aspect_ratio_driven" or "span_driven"
         self.area = 60. + 88.*n_pax_ref*design_range*1.e-9
         self.span = None
-        self.aspect_ratio = get_init(self,"aspect_ratio", val=self.aspect_ratio())
-        self.taper_ratio = None
-        self.dihedral = get_init(self,"dihedral")
+        self.aspect_ratio = aircraft.get_init(self,"aspect_ratio", val=self.aspect_ratio())
+        self.taper_ratio = aircraft.get_init(self,"taper_ratio", val=self.taper_ratio())
+        self.dihedral = aircraft.get_init(self,"dihedral")
         self.sweep0 = None
-        self.sweep25 = get_init(self,"sweep25", val=self.sweep25())
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
         self.sweep100 = None
         self.setting = None
-        self.hld_type = get_init(self,"hld_type", val=self.high_lift_type())
-        self.front_spar_ratio = get_init(self,"front_spar_ratio")
-        self.rear_spar_ratio = get_init(self,"rear_spar_ratio")
+        self.hld_type = aircraft.get_init(self,"hld_type", val=self.high_lift_type())
+        self.front_spar_ratio = aircraft.get_init(self,"front_spar_ratio")
+        self.rear_spar_ratio = aircraft.get_init(self,"rear_spar_ratio")
 
         self.x_rout = None      # Design variable for hq_optim
 
@@ -677,6 +677,8 @@ class Wing(Component):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+        
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
     def get_component_type(self):
         return "wing"
@@ -687,6 +689,10 @@ class Wing(Component):
         else:
             ar = 9
         return ar
+
+    def taper_ratio(self):
+        taper_ratio = 0.20
+        return taper_ratio
 
     def sweep25(self):
         sweep25 = 1.6*max(0.,(self.aircraft.requirement.cruise_mach - 0.5))     # Empirical law
@@ -717,9 +723,6 @@ class Wing(Component):
             self.aspect_ratio = self.span**2/self.area
         else:
             print("geometry_predesign_, wing_wing_morphing index is unkown")
-
-        # Correlation between span loading and tapper ratio
-        self.taper_ratio = 0.35 - 0.025*(1e-3*mtow/self.span)
 
         y_root = 0.5*body_width
         y_kink = 1.75*body_width
@@ -890,7 +893,7 @@ class Wing(Component):
         E = np.cos(self.sweep25)**2
         F = 1200.*max(0., cz_max_ld - 1.8)**1.5
 
-        self.mass = A + (B*C)/(D*E) + F   # Shevell formula + high lift device regression
+        self.mass = self.mass_correction_factor * (A + (B*C)/(D*E) + F)   # Shevell formula + high lift device regression
 
         self.cg =  0.25*(self.root_loc + 0.40*np.array([self.root_c, 0., 0.])) \
                  + 0.55*(self.kink_loc + 0.40*np.array([self.kink_c, 0., 0.])) \
@@ -1031,13 +1034,13 @@ class VtpClassic(Vstab):
 
         self.area = 0.20*wing_area  # Design variable for hq_optim
         self.height = None
-        self.aspect_ratio = get_init(self,"aspect_ratio")
-        self.taper_ratio = get_init(self,"taper_ratio")
-        self.toc = get_init(self,"toc")
-        self.sweep25 = None
-        self.thrust_volume_factor = get_init(self,"thrust_volume_factor")
-        self.wing_volume_factor = get_init(self,"wing_volume_factor")
-        self.anchor_ratio = get_init(self,"anchor_ratio")
+        self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
+        self.taper_ratio = aircraft.get_init(self,"taper_ratio")
+        self.toc = aircraft.get_init(self,"toc")
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.thrust_volume_factor = aircraft.get_init(self,"thrust_volume_factor")
+        self.wing_volume_factor = aircraft.get_init(self,"wing_volume_factor")
+        self.anchor_ratio = aircraft.get_init(self,"anchor_ratio")
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -1048,20 +1051,23 @@ class VtpClassic(Vstab):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+        
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
+
+    def sweep25(self):
+        sweep25 = max(unit.rad_deg(25.), self.aircraft.airframe.wing.sweep25 + unit.rad_deg(10.)) # Empirical law
+        return sweep25
 
     def eval_geometry(self):
         body_length = self.aircraft.airframe.body.length
         body_height = self.aircraft.airframe.body.height
         tail_cone_length = self.aircraft.airframe.body.tail_cone_length
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
         wing_mac = self.aircraft.airframe.wing.mac
 
         self.height = np.sqrt(self.aspect_ratio*self.area)
         self.root_c = 2*self.area/(self.height*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.root_c
-
-        self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
 
         x_root = body_length*(1-tail_cone_length/body_length*(1-self.anchor_ratio)) - self.root_c
         x_tip = x_root + 0.25*(self.root_c-self.tip_c) + self.height*np.tan(self.sweep25)
@@ -1102,7 +1108,7 @@ class VtpClassic(Vstab):
         return cyb_vtp, xlc_vtp, aoa_max_vtp, ki_vtp
 
     def eval_mass(self):
-        self.mass = 25. * self.area
+        self.mass = self.mass_correction_factor * 25. * self.area
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
@@ -1123,13 +1129,13 @@ class VtpTtail(Vstab):
 
         self.area = 0.20*wing_area  # Design variable for hq_optim
         self.height = None
-        self.aspect_ratio = get_init(self,"aspect_ratio")
-        self.taper_ratio = get_init(self,"taper_ratio")
-        self.toc = get_init(self,"toc")
-        self.sweep25 = None
-        self.thrust_volume_factor = get_init(self,"thrust_volume_factor")
-        self.wing_volume_factor = get_init(self,"wing_volume_factor")
-        self.anchor_ratio = get_init(self,"anchor_ratio")
+        self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
+        self.taper_ratio = aircraft.get_init(self,"taper_ratio")
+        self.toc = aircraft.get_init(self,"toc")
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.thrust_volume_factor = aircraft.get_init(self,"thrust_volume_factor")
+        self.wing_volume_factor = aircraft.get_init(self,"wing_volume_factor")
+        self.anchor_ratio = aircraft.get_init(self,"anchor_ratio")
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -1140,20 +1146,23 @@ class VtpTtail(Vstab):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+        
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
+
+    def sweep25(self):
+        sweep25 = max(unit.rad_deg(25.), self.aircraft.airframe.wing.sweep25 + unit.rad_deg(10.)) # Empirical law
+        return sweep25
 
     def eval_geometry(self):
         body_length = self.aircraft.airframe.body.length
         body_height = self.aircraft.airframe.body.height
         tail_cone_length = self.aircraft.airframe.body.tail_cone_length
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
         wing_mac = self.aircraft.airframe.wing.mac
 
         self.height = np.sqrt(self.aspect_ratio*self.area)
         self.root_c = 2*self.area/(self.height*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.root_c
-
-        self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
 
         x_root = body_length*(1-tail_cone_length/body_length*(1-self.anchor_ratio)) - self.root_c
         x_tip = x_root + 0.25*(self.root_c-self.tip_c) + self.height*np.tan(self.sweep25)
@@ -1195,7 +1204,7 @@ class VtpTtail(Vstab):
         return cyb_vtp, xlc_vtp, aoa_max_vtp, ki_vtp
 
     def eval_mass(self):
-        self.mass = 28. * self.area
+        self.mass = self.mass_correction_factor * 28. * self.area
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
@@ -1218,12 +1227,12 @@ class VtpHtail(Vstab):
 
         self.area = 0.10*wing_area  # Design variable for hq_optim
         self.height = None
-        self.aspect_ratio = get_init(self,"aspect_ratio")
-        self.taper_ratio = get_init(self,"taper_ratio")
-        self.toc = get_init(self,"toc")
-        self.sweep25 = None
-        self.thrust_volume_factor = get_init(self,"thrust_volume_factor")
-        self.wing_volume_factor = get_init(self,"wing_volume_factor")
+        self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
+        self.taper_ratio = aircraft.get_init(self,"taper_ratio")
+        self.toc = aircraft.get_init(self,"toc")
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.thrust_volume_factor = aircraft.get_init(self,"thrust_volume_factor")
+        self.wing_volume_factor = aircraft.get_init(self,"wing_volume_factor")
         self.lever_arm = None
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
@@ -1234,21 +1243,24 @@ class VtpHtail(Vstab):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+        
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
     def get_side(self):
         return {"right":1., "left":-1.}.get(self.airplane_side)
 
+    def sweep25(self):
+        sweep25 = max(unit.rad_deg(25.), self.aircraft.airframe.wing.sweep25 + unit.rad_deg(10.)) # Empirical law
+        return sweep25
+
     def eval_geometry(self):
         htp_tip_loc = self.aircraft.airframe.horizontal_stab.tip_loc
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
         wing_mac = self.aircraft.airframe.wing.mac
 
         self.height = np.sqrt(self.aspect_ratio*(self.area))
         self.root_c = 2*(self.area)/(self.height*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.root_c
-
-        self.sweep25 = max(unit.rad_deg(25.), wing_sweep25 + unit.rad_deg(10.)) # Empirical law
 
         x_root = htp_tip_loc[0]
         x_tip = x_root + 0.25*(self.root_c-self.tip_c) + self.height*np.tan(self.sweep25)
@@ -1289,7 +1301,7 @@ class VtpHtail(Vstab):
         return cyb_vtp, xlc_vtp, aoa_max_vtp, ki_vtp
 
     def eval_mass(self):
-        self.mass = 25. * self.area
+        self.mass = self.mass_correction_factor * 25. * self.area
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
@@ -1364,12 +1376,12 @@ class HtpClassic(Hstab):
 
         self.area = 0.33*wing_area  # Design variable for hq_optim
         self.span = None
-        self.aspect_ratio = get_init(self,"aspect_ratio")
-        self.taper_ratio = get_init(self,"taper_ratio")
-        self.toc = get_init(self,"toc")
-        self.sweep25 = None
-        self.dihedral = get_init(self,"dihedral")
-        self.volume_factor = get_init(self,"volume_factor")
+        self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
+        self.taper_ratio = aircraft.get_init(self,"taper_ratio")
+        self.toc = aircraft.get_init(self,"toc")
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.dihedral = aircraft.get_init(self,"dihedral")
+        self.volume_factor = aircraft.get_init(self,"volume_factor")
         self.lever_arm = None
 
         self.axe_loc = np.full(3,None)     # Position of the virtual central chord
@@ -1380,12 +1392,17 @@ class HtpClassic(Hstab):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+        
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
+
+    def sweep25(self):
+        sweep25 = abs(self.aircraft.airframe.wing.sweep25) + unit.rad_deg(5)     # Design rule
+        return sweep25
 
     def eval_geometry(self):
         body_height = self.aircraft.airframe.body.height
         vtp_root_loc = self.aircraft.airframe.vertical_stab.root_loc
         vtp_root_c = self.aircraft.airframe.vertical_stab.root_c
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
         wing_mac = self.aircraft.airframe.wing.mac
 
@@ -1399,8 +1416,6 @@ class HtpClassic(Hstab):
 
         self.axe_c = 2.*self.area/(self.span*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.axe_c
-
-        self.sweep25 = abs(wing_sweep25) + unit.rad_deg(5)     # Design rule
 
         self.mac = self.span*(self.axe_c**2+self.tip_c**2+self.axe_c*self.tip_c)/(3.*self.area)
         y_mac = y_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
@@ -1438,7 +1453,7 @@ class HtpClassic(Hstab):
         return cza_htp, xlc_htp, aoa_max_htp, ki_htp
 
     def eval_mass(self):
-        self.mass = 22. * self.area
+        self.mass = self.mass_correction_factor * 22. * self.area
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
@@ -1456,12 +1471,13 @@ class HtpTtail(Hstab):
 
         self.area = 0.33*wing_area  # Design variable for hq_optim
         self.span = None
-        self.aspect_ratio = get_init(self,"aspect_ratio")
-        self.taper_ratio = get_init(self,"taper_ratio")
-        self.toc = get_init(self,"toc")
-        self.sweep25 = None
-        self.dihedral = get_init(self,"dihedral")
-        self.volume_factor = get_init(self,"volume_factor")
+        self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
+        self.taper_ratio = aircraft.get_init(self,"taper_ratio")
+        self.height_ratio = aircraft.get_init(self,"height_ratio")
+        self.toc = aircraft.get_init(self,"toc")
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.dihedral = aircraft.get_init(self,"dihedral")
+        self.volume_factor = aircraft.get_init(self,"volume_factor")
         self.lever_arm = None
 
         self.axe_loc = np.full(3,None)     # Position of the central chord
@@ -1472,13 +1488,18 @@ class HtpTtail(Hstab):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+        
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
+
+    def sweep25(self):
+        sweep25 = abs(self.aircraft.airframe.wing.sweep25) + unit.rad_deg(5)     # Design rule
+        return sweep25
 
     def eval_geometry(self):
         body_height = self.aircraft.airframe.body.height
         vtp_tip_loc = self.aircraft.airframe.vertical_stab.tip_loc
         vtp_tip_c = self.aircraft.airframe.vertical_stab.tip_c
         vtp_height = self.aircraft.airframe.vertical_stab.height
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
         wing_mac = self.aircraft.airframe.wing.mac
 
@@ -1486,14 +1507,11 @@ class HtpTtail(Hstab):
         y_axe = 0.
         y_tip = 0.5*self.span
 
-        htp_z_wise_anchor = 0.80       # Locate HTP versus end body height
-        z_axe = body_height + vtp_height
+        z_axe = (1.-self.height_ratio)*body_height + self.height_ratio*(body_height+vtp_height)
         z_tip = z_axe + y_tip*np.tan(self.dihedral)
 
         self.axe_c = 2.*self.area/(self.span*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.axe_c
-
-        self.sweep25 = abs(wing_sweep25) + unit.rad_deg(5)     # Design rule
 
         self.mac = self.span*(self.axe_c**2+self.tip_c**2+self.axe_c*self.tip_c)/(3.*self.area)
         y_mac = y_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
@@ -1531,7 +1549,7 @@ class HtpTtail(Hstab):
         return cza_htp, xlc_htp, aoa_max_htp, ki_htp
 
     def eval_mass(self):
-        self.mass = 22. * self.area
+        self.mass = self.mass_correction_factor * 22. * self.area
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
@@ -1549,12 +1567,12 @@ class HtpHtail(Hstab):
 
         self.area = 0.33*wing_area  # Design variable for hq_optim
         self.span = None
-        self.aspect_ratio = get_init(self,"aspect_ratio")
-        self.taper_ratio = get_init(self,"taper_ratio")
-        self.toc = get_init(self,"toc")
-        self.sweep25 = None
-        self.dihedral = get_init(self,"dihedral")
-        self.volume_factor = get_init(self,"volume_factor")
+        self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
+        self.taper_ratio = aircraft.get_init(self,"taper_ratio")
+        self.toc = aircraft.get_init(self,"toc")
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.dihedral = aircraft.get_init(self,"dihedral")
+        self.volume_factor = aircraft.get_init(self,"volume_factor")
         self.lever_arm = None
 
         self.axe_loc = np.full(3,None)     # Position of the virtual central chord
@@ -1565,12 +1583,17 @@ class HtpHtail(Hstab):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
+        
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
+
+    def sweep25(self):
+        sweep25 = abs(self.aircraft.airframe.wing.sweep25) + unit.rad_deg(5)     # Design rule
+        return sweep25
 
     def eval_geometry(self):
         body_length = self.aircraft.airframe.body.length
         body_height = self.aircraft.airframe.body.height
         body_cone_length = self.aircraft.airframe.body.tail_cone_length
-        wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_mac_loc = self.aircraft.airframe.wing.mac_loc
         wing_mac = self.aircraft.airframe.wing.mac
 
@@ -1584,8 +1607,6 @@ class HtpHtail(Hstab):
 
         self.axe_c = 2.*self.area/(self.span*(1+self.taper_ratio))
         self.tip_c = self.taper_ratio*self.axe_c
-
-        self.sweep25 = abs(wing_sweep25) + unit.rad_deg(5)     # Design rule
 
         self.mac = self.span*(self.axe_c**2+self.tip_c**2+self.axe_c*self.tip_c)/(3.*self.area)
         y_mac = y_tip**2*(2*self.tip_c+self.axe_c)/(3*self.area)
@@ -1625,7 +1646,7 @@ class HtpHtail(Hstab):
         return cza_htp, xlc_htp, aoa_max_htp, ki_htp
 
     def eval_mass(self):
-        self.mass = 22. * self.area
+        self.mass = self.mass_correction_factor * 22. * self.area
         self.cg = self.mac_loc + 0.20*np.array([self.mac, 0., 0.])
 
     def eval_area(self):
@@ -1640,10 +1661,10 @@ class TankWingBox(Tank):
     def __init__(self, aircraft):
         super(TankWingBox, self).__init__(aircraft)
 
-        self.gravimetric_index = get_init(self,"gravimetric_index")
-        self.volumetric_index = get_init(self,"volumetric_index")
+        self.gravimetric_index = aircraft.get_init(self,"gravimetric_index")
+        self.volumetric_index = aircraft.get_init(self,"volumetric_index")
 
-        self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
+        self.fuel_pressure = aircraft.get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
         self.fuel_density = None
 
         self.cantilever_gross_volume = None
@@ -1755,16 +1776,16 @@ class TankRearFuselage(Tank):
     def __init__(self, aircraft):
         super(TankRearFuselage, self).__init__(aircraft)
 
-        self.gravimetric_index = get_init(self,"gravimetric_index")
-        self.volumetric_index = get_init(self,"volumetric_index")
+        self.gravimetric_index = aircraft.get_init(self,"gravimetric_index")
+        self.volumetric_index = aircraft.get_init(self,"volumetric_index")
 
-        self.length = get_init(self,"length")
-        self.width_rear_factor = get_init(self,"width_rear_factor")
+        self.length = aircraft.get_init(self,"length")
+        self.width_rear_factor = aircraft.get_init(self,"width_rear_factor")
 
         self.width_rear = None
         self.width_front = None
 
-        self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
+        self.fuel_pressure = aircraft.get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
         self.fuel_density = None
 
         self.gross_volume = None
@@ -1856,18 +1877,18 @@ class TankWingPod(Pod):
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
-        self.span_ratio = get_init(self,"span_ratio")
-        self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
+        self.span_ratio = aircraft.get_init(self,"span_ratio")
+        self.fuel_pressure = aircraft.get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
         self.fuel_density = None
 
         length = 0.35*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
         width = 0.80*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
-        self.dry_bay_length = get_init(self,"dry_bay_length")
-        self.length = get_init(self,"length", val=length)
-        self.width = get_init(self,"width", val=width)
-        self.x_loc_ratio = get_init(self,"x_loc_ratio")
-        self.z_loc_ratio = get_init(self,"z_loc_ratio")
+        self.dry_bay_length = aircraft.get_init(self,"dry_bay_length")
+        self.length = aircraft.get_init(self,"length", val=length)
+        self.width = aircraft.get_init(self,"width", val=width)
+        self.x_loc_ratio = aircraft.get_init(self,"x_loc_ratio")
+        self.z_loc_ratio = aircraft.get_init(self,"z_loc_ratio")
         self.wing_axe_c = None
         self.wing_axe_x = None
         self.wing_axe_z = None
@@ -1953,18 +1974,18 @@ class TankPiggyBack(Pod):
         n_pax_front = self.aircraft.airframe.cabin.n_pax_front
         n_aisle = self.aircraft.airframe.cabin.n_aisle
 
-        self.fuel_pressure = get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
+        self.fuel_pressure = aircraft.get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
         self.fuel_density = None
 
         # Estimations based on fuselage dimension estimation
         length = 0.75*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
         width = 0.80*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
-        self.dry_bay_length = get_init(self,"dry_bay_length")
-        self.length = get_init(self,"length", val=length)
-        self.width = get_init(self,"width", val=width)
-        self.x_loc_ratio = get_init(self,"x_loc_ratio")
-        self.z_loc_ratio = get_init(self,"z_loc_ratio")
+        self.dry_bay_length = aircraft.get_init(self,"dry_bay_length")
+        self.length = aircraft.get_init(self,"length", val=length)
+        self.width = aircraft.get_init(self,"width", val=width)
+        self.x_loc_ratio = aircraft.get_init(self,"x_loc_ratio")
+        self.z_loc_ratio = aircraft.get_init(self,"z_loc_ratio")
         self.wing_axe_c = None
         self.wing_axe_x = None
         self.wing_axe_z = None
@@ -2029,6 +2050,8 @@ class LandingGear(Component):
 
     def __init__(self, aircraft):
         super(LandingGear, self).__init__(aircraft)
+        
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
     def eval_geometry(self):
         wing_root_c = self.aircraft.airframe.wing.root_c
@@ -2043,7 +2066,7 @@ class LandingGear(Component):
         mtow = self.aircraft.weight_cg.mtow
         mlw = self.aircraft.weight_cg.mlw
 
-        self.mass = 0.02*mtow**1.03 + 0.012*mlw    # Landing gears
+        self.mass = (0.02*mtow**1.03 + 0.012*mlw) * self.mass_correction_factor    # Landing gears
         self.cg = self.frame_origin
 
 
