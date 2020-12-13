@@ -33,7 +33,6 @@ class Requirement(object):
         self.n_pax_ref = n_pax_ref
 
         if model_config is None:
-            print("plop")
             self.model_config = ModelConfiguration()
         else:
             self.model_config = model_config()

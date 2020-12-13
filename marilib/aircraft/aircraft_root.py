@@ -121,6 +121,9 @@ class Aircraft(object):
         if (self.arrangement.tank_architecture=="wing_box"):
             self.airframe.tank = component.TankWingBox(self)
             self.airframe.tank_analysis_order = ["tank"]
+        elif (self.arrangement.tank_architecture=="floor"):
+            self.airframe.tank = component.TankFuselageFloor(self)
+            self.airframe.tank_analysis_order = ["tank"]
         elif (self.arrangement.tank_architecture=="rear"):
             self.airframe.tank = component.TankRearFuselage(self)
             self.airframe.tank_analysis_order = ["tank"]

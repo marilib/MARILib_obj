@@ -18,9 +18,12 @@ class ModelConfiguration(object):
         "Cabin":{
             "n_pax_front": ["function", "int", "Number of front seats in economic class (function)"],
             "n_aisle": ["function", "int", "Number of aisle in economic class (function)"],
-            "m_pax_nominal": [95, "kg", "Reference mass allowance per passenger for design (function)"],
-            "m_pax_max": [105, "kg", "Maximum mass allowance per passenger for design (function)"],
-            "m_pax_cabin": [80., "kg", "Mean passenger mass in the cabin including its hand luggage"]
+            "m_pax_nominal": [100., "kg", "Reference mass allowance per passenger for design (function)"],
+            "m_pax_max": [100., "kg", "Maximum mass allowance per passenger for design (function)"],
+            "m_pax_cabin": [80., "kg", "Mean passenger mass in the cabin including its hand luggage"],
+            "seat_width": [19., "inch", "Seat width in economic class"],
+            "seat_pitch": [32., "inch", "Seat pitch in economic class"],
+            "aisle_width": [20., "inch", "Aisle width"]
         },
         "Fuselage":{
             "forward_limit": [3., "m", "Distance between fuselage nose and forward cabin wall"],
@@ -29,7 +32,7 @@ class ModelConfiguration(object):
             "tail_cone_ratio": [4., "no_dim", "Fuselage tail cone length (evolutive part) over fuselage diameter"],
             "section_type": ["square", "string", "Fuselage cross section 'ellipse' or 'square'"],
             "rear_bulkhead_ratio": [1.5, "no_dim", "Distance from rear pressure bulkhead to fuselage cone end over fuselage diameter"],
-            "mass_correction_factor": [0.4, "no_dim", "Correction factor on mass estimation"]
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "Wing":{
             "wing_morphing": ["aspect_ratio_driven", "no_dim", "Wing deformation mode, 'aspect_ratio_driven' or 'span_driven'"],
@@ -100,6 +103,11 @@ class ModelConfiguration(object):
             "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "TankWingBox":{
+            "gravimetric_index": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
+            "volumetric_index": [0.85, "no_dim", "Tank system energy density over fuel energy density"],
+            "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
+        },
+        "TankFuselageFloor":{
             "gravimetric_index": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
             "volumetric_index": [0.85, "no_dim", "Tank system energy density over fuel energy density"],
             "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
@@ -220,7 +228,8 @@ class ModelConfiguration(object):
             "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
             "hub_width": [0.2, "m", "Propeller hub diameter"],
             "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
-            "propeller_disk_load": [1500., "N/m2", "Propeller disk load"]
+            "propeller_disk_load": [1500., "N/m2", "Propeller disk load"],
+            "psfc_reference": [0.9, "lb/shp/h", "Power related Spesific Fuel Consumption"]
         },
         "SemiEmpiricEpNacelle":{
             "eis_date": [2020., "year", "Entry into service date"],
@@ -285,7 +294,7 @@ class ModelConfiguration(object):
             "cost_range": ["function", "NM", "Reference range for cost evaluation (function)"]
         },
         "Aerodynamics":{
-            "cx_correction": [0., "no_dim", "Drag correction on cx coefficient"],
+            "cx_correction": [0.0100, "no_dim", "Drag correction on cx coefficient"],
             "cruise_lodmax": [16., "no_dim", "Assumption on L/D max for some initializations"],
             "hld_conf_clean": [0., "no_dim", "High lift device setting for clean wing, must be 0."],
             "hld_conf_to": [0.30, "no_dim", "High lift device setting for take off, between 0. and 0.5"],

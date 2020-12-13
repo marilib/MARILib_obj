@@ -35,6 +35,9 @@ def min_s(s): return s/60.      # Translate seconds into minutes
 def s_h(h): return h*3600.   # Translate hours into seconds
 def h_s(s): return s/3600.   # Translate seconds into hours
 
+def m_inch(inch): return inch*0.0254   # Translate inch into metres
+def inch_m(m): return m/0.0254      # Translate metres into inch
+
 def m_ft(ft): return ft*0.3048   # Translate feet into metres
 def ft_m(m): return m/0.3048   # Translate metres into feet
 

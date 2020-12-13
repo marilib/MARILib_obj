@@ -23,7 +23,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",   # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "floor",   # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tp",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
@@ -31,7 +31,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 19.,
-                   design_range = unit.m_km(740.),
+                   design_range = unit.m_NM(100.),
                    cruise_mach = 0.30,
                    cruise_altp = unit.m_ft(25000.),
                    model_config = ModelConfiguration)
@@ -67,10 +67,10 @@ print("time_to_climb_toc = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_t
 print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_climb.ttc_req)))
 
 # Take off
-ac.requirement.take_off.tofl_req = 460.
+ac.requirement.take_off.tofl_req = 420.
 
 # Approach
-ac.requirement.approach.app_speed_req = unit.convert_from("kt",73.)
+ac.requirement.approach.app_speed_req = unit.convert_from("kt",72.)
 # Climb
 ac.requirement.mcl_ceiling.altp = unit.convert_from("ft",16000.)
 ac.requirement.mcl_ceiling.mach = 0.2

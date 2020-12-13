@@ -20,7 +20,10 @@ class ModelConfiguration(object):
             "n_aisle": ["function", "int", "Number of aisle in economic class (function)"],
             "m_pax_nominal": ["function", "kg", "Reference mass allowance per passenger for design (function)"],
             "m_pax_max": ["function", "kg", "Maximum mass allowance per passenger for design (function)"],
-            "m_pax_cabin": [80., "kg", "Mean passenger mass in the cabin including its hand luggage"]
+            "m_pax_cabin": [80., "kg", "Mean passenger mass in the cabin including its hand luggage"],
+            "seat_width": [19., "inch", "Seat width in economic class"],
+            "seat_pitch": [32., "inch", "Seat pitch in economic class"],
+            "aisle_width": [20., "inch", "Aisle width"]
         },
         "Fuselage":{
             "forward_limit": [4., "m", "Distance between fuselage nose and forward cabin wall"],

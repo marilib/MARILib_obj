@@ -369,7 +369,12 @@ class Pod(Component):
         else:
             raise Exception("Tank location is unknown")
 
-        self.shell_specific_mass = self.structure_internal_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+        # Tank equiped structural mass
+        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+            self.shell_specific_mass = self.structure_internal_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+        else:
+            self.shell_specific_mass = 0.
+
         self.fuel_mass = self.fuel_density * self.fuel_volume
 
         return
@@ -430,6 +435,9 @@ class Cabin(Component):
         self.n_pax_ref = self.aircraft.requirement.n_pax_ref
         self.n_pax_front = aircraft.get_init(self,"n_pax_front", val=self.__n_pax_front())
         self.n_aisle = aircraft.get_init(self,"n_aisle", val=self.__n_aisle())
+        self.seat_width = aircraft.get_init(self,"seat_width")
+        self.seat_pitch = aircraft.get_init(self,"seat_pitch")
+        self.aisle_width = aircraft.get_init(self,"aisle_width")
 
         self.width = None
         self.length = None
@@ -490,9 +498,8 @@ class Cabin(Component):
         return "cabin"
 
     def eval_geometry(self):
-        self.width = 0.38*self.n_pax_front + 1.05*self.n_aisle + 0.15     # Statistical regression
-        self.length = 6.3*(self.width - 0.24) + 0.005*(self.n_pax_ref/self.n_pax_front)**2.25     # Statistical regression
-
+        self.width =  self.seat_width*self.n_pax_front + self.aisle_width*self.n_aisle + 0.08   # Statistical regression
+        self.length = 2.*self.width + self.seat_pitch*self.n_pax_ref/self.n_pax_front           # Statistical regression
         self.projected_area = 0.95*self.length*self.width       # Factor 0.95 accounts for tapered parts
 
     def eval_mass(self):
@@ -1821,6 +1828,96 @@ class TankWingBox(Tank):
         self.fuel_max_bwd_cg = self.fuel_cantilever_cg    # Fuel max Backward CG
         self.fuel_max_bwd_mass = self.cantilever_volume*self.fuel_density
 
+class TankFuselageFloor(Tank):
+
+    def __init__(self, aircraft):
+        super(TankFuselageFloor, self).__init__(aircraft)
+
+        self.gravimetric_index = aircraft.get_init(self,"gravimetric_index")
+        self.volumetric_index = aircraft.get_init(self,"volumetric_index")
+
+        self.length = None
+        self.width = None
+        self.height = None
+
+        self.fuel_pressure = aircraft.get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
+        self.fuel_density = None
+
+        self.gross_volume = None
+        self.shell_specific_volume = None
+        self.shell_specific_mass = None
+
+        self.max_volume = None
+        self.mfw_volume_limited = None
+
+        self.fuel_max_fwd_cg = np.full(3,None)
+        self.fuel_max_fwd_mass = None
+
+        self.fuel_max_bwd_cg = np.full(3,None)
+        self.fuel_max_bwd_mass = None
+
+    def get_component_type(self):
+        return "rear_body_tank"
+
+    def eval_geometry(self):
+        body_loc = self.aircraft.airframe.body.frame_origin
+        body_width = self.aircraft.airframe.body.width
+        body_height = self.aircraft.airframe.body.height
+        body_length = self.aircraft.airframe.body.length
+        forward_limit = self.aircraft.airframe.body.forward_limit
+        body_wall_thickness = self.aircraft.airframe.body.wall_thickness
+
+        x_axe = body_loc[0] + forward_limit
+        y_axe = 0.
+        z_axe = body_loc[2] + 0.05*body_height
+
+        self.frame_origin = [x_axe, y_axe, z_axe]
+
+        self.length = 0.20 * body_length
+        self.width = body_width - 2.*body_wall_thickness
+        self.height = 0.10 * body_height
+
+        self.gross_volume = 0.85 * (self.height * self.width * self.length)
+
+        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+            # Volume of the tank structure
+            self.shell_specific_volume = self.gross_volume*(1.-self.volumetric_index)
+            # Volume of the fuel
+            self.max_volume = self.gross_volume*self.volumetric_index
+
+        else:
+            self.shell_specific_volume = 0.
+            self.max_volume = self.gross_volume
+
+    def sketch_3view(self):
+        return None
+
+    def eval_mass(self):
+        fuel_type = self.aircraft.arrangement.fuel_type
+        body_width = self.aircraft.airframe.body.width
+        body_tail_cone_ratio = self.aircraft.airframe.body.tail_cone_ratio
+        body_rear_bulkhead_ratio = self.aircraft.airframe.body.rear_bulkhead_ratio
+
+        # REMARK : if fuel is "Battery", fuel density will be battery density
+        self.fuel_density = earth.fuel_density(fuel_type, self.fuel_pressure)
+        self.mfw_volume_limited = self.max_volume*self.fuel_density
+
+        # Tank equiped structural mass
+        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+            self.shell_specific_mass = self.gross_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+        else:
+            self.shell_specific_mass = 0.
+
+        self.mass = self.shell_specific_mass
+
+        self.cg = self.frame_origin[0] + 0.5 * self.length
+
+        self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
+        self.fuel_max_fwd_mass = self.max_volume*self.fuel_density
+
+        self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
+        self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
+
 class TankRearFuselage(Tank):
 
     def __init__(self, aircraft):
@@ -1902,7 +1999,11 @@ class TankRearFuselage(Tank):
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
         # Tank equiped structural mass
-        self.shell_specific_mass = self.gross_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+            self.shell_specific_mass = self.gross_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+        else:
+            self.shell_specific_mass = 0.
+
         self.mass = self.shell_specific_mass
 
         lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
@@ -2005,6 +2106,13 @@ class TankWingPod(Pod):
         self.mfw_volume_limited = self.max_volume*self.fuel_density
 
         self.mass_fuel_tank("external")
+
+
+        # Tank equiped structural mass
+        if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+            self.shell_specific_mass = self.gross_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+        else:
+            self.shell_specific_mass = 0.
 
         self.mass = self.structure_shell_mass + self.shell_specific_mass
         self.cg = self.frame_origin + 0.45*np.array([self.length, 0., 0.])

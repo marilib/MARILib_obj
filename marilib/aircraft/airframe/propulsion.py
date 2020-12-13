@@ -1264,6 +1264,7 @@ class SemiEmpiricTpNacelle(object):
         self.lateral_margin = aircraft.get_init(class_name,"lateral_margin")
         self.hub_width = aircraft.get_init(class_name,"hub_width")
         self.engine_bpr = 100.
+        self.psfc_reference = aircraft.get_init(class_name,"psfc_reference")
 
         self.propeller_width = None
         self.width = None
@@ -1326,15 +1327,13 @@ class SemiEmpiricTpNacelle(object):
         factor = self.rating_factor
         eta_prop = self.propeller_efficiency
 
-        psfc_ref = unit.kgpWps_lbpshpph(0.4)   # 0.4 lb/shp/h
-
         rho,sig = earth.air_density(pamb,tamb)
         Vair = mach*earth.sound_speed(tamb)
 
         shaft_power = throttle*getattr(factor,rating)*reference_power*sig**0.5 - pw_offtake
 
         fn = eta_prop*shaft_power/Vair
-        ff = psfc_ref*(shaft_power + pw_offtake)
+        ff = self.psfc_reference*(shaft_power + pw_offtake)
 
         return {"fn":fn, "ff":ff, "pw":shaft_power, "t4":None}
 
