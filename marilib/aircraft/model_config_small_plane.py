@@ -23,9 +23,11 @@ class ModelConfiguration(object):
             "m_pax_cabin": [80., "kg", "Mean passenger mass in the cabin including its hand luggage"]
         },
         "Fuselage":{
-            "forward_limit": [2., "m", "Distance between fuselage nose and forward cabin wall"],
+            "forward_limit": [3., "m", "Distance between fuselage nose and forward cabin wall"],
             "wall_thickness": [0.10, "m", "Fuselage wall total tchickness"],
-            "tail_cone_ratio": [3.45, "no_dim", "Fuselage tail cone length (evolutive part) over fuselage diameter"],
+            "nose_cone_ratio": [2., "no_dim", "Fuselage nose cone length (evolutive part) over fuselage diameter"],
+            "tail_cone_ratio": [4., "no_dim", "Fuselage tail cone length (evolutive part) over fuselage diameter"],
+            "section_type": ["square", "string", "Fuselage cross section 'ellipse' or 'square'"],
             "rear_bulkhead_ratio": [1.5, "no_dim", "Distance from rear pressure bulkhead to fuselage cone end over fuselage diameter"],
             "mass_correction_factor": [0.4, "no_dim", "Correction factor on mass estimation"]
         },
@@ -51,13 +53,13 @@ class ModelConfiguration(object):
             "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "VtpTtail":{
-            "aspect_ratio": [1.2, "no_dim", "Vertical tail aspect ratio"],
-            "taper_ratio": [0.8, "no_dim", "Vertical tail taper ratio"],
+            "aspect_ratio": [1.5, "no_dim", "Vertical tail aspect ratio"],
+            "taper_ratio": [0.6, "no_dim", "Vertical tail taper ratio"],
             "sweep25": ["function", "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the vertical tail"],
             "thrust_volume_factor": [0.4, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
             "wing_volume_factor": [0.07, "no_dim", "Volume coefficient of the vertical stabilizer according to wing"],
-            "anchor_ratio": [0.85, "no_dim", "Relative position of the reference point of the stabilization surface"],
+            "anchor_ratio": [0.95, "no_dim", "Relative position of the reference point of the stabilization surface"],
             "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "VtpHtail":{

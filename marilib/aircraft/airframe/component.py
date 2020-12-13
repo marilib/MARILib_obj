@@ -96,6 +96,12 @@ class Component(object):
 
     def get_this_shape(self, name): # TODO: is the docstring up to date ?
         """Contour curves for 3 view drawing
+        nose1 : modern nose (A220, A350, 787)
+        nose3 : classical Airbus nose
+        nose2 : symetrical nose
+        cone1 : classical tail cone
+        cone2 : symetrical cone
+        section : circle
         """
         curve = {
         "nose1":np.array([[ 0.0000 , 0.3339 , 0.3339 , 0.0000 ,  0.0000 ] ,
@@ -135,6 +141,21 @@ class Component(object):
                           [ 0.5610 , 0.9392 , 0.0536 , 0.4211 , -0.4211 ] ,
                           [ 0.7738 , 0.9818 , 0.0122 , 0.4761 , -0.4761 ] ,
                           [ 0.9156 , 0.9976 , 0.0025 , 0.4976 , -0.4976 ] ,
+                          [ 1.0000 , 1.0000 , 0.0000 , 0.5000 , -0.5000 ]]),
+
+        "nose4":np.array([[ 0.0000 , 0.3700 , 0.3700 , 0.0000 ,  0.0000 ] ,
+                          [ 0.0050 , 0.4200 , 0.3200 , 0.0335 , -0.0335 ] ,
+                          [ 0.0150 , 0.4500 , 0.2900 , 0.0652 , -0.0652 ] ,
+                          [ 0.0500 , 0.5000 , 0.2400 , 0.1200 , -0.1200 ] ,
+                          [ 0.1000 , 0.5500 , 0.1900 , 0.1750 , -0.1750 ] ,
+                          [ 0.1800 , 0.6000 , 0.1400 , 0.2400 , -0.2400 ] ,
+                          [ 0.2773 , 0.6450 , 0.1000 , 0.3000 , -0.3000 ] ,
+                          [ 0.4191 , 0.7000 , 0.0500 , 0.3700 , -0.3700 ] ,
+                          [ 0.5610 , 0.7450 , 0.0250 , 0.4300 , -0.4300 ] ,
+                          [ 0.6800 , 0.7800 , 0.0140 , 0.4650 , -0.4650 ] ,
+                          [ 0.7700 , 0.9700 , 0.0110 , 0.4850 , -0.4850 ] ,
+                          [ 0.8100 , 0.9900 , 0.0100 , 0.4900 , -0.4900 ] ,
+                          [ 0.9100 , 0.9970 , 0.0030 , 0.4976 , -0.4976 ] ,
                           [ 1.0000 , 1.0000 , 0.0000 , 0.5000 , -0.5000 ]]),
 
         "cone1":np.array([[ 0.0000 , 1.0000 , 0.0000 , 0.5000 , -0.5000 ] ,
@@ -177,23 +198,43 @@ class Component(object):
                           [ 0.9894 , 0.5589 , 0.4411 , 0.0589 , -0.0589 ] ,
                           [ 1.0000 , 0.5162 , 0.4838 , 0.0162 , -0.0162 ]]),
 
-        "cyl":np.array([[  0.5000000 , 0.0000000 ,  0.0000000 ] ,
-                        [  0.4903926 , 0.0975452 , -0.0975452 ] ,
-                        [  0.4619398 , 0.1913417 , -0.1913417 ] ,
-                        [  0.4157348 , 0.2777851 , -0.2777851 ] ,
-                        [  0.3535534 , 0.3535534 , -0.3535534 ] ,
-                        [  0.2777851 , 0.4157348 , -0.4157348 ] ,
-                        [  0.1913417 , 0.4619398 , -0.4619398 ] ,
-                        [  0.0975452 , 0.4903926 , -0.4903926 ] ,
-                        [  0.0000000 , 0.5000000 , -0.5000000 ] ,
-                        [- 0.0975452 , 0.4903926 , -0.4903926 ] ,
-                        [- 0.1913417 , 0.4619398 , -0.4619398 ] ,
-                        [- 0.2777851 , 0.4157348 , -0.4157348 ] ,
-                        [- 0.3535534 , 0.3535534 , -0.3535534 ] ,
-                        [- 0.4157348 , 0.2777851 , -0.2777851 ] ,
-                        [- 0.4619398 , 0.1913417 , -0.1913417 ] ,
-                        [- 0.4903926 , 0.0975452 , -0.0975452 ] ,
-                        [- 0.5000000 , 0.0000000 ,  0.0000000 ]])}
+        "sec1":np.array([[  0.5000000 , 0.0000000 ,  0.0000000 ] ,
+                         [  0.4903926 , 0.0975452 , -0.0975452 ] ,
+                         [  0.4619398 , 0.1913417 , -0.1913417 ] ,
+                         [  0.4157348 , 0.2777851 , -0.2777851 ] ,
+                         [  0.3535534 , 0.3535534 , -0.3535534 ] ,
+                         [  0.2777851 , 0.4157348 , -0.4157348 ] ,
+                         [  0.1913417 , 0.4619398 , -0.4619398 ] ,
+                         [  0.0975452 , 0.4903926 , -0.4903926 ] ,
+                         [  0.0000000 , 0.5000000 , -0.5000000 ] ,
+                         [- 0.0975452 , 0.4903926 , -0.4903926 ] ,
+                         [- 0.1913417 , 0.4619398 , -0.4619398 ] ,
+                         [- 0.2777851 , 0.4157348 , -0.4157348 ] ,
+                         [- 0.3535534 , 0.3535534 , -0.3535534 ] ,
+                         [- 0.4157348 , 0.2777851 , -0.2777851 ] ,
+                         [- 0.4619398 , 0.1913417 , -0.1913417 ] ,
+                         [- 0.4903926 , 0.0975452 , -0.0975452 ] ,
+                         [- 0.5000000 , 0.0000000 ,  0.0000000 ]]),
+
+        "sec2":np.array([[ 0.5000000 , 0.0000000 ,  0.0000000] ,
+                         [ 0.4951963 , 0.0975452 , -0.0975452] ,
+                         [ 0.4809699 , 0.1913417 , -0.1913417] ,
+                         [ 0.4578674 , 0.2777851 , -0.2777851] ,
+                         [ 0.4267767 , 0.3535534 , -0.3535534] ,
+                         [ 0.3888926 , 0.4157348 , -0.4157348] ,
+                         [ 0.3456709 , 0.4619398 , -0.4619398] ,
+                         [ 0.2987726 , 0.4903926 , -0.4903926] ,
+                         [ 0.2500000 , 0.5000000 , -0.5000000] ,
+                         [ 0.0000000 , 0.5000000 , -0.5000000] ,
+                         [-0.2500000 , 0.5000000 , -0.5000000] ,
+                         [-0.2987726 , 0.4903926 , -0.4903926] ,
+                         [-0.3456709 , 0.4619398 , -0.4619398] ,
+                         [-0.3888926 , 0.4157348 , -0.4157348] ,
+                         [-0.4267767 , 0.3535534 , -0.3535534] ,
+                         [-0.4578674 , 0.2777851 , -0.2777851] ,
+                         [-0.4809699 , 0.1913417 , -0.1913417] ,
+                         [-0.4951963 , 0.0975452 , -0.0975452] ,
+                         [-0.5000000 , 0.0000000 ,  0.0000000]])}
 
         return [curve[n] for n in name]
 
@@ -211,7 +252,7 @@ class Nacelle(Component):
         nac_y = self.frame_origin[1]
         nac_z = self.frame_origin[2]
 
-        cyl, = self.get_this_shape(["cyl"])
+        section, = self.get_this_shape(["sec1"])
 
         nac_xz = np.array([[nac_x                , nac_z+0.4*nac_height ] ,
                            [nac_x+0.1*nac_length , nac_z+0.5*nac_height ] ,
@@ -233,16 +274,16 @@ class Nacelle(Component):
                            [nac_x                , nac_y-0.4*nac_width ] ,
                            [nac_x                , nac_y+0.4*nac_width ]])
 
-        d_nac_yz = np.stack([cyl[0:,0]*nac_width , cyl[0:,1]*nac_height , cyl[0:,2]*nac_height], axis=1)
+        d_nac_yz = np.stack([section[0:,0]*nac_width , section[0:,1]*nac_height , section[0:,2]*nac_height], axis=1)
 
-        d_fan_yz = np.stack([cyl[0:,0]*0.80*nac_width , cyl[0:,1]*0.80*nac_height , cyl[0:,2]*0.80*nac_height], axis=1)
+        d_fan_yz = np.stack([section[0:,0]*0.80*nac_width , section[0:,1]*0.80*nac_height , section[0:,2]*0.80*nac_height], axis=1)
 
         nac_yz = np.vstack([np.stack([nac_y+d_nac_yz[0:,0] , nac_z+d_nac_yz[0:,1]],axis=1) ,
                                np.stack([nac_y+d_nac_yz[::-1,0] , nac_z+d_nac_yz[::-1,2]],axis=1)])
 
         if hasattr(self, "propeller_width"):
             prop_width = self.propeller_width
-            d_prop_yz = np.stack([cyl[0:,0]*prop_width , cyl[0:,1]*prop_width , cyl[0:,2]*prop_width], axis=1)
+            d_prop_yz = np.stack([section[0:,0]*prop_width , section[0:,1]*prop_width , section[0:,2]*prop_width], axis=1)
             disk_yz = np.vstack([np.stack([nac_y+d_prop_yz[0:,0] , nac_z+d_prop_yz[0:,1]],axis=1) ,
                                  np.stack([nac_y+d_prop_yz[::-1,0] , nac_z+d_prop_yz[::-1,2]],axis=1)])
         else:
@@ -356,12 +397,12 @@ class Pod(Component):
         wing_z_body = self.wing_axe_z
         wing_c_body = self.wing_axe_c
 
-        nose2,cone2,cyl = self.get_this_shape(["nose2","cone2","cyl"])
+        nose2,cone2,section = self.get_this_shape(["nose2","cone2","sec1"])
 
         r_nose = 0.15       # Fuselage length ratio of nose evolutive part
         r_cone = 0.35       # Fuselage length ratio of tail cone evolutive part
 
-        pod_cyl_yz = np.stack([pod_y_axe + cyl[0:,0]*pod_width , pod_z_axe + cyl[0:,1]*pod_width , pod_z_axe + cyl[0:,2]*pod_width], axis=1)
+        pod_cyl_yz = np.stack([pod_y_axe + section[0:,0]*pod_width , pod_z_axe + section[0:,1]*pod_width , pod_z_axe + section[0:,2]*pod_width], axis=1)
 
         pod_front = np.vstack([np.stack([pod_cyl_yz[0:,0] , pod_cyl_yz[0:,1]],axis=1) , np.stack([pod_cyl_yz[::-1,0] , pod_cyl_yz[::-1,2]],axis=1)])
 
@@ -566,13 +607,16 @@ class Fuselage(Component):
         self.forward_limit = aircraft.get_init(self,"forward_limit")
         self.wall_thickness = aircraft.get_init(self,"wall_thickness")
         self.rear_bulkhead_ratio = aircraft.get_init(self,"rear_bulkhead_ratio")
+        self.nose_cone_ratio = aircraft.get_init(self,"nose_cone_ratio")
         self.tail_cone_ratio = aircraft.get_init(self,"tail_cone_ratio")
+        self.section_type = aircraft.get_init(self,"section_type")
 
         self.width = None
         self.height = None
         self.length = None
+        self.nose_cone_length = None
         self.tail_cone_length = None
-        
+
         self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
     def get_component_type(self):
@@ -594,6 +638,7 @@ class Fuselage(Component):
         else:
             self.length = self.forward_limit + cabin_length + self.rear_bulkhead_ratio*self.width
 
+        self.nose_cone_length = self.nose_cone_ratio*self.width
         self.tail_cone_length = self.tail_cone_ratio*self.width
 
         self.gross_wet_area = 2.70*self.length*np.sqrt(self.width*self.height)
@@ -612,12 +657,17 @@ class Fuselage(Component):
         body_height = self.height
         body_length = self.length
 
-        nose,cone,cyl = self.get_this_shape(["nose1","cone1","cyl"])
+        if self.section_type=="ellipse":
+            nose,cone,section = self.get_this_shape(["nose1","cone1","sec1"])
+        elif self.section_type=="square":
+            nose,cone,section = self.get_this_shape(["nose4","cone1","sec2"])
+        else:
+            raise Exception("Section type is unknown")
 
-        r_nose = 0.15       # Fuselage length ratio of nose evolutive part
-        r_cone = 0.35       # Fuselage length ratio of tail cone evolutive part
+        r_nose = self.nose_cone_length / self.length    # Fuselage length ratio of nose evolutive part
+        r_cone = self.tail_cone_length / self.length    # Fuselage length ratio of tail cone evolutive part
 
-        cyl_yz = np.stack([cyl[0:,0]*body_width , cyl[0:,1]*body_height+0.5*body_height , cyl[0:,2]*body_height+0.5*body_height], axis=1)
+        cyl_yz = np.stack([section[0:,0]*body_width , section[0:,1]*body_height+0.5*body_height , section[0:,2]*body_height+0.5*body_height], axis=1)
 
         body_front = np.vstack([np.stack([cyl_yz[0:,0] , cyl_yz[0:,1]],axis=1) , np.stack([cyl_yz[::-1,0] , cyl_yz[::-1,2]],axis=1)])
 
@@ -1037,7 +1087,7 @@ class VtpClassic(Vstab):
         self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
         self.taper_ratio = aircraft.get_init(self,"taper_ratio")
         self.toc = aircraft.get_init(self,"toc")
-        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.__sweep25())
         self.thrust_volume_factor = aircraft.get_init(self,"thrust_volume_factor")
         self.wing_volume_factor = aircraft.get_init(self,"wing_volume_factor")
         self.anchor_ratio = aircraft.get_init(self,"anchor_ratio")
@@ -1054,7 +1104,7 @@ class VtpClassic(Vstab):
         
         self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
-    def sweep25(self):
+    def __sweep25(self):
         sweep25 = max(unit.rad_deg(25.), self.aircraft.airframe.wing.sweep25 + unit.rad_deg(10.)) # Empirical law
         return sweep25
 
@@ -1132,7 +1182,7 @@ class VtpTtail(Vstab):
         self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
         self.taper_ratio = aircraft.get_init(self,"taper_ratio")
         self.toc = aircraft.get_init(self,"toc")
-        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.__sweep25())
         self.thrust_volume_factor = aircraft.get_init(self,"thrust_volume_factor")
         self.wing_volume_factor = aircraft.get_init(self,"wing_volume_factor")
         self.anchor_ratio = aircraft.get_init(self,"anchor_ratio")
@@ -1149,7 +1199,7 @@ class VtpTtail(Vstab):
         
         self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
-    def sweep25(self):
+    def __sweep25(self):
         sweep25 = max(unit.rad_deg(25.), self.aircraft.airframe.wing.sweep25 + unit.rad_deg(10.)) # Empirical law
         return sweep25
 
@@ -1230,7 +1280,7 @@ class VtpHtail(Vstab):
         self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
         self.taper_ratio = aircraft.get_init(self,"taper_ratio")
         self.toc = aircraft.get_init(self,"toc")
-        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.__sweep25())
         self.thrust_volume_factor = aircraft.get_init(self,"thrust_volume_factor")
         self.wing_volume_factor = aircraft.get_init(self,"wing_volume_factor")
         self.lever_arm = None
@@ -1249,7 +1299,7 @@ class VtpHtail(Vstab):
     def get_side(self):
         return {"right":1., "left":-1.}.get(self.airplane_side)
 
-    def sweep25(self):
+    def __sweep25(self):
         sweep25 = max(unit.rad_deg(25.), self.aircraft.airframe.wing.sweep25 + unit.rad_deg(10.)) # Empirical law
         return sweep25
 
@@ -1379,7 +1429,7 @@ class HtpClassic(Hstab):
         self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
         self.taper_ratio = aircraft.get_init(self,"taper_ratio")
         self.toc = aircraft.get_init(self,"toc")
-        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.__sweep25())
         self.dihedral = aircraft.get_init(self,"dihedral")
         self.volume_factor = aircraft.get_init(self,"volume_factor")
         self.lever_arm = None
@@ -1395,7 +1445,7 @@ class HtpClassic(Hstab):
         
         self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
-    def sweep25(self):
+    def __sweep25(self):
         sweep25 = abs(self.aircraft.airframe.wing.sweep25) + unit.rad_deg(5)     # Design rule
         return sweep25
 
@@ -1475,7 +1525,7 @@ class HtpTtail(Hstab):
         self.taper_ratio = aircraft.get_init(self,"taper_ratio")
         self.height_ratio = aircraft.get_init(self,"height_ratio")
         self.toc = aircraft.get_init(self,"toc")
-        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.__sweep25())
         self.dihedral = aircraft.get_init(self,"dihedral")
         self.volume_factor = aircraft.get_init(self,"volume_factor")
         self.lever_arm = None
@@ -1491,7 +1541,7 @@ class HtpTtail(Hstab):
         
         self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
-    def sweep25(self):
+    def __sweep25(self):
         sweep25 = abs(self.aircraft.airframe.wing.sweep25) + unit.rad_deg(5)     # Design rule
         return sweep25
 
@@ -1570,7 +1620,7 @@ class HtpHtail(Hstab):
         self.aspect_ratio = aircraft.get_init(self,"aspect_ratio")
         self.taper_ratio = aircraft.get_init(self,"taper_ratio")
         self.toc = aircraft.get_init(self,"toc")
-        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.sweep25())
+        self.sweep25 = aircraft.get_init(self,"sweep25", val=self.__sweep25())
         self.dihedral = aircraft.get_init(self,"dihedral")
         self.volume_factor = aircraft.get_init(self,"volume_factor")
         self.lever_arm = None
@@ -1586,7 +1636,7 @@ class HtpHtail(Hstab):
         
         self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
-    def sweep25(self):
+    def __sweep25(self):
         sweep25 = abs(self.aircraft.airframe.wing.sweep25) + unit.rad_deg(5)     # Design rule
         return sweep25
 

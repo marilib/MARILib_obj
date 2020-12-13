@@ -19,8 +19,6 @@ from scipy.integrate import RK23, RK45, solve_ivp
 
 from marilib.aircraft.performance import Flight
 
-from marilib.aircraft.model_config import get_init
-
 
 class StepMission(Flight):
     """Mission simulated step by step

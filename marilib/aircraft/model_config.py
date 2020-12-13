@@ -25,7 +25,9 @@ class ModelConfiguration(object):
         "Fuselage":{
             "forward_limit": [4., "m", "Distance between fuselage nose and forward cabin wall"],
             "wall_thickness": [0.2, "m", "Fuselage wall total tchickness"],
+            "nose_cone_ratio": [2., "no_dim", "Fuselage nose cone length (evolutive part) over fuselage diameter"],
             "tail_cone_ratio": [3.45, "no_dim", "Fuselage tail cone length (evolutive part) over fuselage diameter"],
+            "section_type": ["ellipse", "string", "Fuselage cross section 'ellipse' or 'square'"],
             "rear_bulkhead_ratio": [1.5, "no_dim", "Distance from rear pressure bulkhead to fuselage cone end over fuselage diameter"],
             "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
         },
@@ -43,7 +45,7 @@ class ModelConfiguration(object):
         "VtpClassic":{
             "aspect_ratio": [1.7, "no_dim", "Vertical tail aspect ratio"],
             "taper_ratio": [0.4, "no_dim", "Vertical tail taper ratio"],
-            "sweep25": [0., "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
+            "sweep25": ["function", "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the vertical tail"],
             "thrust_volume_factor": [0.4, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
             "wing_volume_factor": [0.07, "no_dim", "Volume coefficient of the vertical stabilizer according to wing"],
@@ -53,7 +55,7 @@ class ModelConfiguration(object):
         "VtpTtail":{
             "aspect_ratio": [1.2, "no_dim", "Vertical tail aspect ratio"],
             "taper_ratio": [0.8, "no_dim", "Vertical tail taper ratio"],
-            "sweep25": [0., "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
+            "sweep25": ["function", "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the vertical tail"],
             "thrust_volume_factor": [0.4, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
             "wing_volume_factor": [0.07, "no_dim", "Volume coefficient of the vertical stabilizer according to wing"],
@@ -63,7 +65,7 @@ class ModelConfiguration(object):
         "VtpHtail":{
             "aspect_ratio": [1.5, "no_dim", "Vertical tail aspect ratio"],
             "taper_ratio": [0.4, "no_dim", "Vertical tail taper ratio"],
-            "sweep25": [0., "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
+            "sweep25": ["function", "deg", "Vertical tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the vertical tail"],
             "thrust_volume_factor": [0.4, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
             "wing_volume_factor": [0.07, "no_dim", "Volume coefficient of the vertical stabilizer according to wing"],
@@ -72,7 +74,7 @@ class ModelConfiguration(object):
         "HtpClassic":{
             "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
             "taper_ratio": [0.35, "no_dim", "Horizontal tail taper ratio"],
-            "sweep25": [0., "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
+            "sweep25": ["function", "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the Horizontal tail"],
             "dihedral": [5, "deg", "Dihedral angle of the horizontal tail"],
             "volume_factor": [0.94, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
@@ -82,7 +84,7 @@ class ModelConfiguration(object):
             "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
             "taper_ratio": [0.35, "no_dim", "Horizontal tail taper ratio"],
             "height_ratio": [0.3, "no_dim", "Horizontal tail height ratio versus vertical tail height"],
-            "sweep25": [0., "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
+            "sweep25": ["function", "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the Horizontal tail"],
             "dihedral": [5, "deg", "Dihedral angle of the horizontal tail"],
             "volume_factor": [0.94, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
@@ -91,7 +93,7 @@ class ModelConfiguration(object):
         "HtpHtail":{
             "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
             "taper_ratio": [0.35, "no_dim", "Horizontal tail taper ratio"],
-            "sweep25": [0., "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
+            "sweep25": ["function", "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the Horizontal tail"],
             "dihedral": [5, "deg", "Dihedral angle of the horizontal tail"],
             "volume_factor": [0.94, "no_dim", "Volume coefficient of the vertical stabilizer according to engine failure"],
