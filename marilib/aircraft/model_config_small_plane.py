@@ -145,10 +145,10 @@ class ModelConfiguration(object):
         "RetractableLandingGear":{
             "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
-        "BareFixdedLandingGear":{
-            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"],
-            "wheel_drag_area_factor": [0.25, "no_dim", "Drag area over (dynamic pressure x frontal area"],
-            "leg_drag_area_factor": [0.15, "no_dim", "Drag area over (dynamic pressure x frontal area"]
+        "BareFixedLandingGear":{
+            "wheel_count": [2., "int", "Number of main landing gear"],
+            "wheel_drag_area_factor": [1.0, "no_dim", "Drag area over (dynamic pressure x frontal area"],
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "InboardWingMountedNacelle":{
         },
@@ -235,7 +235,7 @@ class ModelConfiguration(object):
             "hub_width": [0.2, "m", "Propeller hub diameter"],
             "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
             "propeller_disk_load": [1500., "N/m2", "Propeller disk load"],
-            "psfc_reference": [0.9, "lb/shp/h", "Power related Spesific Fuel Consumption"]
+            "psfc_reference": [0.90, "lb/shp/h", "Power related Spesific Fuel Consumption"]
         },
         "SemiEmpiricEpNacelle":{
             "eis_date": [2020., "year", "Entry into service date"],
@@ -300,7 +300,7 @@ class ModelConfiguration(object):
             "cost_range": ["function", "NM", "Reference range for cost evaluation (function)"]
         },
         "Aerodynamics":{
-            "cx_correction": [0.0100, "no_dim", "Drag correction on cx coefficient"],
+            "cx_correction": [0.0020, "no_dim", "Drag correction on cx coefficient"],
             "cruise_lodmax": [16., "no_dim", "Assumption on L/D max for some initializations"],
             "hld_conf_clean": [0., "no_dim", "High lift device setting for clean wing, must be 0."],
             "hld_conf_to": [0.30, "no_dim", "High lift device setting for take off, between 0. and 0.5"],

@@ -140,10 +140,10 @@ class ModelConfiguration(object):
         "RetractableLandingGear":{
             "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
-        "BareFixdedLandingGear":{
-            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"],
-            "wheel_drag_area_factor": [0.25, "no_dim", "Drag area over (dynamic pressure x frontal area"],
-            "leg_drag_area_factor": [0.15, "no_dim", "Drag area over (dynamic pressure x frontal area"]
+        "BareFixedLandingGear":{
+            "wheel_count": [2., "int", "Number of main landing gear"],
+            "wheel_drag_area_factor": [1.0, "no_dim", "Drag area over (dynamic pressure x frontal area"],
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
         },
         "InboardWingMountedNacelle":{
         },

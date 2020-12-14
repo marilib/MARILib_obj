@@ -44,6 +44,7 @@ class Arrangement(object):
         self.wing_attachment = wing_attachment
         self.stab_architecture = stab_architecture
         self.tank_architecture = tank_architecture
+        self.gear_architecture = gear_architecture
         self.number_of_engine = number_of_engine
         self.nacelle_attachment = nacelle_attachment
         self.power_architecture = power_architecture
@@ -139,7 +140,12 @@ class Aircraft(object):
             raise Exception("Type of tank is unknown")
 
 # ----------------------------------------------------------------------------------------------------------------------
-        self.airframe.landing_gear = component.RetractableLandingGear(self)
+        if (self.arrangement.gear_architecture=="retractable"):
+            self.airframe.landing_gear = component.RetractableLandingGear(self)
+        elif (self.arrangement.gear_architecture=="bare_fixed"):
+            self.airframe.landing_gear = component.BareFixedLandingGear(self)
+        else:
+            raise Exception("Type of landing gear is unknown")
 
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.power_source == "battery"):
