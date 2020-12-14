@@ -142,7 +142,13 @@ class ModelConfiguration(object):
             "width": ["function", "m", "Diameter of the tank"],
             "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         },
-        "LandingGear":{"mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
+        "RetractableLandingGear":{
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
+        },
+        "BareFixdedLandingGear":{
+            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"],
+            "wheel_drag_area_factor": [0.25, "no_dim", "Drag area over (dynamic pressure x frontal area"],
+            "leg_drag_area_factor": [0.15, "no_dim", "Drag area over (dynamic pressure x frontal area"]
         },
         "InboardWingMountedNacelle":{
         },

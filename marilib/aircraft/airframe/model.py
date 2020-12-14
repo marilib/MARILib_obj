@@ -65,7 +65,13 @@ class Aerodynamics(object):
             nwa = comp.get_net_wet_area()
             ael = comp.get_aero_length()
             frm = comp.get_form_factor()
-            cxf += frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * (nwa/self.aircraft.airframe.wing.area)
+            if ael>0.:
+                # Drag model is based on flat plane friction drag
+                cxf += frm * ((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) \
+                           * (nwa/self.aircraft.airframe.wing.area)
+            else:
+                # Drag model is based on drag area, in that case nwa is frontal area
+                cxf += frm * (nwa/self.aircraft.airframe.wing.area)
             ac_nwa += nwa
 
         # Parasitic drag (seals, antennas, sensors, ...)

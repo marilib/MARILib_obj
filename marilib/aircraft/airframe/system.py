@@ -15,6 +15,8 @@ from scipy.optimize import fsolve
 from marilib.utils import earth, unit
 from marilib.aircraft.airframe.component import Component
 from marilib.aircraft.airframe.model import init_power
+
+
 class System(Component):
 
     def __init__(self, aircraft):

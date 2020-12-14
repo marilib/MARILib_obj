@@ -26,16 +26,17 @@ from marilib.aircraft.tool.drawing import Drawing
 class Arrangement(object):
     """Architectural choices
     """
-    def __init__(self,body_type = "fuselage",          # "fuselage" or "blended"
-                      wing_type = "classic",           # "classic" or "blended"
-                      wing_attachment = "low",         # "low" or "high"
-                      stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
-                      tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
-                      number_of_engine = "twin",       # "twin" or "quadri"
-                      nacelle_attachment = "wing",     # "wing", "pod" or "rear"
-                      power_architecture = "tf",       # "tf", "tp", "ef", "pte1", "ef1", "ep1",
-                      power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                      fuel_type = "kerosene"           # "kerosene", "liquid_h2", "Compressed_h2" or "battery"
+    def __init__(self,body_type = "fuselage",               # "fuselage" or "blended"
+                      wing_type = "classic",                # "classic" or "blended"
+                      wing_attachment = "low",              # "low" or "high"
+                      stab_architecture = "classic",        # "classic", "t_tail" or "h_tail"
+                      tank_architecture = "wing_box",       # "wing_box", "piggy_back" or "pods"
+                      gear_architecture = "retractable",    # "retractable", "bare_fixed"
+                      number_of_engine = "twin",            # "twin" or "quadri"
+                      nacelle_attachment = "wing",          # "wing", "pod" or "rear"
+                      power_architecture = "tf",            # "tf", "tp", "ef", "pte1", "ef1", "ep1",
+                      power_source = "fuel",                # "fuel", "battery", "fuel_cell"
+                      fuel_type = "kerosene"                # "kerosene", "liquid_h2", "Compressed_h2" or "battery"
                  ):
 
         self.body_type = body_type
@@ -138,7 +139,7 @@ class Aircraft(object):
             raise Exception("Type of tank is unknown")
 
 # ----------------------------------------------------------------------------------------------------------------------
-        self.airframe.landing_gear = component.LandingGear(self)
+        self.airframe.landing_gear = component.RetractableLandingGear(self)
 
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.power_source == "battery"):

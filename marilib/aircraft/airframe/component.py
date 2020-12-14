@@ -2204,12 +2204,47 @@ class TankPiggyBack(Pod):
         self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
 
-class LandingGear(Component):
+class RetractableLandingGear(Component):
 
     def __init__(self, aircraft):
-        super(LandingGear, self).__init__(aircraft)
+        super(RetractableLandingGear, self).__init__(aircraft)
         
         self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
+
+    def eval_geometry(self):
+        wing_root_c = self.aircraft.airframe.wing.root_c
+        wing_root_loc = self.aircraft.airframe.wing.root_loc
+
+        self.frame_origin = wing_root_loc[0] + 0.85*wing_root_c
+
+    def sketch_3view(self):
+        return None
+
+    def eval_mass(self):
+        mtow = self.aircraft.weight_cg.mtow
+        mlw = self.aircraft.weight_cg.mlw
+
+        self.mass = (0.02*mtow**1.03 + 0.012*mlw) * self.mass_correction_factor    # Landing gears
+        self.cg = self.frame_origin
+
+
+class BareFixedLandingGear(Component):
+
+    def __init__(self, aircraft):
+        super(BareFixedLandingGear, self).__init__(aircraft)
+
+        self.wheel_diameter = aircraft.get_init(self,"wheel_diameter", val=self.__wheel_diameter())
+        self.wheel_width = aircraft.get_init(self,"wheel_width", val=self.__wheel_width())
+        self.leg_length = aircraft.get_init(self,"leg_length", val=self.__leg_length())
+
+        self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
+        self.wheel_drag_area_factor = aircraft.get_init(self,"wheel_drag_area_factor")
+        self.leg_drag_area_factor = aircraft.get_init(self,"leg_drag_area_factor")
+
+    def __wheel_diameter(self):
+        return
+        # mtow = self.
+        # return 8.3 *
 
     def eval_geometry(self):
         wing_root_c = self.aircraft.airframe.wing.root_c

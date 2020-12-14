@@ -105,6 +105,9 @@ ap = Airport(cat, runway_count, open_slot, app_dist)
 # Design the airport
 ap.design(town_airport_dist, fleet_profile)
 
+ap.print()
+# ap.draw()
+
 
 # On site production
 #-----------------------------------------------------------------------------------------------------------------------
@@ -115,9 +118,7 @@ req_yearly_enrg = ap.ref_daily_energy * 365.
 
 pv = PvPowerPlantE(req_yearly_enrg, sol_pw, reg_factor=reg_factor)
 
-ap.print()
 pv.print()
-# ap.draw()
 
 
 # Operation
