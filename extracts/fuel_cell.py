@@ -168,27 +168,30 @@ class FuelCellStack(object):
         print("Fuel flow = ", "%.2f"%unit.convert_to("kg/h",dict["fuel_flow"]), " kg/h")
 
 
-# Design time
-#-----------------------------------------------------------------
-phd = PhysicalData()        # Create phd object
 
-fcs = FuelCellStack(phd)    # Create fuel cell stack object
+if __name__ == "__main__":
 
-ref_power = unit.W_kW(500.) # Design power
+    # Design time
+    #-----------------------------------------------------------------
+    phd = PhysicalData()        # Create phd object
 
-fcs.design(ref_power)       # Design the Stack
+    fcs = FuelCellStack(phd)    # Create fuel cell stack object
 
-fcs.print()                 # Print stack data
+    ref_power = unit.W_kW(500.) # Design power
 
-# Operation time
-#-----------------------------------------------------------------
-disa = 10.
-altp = unit.m_ft(5000.)
-power = unit.W_kW(175.)
+    fcs.design(ref_power)       # Design the Stack
 
-dict = fcs.operate(disa,altp,power)
+    fcs.print()                 # Print stack data
 
-fcs.print_operation(dict)
+    # Operation time
+    #-----------------------------------------------------------------
+    disa = 10.
+    altp = unit.m_ft(5000.)
+    power = unit.W_kW(175.)
+
+    dict = fcs.operate(disa,altp,power)
+
+    fcs.print_operation(dict)
 
 
 

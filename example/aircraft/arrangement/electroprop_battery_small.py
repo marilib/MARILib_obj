@@ -24,6 +24,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
                    tank_architecture = "floor",      # "wing_box", "piggy_back" or "pods"
+                   gear_architecture = "bare_fixed",    # "retractable", "bare_fixed"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
@@ -90,8 +91,8 @@ ac.requirement.time_to_climb.altp = unit.convert_from("ft",16000.)
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",10.)
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(1000.)
-ac.airframe.wing.area = 60.
+ac.power_system.reference_power = unit.W_kW(820.)
+ac.airframe.wing.area = 56.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
