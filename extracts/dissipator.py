@@ -27,11 +27,26 @@ def pressure_drop(tamb,rho,vfluid,width,length):
     return dp
 
 
-def fluid_thermal_transfert_factor(tamb,vfluid,length):
-    """Thermal transfert factor for turbulent flow
+def pressure_drop_flat_tube(tamb,rho,vfluid,width,height,length):
+    """Pressure drop along a flat tube
     """
-    lbd = fluid_thermal_conductivity(tamb, fluid="water")
-    nux = fluid_nusselt_number(tamb,vfluid,length, fluid="water")
+    sec = 0.25*np.pi*height**2 + height*(width-height)
+    per = np.pi*height + 2.*(width-height)
+    hd = 4.*sec / per  # Hydraulic diameter 4xSection_area/wetted_perimeter
+    re = fluid_reynolds_number_v(tamb,rho,vfluid)
+    rex = re * length
+    cf = 0.5
+    for j in range(6):
+        cf = (1./(2.*np.log(rex*np.sqrt(cf))-0.8))**2
+    dp = 0.5 * cf * (length/hd) * rho * vfluid**2
+    return dp
+
+
+def fluid_thermal_transfert_factor(tamb,vfluid,length, fluid="water"):
+    """Thermal transfert factor for turbulent flow : W/m2/K
+    """
+    lbd = fluid_thermal_conductivity(tamb, fluid=fluid)
+    nux = fluid_nusselt_number(tamb,vfluid,length, fluid=fluid)
     h = lbd * nux / length
     return h
 
@@ -69,11 +84,11 @@ def fluid_thermal_conductivity(tamb, fluid="water"):
     """
     if fluid!="water":
         raise Exception("fluide type is not permitted")
-    t0 = 273.15
-    temp_list = [0., 10.,  20.,   30.,  40.,   50.,   60.,   70.,   80.,   80.]
-    tc_list = [0.56, 0.58, 0.598, 0.61, 0.623, 0.638, 0.645, 0.655, 0.663, 0.670]   # TODO : Check this low
-    tc_f = interpolate.interp1d(temp_list,tc_list,kind="cubic")
-    return tc_f(tamb-t0)
+    if tamb<274. or 370.<tamb:
+        raise Exception("fluide temperature is out of range")
+    t0 = 298.15
+    c0 = 0.6065
+    return c0*(-1.48445 + 4.12292*(tamb/t0) - 1.63866*(tamb/t0)**2)
 
 
 def fluid_reynolds_number_v(tamb,rho,vfluid, fluid="water"):
@@ -88,10 +103,16 @@ def fluid_viscosity(tamb, fluid="water"):
     if fluid!="water":
         raise Exception("fluide type is not permitted")
     t0 = 273.15
-    temp_list = [0., 10., 20., 30., 40., 50., 60., 70., 80., 90., 100.]
-    mu_list = [1.80E-03, 1.32E-03, 1.01E-03, 8.02E-04, 6.60E-04, 5.55E-04, 4.72E-04, 4.05E-04, 3.52E-04, 3.11E-04, 2.80E-04]
-    mu_f = interpolate.interp1d(temp_list,mu_list,kind="cubic", fill_value="extrapolate")
-    return mu_f(tamb-t0)
+    temp_list = [275.15, 276.15, 277.15, 278.15, 279.15, 280.15, 281.15, 282.15, 283.15, 284.15, 285.15, 286.15, 287.15,
+                 288.15, 289.15, 290.15, 291.15, 292.15, 293.15, 294.15, 295.15, 296.15, 297.15, 298.15, 299.15, 300.15,
+                 301.15, 302.15, 303.15, 304.15, 305.15, 306.15, 307.15, 308.15, 309.15, 310.15, 311.15, 312.15, 313.15,
+                 318.15, 323.15, 328.15, 333.15, 338.15, 343.15, 348.15, 353.15]
+    mu_list =   [1.6735, 1.6190, 1.5673, 1.5182, 1.4715, 1.4271, 1.3847, 1.3444, 1.3059, 1.2692, 1.2340, 1.2005, 1.1683,
+                 1.1375, 1.1081, 1.0798, 1.0526, 1.0266, 1.0016, 0.9775, 0.9544, 0.9321, 0.9107, 0.8900, 0.8701, 0.8509,
+                 0.8324, 0.8145, 0.7972, 0.7805, 0.7644, 0.7488, 0.7337, 0.7191, 0.7050, 0.6913, 0.6780, 0.6652, 0.6527,
+                 0.5958, 0.5465, 0.5036, 0.4660, 0.4329, 0.4035, 0.3774, 0.3540]
+    mu_f = interpolate.interp1d(temp_list,mu_list,kind="cubic")
+    return mu_f(tamb)*1.e-3
 
 
 def air_thermal_transfert_factor(pamb,tamb,vair,length):
