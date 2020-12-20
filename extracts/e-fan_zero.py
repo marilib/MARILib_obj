@@ -42,6 +42,24 @@ def get_section_data(ptot,ttot,area,m_dot):
     vair = mach * np.sqrt(gam*r*tsta)
     return psta,tsta,vair,mach
 
+def fct0(x, pamb,ptot,ttot,shaft_power):
+    """With fan isentropic efficiency and adapted nozzle
+    """
+    m_dot = x[0]
+    nozzle_area = x[1]
+    ttot_jet = ttot + shaft_power/(m_dot*cp)
+    ptot_jet = ptot * (1. + fan_isent_eff*(ttot_jet/ttot-1.))**(gam/(gam-1.))
+    mach_jet = np.sqrt(((ptot_jet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
+    m_dot_ = nozzle_area * corrected_air_flow(ptot_jet,ttot_jet,mach_jet)
+
+    tsta_jet = ttot_jet / (1.+0.5*(gam-1.)*mach**2)
+    vjet = mach_jet * np.sqrt(gam*r*tsta_jet)
+    fn = m_dot*(vjet - vair)
+    eta_prop_ = fn*vair / shaft_power
+
+    return [m_dot_ - m_dot,
+            eta_prop_ - eta_prop]
+
 def fct1(x, pamb,ptot,ttot,shaft_power):
     """With fan isentropic efficiency and adapted nozzle
     """
@@ -81,13 +99,13 @@ def fct3(x, ptot,ttot,vair,nozzle_area,shaft_power):
 altp = unit.m_ft(35000.)
 disa = 0.
 mach = 0.78
-shaft_power = unit.W_kW(10000.)
+shaft_power = unit.W_kW(5000.)
 
 
 r,gam,cp,cv = earth.gas_data()
 fan_kinet_eff = 0.95
-fan_isent_eff = 0.85
-nozzle_area = 3.0
+fan_isent_eff = 0.80
+nozzle_area = 2.4
 
 pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
 
@@ -113,7 +131,7 @@ m_dot = output_dict[0][0]
 ttot_jet = ttot + shaft_power/(m_dot*cp)
 ptot_jet = ptot * (1. + fan_isent_eff*(ttot_jet/ttot-1.))**(gam/(gam-1.))
 mach_jet = np.sqrt(((ptot_jet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
-tsta_jet = ttot_jet / (1.+0.5*(gam-1.)*mach**2)
+tsta_jet = ttot_jet / (1.+0.5*(gam-1.)*mach_jet**2)
 vjet = mach_jet * np.sqrt(gam*r*tsta_jet)
 fn = m_dot*(vjet - vair)
 
@@ -123,10 +141,12 @@ eta_propeller = fn*vair / shaft_power
 print("Eta prop = ", "%.3f"%eta_prop)
 print("Eta propeller = ", "%.3f"%eta_propeller)
 print("Air flow = ", "%.2f"%m_dot)
+print("Nozzle width= ", "%.2f"%np.sqrt(4.*nozzle_area/np.pi))
 print("Mach jet = ", "%.2f"%mach_jet)
 print("Ttot = ", "%.2f"%ttot)
 print("Ttot jet = ", "%.2f"%ttot_jet)
 print("Speed jet = ", "%.2f"%vjet)
+print("Delta speed = ", "%.2f"%(vjet-vair))
 print("Fn = ", "%.2f"%fn)
 
 

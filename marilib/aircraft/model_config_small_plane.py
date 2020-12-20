@@ -215,7 +215,8 @@ class ModelConfiguration(object):
             "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
             "hub_width": [0.4, "m", "Fan hub diameter"],
             "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
-            "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"]
+            "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"],
+            "design_delta_air_speed": [70., "m/s", "Air speed variation through the fan cowl ay design point"]
         },
         "ExergeticTfNacelle":{
             "eis_date": [2020., "year", "Entry into service date"],
