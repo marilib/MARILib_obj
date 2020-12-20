@@ -267,6 +267,11 @@ class WeightCg(object):
 
         if (self.aircraft.arrangement.power_source=="battery"):
             self.mlw = self.mtow
+        elif (self.aircraft.arrangement.fuel_type=="hydrogen"):
+            if (self.aircraft.airframe.cabin.n_pax_ref>100):
+                self.mlw = min(self.mtow , (1.03*self.mzfw))    # Because energy density of hydrogen is higher than kerosene
+            else:
+                self.mlw = self.mtow
         else:
             if (self.aircraft.airframe.cabin.n_pax_ref>100):
                 self.mlw = min(self.mtow , (1.07*self.mzfw))

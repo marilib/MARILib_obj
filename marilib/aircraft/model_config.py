@@ -138,7 +138,7 @@ class ModelConfiguration(object):
             "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         },
         "RetractableLandingGear":{
-            "mass_correction_factor": [0.5, "no_dim", "Correction factor on mass estimation"]
+            "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
         },
         "BareFixedLandingGear":{
             "wheel_count": [2., "int", "Number of main landing gear"],

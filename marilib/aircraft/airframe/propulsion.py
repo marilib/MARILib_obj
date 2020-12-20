@@ -164,9 +164,6 @@ class PodTailConeMountedNacelle(Nacelle):
         self.body_length = self.aircraft.airframe.tank.length
         self.bnd_layer = self.aircraft.aerodynamics.tail_cone_boundary_layer(self.body_width,self.hub_width)
 
-        body_width = self.aircraft.airframe.body.width
-        tank_width = self.aircraft.airframe.tank.width
-
         # Locate nacelle
         x_int = self.aircraft.airframe.tank.frame_origin[0] + self.aircraft.airframe.tank.length
         y_int = self.aircraft.airframe.tank.frame_origin[1]
@@ -232,7 +229,6 @@ class SemiEmpiricTf0Nacelle(object):
         self.eis_date = aircraft.get_init(class_name,"eis_date")
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.05)
         self.reference_offtake = 0.
-        self.tune_factor = 1.
         self.engine_bpr = aircraft.get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
         self.engine_opr = aircraft.get_init(class_name,"engine_opr", val=self.__turbofan_opr())
         self.core_thrust_ratio = aircraft.get_init(class_name,"core_thrust_ratio")
@@ -284,11 +280,6 @@ class SemiEmpiricTf0Nacelle(object):
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
         vair = mach * earth.sound_speed(tamb)
 
-        # tune_factor allows that output of unitary_thrust matches the definition of the reference thrust
-        self.tune_factor = 1.
-        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO",pw_offtake=self.reference_offtake)
-        self.tune_factor = reference_thrust / (dict["fn"]/0.80)
-
         # Following computation as aim to model the decrease in nacelle dimension due to
         # the amount of power offtaken to drive an eventual electric chain
         total_thrust0 = reference_thrust*0.80
@@ -333,7 +324,6 @@ class SemiEmpiricTf0Nacelle(object):
         vair = mach * earth.sound_speed(tamb)
 
         total_thrust0 =   reference_thrust \
-                        * self.tune_factor \
                         * kth \
                         * getattr(self.rating_factor,rating) \
                         * throttle \
@@ -394,7 +384,6 @@ class SemiEmpiricTfNacelle(object):
         self.eis_date = aircraft.get_init(class_name,"eis_date")
         self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.05)
         self.reference_offtake = 0.
-        self.tune_factor = 1.
 
         self.engine_bpr = aircraft.get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
         self.engine_opr = aircraft.get_init(class_name,"engine_opr", val=self.__turbofan_opr())
@@ -411,6 +400,8 @@ class SemiEmpiricTfNacelle(object):
         self.fan_width = None
         self.nozzle_width = None
         self.nozzle_area = None
+        self.sea_level_static_thrust = None
+
         self.width = None
         self.length = None
 
@@ -451,9 +442,6 @@ class SemiEmpiricTfNacelle(object):
         mach = self.aircraft.requirement.cruise_mach
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
 
-        # Reset tune factor
-        self.tune_factor = 1.
-
         # Get fan shaft power in cruise condition
         shaft_power,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,"MCR",throttle=1.,pw_offtake=self.reference_offtake)
 
@@ -462,16 +450,13 @@ class SemiEmpiricTfNacelle(object):
 
         self.frame_origin = self.locate_nacelle()
 
+        # Compute effective reference thrust
         mach = 0.25
         disa = 15.
         altp = 0.
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-
-        # Compute thrust of this nacelle in reference conditions
         dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO",pw_offtake=self.reference_offtake)
-
-        # Set tune factor so that output of unitary_thrust matches the definition of the reference thrust
-        self.tune_factor = reference_thrust / (dict["fn"]/0.80)
+        self.sea_level_static_thrust = dict["fn"]/0.8
 
     def fan_shaft_power(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         """Fan shaft power of a pure turbofan engine (semi-empirical model)
@@ -487,7 +472,6 @@ class SemiEmpiricTfNacelle(object):
         vair = mach * earth.sound_speed(tamb)
 
         total_thrust0 =   reference_thrust \
-                        * self.tune_factor \
                         * kth \
                         * getattr(self.rating_factor,rating) \
                         * throttle \
@@ -551,14 +535,6 @@ class SemiEmpiricTfNacelle(object):
         PtotJet = Ptot * (1. + self.fan_efficiency*(TtotJet/Ttot-1.))**(gam/(gam-1.))
         self.engine_fpr = PtotJet / Ptot
 
-
-
-
-
-
-
-
-
         self.width = self.fan_width + 0.30      # Surrounding structure
         self.length = 1.50*self.width
 
@@ -576,14 +552,8 @@ class SemiEmpiricTfNacelle(object):
         return cqoa
 
     def eval_mass(self):
-        mach = 0.25
-        disa = 15.
-        altp = 0.
-        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
-        dict = self.unitary_thrust(pamb,tamb,mach,rating="MTO",pw_offtake=self.reference_offtake)
-        eff_ref_thrust = dict["fn"]/0.8
-        self.engine_mass = (1250. + 0.021*eff_ref_thrust)     # statistical regression, all engines
-        self.pylon_mass = 0.0031*eff_ref_thrust
+        self.engine_mass = (1250. + 0.025*self.sea_level_static_thrust)     # statistical regression, all engines
+        self.pylon_mass = 0.0040*self.sea_level_static_thrust
         self.mass = self.engine_mass + self.pylon_mass
         self.cg = self.frame_origin + 0.7 * np.array([self.length, 0., 0.]) # statistical regression
 

@@ -499,7 +499,8 @@ class TakeOff(Flight):
         fn = kfn*dict["fn"]
 
         ml_factor = mass**2 / (cz_to*fn*self.aircraft.airframe.wing.area*sig**0.8 )  # Magic Line factor
-        tofl = 15.5*ml_factor + 100.    # Magic line
+        # tofl = 15.5*ml_factor + 100.    # Magic line
+        tofl = 10.0*ml_factor + 100.    # Magic line
 
         nei = 1             # For 2nd segment computation
         speed_mode = "cas"  # Constant CAS

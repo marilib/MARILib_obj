@@ -656,7 +656,7 @@ class Fuselage(Component):
 
     def eval_mass(self):
         kfus = np.pi*self.length*np.sqrt(self.width*self.height)
-        self.mass = self.mass_correction_factor * 5.47*kfus**1.2      # Statistical regression versus fuselage built surface
+        self.mass = self.mass_correction_factor * 5.80*kfus**1.2      # Statistical regression versus fuselage built surface
         self.cg = np.array([0.50*self.length, 0., 0.40*self.height])     # Middle of the fuselage
 
     def sketch_3view(self):
@@ -2224,7 +2224,7 @@ class RetractableLandingGear(Component):
         mtow = self.aircraft.weight_cg.mtow
         mlw = self.aircraft.weight_cg.mlw
 
-        self.mass = (0.02*mtow**1.03 + 0.012*mlw) * self.mass_correction_factor    # Landing gears
+        self.mass = (0.015*mtow**1.03 + 0.012*mlw) * self.mass_correction_factor    # Landing gears
         self.cg = self.frame_origin
 
 
