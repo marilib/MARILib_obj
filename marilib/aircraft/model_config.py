@@ -122,7 +122,7 @@ class ModelConfiguration(object):
         },
         "TankWingPod":{
             "span_ratio": [0.65, "no_dim", "Relative span wise position of the tank"],
-            "x_loc_ratio": [0.3, "no_dim", "Fraction of the tank length behind the wing"],
+            "x_loc_ratio": [0.45, "no_dim", "Fraction of the tank length before the wing"],
             "z_loc_ratio": [0., "no_dim", "Fraction of the tank diameter between the wing and the tank"],
             "dry_bay_length": [0., "m", "Length of an eventual dry bay"],
             "length": ["function", "m", "Length of the tank"],

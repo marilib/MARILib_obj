@@ -2110,7 +2110,7 @@ class TankWingPod(Pod):
 
         # Tank equiped structural mass
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
-            self.shell_specific_mass = self.gross_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+            self.shell_specific_mass = self.external_pod_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
         else:
             self.shell_specific_mass = 0.
 
