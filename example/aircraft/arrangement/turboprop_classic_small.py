@@ -68,7 +68,7 @@ print("time_to_climb_toc = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_t
 print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_climb.ttc_req)))
 
 # Take off
-ac.requirement.take_off.tofl_req = 420.
+ac.requirement.take_off.tofl_req = 350.
 
 # Approach
 ac.requirement.approach.app_speed_req = unit.convert_from("kt",72.)

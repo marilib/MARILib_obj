@@ -41,7 +41,7 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_thrust = unit.N_kN(126.)
+ac.power_system.reference_thrust = unit.N_kN(120.)
 ac.airframe.wing.area = 122.5
 
 
@@ -151,15 +151,15 @@ opt = process.Optimizer()
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
-
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 # dico = io.from_string(json)
 
 io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
 # ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
+
+ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 
 # Configure design space exploration
