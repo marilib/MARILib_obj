@@ -303,84 +303,97 @@ def atmosphere(altp,disa=0.):
 
 
 
+
 t0 = 273.15
 
-# Data
+# Compact heat exchanger data
 #-----------------------------------------------------------------------------------------------
-pw_fc = unit.W_kW(50.)          # Total stack power
-area_stack = 0.4/unit.W_kW(1.)  # m2/kW
-se_fc = area_stack * pw_fc      # m2
-length_fc = 0.4
-temp_fc = t0 + 75.      # °K
-h_fc = 350.             # W/m2/K
+che_width = 0.50    # m, Exchanger width
+che_height = 0.35   # m, Exchanger height
+che_depth = 0.05    # m, Exchanger depth
 
-ct_alu = 237.           # W/m/K, Conductivité thermique de l'aluminium
-e_alu = 0.002           # m, épaisseur alu
-rho_fluid = 1000.       # density of water
-cp_fluid = 4200.        # J/kg/K
+che_tube_period = 0.025 # m, Distance between flat tubes
+che_tube_height = 0.005 # m, External height of the flat tubes
+che_tube_thick = 0.0005 # m, Tube wall thickness
+che_conduct = 380.      # W/m/K, Conductivité thermique du cuivre
 
-n_tube = 50             # Number of tubes
-d_tube = 0.004          # tube diameter
-sp_fluid = 0.25*np.pi*d_tube**2 * n_tube    # m2, Total tube section
+che_fin_period = 0.020  # m, Fin period
+che_fin_thick = 0.005   # m, Fin thickness
+
+che_tube_count = int(che_height / che_tube_period) - 1
+che_fin_count = 2.*int(che_width / che_fin_period)*(che_tube_count + 1)
+
+che_fin_height = (che_height - che_tube_height*che_tube_count)/(che_tube_count + 1)
+che_fin_length = che_fin_height/np.cos(np.arctan(0.5*che_fin_period/che_fin_height))
+che_air_area = 2.*che_width*che_depth*che_tube_count + che_fin_length*che_fin_count
+
+che_tube_section = 0.25*np.pi*(che_tube_height - 2.*che_tube_thick)**2 + (che_depth - che_tube_height)*(che_tube_height - 2.*che_tube_thick)
+che_tube_perimeter = np.pi*(che_tube_height - 2.*che_tube_thick) + 2.*(che_depth - che_tube_height)
+che_tube_area = che_tube_perimeter * che_width * che_tube_count
+
+# Fuel cell stack data
+#-----------------------------------------------------------------------------------------------
+fcs_power = unit.W_kW(50.)                  # Total stack power
+fcs_specific_area = 0.4/unit.W_kW(1.)       # m2/kW
+fcs_area = fcs_specific_area * fcs_power    # m2
+fcs_length = 0.4            # m
+fcs_temp = t0 + 75.         # °K
+fcs_h = 350.                # W/m2/K
+fcs_pd = unit.Pa_bar(0.4)   # Fluid pressure drop through the fuel cell stack
+
+# Fluid data
+#-----------------------------------------------------------------------------------------------
+fluid_rho = 1000.           # density of water
+fluid_cp = 4200.            # J/kg/K
+fluid_pd = unit.Pa_bar(0.2) # Pressure drop in the pipes
+
+# Air data
+#-----------------------------------------------------------------------------------------------
+air_speed = 150.        # m/s
+air_temp = t0 + 15.     # K
 
 
-vair = 150.             # m/s
-temp_air = t0 + 15.     # K
-
-se_length = 10.         # m
-se_width = 0.25         # m
-se_air = se_length * se_width * 2   # m2, upper surface + lower surface
-
-
-dp_fc = unit.Pa_bar(0.4)
-dp_pipe = unit.Pa_bar(0.2)
-
-
-
-
+# Experiment
+#-----------------------------------------------------------------------------------------------
 altp = 0.
 disa = 0.
 
 pamb,tamb = atmosphere(altp, disa)
 
-w_pump = unit.W_kW(0.25)
+pump_power = unit.W_kW(0.4)
 
 
-
-
-# Computation
-#-----------------------------------------------------------------------------------------------
 def fct(x):
 
     vfluid1, h_temp, l_temp = x
 
-    temp_fluid = 0.5*(h_temp+l_temp)
+    temp_fluid = 0.5*(h_temp + l_temp)
 
-    h_air = air_thermal_transfert_factor(pamb,tamb,vair,se_width)
-    h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid1,se_length)
-    # h_fc = fluid_thermal_transfert_factor(temp_fluid,vfluid1,length_fc)
-    h_rad = 1. / (1./h_air + e_alu/ct_alu + 1./h_fluid)
+    h_air = air_thermal_transfert_factor(pamb,tamb,air_speed,che_depth)
+    h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid1,che_width)
+    h_che = 1. / (1./h_air + che_air_area*che_tube_thick/che_conduct + che_air_area/(che_tube_area*h_fluid))
 
-    dp_rad = pressure_drop(tamb,rho_fluid,vfluid1,d_tube,se_length)
+    che_pd = pressure_drop_flat_tube(tamb,fluid_rho,vfluid1,che_depth,che_tube_height,che_width)
 
-    fluid_flow = w_pump / (dp_fc + dp_pipe + dp_rad)
+    fluid_flow = pump_power / (fcs_pd + fluid_pd + che_pd)
 
-    vfluid2 = fluid_flow / sp_fluid
+    vfluid2 = fluid_flow / (che_tube_section * che_tube_count)
 
-    m_dot = fluid_flow * rho_fluid
+    m_dot = fluid_flow * fluid_rho
 
-    q1_fc = - h_fc * se_fc * (h_temp - l_temp) / np.log((temp_fc-h_temp)/(temp_fc-l_temp))
+    q1_fcs = - h_che * che_air_area * (h_temp - l_temp) / np.log((fcs_temp-h_temp)/(fcs_temp-l_temp))
 
-    q1_fluid = m_dot * cp_fluid * (h_temp - l_temp)
+    q1_fluid = m_dot * fluid_cp * (h_temp - l_temp)
 
-    q1_rad = - h_rad * se_air * (h_temp - l_temp) / np.log((l_temp-temp_air)/(h_temp-temp_air))
+    q1_che = - h_che * che_air_area * (h_temp - l_temp) / np.log((l_temp-air_temp)/(h_temp-air_temp))
 
-    return [vfluid1 - vfluid2, q1_fc - q1_fluid, q1_rad - q1_fluid]
+    return [vfluid1 - vfluid2, q1_fcs - q1_fluid, q1_che - q1_fluid]
+
 
 r = 0.33
 xini = [5.,
-        (1.-r)*temp_fc + r*temp_air,
-        r*temp_fc + (1.-r)*temp_air]
+        (1.-r)*fcs_temp + r*air_temp,
+        r*fcs_temp + (1.-r)*air_temp]
 
 output_dict = fsolve(fct, x0=xini, args=(), full_output=True)
 
@@ -393,25 +406,30 @@ vfluid, h_temp, l_temp = output_dict[0]
 
 temp_fluid = 0.5*(h_temp+l_temp)
 
-h_air = air_thermal_transfert_factor(pamb,tamb,vair,se_width)
-h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid,se_width)
-# h_fc = fluid_thermal_transfert_factor(temp_fluid,vfluid,length_fc)
-h_rad = 1. / (1./h_air + e_alu/ct_alu + 1./h_fluid)
+h_air = air_thermal_transfert_factor(pamb,tamb,air_speed,che_depth)
+h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid,che_width)
+h_che = 1. / (1./h_air + che_air_area*che_tube_thick/che_conduct + che_air_area/(che_tube_area*h_fluid))
 
-dp_rad = pressure_drop(tamb,rho_fluid,vfluid,d_tube,se_length)
-m_dot = (w_pump * rho_fluid) / (dp_fc + dp_pipe + dp_rad)
-q1_fluid = m_dot * cp_fluid * (h_temp - l_temp)
+che_pd = pressure_drop_flat_tube(tamb,fluid_rho,vfluid,che_depth,che_tube_height,che_width)
+m_dot = (pump_power * fluid_rho) / (che_pd + fluid_pd + che_pd)
+q1_fluid = m_dot * fluid_cp * (h_temp - l_temp)
 
-print("Exchange area in the stack = ""%0.1f"%(se_fc), " m2")
-print("Exchange area with air = ""%0.1f"%(se_air), " m2")
+print("Exchange area with air = ""%0.1f"%(che_air_area), " m2")
 print("Fluid mass flow = ""%0.1f"%(m_dot), " kg/s")
 print("Fluid speed in the dissipator = ""%0.1f"%(vfluid), " m/s")
-print("Pressure drop in the dissipator = ""%0.2f"%unit.bar_Pa(dp_rad), " bar")
-print("Total pressure drop = ""%0.2f"%unit.bar_Pa(dp_fc + dp_pipe + dp_rad), " bar")
+print("Pressure drop in the dissipator = ""%0.2f"%unit.bar_Pa(che_pd), " bar")
+print("Total pressure drop = ""%0.2f"%unit.bar_Pa(fcs_pd + fluid_pd + che_pd), " bar")
 print("Coefficient h air = ""%0.1f"%(h_air), " W/m2/K")
 print("Coefficient h fluid = ""%0.1f"%(h_fluid), " W/m2/K")
-print("Coefficient h radiateur = ""%0.1f"%(h_rad), " W/m2/K")
-print("Coefficient h fuel cell = ""%0.1f"%(h_fc), " W/m2/K")
+print("Coefficient h exchanger = ""%0.1f"%(h_che), " W/m2/K")
+print("Coefficient h fuel cell = ""%0.1f"%(fcs_h), " W/m2/K")
 print("Thermal flow = ""%0.1f"%unit.kW_W(q1_fluid), " kW")
 print("High temperature = ", "%0.1f"%(h_temp-t0), " °C")
 print("Low temperature = ", "%0.1f"%(l_temp-t0), " °C")
+
+
+
+
+
+
+
