@@ -207,11 +207,11 @@ class ModelConfiguration(object):
             "vertical_margin": [1., "no_dim", "vertical margin as a fraction of nacelle width"],
             "engine_bpr": ["function", "no_dim", "Reference By Pass Ratio of the engine (function)"],
             "engine_opr": [50., "no_dim", "Reference Overall Pressure Ratio of the engine"],
+            "engine_fpr": [1.3, "no_dim", "Reference Fan Pressure Ratio of the engine"],
             "core_thrust_ratio": [0.13, "no_dim", "Reference ratio of the total thrust delivered by the core"],
             "hub_width": [0.4, "m", "Fan hub diameter"],
             "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
-            "fan_efficiency": [0.90, "no_dim", "Classical fan efficiency"],
-            "design_delta_air_speed": [70., "m/s", "Air speed variation through the fan cowl at design point"]
+            "fan_efficiency": [0.90, "no_dim", "Classical fan efficiency"]
         },
         "ExergeticTfNacelle":{
             "eis_date": [2020., "year", "Entry into service date"],
@@ -250,7 +250,7 @@ class ModelConfiguration(object):
             "vertical_margin": [1., "no_dim", "vertical margin as a fraction of nacelle width"],
             "propeller_efficiency": [0.82, "no_dim", "Propeller like fan efficiency Thrust.Speed/shaft_power"],
             "fan_efficiency": [0.95, "no_dim", "Classical fan efficiency"],
-            "design_delta_air_speed": [70., "m/s", "Air speed variation through the fan cowl at design point"],
+            "engine_fpr": [1.3, "no_dim", "Reference Fan Pressure Ratio of the engine"],
             "hub_width": [0.2, "m", "Fan hub diameter"],
             "motor_efficiency": [0.95, "no_dim", "Electric motor efficiency"],
             "motor_pw_density": [5., "kW/kg", "Electric motor power density"],
