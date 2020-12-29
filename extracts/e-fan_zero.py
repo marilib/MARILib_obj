@@ -20,28 +20,6 @@ def corrected_air_flow(ptot,ttot,Mach):
     mdoa = (np.sqrt(gam/r)*ptot/np.sqrt(ttot))*f_m
     return mdoa
 
-def inv_corrected_air_flow(ptot,ttot,mdoa):
-    """Computes the mach number from corrected air flow per square meter
-    """
-    r,gam,Cp,Cv = earth.gas_data()
-    f_m = mdoa / (np.sqrt(gam/r)*ptot/np.sqrt(ttot))
-    mach = 0.5
-    for j in range(6):
-        mach = f_m / (1. + 0.5*(gam-1)*mach**2)**(-(gam+1.)/(2.*(gam-1.)))
-    return mach
-
-def get_section_data(ptot,ttot,area,m_dot):
-    """Computes the mach number from corrected air flow per square meter
-    """
-    r,gam,Cp,Cv = earth.gas_data()
-    mdoa = m_dot / area
-    mach = inv_corrected_air_flow(ptot,ttot,mdoa)
-    fac = (1.+0.5*(gam-1.)*mach**2)
-    tsta = ttot / fac
-    psta = ptot / fac**(gam/(gam-1.))
-    vair = mach * np.sqrt(gam*r*tsta)
-    return psta,tsta,vair,mach
-
 def fct0(x, pamb,ptot,ttot,shaft_power):
     """With fan isentropic efficiency and adapted nozzle
     """

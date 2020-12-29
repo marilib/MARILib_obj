@@ -279,6 +279,28 @@ def drag_force(pamb,tamb,vair,length,wet_area):
     return (0.5*rho*vair**2)*cxf*wet_area
 
 
+def corrected_air_flow(ptot,ttot,Mach):
+    """Computes the corrected air flow per square meter
+    """
+    r,gam,Cp,Cv = gas_data()
+    f_m = Mach*(1. + 0.5*(gam-1)*Mach**2)**(-(gam+1.)/(2.*(gam-1.)))
+    mdoa = (np.sqrt(gam/r)*ptot/np.sqrt(ttot))*f_m
+    return mdoa
+
+
+def inv_corrected_air_flow(ptot,ttot,mdoa):
+    """Computes the mach number from corrected air flow per square meter
+    """
+    r,gam,Cp,Cv = gas_data()
+    f_m = mdoa / (np.sqrt(gam/r)*ptot/np.sqrt(ttot))
+    def fct(mach):
+        return f_m - mach*(1. + 0.5*(gam-1)*mach**2)**(-(gam+1.)/(2.*(gam-1.)))
+    output_dict = fsolve(fct, x0=0.2, args=(), full_output=True)
+    if (output_dict[2]!=1): raise Exception("Convergence problem")
+    mach = output_dict[0]
+    return mach
+
+
 def atmosphere(altp,disa=0.):
     """Pressure from pressure altitude from ground to 50 km
     """
@@ -320,30 +342,30 @@ t0 = 273.15
 
 # Compact heat exchanger data
 #-----------------------------------------------------------------------------------------------
-che_width = 0.60    # m, Exchanger width
-che_height = 0.40   # m, Exchanger height
-che_depth = 0.05    # m, Exchanger depth
-che_section = che_width * che_height
+hex_width = 0.50    # m, Exchanger width
+hex_height = 0.35   # m, Exchanger height
+hex_depth = 0.08    # m, Exchanger depth
+hex_section = hex_width * hex_height
 
-che_tube_period = 0.025 # m, Distance between flat tubes
-che_tube_height = 0.005 # m, External height of the flat tubes
-che_tube_thick = 0.0005 # m, Tube wall thickness
-che_conduct = 380.      # W/m/K, Conductivité thermique du cuivre
+hex_tube_period = 0.025 # m, Distance between flat tubes
+hex_tube_height = 0.005 # m, External height of the flat tubes
+hex_tube_thick = 0.0005 # m, Tube wall thickness
+hex_conduct = 380.      # W/m/K, opper thermal conductivity
 
-che_fin_period = 0.020  # m, Fin period
-che_fin_thick = 0.0005  # m, Fin thickness
+hex_fin_period = 0.020  # m, Fin period
+hex_fin_thick = 0.0005  # m, Fin thickness
 
-che_tube_count = int(che_height / che_tube_period) - 1
-che_fin_count = 2.*int(che_width / che_fin_period)*(che_tube_count + 1)
+hex_tube_count = int(hex_height / hex_tube_period) - 1
+hex_fin_count = 2.*int(hex_width / hex_fin_period)*(hex_tube_count + 1)
 
-che_fin_height = (che_height - che_tube_height*che_tube_count)/(che_tube_count + 1)
-che_fin_length = che_fin_height/np.cos(np.arctan(0.5*che_fin_period/che_fin_height))
-che_air_area = 2.*che_width*che_depth*che_tube_count + che_fin_length*che_fin_count
-che_free_section = che_width*che_height - che_tube_height*che_width*che_tube_count - che_fin_thick*che_fin_length*che_fin_count
+hex_fin_height = (hex_height - hex_tube_height*hex_tube_count)/(hex_tube_count + 1)
+hex_fin_length = hex_fin_height/np.cos(np.arctan(0.5*hex_fin_period/hex_fin_height))
+hex_air_area = 2.*hex_width*hex_depth*hex_tube_count + hex_fin_length*hex_depth*hex_fin_count
+hex_free_section = hex_width*hex_height - hex_tube_height*hex_width*hex_tube_count - hex_fin_thick*hex_fin_length*hex_fin_count
 
-che_tube_section = 0.25*np.pi*(che_tube_height - 2.*che_tube_thick)**2 + (che_depth - che_tube_height)*(che_tube_height - 2.*che_tube_thick)
-che_tube_perimeter = np.pi*(che_tube_height - 2.*che_tube_thick) + 2.*(che_depth - che_tube_height)
-che_tube_area = che_tube_perimeter * che_width * che_tube_count
+hex_tube_section = 0.25*np.pi*(hex_tube_height - 2.*hex_tube_thick)**2 + (hex_depth - hex_tube_height)*(hex_tube_height - 2.*hex_tube_thick)
+hex_tube_perimeter = np.pi*(hex_tube_height - 2.*hex_tube_thick) + 2.*(hex_depth - hex_tube_height)
+hex_tube_area = hex_tube_perimeter * hex_width * hex_tube_count
 
 # Fuel cell stack data
 #-----------------------------------------------------------------------------------------------
@@ -363,90 +385,111 @@ fluid_pd = unit.Pa_bar(0.2) # Pressure drop in the pipes
 
 # Air data
 #-----------------------------------------------------------------------------------------------
-air_speed_0 = 120.        # m/s
-air_temp = t0 + 15.     # K
 
 
 # Experiment
 #-----------------------------------------------------------------------------------------------
-altp = 0.
-disa = 0.
+r,gam,Cp,Cv = gas_data()
+
+inlet_sr = 1.
+nozzl_sr = 0.3
+
+inlet_area = hex_section * inlet_sr
+nozzl_area = hex_section * nozzl_sr
+
+altp = 3000.
+disa = 15.
+vair_0 = 100.          # m/s
+pump_power = unit.W_kW(0.2)
 
 pamb,tamb = atmosphere(altp, disa)
 
-pump_power = unit.W_kW(0.5)
+mach_0 = vair_0 / sound_speed(tamb)
+ptot_0 = pamb*(1+((gam-1.)/2.)*mach_0**2)**(gam/(gam-1.))
+ttot_0 = tamb*(1.+((gam-1.)/2.)*mach_0**2)
 
-air_speed = air_speed_0 * (che_section / che_free_section)
+
+def fct(x):
+    m_dot_air, vfluid, h_temp, l_temp = x
+    dict = fct_hex(x)
+    return [dict["m_dot_air"] - m_dot_air, dict["vfluid"] - vfluid, dict["q1_fcs"] - dict["q1_fluid"], dict["q1_hex"] - dict["q1_fluid"]]
 
 
 def fct_hex(x):
+    m_dot_air, vfluid, h_temp, l_temp = x
 
-    vfluid1, h_temp, l_temp = x
+    # Section 3 is within the exchanger
+    mdoa_3 = m_dot_air / hex_free_section
+    mach_3 = inv_corrected_air_flow(ptot_0,ttot_0,mdoa_3)
+    psta_3 = ptot_0 / (1+((gam-1.)/2.)*mach_3**2)**(gam/(gam-1.))
+    tsta_3 = ttot_0 / (1.+((gam-1.)/2.)*mach_3**2)
+    vair_3 = mach_3 * sound_speed(tsta_3)                   # Air speed within the exchanger
+    hex_air_pd = drag_force(psta_3,tsta_3,vair_3,hex_depth,hex_air_area) / hex_section
 
-    temp_fluid = 0.5*(h_temp + l_temp)
-
-    h_air = air_thermal_transfert_factor(pamb,tamb,air_speed,che_depth)
-    h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid1,che_width)
-    h_che = 1. / (1./h_air + che_air_area*che_tube_thick/che_conduct + che_air_area/(che_tube_area*h_fluid))
-
-    che_fluid_pd = pressure_drop_flat_tube(tamb,fluid_rho,vfluid1,che_depth,che_tube_height,che_width)
-
-    fluid_flow = pump_power / (fcs_pd + fluid_pd + che_fluid_pd)
-
-    vfluid2 = fluid_flow / (che_tube_section * che_tube_count)
-
+    hex_fluid_pd = pressure_drop_flat_tube(tamb,fluid_rho,vfluid,hex_depth,hex_tube_height,hex_width)
+    fluid_flow = pump_power / (fcs_pd + fluid_pd + hex_fluid_pd)
     m_dot = fluid_flow * fluid_rho
 
-    q1_fcs = - fcs_h * fcs_area * (h_temp - l_temp) / np.log((fcs_temp-h_temp)/(fcs_temp-l_temp))
     q1_fluid = m_dot * fluid_cp * (h_temp - l_temp)
-    q1_che = - h_che * che_air_area * (h_temp - l_temp) / np.log((l_temp-air_temp)/(h_temp-air_temp))
 
-    return [vfluid1 - vfluid2, q1_fcs - q1_fluid, q1_che - q1_fluid]
+    ptot_4 = ptot_0 - hex_air_pd
+    ttot_4 = ttot_0 + q1_fluid/(m_dot_air*Cp)
 
+    mach_5 = np.sqrt(((ptot_4/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))  # Nozzle is supposed adapted
 
+    m_dot_air_ = nozzl_area * corrected_air_flow(ptot_4,ttot_4,mach_5)
+
+    tsta_5 = ttot_4 / (1.+((gam-1.)/2.)*mach_5**2)
+    vair_5 = mach_5 * sound_speed(tsta_5)
+    thrust = m_dot_air * (vair_5 - vair_0)
+
+    mean_temp_fluid = 0.5*(h_temp + l_temp)
+
+    h_air = air_thermal_transfert_factor(pamb,tamb,vair_3,hex_depth)
+    h_fluid = fluid_thermal_transfert_factor(mean_temp_fluid,vfluid,hex_width)
+    h_hex = 1. / (1./h_air + hex_air_area*hex_tube_thick/hex_conduct + hex_air_area/(hex_tube_area*h_fluid))
+
+    q1_fcs = - fcs_h * fcs_area * (h_temp - l_temp) / np.log((fcs_temp-h_temp)/(fcs_temp-l_temp))
+    q1_hex = - h_hex * hex_air_area * (h_temp - l_temp) / np.log((l_temp-tamb)/(h_temp-tamb))
+
+    vfluid_ = fluid_flow / (hex_tube_section * hex_tube_count)
+
+    return {"m_dot_air":m_dot_air_, "vfluid":vfluid_, "q1_fluid":q1_fluid, "q1_fcs":q1_fcs, "q1_hex":q1_hex,
+            "thrust":thrust, "vjet":vair_5, "vair_hex":vair_3, "hex_fluid_pd":hex_fluid_pd, "hex_air_pd":hex_air_pd,
+            "high_temp":h_temp, "low_temp":l_temp, "h_hex":h_hex, "h_fluid":h_fluid, "h_air":h_air, "mach_3":mach_3}
+
+m_dot_air_i = hex_free_section * corrected_air_flow(ptot_0,ttot_0,mach_0)
 r = 0.33
-xini = [5.,
-        (1.-r)*fcs_temp + r*air_temp,
-        r*fcs_temp + (1.-r)*air_temp]
+xini = [m_dot_air_i,
+        5.,
+        (1.-r)*fcs_temp + r*tamb,
+        r*fcs_temp + (1.-r)*tamb]
 
-output_dict = fsolve(fct_hex, x0=xini, args=(), full_output=True)
-
+output_dict = fsolve(fct, x0=xini, args=(), full_output=True)
 if (output_dict[2]!=1): raise Exception("Convergence problem")
-
-vfluid, h_temp, l_temp = output_dict[0]
-
-
-
-
-temp_fluid = 0.5*(h_temp+l_temp)
-
-h_air = air_thermal_transfert_factor(pamb,tamb,air_speed,che_depth)
-h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid,che_width)
-h_che = 1. / (1./h_air + che_air_area*che_tube_thick/che_conduct + che_air_area/(che_tube_area*h_fluid))
-
-che_air_pd = drag_force(pamb,tamb,air_speed,che_depth,che_air_area) / che_section
-
-che_fluid_pd = pressure_drop_flat_tube(tamb,fluid_rho,vfluid,che_depth,che_tube_height,che_width)
-m_dot = (pump_power * fluid_rho) / (fcs_pd + fluid_pd + che_fluid_pd)
-q1_fluid = m_dot * fluid_cp * (h_temp - l_temp)
+dict = fct_hex(output_dict[0])
 
 print("")
-print("Exchange area with air = ""%0.1f"%(che_air_area), " m2")
-print("Air speed through the exchanger = ""%0.1f"%(air_speed), " m/s")
-print("Fluid mass flow = ""%0.1f"%(m_dot), " kg/s")
-print("Fluid speed in the exchangeur = ""%0.1f"%(vfluid), " m/s")
-print("Fluid pressure drop in the exchangeur = ""%0.2f"%unit.bar_Pa(che_fluid_pd), " bar")
-print("Total fluid pressure drop = ""%0.2f"%unit.bar_Pa(fcs_pd + fluid_pd + che_fluid_pd), " bar")
+print("Exchange area with air = ""%0.1f"%(hex_air_area), " m2")
+print("Free stream Mach number = ""%0.2f"%(mach_0))
+print("Mach number through the exchanger = ""%0.2f"%(dict["mach_3"]))
+print("Air speed through the exchanger = ""%0.1f"%(dict["vair_hex"]), " m/s")
+print("Fluid mass flow = ""%0.1f"%(dict["m_dot_air"]), " kg/s")
+print("Fluid speed in the exchangeur = ""%0.1f"%(dict["vfluid"]), " m/s")
+print("Fluid pressure drop in the exchangeur = ""%0.4f"%unit.bar_Pa(dict["hex_fluid_pd"]), " bar")
+print("Total fluid pressure drop = ""%0.2f"%unit.bar_Pa(fcs_pd + fluid_pd + dict["hex_fluid_pd"]), " bar")
 print("")
-print("Air pressure drop through the exchanger = ""%0.2f"%unit.bar_Pa(che_air_pd), " bar")
-print("Coefficient h air = ""%0.1f"%(h_air), " W/m2/K")
-print("Coefficient h fluid = ""%0.1f"%(h_fluid), " W/m2/K")
-print("Coefficient h exchanger = ""%0.1f"%(h_che), " W/m2/K")
+print("Air pressure drop through the exchanger = ""%0.3f"%unit.bar_Pa(dict["hex_air_pd"]), " bar")
+print("Coefficient h air = ""%0.1f"%(dict["h_air"]), " W/m2/K")
+print("Coefficient h fluid = ""%0.1f"%(dict["h_fluid"]), " W/m2/K")
+print("Coefficient h exchanger = ""%0.1f"%(dict["h_hex"]), " W/m2/K")
 print("Coefficient h fuel cell = ""%0.1f"%(fcs_h), " W/m2/K")
 print("")
-print("Thermal flow = ""%0.1f"%unit.kW_W(q1_fluid), " kW")
-print("High temperature = ", "%0.1f"%(h_temp-t0), " °C")
-print("Low temperature = ", "%0.1f"%(l_temp-t0), " °C")
+print("Thermal flow = ""%0.1f"%unit.kW_W(dict["q1_fluid"]), " kW")
+print("High temperature = ", "%0.1f"%(dict["high_temp"]-t0), " °C")
+print("Low temperature = ", "%0.1f"%(dict["low_temp"]-t0), " °C")
+print("")
+print("Thrust = ", "%0.1f"%(dict["thrust"]/10.), " daN")
 
 
 
