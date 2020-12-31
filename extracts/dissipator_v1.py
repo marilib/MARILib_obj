@@ -59,10 +59,10 @@ def fluid_nusselt_number(tamb,vfluid,x, fluid="water"):
     rho_water = 1000.
     pr = fluid_prandtl_number(tamb, fluid="water")
     re = fluid_reynolds_number_v(tamb,rho_water,vfluid, fluid="water")
-    if (re*x)>5.e5 and 0.6<pr and pr<60.:
+    if (re*x)<1.e8 and 0.6<pr and pr<60.:
         nu = 0.0296 * (re*x)**(4/5) * pr**(1/3)
     else:
-        print("Re = ", re*x, "  Pr = ", pr)
+        print("vfluid = ", vfluid, "Re = ", re*x, "  Pr = ", pr)
         raise Exception("Re or Pr are not in the valid domain")
     return nu
 
@@ -129,7 +129,7 @@ def air_nusselt_number(pamb,tamb,vair,x):
     rho,sig = air_density(pamb,tamb)
     pr = air_prandtl_number(pamb,tamb)
     re = air_reynolds_number_v(tamb,rho,vair)
-    if (re*x)>5.e5 and 0.6<pr and pr<60.:
+    if (re*x)<1.e8 and 0.6<pr and pr<60.:
         nu = 0.0296 * (re*x)**(4/5) * pr**(1/3)
     else:
         print("Re = ", re*x, "  Pr = ", pr)
@@ -267,6 +267,18 @@ def gas_viscosity(tamb, gas="air"):
     return mu
 
 
+def drag_force(pamb,tamb,vair,length,wet_area):
+    """Compute drag coefficient
+    """
+    form_factor = 1.5
+    rho,sig = air_density(pamb,tamb)
+    re = air_reynolds_number_v(tamb,rho,vair)
+    mach = vair / sound_speed(tamb)
+    fac = ( 1. + 0.126*mach**2 )
+    cxf = form_factor * ((0.455/fac)*(np.log(10)/np.log(re*length))**2.58)
+    return (0.5*rho*vair**2)*cxf*wet_area
+
+
 def atmosphere(altp,disa=0.):
     """Pressure from pressure altitude from ground to 50 km
     """
@@ -303,115 +315,139 @@ def atmosphere(altp,disa=0.):
 
 
 
+
 t0 = 273.15
 
-# Data
+# Leading edge heat exchanger
 #-----------------------------------------------------------------------------------------------
-pw_fc = unit.W_kW(50.)          # Total stack power
-area_stack = 0.4/unit.W_kW(1.)  # m2/kW
-se_fc = area_stack * pw_fc      # m2
-length_fc = 0.4
-temp_fc = t0 + 75.      # °K
-h_fc = 350.             # W/m2/K
+hex_length = 10.        # m, Exchanger span wise length
+hex_chord = 0.25         # m, Exchanger chord
+hex_air_area = hex_length * hex_chord * 2.  # lower + upper surface
 
-ct_alu = 237.           # W/m/K, Conductivité thermique de l'aluminium
-e_alu = 0.002           # m, épaisseur alu
-rho_fluid = 1000.       # density of water
-cp_fluid = 4200.        # J/kg/K
+hex_tube_period = 0.01  # m, Distance between tubes
+hex_tube_width = 0.005  # m, Internal tube diameter
 
-n_tube = 50             # Number of tubes
-d_tube = 0.004          # tube diameter
-sp_fluid = 0.25*np.pi*d_tube**2 * n_tube    # m2, Total tube section
+hex_tube_thick = 0.003  # m, Mean wall thickness
+hex_conduct = 237.      # W/m/K, Conductivité thermique de l'aluminium
+
+hex_tube_count = int(2.*hex_chord / hex_tube_period)
+
+hex_tube_section = 0.25*np.pi*hex_tube_width**2
+hex_tube_perimeter = np.pi*hex_tube_width
+hex_hydro_width = 4.* hex_tube_section / hex_tube_perimeter
+hex_tube_area = hex_tube_perimeter * hex_length * hex_tube_count
+
+# Fuel cell stack data
+#-----------------------------------------------------------------------------------------------
+fcs_power = unit.W_kW(245.)                  # Total stack power
+fcs_specific_area = 0.4/unit.W_kW(1.)       # m2/kW
+fcs_area = fcs_specific_area * fcs_power    # m2
+fcs_length = 0.4            # m
+fcs_temp = t0 + 75.         # °K
+fcs_h = 350.                # W/m2/K
+fcs_pd = unit.Pa_bar(0.4)   # Fluid pressure drop through the fuel cell stack
+
+# Fluid data
+#-----------------------------------------------------------------------------------------------
+fluid_rho = 1000.           # density of water
+fluid_cp = 4200.            # J/kg/K
+fluid_pd = unit.Pa_bar(0.2) # Pressure drop in the pipes
+
+# Air data
+#-----------------------------------------------------------------------------------------------
+air_speed = 100.        # m/s
+air_temp = t0 + 15.     # K
 
 
-vair = 150.             # m/s
-temp_air = t0 + 15.     # K
-
-se_length = 10.         # m
-se_width = 0.25         # m
-se_air = se_length * se_width * 2   # m2, upper surface + lower surface
-
-
-dp_fc = unit.Pa_bar(0.4)
-dp_pipe = unit.Pa_bar(0.2)
-
-
-
-
+# Experiment
+#-----------------------------------------------------------------------------------------------
 altp = 0.
 disa = 0.
 
 pamb,tamb = atmosphere(altp, disa)
 
-w_pump = unit.W_kW(0.25)
+pump_power = unit.W_kW(0.50)
 
 
-
-
-# Computation
-#-----------------------------------------------------------------------------------------------
-def fct(x):
+def fct_hex(x):
 
     vfluid1, h_temp, l_temp = x
 
-    temp_fluid = 0.5*(h_temp+l_temp)
+    temp_fluid = 0.5*(h_temp + l_temp)
 
-    h_air = air_thermal_transfert_factor(pamb,tamb,vair,se_width)
-    h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid1,se_length)
-    # h_fc = fluid_thermal_transfert_factor(temp_fluid,vfluid1,length_fc)
-    h_rad = 1. / (1./h_air + e_alu/ct_alu + 1./h_fluid)
+    h_air = air_thermal_transfert_factor(pamb,tamb,air_speed,hex_chord)
+    h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid1,hex_hydro_width)
+    h_hex = 1. / (1./h_air + hex_air_area*hex_tube_thick/hex_conduct + hex_air_area/(hex_tube_area*h_fluid))
 
-    dp_rad = pressure_drop(tamb,rho_fluid,vfluid1,d_tube,se_length)
+    hex_fluid_pd = pressure_drop(tamb,fluid_rho,vfluid1,hex_tube_width,hex_length)
 
-    fluid_flow = w_pump / (dp_fc + dp_pipe + dp_rad)
+    fluid_flow = pump_power / (fcs_pd + fluid_pd + hex_fluid_pd)
 
-    vfluid2 = fluid_flow / sp_fluid
+    vfluid2 = fluid_flow / (hex_tube_section * hex_tube_count)
 
-    m_dot = fluid_flow * rho_fluid
+    m_dot = fluid_flow * fluid_rho
 
-    q1_fc = - h_fc * se_fc * (h_temp - l_temp) / np.log((temp_fc-h_temp)/(temp_fc-l_temp))
+    q1_fcs = - fcs_h * fcs_area * (h_temp - l_temp) / np.log((fcs_temp-h_temp)/(fcs_temp-l_temp))
+    q1_fluid = m_dot * fluid_cp * (h_temp - l_temp)
+    q1_hex = - h_hex * hex_air_area * (h_temp - l_temp) / np.log((l_temp-air_temp)/(h_temp-air_temp))
 
-    q1_fluid = m_dot * cp_fluid * (h_temp - l_temp)
+    return [vfluid1 - vfluid2, q1_fcs - q1_fluid, q1_hex - q1_fluid]
 
-    q1_rad = - h_rad * se_air * (h_temp - l_temp) / np.log((l_temp-temp_air)/(h_temp-temp_air))
 
-    return [vfluid1 - vfluid2, q1_fc - q1_fluid, q1_rad - q1_fluid]
+# r = 0.15
+# xini = [5.,
+#         (1.-r)*fcs_temp + r*air_temp,
+#         r*fcs_temp + (1.-r)*air_temp]
 
-r = 0.33
+r = 0.15
 xini = [5.,
-        (1.-r)*temp_fc + r*temp_air,
-        r*temp_fc + (1.-r)*temp_air]
+        (1.-r)*fcs_temp,
+        (1.-r)*fcs_temp - 4.]
 
-output_dict = fsolve(fct, x0=xini, args=(), full_output=True)
-
+output_dict = fsolve(fct_hex, x0=xini, args=(), full_output=True)
 if (output_dict[2]!=1): raise Exception("Convergence problem")
-
 vfluid, h_temp, l_temp = output_dict[0]
 
 
 
+temp_fluid = 0.5*(h_temp + l_temp)
 
-temp_fluid = 0.5*(h_temp+l_temp)
+h_air = air_thermal_transfert_factor(pamb,tamb,air_speed,hex_chord)
+h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid,hex_hydro_width)
+h_hex = 1. / (1./h_air + hex_air_area*hex_tube_thick/hex_conduct + hex_air_area/(hex_tube_area*h_fluid))
 
-h_air = air_thermal_transfert_factor(pamb,tamb,vair,se_width)
-h_fluid = fluid_thermal_transfert_factor(temp_fluid,vfluid,se_width)
-# h_fc = fluid_thermal_transfert_factor(temp_fluid,vfluid,length_fc)
-h_rad = 1. / (1./h_air + e_alu/ct_alu + 1./h_fluid)
+hex_fluid_pd = pressure_drop(tamb,fluid_rho,vfluid,hex_tube_width,hex_length)
 
-dp_rad = pressure_drop(tamb,rho_fluid,vfluid,d_tube,se_length)
-m_dot = (w_pump * rho_fluid) / (dp_fc + dp_pipe + dp_rad)
-q1_fluid = m_dot * cp_fluid * (h_temp - l_temp)
+fluid_flow = pump_power / (fcs_pd + fluid_pd + hex_fluid_pd)
 
-print("Exchange area in the stack = ""%0.1f"%(se_fc), " m2")
-print("Exchange area with air = ""%0.1f"%(se_air), " m2")
+vfluid2 = fluid_flow / (hex_tube_section * hex_tube_count)
+
+m_dot = fluid_flow * fluid_rho
+
+q1_fcs = - fcs_h * fcs_area * (h_temp - l_temp) / np.log((fcs_temp-h_temp)/(fcs_temp-l_temp))
+q1_fluid = m_dot * fluid_cp * (h_temp - l_temp)
+q1_hex = - h_hex * hex_air_area * (h_temp - l_temp) / np.log((l_temp-air_temp)/(h_temp-air_temp))
+
+print("")
+print("Exchange area with air = ""%0.1f"%(hex_air_area), " m2")
+print("Air speed through the exchanger = ""%0.1f"%(air_speed), " m/s")
 print("Fluid mass flow = ""%0.1f"%(m_dot), " kg/s")
-print("Fluid speed in the dissipator = ""%0.1f"%(vfluid), " m/s")
-print("Pressure drop in the dissipator = ""%0.2f"%unit.bar_Pa(dp_rad), " bar")
-print("Total pressure drop = ""%0.2f"%unit.bar_Pa(dp_fc + dp_pipe + dp_rad), " bar")
+print("Fluid speed in the exchangeur = ""%0.1f"%(vfluid), " m/s")
+print("Fluid pressure drop in the exchangeur = ""%0.2f"%unit.bar_Pa(hex_fluid_pd), " bar")
+print("Total fluid pressure drop = ""%0.2f"%unit.bar_Pa(fcs_pd + fluid_pd + hex_fluid_pd), " bar")
+print("")
 print("Coefficient h air = ""%0.1f"%(h_air), " W/m2/K")
 print("Coefficient h fluid = ""%0.1f"%(h_fluid), " W/m2/K")
-print("Coefficient h radiateur = ""%0.1f"%(h_rad), " W/m2/K")
-print("Coefficient h fuel cell = ""%0.1f"%(h_fc), " W/m2/K")
+print("Coefficient h exchanger = ""%0.1f"%(h_hex), " W/m2/K")
+print("Coefficient h fuel cell = ""%0.1f"%(fcs_h), " W/m2/K")
+print("")
 print("Thermal flow = ""%0.1f"%unit.kW_W(q1_fluid), " kW")
 print("High temperature = ", "%0.1f"%(h_temp-t0), " °C")
 print("Low temperature = ", "%0.1f"%(l_temp-t0), " °C")
+
+
+
+
+
+
+

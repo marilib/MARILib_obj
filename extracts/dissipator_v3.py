@@ -102,7 +102,6 @@ def fluid_reynolds_number_v(tamb,rho,vfluid, fluid="water"):
 def fluid_viscosity(tamb, fluid="water"):
     if fluid!="water":
         raise Exception("fluide type is not permitted")
-    t0 = 273.15
     temp_list = [275.15, 276.15, 277.15, 278.15, 279.15, 280.15, 281.15, 282.15, 283.15, 284.15, 285.15, 286.15, 287.15,
                  288.15, 289.15, 290.15, 291.15, 292.15, 293.15, 294.15, 295.15, 296.15, 297.15, 298.15, 299.15, 300.15,
                  301.15, 302.15, 303.15, 304.15, 305.15, 306.15, 307.15, 308.15, 309.15, 310.15, 311.15, 312.15, 313.15,
@@ -340,10 +339,14 @@ def atmosphere(altp,disa=0.):
 
 t0 = 273.15
 
-# Compact heat exchanger data
+# Compact heat exchanger with rear fan
 #-----------------------------------------------------------------------------------------------
-hex_width = 0.50    # m, Exchanger width
-hex_height = 0.35   # m, Exchanger height
+fan_isent_eff = 0.80
+
+# Heat exchanger
+#-----------------------------------------------------------------------------------------------
+hex_width = 1.00    # m, Exchanger width
+hex_height = 1.00   # m, Exchanger height
 hex_depth = 0.08    # m, Exchanger depth
 hex_section = hex_width * hex_height
 
@@ -369,7 +372,7 @@ hex_tube_area = hex_tube_perimeter * hex_width * hex_tube_count
 
 # Fuel cell stack data
 #-----------------------------------------------------------------------------------------------
-fcs_power = unit.W_kW(245.)                  # Total stack power
+fcs_power = unit.W_kW(10.)                  # Total stack power
 fcs_specific_area = 0.4/unit.W_kW(1.)       # m2/kW
 fcs_area = fcs_specific_area * fcs_power    # m2
 fcs_length = 0.4            # m
@@ -391,8 +394,8 @@ fluid_pd = unit.Pa_bar(0.2) # Pressure drop in the pipes
 #-----------------------------------------------------------------------------------------------
 r,gam,Cp,Cv = gas_data()
 
-inlet_sr = 1.
-nozzl_sr = 0.3
+inlet_sr = 1.0
+nozzl_sr = 0.2
 
 inlet_area = hex_section * inlet_sr
 nozzl_area = hex_section * nozzl_sr
@@ -401,6 +404,8 @@ altp = 3000.
 disa = 15.
 vair_0 = 100.          # m/s
 pump_power = unit.W_kW(0.2)
+
+shaft_power = unit.W_kW(34.)
 
 pamb,tamb = atmosphere(altp, disa)
 
@@ -435,13 +440,19 @@ def fct_hex(x):
     ptot_4 = ptot_0 - hex_air_pd
     ttot_4 = ttot_0 + q1_fluid/(m_dot_air*Cp)
 
-    mach_5 = np.sqrt(((ptot_4/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))  # Nozzle is supposed adapted
+    ttot_5 = ttot_4 + shaft_power/(m_dot_air*Cp)
+    ptot_5 = ptot_4 * (1. + fan_isent_eff*(ttot_5/ttot_4-1.))**(gam/(gam-1.))
 
-    m_dot_air_ = nozzl_area * corrected_air_flow(ptot_4,ttot_4,mach_5)
+    # ttot_5 = ttot_4
+    # ptot_5 = ptot_4
 
-    tsta_5 = ttot_4 / (1.+((gam-1.)/2.)*mach_5**2)
-    vair_5 = mach_5 * sound_speed(tsta_5)
-    thrust = m_dot_air * (vair_5 - vair_0)
+    mach_6 = np.sqrt(((ptot_5/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))  # Nozzle is supposed adapted
+
+    m_dot_air_ = nozzl_area * corrected_air_flow(ptot_5,ttot_5,mach_6)
+
+    tsta_6 = ttot_5 / (1.+((gam-1.)/2.)*mach_6**2)
+    vair_6 = mach_6 * sound_speed(tsta_6)
+    thrust = m_dot_air * (vair_6 - vair_0)
 
     mean_temp_fluid = 0.5*(h_temp + l_temp)
 
@@ -455,7 +466,7 @@ def fct_hex(x):
     vfluid_ = fluid_flow / (hex_tube_section * hex_tube_count)
 
     return {"m_dot_air":m_dot_air_, "vfluid":vfluid_, "q1_fluid":q1_fluid, "q1_fcs":q1_fcs, "q1_hex":q1_hex,
-            "thrust":thrust, "vjet":vair_5, "vair_hex":vair_3, "hex_fluid_pd":hex_fluid_pd, "hex_air_pd":hex_air_pd,
+            "thrust":thrust, "vjet":vair_6, "vair_hex":vair_3, "hex_fluid_pd":hex_fluid_pd, "hex_air_pd":hex_air_pd,
             "high_temp":h_temp, "low_temp":l_temp, "h_hex":h_hex, "h_fluid":h_fluid, "h_air":h_air, "mach_3":mach_3}
 
 m_dot_air_i = hex_free_section * corrected_air_flow(ptot_0,ttot_0,mach_0)
@@ -490,6 +501,7 @@ print("High temperature = ", "%0.1f"%(dict["high_temp"]-t0), " °C")
 print("Low temperature = ", "%0.1f"%(dict["low_temp"]-t0), " °C")
 print("")
 print("Thrust = ", "%0.1f"%(dict["thrust"]/10.), " daN")
+print("Global efficiency = ", "%0.3f"%(dict["thrust"]*vair_0/(shaft_power+dict["q1_fluid"])))
 
 
 
