@@ -23,17 +23,17 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "floor",      # "wing_box", "piggy_back" or "pods"
-                   gear_architecture = "bare_fixed",    # "retractable", "bare_fixed"
+                   tank_architecture = "wing_box",      # "wing_box", "piggy_back" or "pods"
+                   gear_architecture = "retractable",    # "retractable", "bare_fixed"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tp",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 19.,
-                   design_range = unit.m_NM(100.),
-                   cruise_mach = 0.30,
+reqs = Requirement(n_pax_ref = 70.,
+                   design_range = unit.m_NM(600.),
+                   cruise_mach = 0.50,
                    cruise_altp = unit.m_ft(25000.),
                    model_config = ModelConfiguration)
 
@@ -67,32 +67,38 @@ print("time_to_climb_altp2 = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time
 print("time_to_climb_toc = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp)))
 print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_climb.ttc_req)))
 
-# Take off
-ac.requirement.take_off.tofl_req = 370.
-
-# Approach
-ac.requirement.approach.app_speed_req = unit.convert_from("kt",72.)
-# Climb
-ac.requirement.mcl_ceiling.altp = unit.convert_from("ft",16000.)
-ac.requirement.mcl_ceiling.mach = 0.2
-ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",1400.)
-
-ac.requirement.mcr_ceiling.altp = unit.convert_from("ft",16000.)
-ac.requirement.mcr_ceiling.mach = 0.2
-ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",900.)
-
-ac.requirement.oei_ceiling.altp = unit.convert_from("ft",16000.)
-
-ac.requirement.time_to_climb.cas1 = unit.convert_from("kt",80.)
-ac.requirement.time_to_climb.altp1 = unit.convert_from("ft",1500.)
-ac.requirement.time_to_climb.cas2 = unit.convert_from("kt",80.)
-ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",10000.)
-ac.requirement.time_to_climb.altp = unit.convert_from("ft",16000.)
-ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",10.)
+# # Payload
+# ac.airframe.cabin.m_pax_nominal = 110.
+# ac.airframe.cabin.m_pax_max = 110.
+#
+# # Take off
+# ac.requirement.take_off.tofl_req = 400.
+#
+# # Approach
+# ac.airframe.wing.hld_type = 2.
+# ac.requirement.approach.app_speed_req = unit.convert_from("kt",75.)
+# # Climb
+# ac.requirement.mcl_ceiling.altp = unit.convert_from("ft",16000.)
+# ac.requirement.mcl_ceiling.mach = 0.2
+# ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",800.)
+#
+# ac.requirement.mcr_ceiling.altp = unit.convert_from("ft",16000.)
+# ac.requirement.mcr_ceiling.mach = 0.2
+# ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",400.)
+#
+# ac.requirement.oei_ceiling.altp = unit.convert_from("ft",16000.)
+#
+# ac.requirement.time_to_climb.cas1 = unit.convert_from("kt",80.)
+# ac.requirement.time_to_climb.altp1 = unit.convert_from("ft",1500.)
+# ac.requirement.time_to_climb.cas2 = unit.convert_from("kt",80.)
+# ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",10000.)
+# ac.requirement.time_to_climb.altp = unit.convert_from("ft",16000.)
+# ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",15.)
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(560.)
-ac.airframe.wing.area = 39.
+ac.power_system.reference_power = unit.W_kW(1850.)
+ac.airframe.wing.aspect_ratio = 12.
+ac.airframe.wing.area = 61.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)

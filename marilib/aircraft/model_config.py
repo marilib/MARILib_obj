@@ -86,7 +86,7 @@ class ModelConfiguration(object):
         "HtpTtail":{
             "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
             "taper_ratio": [0.35, "no_dim", "Horizontal tail taper ratio"],
-            "height_ratio": [0.3, "no_dim", "Horizontal tail height ratio versus vertical tail height"],
+            "height_ratio": [1., "no_dim", "Horizontal tail height ratio versus vertical tail height"],
             "sweep25": ["function", "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the Horizontal tail"],
             "dihedral": [5, "deg", "Dihedral angle of the horizontal tail"],
@@ -230,7 +230,8 @@ class ModelConfiguration(object):
             "lateral_margin": [1., "no_dim", "Lateral margin as a fraction of nacelle width"],
             "hub_width": [0.2, "m", "Propeller hub diameter"],
             "propeller_efficiency": [0.82, "no_dim", "Propeller efficiency Thrust.Speed/shaft_power"],
-            "propeller_disk_load": [3000., "N/m2", "Propeller disk load"]
+            "propeller_disk_load": [3000., "N/m2", "Propeller disk load"],
+            "psfc_reference": [0.40, "lb/shp/h", "Power related Spesific Fuel Consumption"]
         },
         "SemiEmpiricEpNacelle":{
             "eis_date": [2020., "year", "Entry into service date"],
