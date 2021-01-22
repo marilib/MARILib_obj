@@ -423,7 +423,6 @@ class TakeOff(Flight):
     """
     def __init__(self, aircraft):
         super(TakeOff, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -516,7 +515,6 @@ class Approach(Flight):
     """
     def __init__(self, aircraft):
         super(Approach, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -545,7 +543,6 @@ class MclCeiling(Flight):
     """
     def __init__(self, aircraft):
         super(MclCeiling, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -579,7 +576,6 @@ class McrCeiling(Flight):
     """
     def __init__(self, aircraft):
         super(McrCeiling, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -613,7 +609,6 @@ class OeiCeiling(Flight):
     """
     def __init__(self, aircraft):
         super(OeiCeiling, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -646,7 +641,6 @@ class TimeToClimb(Flight):
     """
     def __init__(self, aircraft):
         super(TimeToClimb, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None

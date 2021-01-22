@@ -21,7 +21,6 @@ class AllMissions(Flight):
     """
     def __init__(self, aircraft):
         super(AllMissions, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.max_payload = None
         self.nominal = None
@@ -67,7 +66,6 @@ class AllMissionVarMass(AllMissions):
     """
     def __init__(self, aircraft):
         super(AllMissionVarMass, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.max_payload = MissionVarMassGeneric(aircraft)
         self.nominal = MissionVarMassGeneric(aircraft)
@@ -172,7 +170,6 @@ class MissionVarMassGeneric(Flight):
     """
     def __init__(self, aircraft):
         super(MissionVarMassGeneric, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None    # Mean cruise temperature shift
         self.altp = None    # Mean cruise altitude
@@ -328,7 +325,6 @@ class AllMissionIsoMass(AllMissions):
     """
     def __init__(self, aircraft):
         super(AllMissionIsoMass, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.max_payload = MissionIsoMassGeneric(aircraft)
         self.nominal = MissionIsoMassGeneric(aircraft)
@@ -415,7 +411,6 @@ class MissionIsoMassGeneric(Flight):
     """
     def __init__(self, aircraft):
         super(MissionIsoMassGeneric, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None    # Mean cruise temperature shift
         self.altp = None    # Mean cruise altitude
@@ -567,7 +562,7 @@ class MissionDef(Flight):
         This class is not used. By default MARILib uses :class:`MissionGeneric`."""
     def __init__(self,aircraft):
         # Inputs
-        self.aircraft = aircraft
+
         self.disa = None  # Mean cruise temperature shift
         self.altp = None  # Mean cruise altitude
         self.mach = None  # Cruise mach number

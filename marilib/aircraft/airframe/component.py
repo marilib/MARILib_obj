@@ -922,13 +922,12 @@ class Wing(Component):
             if (hld_conf==0): czmax_base = 1.45 # Clean
             else: czmax_base = 2.00             # Slat + Flap
 
-        czmax_2d = (1.-hld_conf)*czmax_base + hld_conf*czmax_ld
+        czmax_2d = (1.-hld_conf)*czmax_base + hld_conf*czmax_ld     # Setting effect
 
-        if (self.hld_type<5):
-            cz0_2d = 0.      # Flap only
+        if (hld_conf==0):
+            cz0_2d = 0. # Clean
         else:
-            if (hld_conf==0): cz0_2d = 0. # Clean
-            else: cz0_2d = czmax_2d - czmax_base  # Assumed the Lift vs AoA is just translated upward and Cz0 clean equal to zero
+            cz0_2d = czmax_2d - czmax_base  # Assumed the Lift vs AoA is just translated upward and Cz0 clean equal to zero
 
         # Source : http://aerodesign.stanford.edu/aircraftdesign/highlift/clmaxest.html
         czmax = czmax_2d * (1.-0.08*np.cos(self.sweep25)**2) * np.cos(self.sweep25)**0.75
