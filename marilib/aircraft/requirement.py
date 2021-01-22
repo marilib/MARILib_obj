@@ -120,7 +120,7 @@ class OeiCeilingReq(object):
     """
     def __init__(self, arrangement, requirement):
         self.disa = requirement.model_config.get__init(self,"disa")
-        self.altp = requirement.model_config.get__init(self,"altp", val=0.75*requirement.cruise_altp)
+        self.altp = requirement.model_config.get__init(self,"altp", val=0.45*requirement.cruise_altp)
         self.kmtow = requirement.model_config.get__init(self,"kmtow")
         self.rating = requirement.model_config.get__init(self,"rating")
         self.speed_mode = requirement.model_config.get__init(self,"speed_mode")

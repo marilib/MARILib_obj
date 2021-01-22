@@ -210,7 +210,7 @@ class Flight(object):
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
         mach = self.get_mach(pamb,speed_mode,speed)
 
-        dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating)
+        dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,nei=nei)
         fn = dict["fn"]*kfn
         ff = dict["ff"]*kfn
         if kfn!=1. and full_output:
