@@ -2,100 +2,16 @@
 # -*- coding: utf-8 -*-
 """
 Created on Jan 16 17:18:19 2021
-@author: DRUOT Thierry
+@author: Conceptual Airplane Design & Operations (CADO team)
+         Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
-from marilib.utils import unit
+import matplotlib.pyplot as plt
 
+import unit, util
 
-#-----------------------------------------------------------------------------------------------------------------------
-# Atmosphere
-#-----------------------------------------------------------------------------------------------------------------------
-
-def atmosphere(altp, disa=0., full_output=False):
-    """
-    Ambiant data from pressure altitude from ground to 50 km according to Standard Atmosphere
-    """
-    g = 9.80665
-    r = 287.053
-    gam = 1.4
-
-    Z = np.array([0., 11000., 20000.,32000., 47000., 50000.])
-    dtodz = np.array([-0.0065, 0., 0.0010, 0.0028, 0.])
-    P = np.array([101325., 0., 0., 0., 0., 0.])
-    T = np.array([288.15, 0., 0., 0., 0., 0.])
-
-    if (Z[-1]<altp):
-        raise Exception("atmosphere, altitude cannot exceed 50km")
-
-    j = 0
-    while (Z[1+j]<=altp):
-        T[j+1] = T[j] + dtodz[j]*(Z[j+1]-Z[j])
-        if (0.<np.abs(dtodz[j])):
-            P[j+1] = P[j]*(1. + (dtodz[j]/T[j])*(Z[j+1]-Z[j]))**(-g/(r*dtodz[j]))
-        else:
-            P[j+1] = P[j]*np.exp(-(g/r)*((Z[j+1]-Z[j])/T[j]))
-        j = j + 1
-
-    if (0.<np.abs(dtodz[j])):
-        pamb = P[j]*(1 + (dtodz[j]/T[j])*(altp-Z[j]))**(-g/(r*dtodz[j]))
-    else:
-        pamb = P[j]*np.exp(-(g/r)*((altp-Z[j])/T[j]))
-    tstd = T[j] + dtodz[j]*(altp-Z[j])
-    tamb = tstd + disa
-    if full_output:
-        return pamb,tamb,tstd,dtodz[j]
-    else:
-        return pamb,tamb
-
-def sound_speed(tamb):
-    """Sound speed for ideal gas
-    """
-    r = 287.053
-    gam = 1.4
-    vsnd = np.sqrt( gam * r * tamb )
-    return vsnd
-
-def air_density(pamb,tamb):
-    """Ideal gas density
-    """
-    r = 287.053
-    rho0 = 1.225
-    rho = pamb / ( r * tamb )
-    sig = rho / rho0
-    return rho, sig
-
-def gas_viscosity(tamb, gas="air"):
-    mu0,T0,S = [1.715e-5, 273.15, 110.4]
-    mu = (mu0*((T0+S)/(tamb+S))*(tamb/T0)**1.5)
-    return mu
-
-def reynolds_number(pamb,tamb,mach):
-    """Reynolds number based on Sutherland viscosity model
-    """
-    vsnd = sound_speed(tamb)
-    rho,sig = air_density(pamb,tamb)
-    mu = gas_viscosity(tamb)
-    re = rho*vsnd*mach/mu
-    return re
-
-def lin_interp_1d(x,X,Y):
-    """linear interpolation without any control
-
-    :param x: current position
-    :param X: array of the abscissa of the known points
-    :param Y: array of the known values at given abscissa
-    :return: y the interpolated value of Y at x
-
-    """
-    n = np.size(X)
-    for j in range(1,n):
-        if x<X[j] :
-            y = Y[j-1]+(Y[j]-Y[j-1])*(x-X[j-1])/(X[j]-X[j-1])
-            return y
-    y = Y[n-2]+(Y[n-1]-Y[n-2])*(x-X[n-2])/(X[n-1]-X[n-2])
-    return y
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -105,11 +21,11 @@ def lin_interp_1d(x,X,Y):
 class Airplane(object):
     def __init__(self, cruise_mach=0.78, design_range=unit.m_NM(2500), cost_range=unit.m_NM(500),
                  n_pax=150, n_aisle=1, n_front=6,
-                 wing_area=122, wing_aspect_ratio=10, wing_taper_ratio=0.25, wing_toc_ratio=0.12, wing_sweep25=unit.rad_deg(25), wing_dihedral=unit.rad_deg(5), hld_type=9,
+                 wing_area=122, wing_aspect_ratio=9, wing_taper_ratio=0.20, wing_toc_ratio=0.12, wing_sweep25=unit.rad_deg(25), wing_dihedral=unit.rad_deg(5), hld_type=9,
                  htp_aspect_ratio=5, htp_taper_ratio=0.35, htp_toc_ratio=0.10, htp_sweep25=unit.rad_deg(30), htp_dihedral=unit.rad_deg(5), volume=0.94,
                  vtp_aspect_ratio=1.7, vtp_taper_ratio=0.4, vtp_toc_ratio=0.10, vtp_sweep25=unit.rad_deg(30), thrust_volume=0.4,
-                 engine_slst=unit.N_kN(120.), engine_bpr=10,
-                 leg_length=2.,
+                 engine_slst=unit.N_kN(120.), engine_bpr=10, z_ratio = 0.55,
+                 leg_length=3.7,
                  holding_time=unit.s_min(30), reserve_fuel_ratio=0.05, diversion_range=unit.m_NM(200),
                  hld_conf_to=0.3, kvs1g_to=1.13, s2_min_path_to=0.024, hld_conf_ld=1., kvs1g_ld=1.23):
 
@@ -123,7 +39,7 @@ class Airplane(object):
         self.wing = Wing(self, wing_area, wing_aspect_ratio, wing_taper_ratio, wing_toc_ratio, wing_sweep25, wing_dihedral)
         self.htp = HTP(self, htp_aspect_ratio, htp_taper_ratio, htp_toc_ratio, htp_sweep25, htp_dihedral, volume)
         self.vtp = VTP(self, vtp_aspect_ratio, vtp_taper_ratio, vtp_toc_ratio, vtp_sweep25, thrust_volume)
-        self.nacelles = Nacelles(self, engine_slst, engine_bpr)
+        self.nacelles = Nacelles(self, engine_slst, engine_bpr, z_ratio)
         self.landing_gears = LandingGears(self, leg_length)
 
         # Logical components
@@ -140,6 +56,69 @@ class Airplane(object):
         public = [value for value in self.__dict__.values() if issubclass(type(value),Component)]
         return iter(public)
 
+    def view_3d(self, window_title):
+        """
+        Build a 3 views drawing of the airplane
+        """
+        plot_title = "MBSE toy plane"
+
+        # Drawing_ box
+        #-----------------------------------------------------------------------------------------------------------
+        fig,axes = plt.subplots(1,1)
+        fig.canvas.set_window_title(window_title)
+        fig.suptitle(plot_title, fontsize=14)
+        axes.set_aspect('equal', 'box')
+        plt.plot(np.array([0,100,100,0,0]), np.array([0,0,100,100,0]))      # Draw a square box of 100m side
+
+        xTopView = 50 - (self.wing.mac_loc[0] + 0.25*self.wing.mac)
+        yTopView = 50
+
+        xSideView = 50 - (self.wing.mac_loc[0] + 0.25*self.wing.mac)
+        ySideView = 82
+
+        xFrontView = 50
+        yFrontView = 10
+
+        ref = {"xy":[xTopView,yTopView],"yz":[xFrontView,yFrontView],"xz":[xSideView,ySideView]}
+
+        l0w, l1, l2, l3, l4, l5, high  =  0, 1, 2, 3, 4, 5, 6
+
+        # Draw components
+        #-----------------------------------------------------------------------------------------------------------
+        zframe = {"xy":{"body":l2, "wing":l1, "htp":l1, "vtp":l3},      # top
+                  "yz":{"body":l4, "wing":l3, "htp":l1, "vtp":l2},      # front
+                  "xz":{"body":l2, "wing":l3, "htp":l3, "vtp":l1}}      # side
+
+        for comp in self:
+            typ,data = comp.sketch_3view()
+            if data is not None:
+                if typ in ["body","wing","htp","vtp"]:
+                    for view in ["xy","yz","xz"]:
+                        plt.fill(ref[view][0]+data[view][0:,0], ref[view][1]+data[view][0:,1], color="white", zorder=zframe[view][typ])    # draw mask
+                        plt.plot(ref[view][0]+data[view][0:,0], ref[view][1]+data[view][0:,1], color="grey", zorder=zframe[view][typ])     # draw contour
+
+        # Draw nacelles
+        #-----------------------------------------------------------------------------------------------------------
+        #                                  top        front     side
+        znac = {"xy":l0w,  "yz":l4,  "xz":high}
+
+        for comp in self:
+            if issubclass(type(comp),Nacelles):
+                typ,nacelle = comp.sketch_3view(side=1)
+                for view in ["xy","yz","xz"]:
+                    plt.fill(ref[view][0]+nacelle[view][0:,0], ref[view][1]+nacelle[view][0:,1], color="white", zorder=znac[view])    # draw mask
+                    plt.plot(ref[view][0]+nacelle[view][0:,0], ref[view][1]+nacelle[view][0:,1], color="grey", zorder=znac[view])     # draw contour
+                plt.plot(ref["yz"][0]+nacelle["disk"][0:,0], ref["yz"][1]+nacelle["disk"][0:,1], color="grey", zorder=znac["yz"])     # draw contour
+
+                typ,nacelle = comp.sketch_3view(side=-1)
+                for view in ["xy","yz","xz"]:
+                    plt.fill(ref[view][0]+nacelle[view][0:,0], ref[view][1]+nacelle[view][0:,1], color="white", zorder=znac[view])    # draw mask
+                    plt.plot(ref[view][0]+nacelle[view][0:,0], ref[view][1]+nacelle[view][0:,1], color="grey", zorder=znac[view])     # draw contour
+                plt.plot(ref["yz"][0]+nacelle["disk"][0:,0], ref["yz"][1]+nacelle["disk"][0:,1], color="grey", zorder=znac["yz"])     # draw contour
+
+        plt.show()
+        return
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Physical components
@@ -154,6 +133,70 @@ class Component(object):
         self.mass = 0.
 
         self.form_factor = 0.
+
+    def get_this_shape(self, name): # TODO: is the docstring up to date ?
+        """Contour curves for 3 view drawing
+        nose1 : modern nose (A220, A350, 787)
+        nose3 : classical Airbus nose
+        nose2 : symetrical nose
+        cone1 : classical tail cone
+        cone2 : symetrical cone
+        section : circle
+        """
+        curve = {
+        "nose1":np.array([[ 0.0000 , 0.3339 , 0.3339 , 0.0000 ,  0.0000 ] ,
+                          [ 0.0050 , 0.3848 , 0.3084 , 0.0335 , -0.0335 ] ,
+                          [ 0.0150 , 0.4253 , 0.2881 , 0.0652 , -0.0652 ] ,
+                          [ 0.0500 , 0.5033 , 0.2490 , 0.1101 , -0.1101 ] ,
+                          [ 0.1000 , 0.5811 , 0.2100 , 0.1585 , -0.1585 ] ,
+                          [ 0.1800 , 0.6808 , 0.1600 , 0.2215 , -0.2215 ] ,
+                          [ 0.2773 , 0.7704 , 0.1151 , 0.2859 , -0.2859 ] ,
+                          [ 0.4191 , 0.8562 , 0.0721 , 0.3624 , -0.3624 ] ,
+                          [ 0.5610 , 0.9198 , 0.0402 , 0.4211 , -0.4211 ] ,
+                          [ 0.7738 , 0.9816 , 0.0092 , 0.4761 , -0.4761 ] ,
+                          [ 0.9156 , 0.9962 , 0.0019 , 0.4976 , -0.4976 ] ,
+                          [ 1.0000 , 1.0000 , 0.0000 , 0.5000 , -0.5000 ]]),
+
+        "cone1":np.array([[ 0.0000 , 1.0000 , 0.0000 , 0.5000 , -0.5000 ] ,
+                          [ 0.0213 , 1.0000 , 0.0082 , 0.5000 , -0.5000 ] ,
+                          [ 0.0638 , 1.0000 , 0.0230 , 0.4956 , -0.4956 ] ,
+                          [ 0.1064 , 1.0000 , 0.0393 , 0.4875 , -0.4875 ] ,
+                          [ 0.1489 , 1.0000 , 0.0556 , 0.4794 , -0.4794 ] ,
+                          [ 0.1915 , 1.0000 , 0.0786 , 0.4720 , -0.4720 ] ,
+                          [ 0.2766 , 1.0000 , 0.1334 , 0.4566 , -0.4566 ] ,
+                          [ 0.3617 , 1.0000 , 0.1964 , 0.4330 , -0.4330 ] ,
+                          [ 0.4894 , 1.0000 , 0.3024 , 0.3822 , -0.3822 ] ,
+                          [ 0.6170 , 1.0000 , 0.4159 , 0.3240 , -0.3240 ] ,
+                          [ 0.7447 , 1.0000 , 0.5374 , 0.2577 , -0.2577 ] ,
+                          [ 0.8723 , 1.0000 , 0.6627 , 0.1834 , -0.1834 ] ,
+                          [ 0.8936 , 0.9963 , 0.6901 , 0.1679 , -0.1679 ] ,
+                          [ 0.9149 , 0.9881 , 0.7139 , 0.1524 , -0.1524 ] ,
+                          [ 0.9362 , 0.9800 , 0.7413 , 0.1333 , -0.1333 ] ,
+                          [ 0.9574 , 0.9652 , 0.7687 , 0.1097 , -0.1097 ] ,
+                          [ 0.9787 , 0.9533 , 0.8043 , 0.0788 , -0.0788 ] ,
+                          [ 0.9894 , 0.9377 , 0.8280 , 0.0589 , -0.0589 ] ,
+                          [ 1.0000 , 0.9103 , 0.8784 , 0.0162 , -0.0162 ]]),
+
+        "sec1":np.array([[  0.5000000 , 0.0000000 ,  0.0000000 ] ,
+                         [  0.4903926 , 0.0975452 , -0.0975452 ] ,
+                         [  0.4619398 , 0.1913417 , -0.1913417 ] ,
+                         [  0.4157348 , 0.2777851 , -0.2777851 ] ,
+                         [  0.3535534 , 0.3535534 , -0.3535534 ] ,
+                         [  0.2777851 , 0.4157348 , -0.4157348 ] ,
+                         [  0.1913417 , 0.4619398 , -0.4619398 ] ,
+                         [  0.0975452 , 0.4903926 , -0.4903926 ] ,
+                         [  0.0000000 , 0.5000000 , -0.5000000 ] ,
+                         [- 0.0975452 , 0.4903926 , -0.4903926 ] ,
+                         [- 0.1913417 , 0.4619398 , -0.4619398 ] ,
+                         [- 0.2777851 , 0.4157348 , -0.4157348 ] ,
+                         [- 0.3535534 , 0.3535534 , -0.3535534 ] ,
+                         [- 0.4157348 , 0.2777851 , -0.2777851 ] ,
+                         [- 0.4619398 , 0.1913417 , -0.1913417 ] ,
+                         [- 0.4903926 , 0.0975452 , -0.0975452 ] ,
+                         [- 0.5000000 , 0.0000000 ,  0.0000000 ]])
+        }
+
+        return [curve[n] for n in name]
 
 
 class Fuselage(Component):
@@ -181,6 +224,9 @@ class Fuselage(Component):
         self.front_ratio = 1.2      # Cabin start over fuselage width
         self.rear_ratio = 1.5       # Cabin end to tail cone over fuselage width
 
+        self.nose_cone_length = None
+        self.tail_cone_length = None
+
         self.form_factor = 1.05 # Form factor for drag calculation
 
     def eval_geometry(self):
@@ -189,6 +235,8 @@ class Fuselage(Component):
         cabin_length = self.seat_pitch*(self.n_pax/self.n_front) + 2*self.width
         self.cabin_center = cabin_front + 0.5*cabin_length
         self.length = (self.front_ratio + self.rear_ratio)*self.width + cabin_length
+        self.nose_cone_length = 2.00 * self.width
+        self.tail_cone_length = 3.45 * self.width
         self.wet_area = 2.70*self.length*self.width
         self.aero_length = self.length
 
@@ -198,6 +246,34 @@ class Fuselage(Component):
         self.m_op_item = max(160., 5.2*(self.n_pax*self.airplane.design_range*1e-6))    # Operator items mass
         self.mass = self.fuselage_mass + self.m_furnishing + self.m_op_item
 
+    def sketch_3view(self, side=None):
+        body_width = self.width
+        body_height = self.width
+        body_length = self.length
+
+        nose,cone,section = self.get_this_shape(["nose1","cone1","sec1"])
+
+        r_nose = self.nose_cone_length / self.length    # Fuselage length ratio of nose evolutive part
+        r_cone = self.tail_cone_length / self.length    # Fuselage length ratio of tail cone evolutive part
+
+        cyl_yz = np.stack([section[0:,0]*body_width , section[0:,1]*body_height+0.5*body_height , section[0:,2]*body_height+0.5*body_height], axis=1)
+
+        body_front = np.vstack([np.stack([cyl_yz[0:,0] , cyl_yz[0:,1]],axis=1) , np.stack([cyl_yz[::-1,0] , cyl_yz[::-1,2]],axis=1)])
+
+        nose_xz = np.stack([nose[0:,0]*body_length*r_nose , nose[0:,1]*body_height , nose[0:,2]*body_height], axis=1)
+        cone_xz = np.stack([(1-r_cone)*body_length + cone[0:,0]*body_length*r_cone , cone[0:,1]*body_height , cone[0:,2]*body_height], axis=1)
+        body_xz = np.vstack([nose_xz , cone_xz])
+
+        body_side = np.vstack([np.stack([body_xz[0:-2,0] , body_xz[0:-2,1]],axis=1) , np.stack([body_xz[:0:-1,0] , body_xz[:0:-1,2]],axis=1)])
+
+        nose_xy = np.stack([nose[0:,0]*body_length*r_nose , nose[0:,3]*body_width , nose[0:,4]*body_width], axis=1)
+        cone_xy = np.stack([(1-r_cone)*body_length + cone[0:,0]*body_length*r_cone , cone[0:,3]*body_width , cone[0:,4]*body_width], axis=1)
+        body_xy = np.vstack([nose_xy , cone_xy])
+
+        body_top = np.vstack([np.stack([body_xy[1:-2,0]  , body_xy[1:-2,1]],axis=1) , np.stack([body_xy[:0:-1,0] , body_xy[:0:-1,2]],axis=1)])
+
+        return "body", {"xy":body_top , "yz":body_front, "xz":body_side}
+
 
 class Wing(Component):
     def __init__(self, airplane, area, aspect_ratio, taper_ratio, toc_ratio, sweep25, dihedral):
@@ -206,58 +282,182 @@ class Wing(Component):
         self.area = area
         self.aspect_ratio = aspect_ratio
         self.taper_ratio = taper_ratio
-        self.toc_ratio = toc_ratio
         self.sweep25 = sweep25              # Sweep angle at 25% of chords
         self.dihedral = dihedral
 
         self.span = None
-        self.root = None
-        self.tip = None
+        self.root_c = None
+        self.root_toc = None
+        self.root_loc = None
+        self.kink_c = None
+        self.kink_toc = None
+        self.kink_loc = None
+        self.tip_c = None
+        self.tip_toc = None
+        self.tip_loc = None
         self.mac = None
+        self.mac_loc = None
         self.mac_position = None    # X wise MAC position versus wing root
         self.position = None        # X wise wing root position versus fuselage
         self.fuel_volume = None
 
+        self.front_spar_ratio = 0.15
+        self.rear_spar_ratio = 0.70
         self.form_factor = 1.4
 
     def eval_geometry(self):
         fuselage = self.airplane.fuselage
+        landing_gears = self.airplane.landing_gears
+
+        self.tip_toc = 0.10
+        self.kink_toc = self.tip_toc + 0.01
+        self.root_toc = self.kink_toc + 0.03
 
         self.span = np.sqrt(self.area*self.aspect_ratio)
-        self.root = self.area / (fuselage.width + 0.5*(1+self.taper_ratio)*(self.span - fuselage.width))
-        self.tip = self.taper_ratio * self.root
-        self.mac = (2/(3*self.area))*(3*(0.5*fuselage.width)*self.root**2 + 0.5*(self.span-fuselage.width)*(self.root**2 + self.tip**2 + self.root*self.tip))
 
-        chord_gradient = 2 * (self.tip - self.root) / (self.span-fuselage.width)
-        tan_sweep0 = np.tan(self.sweep25) - 0.25*chord_gradient
-        tip_position = tan_sweep0 * (self.span-fuselage.width)/2
-        self.mac_position = (1/(3*self.area))*tip_position*((self.span-fuselage.width)/2)*(2*self.tip + self.root)
+        y_root = 0.5*fuselage.width
+        y_kink = 1.05*landing_gears.leg_length
+        y_tip = 0.5*self.span
+
+        Phi100intTE = max(0., 2. * (self.sweep25 - unit.rad_deg(32.)))
+        tan_phi100 = np.tan(Phi100intTE)
+        A = ((1-0.25*self.taper_ratio)*y_kink+0.25*self.taper_ratio*y_root-y_tip) / (0.75*y_kink+0.25*y_root-y_tip)
+        B = (np.tan(self.sweep25)-tan_phi100) * ((y_tip-y_kink)*(y_kink-y_root)) / (0.25*y_root+0.75*y_kink-y_tip)
+        self.root_c = (self.area-B*(y_tip-y_root)) / (y_root+y_kink+A*(y_tip-y_root)+self.taper_ratio*(y_tip-y_kink))
+        self.kink_c = A*self.root_c + B
+        self.tip_c = self.taper_ratio*self.root_c
+
+        tan_phi0 = 0.25*(self.kink_c-self.tip_c)/(y_tip-y_kink) + np.tan(self.sweep25)
+
+        self.mac = 2.*( 3.*y_root*self.root_c**2 \
+                       +(y_kink-y_root)*(self.root_c**2+self.kink_c**2+self.root_c*self.kink_c) \
+                       +(y_tip-y_kink)*(self.kink_c**2+self.tip_c**2+self.kink_c*self.tip_c) \
+                      )/(3*self.area)
+
+        y_mac = (  3.*self.root_c*y_root**2 \
+                 +(y_kink-y_root)*(self.kink_c*(y_root+y_kink*2.)+self.root_c*(y_kink+y_root*2.)) \
+                 +(y_tip-y_kink)*(self.tip_c*(y_kink+y_tip*2.)+self.kink_c*(y_tip+y_kink*2.)) \
+                )/(3.*self.area)
+
+        self.mac_position = ( (y_kink-y_root)*tan_phi0*((y_kink-y_root)*(self.kink_c*2.+self.root_c) \
+                             +(y_tip-y_kink)*(self.kink_c*2.+self.tip_c))+(y_tip-y_root)*tan_phi0*(y_tip-y_kink)*(self.tip_c*2.+self.kink_c) \
+                            )/(3*self.area)
 
         self.position = fuselage.cabin_center - (self.mac_position + 0.25*self.mac)    # Set wing root position
 
-        self.fuel_volume = 0.4 * self.area * self.mac*self.toc_ratio
+        x_root = self.position
+        x_kink = x_root + (y_kink-y_root)*tan_phi0
+        x_tip = x_root + (y_tip-y_root)*tan_phi0
 
-        self.wet_area = 2*(self.area - fuselage.width*self.root)
+        x_mac = x_root+( (x_kink-x_root)*((y_kink-y_root)*(self.kink_c*2.+self.root_c) \
+                            +(y_tip-y_kink)*(self.kink_c*2.+self.tip_c))+(x_tip-x_root)*(y_tip-y_kink)*(self.tip_c*2.+self.kink_c) \
+                           )/(self.area*3.)
+
+        z_root = 0.
+        z_kink = z_root+(y_kink-y_root)*np.tan(self.dihedral)
+        z_tip = z_root+(y_tip-y_root)*np.tan(self.dihedral)
+
+        self.root_loc = np.array([x_root, y_root, z_root])
+        self.kink_loc = np.array([x_kink, y_kink, z_kink])
+        self.tip_loc = np.array([x_tip, y_tip, z_tip])
+        self.mac_loc = np.array([x_mac, y_mac, None])
+
+
+        # Fuel volume
+        dsr = self.rear_spar_ratio - self.front_spar_ratio
+
+        root_sec = dsr * self.root_toc*self.root_c**2
+        kink_sec = dsr * self.kink_toc*self.kink_c**2
+        tip_sec = dsr * self.tip_toc*self.tip_c**2
+
+        self.cantilever_gross_volume = (2./3.)*(
+            0.9*(self.kink_loc[1]-self.root_loc[1])*(root_sec+kink_sec+np.sqrt(root_sec*kink_sec))
+          + 0.7*(self.tip_loc[1]-self.kink_loc[1])*(kink_sec+tip_sec+np.sqrt(kink_sec*tip_sec)))
+
+        self.central_gross_volume = 0.8*dsr * fuselage.width * self.root_toc * self.root_c**2
+        self.gross_volume = self.central_gross_volume + self.cantilever_gross_volume
+        self.fuel_volume = self.gross_volume
+
+        self.wet_area = 2*(self.area - fuselage.width*self.root_c)
         self.aero_length = self.mac
 
     def eval_mass(self):
         mtow = self.airplane.mass.mtow
         mzfw = self.airplane.mass.mzfw
-
         aerodynamics = self.airplane.aerodynamics
 
-        hld_conf_ld = self.airplane.aerodynamics.hld_conf_ld
+        hld_conf_ld = aerodynamics.hld_conf_ld
 
         cz_max_ld,cz0 = aerodynamics.wing_high_lift(hld_conf_ld)
 
         A = 32*self.area**1.1
         B = 4.*self.span**2 * np.sqrt(mtow*mzfw)
         C = 1.1e-6*(1.+2.*self.aspect_ratio)/(1.+self.aspect_ratio)
-        D = self.toc_ratio * (self.area/self.span)
+        D = (0.6*self.root_toc+0.3*self.kink_toc+0.1*self.tip_toc) * (self.area/self.span)
         E = np.cos(self.sweep25)**2
         F = 1200.*max(0., cz_max_ld - 1.8)**1.5
 
         self.mass = (A + (B*C)/(D*E) + F)   # Shevell formula + high lift device regression
+
+    def sketch_3view(self, side=None):
+        wing_x_root = self.root_loc[0]
+        wing_y_root = self.root_loc[1]
+        wing_z_root = self.root_loc[2]
+        wing_c_root = self.root_c
+        wing_toc_r = self.root_toc
+        wing_x_kink = self.kink_loc[0]
+        wing_y_kink = self.kink_loc[1]
+        wing_z_kink = self.kink_loc[2]
+        wing_c_kink = self.kink_c
+        wing_toc_k = self.kink_toc
+        wing_x_tip = self.tip_loc[0]
+        wing_y_tip = self.tip_loc[1]
+        wing_z_tip = self.tip_loc[2]
+        wing_c_tip = self.tip_c
+        wing_toc_t = self.tip_toc
+
+        wing_xy = np.array([[wing_x_root             ,  wing_y_root ],
+                            [wing_x_tip              ,  wing_y_tip  ],
+                            [wing_x_tip+wing_c_tip   ,  wing_y_tip  ],
+                            [wing_x_kink+wing_c_kink ,  wing_y_kink ],
+                            [wing_x_root+wing_c_root ,  wing_y_root ],
+                            [wing_x_root+wing_c_root , -wing_y_root ],
+                            [wing_x_kink+wing_c_kink , -wing_y_kink ],
+                            [wing_x_tip+wing_c_tip   , -wing_y_tip  ],
+                            [wing_x_tip              , -wing_y_tip  ],
+                            [wing_x_root             , -wing_y_root ],
+                            [wing_x_root             ,  wing_y_root ]])
+
+        wing_yz = np.array([[ wing_y_root  , wing_z_root                        ],
+                            [ wing_y_kink  , wing_z_kink                        ],
+                            [ wing_y_tip   , wing_z_tip                         ],
+                            [ wing_y_tip   , wing_z_tip+wing_toc_t*wing_c_tip   ],
+                            [ wing_y_kink  , wing_z_kink+wing_toc_k*wing_c_kink ],
+                            [ wing_y_root  , wing_z_root+wing_toc_r*wing_c_root ],
+                            [-wing_y_root  , wing_z_root+wing_toc_r*wing_c_root ],
+                            [-wing_y_kink  , wing_z_kink+wing_toc_k*wing_c_kink ],
+                            [-wing_y_tip   , wing_z_tip+wing_toc_t*wing_c_tip   ],
+                            [-wing_y_tip   , wing_z_tip                         ],
+                            [-wing_y_kink  , wing_z_kink                        ],
+                            [-wing_y_root  , wing_z_root                        ],
+                            [ wing_y_root  , wing_z_root                        ]])
+
+        wing_xz = np.array([[wing_x_tip                  , wing_z_tip+wing_toc_t*wing_c_tip                           ],
+                            [wing_x_tip+0.1*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip-0.5*wing_toc_t*wing_c_tip ],
+                            [wing_x_tip+0.7*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip-0.5*wing_toc_t*wing_c_tip ],
+                            [wing_x_tip+wing_c_tip       , wing_z_tip+wing_toc_t*wing_c_tip                           ],
+                            [wing_x_tip+0.7*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip+0.5*wing_toc_t*wing_c_tip ],
+                            [wing_x_tip+0.1*wing_c_tip   , wing_z_tip+wing_toc_t*wing_c_tip+0.5*wing_toc_t*wing_c_tip ],
+                            [wing_x_tip                  , wing_z_tip+wing_toc_t*wing_c_tip                           ],
+                            [wing_x_kink                 , wing_z_kink+0.5*wing_toc_k*wing_c_kink                     ],
+                            [wing_x_root                 , wing_z_root+0.5*wing_toc_r*wing_c_root                     ],
+                            [wing_x_root+0.1*wing_c_root , wing_z_root                                                ],
+                            [wing_x_root+0.7*wing_c_root , wing_z_root                                                ],
+                            [wing_x_root+wing_c_root     , wing_z_root+0.5*wing_toc_r*wing_c_root                     ],
+                            [wing_x_kink+wing_c_kink     , wing_z_kink+0.5*wing_toc_k*wing_c_kink                     ],
+                            [wing_x_tip+wing_c_tip       , wing_z_tip+wing_toc_t*wing_c_tip                           ]])
+
+        return "wing", {"xy":wing_xy, "yz":wing_yz, "xz":wing_xz}
 
 
 class HTP(Component):
@@ -273,8 +473,10 @@ class HTP(Component):
         self.volume = volume
 
         self.span = None
-        self.axe = None
-        self.tip = None
+        self.axe_c = None
+        self.axe_loc = None
+        self.tip_c = None
+        self.tip_loc = None
         self.mac = None
         self.mac_position = None    # X wise MAC position versus HTP root
         self.position = None        # X wise HTP axe position versus fuselage
@@ -287,15 +489,15 @@ class HTP(Component):
         wing = self.airplane.wing
 
         self.span = np.sqrt(self.area*self.aspect_ratio)
-        self.axe = (2/self.span) * (self.area / (1+self.taper_ratio))
-        self.tip = self.taper_ratio * self.axe
-        self.mac = (2/3) * self.axe * (1+self.taper_ratio-self.taper_ratio/(1+self.taper_ratio))
+        self.axe_c = (2/self.span) * (self.area / (1+self.taper_ratio))
+        self.tip_c = self.taper_ratio * self.axe_c
+        self.mac = (2/3) * self.axe_c * (1+self.taper_ratio-self.taper_ratio/(1+self.taper_ratio))
 
-        chord_gradient = 2 * (self.tip - self.axe) / self.span
+        chord_gradient = 2 * (self.tip_c - self.axe_c) / self.span
         tan_sweep0 = np.tan(self.sweep25) - 0.25*chord_gradient
         self.mac_position = (1/3) * (self.span/2) * ((1+2*self.taper_ratio)/(1+self.taper_ratio)) * tan_sweep0
 
-        self.position = fuselage.length - 1.05*self.axe
+        self.position = fuselage.length - 1.30 * self.axe_c
         self.lever_arm = (self.position + self.mac_position + 0.25*self.mac) - (wing.position + wing.mac_position + 0.25*wing.mac)
 
         self.area = self.volume * wing.area * wing.mac / self.lever_arm
@@ -303,8 +505,65 @@ class HTP(Component):
         self.wet_area = 1.63*self.area
         self.aero_length = self.mac
 
+        y_axe = 0.
+        y_tip = 0.5*self.span
+
+        z_axe = 0.80 * fuselage.width
+        z_tip = z_axe + y_tip*np.tan(self.dihedral)
+
+        x_axe = self.position
+        x_tip = x_axe + 0.25*(self.axe_c-self.tip_c) + y_tip*np.tan(self.sweep25)
+
+        self.axe_loc = np.array([x_axe, y_axe, z_axe])
+        self.tip_loc = np.array([x_tip, y_tip, z_tip])
+
     def eval_mass(self):
         self.mass = 22. * self.area
+
+    def sketch_3view(self, side=None):
+        htp_span = self.span
+        htp_dihedral = self.dihedral
+        htp_t_o_c = self.toc_ratio
+        htp_x_axe = self.axe_loc[0]
+        htp_z_axe = self.axe_loc[2]
+        htp_c_axe = self.axe_c
+        htp_x_tip = self.tip_loc[0]
+        htp_z_tip = self.tip_loc[2]
+        htp_c_tip = self.tip_c
+
+        htp_xy = np.array([[htp_x_axe           ,  0            ],
+                           [htp_x_tip           ,  0.5*htp_span ],
+                           [htp_x_tip+htp_c_tip ,  0.5*htp_span ],
+                           [htp_x_axe+htp_c_axe ,  0            ],
+                           [htp_x_tip+htp_c_tip , -0.5*htp_span ],
+                           [htp_x_tip           , -0.5*htp_span ],
+                           [htp_x_axe           ,  0            ]])
+
+        htp_xz = np.array([[htp_x_tip              , htp_z_tip                          ],
+                           [htp_x_tip+0.1*htp_c_tip , htp_z_tip+0.5*htp_t_o_c*htp_c_tip ],
+                           [htp_x_tip+0.7*htp_c_tip , htp_z_tip+0.5*htp_t_o_c*htp_c_tip ],
+                           [htp_x_tip+htp_c_tip     , htp_z_tip                         ],
+                           [htp_x_tip+0.7*htp_c_tip , htp_z_tip-0.5*htp_t_o_c*htp_c_tip ],
+                           [htp_x_tip+0.1*htp_c_tip , htp_z_tip-0.5*htp_t_o_c*htp_c_tip ],
+                           [htp_x_tip               , htp_z_tip                         ],
+                           [htp_x_axe               , htp_z_axe                         ],
+                           [htp_x_axe+0.1*htp_c_axe , htp_z_axe-0.5*htp_t_o_c*htp_c_axe ],
+                           [htp_x_axe+0.7*htp_c_axe , htp_z_axe-0.5*htp_t_o_c*htp_c_axe ],
+                           [htp_x_axe+htp_c_axe     , htp_z_axe                         ],
+                           [htp_x_tip+htp_c_tip     , htp_z_tip                         ],
+                           [htp_x_tip+0.7*htp_c_tip , htp_z_tip-0.5*htp_t_o_c*htp_c_tip ],
+                           [htp_x_tip+0.1*htp_c_tip , htp_z_tip-0.5*htp_t_o_c*htp_c_tip ],
+                           [htp_x_tip               , htp_z_tip                         ]])
+
+        htp_yz = np.array([[ 0           , htp_z_axe                                                        ],
+                           [ 0.5*htp_span , htp_z_axe+0.5*htp_span*np.tan(htp_dihedral)                     ],
+                           [ 0.5*htp_span , htp_z_axe+0.5*htp_span*np.tan(htp_dihedral)-htp_t_o_c*htp_c_tip ],
+                           [ 0            , htp_z_axe-htp_t_o_c*htp_c_axe                                   ],
+                           [-0.5*htp_span , htp_z_axe+0.5*htp_span*np.tan(htp_dihedral)-htp_t_o_c*htp_c_tip ],
+                           [-0.5*htp_span , htp_z_axe+0.5*htp_span*np.tan(htp_dihedral)                     ],
+                           [ 0            , htp_z_axe                                                       ]])
+
+        return "htp", {"xy":htp_xy , "yz":htp_yz, "xz":htp_xz}
 
 
 class VTP(Component):
@@ -318,9 +577,9 @@ class VTP(Component):
         self.sweep25 = sweep25              # Sweep angle at 25% of chords
         self.thrust_volume = thrust_volume
 
-        self.span = None
-        self.root = None
-        self.tip = None
+        self.height = None
+        self.root_c = None
+        self.tip_c = None
         self.mac = None
         self.mac_position = None    # X wise MAC position versus HTP root
         self.position = None        # X wise HTP axe position versus fuselage
@@ -331,18 +590,19 @@ class VTP(Component):
     def eval_geometry(self):
         fuselage = self.airplane.fuselage
         wing = self.airplane.wing
+        htp = self.airplane.htp
         nacelles = self.airplane.nacelles
 
-        self.span = np.sqrt(self.area*self.aspect_ratio)
-        self.axe = (2/self.span) * (self.area / (1+self.taper_ratio))
-        self.tip = self.taper_ratio * self.axe
-        self.mac = (2/3) * self.axe * (1+self.taper_ratio-self.taper_ratio/(1+self.taper_ratio))
+        self.height = np.sqrt(self.area*self.aspect_ratio)
+        self.root_c = (2/self.height) * (self.area / (1+self.taper_ratio))
+        self.tip_c = self.taper_ratio * self.root_c
+        self.mac = (2/3) * self.root_c * (1+self.taper_ratio-self.taper_ratio/(1+self.taper_ratio))
 
-        chord_gradient = 2 * (self.tip - self.axe) / self.span
+        chord_gradient = 2 * (self.tip_c - self.root_c) / self.height
         tan_sweep0 = np.tan(self.sweep25) - 0.25*chord_gradient
-        self.mac_position = (1/3) * (self.span/2) * ((1+2*self.taper_ratio)/(1+self.taper_ratio)) * tan_sweep0
+        self.mac_position = (1/3) * (self.height/2) * ((1+2*self.taper_ratio)/(1+self.taper_ratio)) * tan_sweep0
 
-        self.position = fuselage.length - 1.15*self.axe
+        self.position = htp.position - 0.35 * self.root_c
         self.lever_arm = (self.position + self.mac_position + 0.25*self.mac) - (wing.position + wing.mac_position + 0.25*wing.mac)
 
         self.area = self.thrust_volume * (1.e-3*nacelles.engine_slst) * nacelles.span_position / self.lever_arm
@@ -350,12 +610,64 @@ class VTP(Component):
         self.wet_area = 2.0*self.area
         self.aero_length = self.mac
 
+        x_root = self.position
+        x_tip = x_root + 0.25*(self.root_c-self.tip_c) + self.height*np.tan(self.sweep25)
+
+        y_root = 0.
+        y_tip = 0.
+
+        z_root = fuselage.width
+        z_tip = z_root + self.height
+
+        self.root_loc = np.array([x_root, y_root, z_root])
+        self.tip_loc = np.array([x_tip, y_tip, z_tip])
+
     def eval_mass(self):
         self.mass = 25. * self.area
 
+    def sketch_3view(self, side=None):
+        vtp_t_o_c = self.toc_ratio
+        vtp_x_root = self.root_loc[0]
+        vtp_y_root = self.root_loc[1]
+        vtp_z_root = self.root_loc[2]
+        vtp_c_root = self.root_c
+        vtp_x_tip = self.tip_loc[0]
+        vtp_y_tip = self.tip_loc[1]
+        vtp_z_tip = self.tip_loc[2]
+        vtp_c_tip = self.tip_c
+
+        vtp_xz = np.array([[vtp_x_root            , vtp_z_root ],
+                           [vtp_x_tip             , vtp_z_tip  ],
+                           [vtp_x_tip+vtp_c_tip   , vtp_z_tip  ],
+                           [vtp_x_root+vtp_c_root , vtp_z_root ],
+                           [vtp_x_root            , vtp_z_root ]])
+
+        vtp_xy = np.array([[vtp_x_root                , vtp_y_root                            ],
+                           [vtp_x_root+0.1*vtp_c_root , vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root ],
+                           [vtp_x_root+0.7*vtp_c_root , vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root ],
+                           [vtp_x_root+vtp_c_root     , vtp_y_root                            ],
+                           [vtp_x_root+0.7*vtp_c_root , vtp_y_root - 0.5*vtp_t_o_c*vtp_c_root ],
+                           [vtp_x_root+0.1*vtp_c_root , vtp_y_root - 0.5*vtp_t_o_c*vtp_c_root ],
+                           [vtp_x_root                , vtp_y_root                            ],
+                           [vtp_x_tip                 , vtp_y_tip                             ],
+                           [vtp_x_tip+0.1*vtp_c_tip   , vtp_y_tip + 0.5*vtp_t_o_c*vtp_c_tip   ],
+                           [vtp_x_tip+0.7*vtp_c_tip   , vtp_y_tip + 0.5*vtp_t_o_c*vtp_c_tip   ],
+                           [vtp_x_tip+vtp_c_tip       , vtp_y_tip                             ],
+                           [vtp_x_tip+0.7*vtp_c_tip   , vtp_y_tip - 0.5*vtp_t_o_c*vtp_c_tip   ],
+                           [vtp_x_tip+0.1*vtp_c_tip   , vtp_y_tip - 0.5*vtp_t_o_c*vtp_c_tip   ],
+                           [vtp_x_tip                 , vtp_y_tip                             ]])
+
+        vtp_yz = np.array([[vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ],
+                           [vtp_y_tip + 0.5*vtp_t_o_c*vtp_c_tip   , vtp_z_tip  ],
+                           [vtp_y_tip - 0.5*vtp_t_o_c*vtp_c_tip   , vtp_z_tip  ],
+                           [vtp_y_root - 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ],
+                           [vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ]])
+
+        return "vtp", {"xy":vtp_xy , "yz":vtp_yz, "xz":vtp_xz}
+
 
 class Nacelles(Component):
-    def __init__(self, airplane, engine_slst, engine_bpr):
+    def __init__(self, airplane, engine_slst, engine_bpr, z_ratio):
         super(Nacelles, self).__init__(airplane)
 
         self.engine_slst = engine_slst
@@ -364,6 +676,7 @@ class Nacelles(Component):
         self.diameter = None
         self.length = None
         self.span_position = 2.3 + 0.5*engine_bpr**0.7 + 5.E-6*engine_slst
+        self.z_ratio = z_ratio
         self.ground_clearence = None
 
         self.pylon_mass = None
@@ -380,7 +693,7 @@ class Nacelles(Component):
         self.length = 0.86*self.diameter + self.engine_bpr**0.37      # statistical regression
         self.span_position = 0.6 * fuselage.width + 1.5 * self.diameter
 
-        self.ground_clearence = landing_gears.leg_length + self.span_position*np.tan(wing.dihedral) - self.diameter
+        self.ground_clearence = landing_gears.leg_length + self.span_position*np.tan(wing.dihedral) - (self.z_ratio+0.5)*self.diameter
 
         knac = np.pi * self.diameter * self.length
         self.wet_area = knac*(1.48 - 0.0076*knac)       # statistical regression, all engines
@@ -388,12 +701,62 @@ class Nacelles(Component):
         self.aero_length = self.length
         self.form_factor = 1.15
 
+        tan_phi0 = 0.25*(wing.kink_c-wing.tip_c)/(wing.tip_loc[1]-wing.kink_loc[1]) + np.tan(wing.sweep25)
+
+        y_int = self.span_position
+        x_int = wing.root_loc[0] + (y_int-wing.root_loc[1])*tan_phi0 - 0.7*self.length
+        z_int = wing.root_loc[2] + (y_int-wing.root_loc[2])*np.tan(wing.dihedral) - self.z_ratio*self.diameter
+
+        self.engine_loc = np.array([x_int, y_int, z_int])
+
     def eval_mass(self):
         propulsion = self.airplane.propulsion
 
         self.engine_mass = (1250. + 0.021*self.engine_slst) * propulsion.n_engine
         self.pylon_mass = (0.0031*self.engine_slst) * propulsion.n_engine
         self.mass = self.engine_mass + self.pylon_mass
+
+    def sketch_3view(self, side=1):
+        nac_length = self.length
+        nac_height = self.diameter
+        nac_width =  self.diameter
+        nac_x = self.engine_loc[0]
+        nac_y = self.engine_loc[1] * side
+        nac_z = self.engine_loc[2]
+
+        section, = self.get_this_shape(["sec1"])
+
+        nac_xz = np.array([[nac_x                , nac_z+0.4*nac_height ] ,
+                           [nac_x+0.1*nac_length , nac_z+0.5*nac_height ] ,
+                           [nac_x+0.5*nac_length , nac_z+0.5*nac_height ] ,
+                           [nac_x+nac_length     , nac_z+0.3*nac_height ] ,
+                           [nac_x+nac_length     , nac_z-0.3*nac_height ] ,
+                           [nac_x+0.5*nac_length , nac_z-0.5*nac_height ] ,
+                           [nac_x+0.1*nac_length , nac_z-0.5*nac_height ] ,
+                           [nac_x                , nac_z-0.4*nac_height ] ,
+                           [nac_x                , nac_z+0.4*nac_height ]])
+
+        nac_xy = np.array([[nac_x                , nac_y+0.4*nac_width ] ,
+                           [nac_x+0.1*nac_length , nac_y+0.5*nac_width ] ,
+                           [nac_x+0.5*nac_length , nac_y+0.5*nac_width ] ,
+                           [nac_x+nac_length     , nac_y+0.3*nac_width ] ,
+                           [nac_x+nac_length     , nac_y-0.3*nac_width ] ,
+                           [nac_x+0.5*nac_length , nac_y-0.5*nac_width ] ,
+                           [nac_x+0.1*nac_length , nac_y-0.5*nac_width ] ,
+                           [nac_x                , nac_y-0.4*nac_width ] ,
+                           [nac_x                , nac_y+0.4*nac_width ]])
+
+        d_nac_yz = np.stack([section[0:,0]*nac_width , section[0:,1]*nac_height , section[0:,2]*nac_height], axis=1)
+
+        d_fan_yz = np.stack([section[0:,0]*0.80*nac_width , section[0:,1]*0.80*nac_height , section[0:,2]*0.80*nac_height], axis=1)
+
+        nac_yz = np.vstack([np.stack([nac_y+d_nac_yz[0:,0] , nac_z+d_nac_yz[0:,1]],axis=1) ,
+                               np.stack([nac_y+d_nac_yz[::-1,0] , nac_z+d_nac_yz[::-1,2]],axis=1)])
+
+        disk_yz = np.vstack([np.stack([nac_y+d_fan_yz[0:,0] , nac_z+d_fan_yz[0:,1]],axis=1) ,
+                             np.stack([nac_y+d_fan_yz[::-1,0] , nac_z+d_fan_yz[::-1,2]],axis=1)])
+
+        return "wing_nacelle", {"xy":nac_xy , "yz":nac_yz, "xz":nac_xz, "disk":disk_yz}
 
 
 class LandingGears(Component):
@@ -410,6 +773,9 @@ class LandingGears(Component):
         mlw = self.airplane.mass.mlw
 
         self.mass = (0.015*mtow**1.03 + 0.012*mlw)
+
+    def sketch_3view(self, side=None):
+        return "ldg", {}
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -552,7 +918,7 @@ class Aerodynamics(object):
 
         # Form & friction drag
         #-----------------------------------------------------------------------------------------------------------
-        re = reynolds_number(pamb, tamb, mach)
+        re = util.reynolds_number(pamb, tamb, mach)
 
         fac = ( 1. + 0.126*mach**2 )
 
@@ -620,7 +986,7 @@ class Propulsion(object):
         kth =  0.475*mach**2 + 0.091*(nacelles.engine_bpr/10.)**2 \
              - 0.283*mach*nacelles.engine_bpr/10. \
              - 0.633*mach - 0.081*nacelles.engine_bpr/10. + 1.192
-        rho,sig = air_density(pamb, tamb)
+        rho,sig = util.air_density(pamb, tamb)
         thrust = nacelles.engine_slst * kth * self.ratings[rating]* sig**0.75
         return thrust
 
@@ -735,7 +1101,7 @@ class Flight(object):
         propulsion = self.airplane.propulsion
 
         g = 9.80665
-        pamb,tamb,tstd,dtodz = atmosphere(altp, disa, full_output=True)
+        pamb,tamb,tstd,dtodz = util.atmosphere(altp, disa, full_output=True)
         mach = self.get_mach(pamb,speed_mode,speed)
 
         thrust = propulsion.unitary_thrust(pamb,tamb,mach,rating)
@@ -754,7 +1120,7 @@ class Flight(object):
 
         acc_factor = self.climb_mode(speed_mode, mach, dtodz, tstd, disa)
         slope = ( fn/(mass*g) - 1./lod ) / acc_factor
-        vz = slope * mach * sound_speed(tamb)
+        vz = slope * mach * util.sound_speed(tamb)
         acc = (acc_factor-1.)*g*slope
         if full_output:
             return slope,vz,fn,ff,acc,cz,cx,pamb,tamb
@@ -864,7 +1230,7 @@ class Breguet(Flight):
         """Holding fuel
         """
         g = 9.80665
-        pamb,tamb = atmosphere(altp, disa)
+        pamb,tamb = util.atmosphere(altp, disa)
         sfc, lod = self.level_flight(pamb,tamb,mach,mass)
         fuel = sfc*(mass*g/lod)*time
         return fuel
@@ -873,8 +1239,8 @@ class Breguet(Flight):
         """Breguet range equation
         """
         g = 9.80665
-        pamb,tamb = atmosphere(altp, disa)
-        tas = mach * sound_speed(tamb)
+        pamb,tamb = util.atmosphere(altp, disa)
+        tas = mach * util.sound_speed(tamb)
         time = 1.09*(range/tas)
         sfc, lod = self.level_flight(pamb,tamb,mach,tow)
         val = tow*(1-np.exp(-(sfc*g*range)/(tas*lod)))
@@ -1082,8 +1448,8 @@ class TakeOff(Flight):
 
         czmax,cz0 = aerodynamics.wing_high_lift(hld_conf)
 
-        pamb,tamb = atmosphere(altp, disa)
-        rho,sig = air_density(pamb, tamb)
+        pamb,tamb = util.atmosphere(altp, disa)
+        rho,sig = util.air_density(pamb, tamb)
 
         cz_to = czmax / kvs1g**2
         mach = self.speed_from_lift(pamb,tamb,cz_to,mass)
@@ -1131,7 +1497,7 @@ class Approach(Flight):
         hld_conf = self.hld_conf
         kvs1g = self.kvs1g
 
-        pamb,tamb = atmosphere(altp, disa)
+        pamb,tamb = util.atmosphere(altp, disa)
         czmax,cz0 = aerodynamics.wing_high_lift(hld_conf)
         cz = czmax / kvs1g**2
         mach = self.speed_from_lift(pamb,tamb,cz,mass)
@@ -1167,7 +1533,7 @@ class ClimbCeiling(Flight):
         rating = self.rating
         kfn = 1.
         nei = 0
-        pamb,tamb = atmosphere(altp, disa)
+        pamb,tamb = util.atmosphere(altp, disa)
         speed = self.get_speed(pamb,self.speed_mode,mach)
         path,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
         self.vz = vz
@@ -1201,7 +1567,7 @@ class OeiCeiling(Flight):
         rating = self.rating
         kfn = 1.
         nei = 1
-        pamb,tamb = atmosphere(self.altp, self.disa)
+        pamb,tamb = util.atmosphere(self.altp, self.disa)
         speed = self.get_speed(pamb,self.speed_mode,mach)
         path,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
         self.path_eff = path
@@ -1252,7 +1618,7 @@ class Economics():
         range = unit.convert_from("NM",
                       [ 100.,  500., 1000., 1500., 2000., 2500., 3000., 3500., 4000.])
         utilization = [2300., 2300., 1500., 1200.,  900.,  800.,  700.,  600.,  600.]
-        return lin_interp_1d(mean_range, range, utilization)
+        return util.lin_interp_1d(mean_range, range, utilization)
 
     def landing_gear_price(self):
         """Typical value
@@ -1428,3 +1794,9 @@ if __name__ == "__main__":
 
 
     ap.economics.eval()
+
+
+    ap.view_3d("This_plane")
+
+
+

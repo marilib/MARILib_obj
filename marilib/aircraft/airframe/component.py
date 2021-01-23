@@ -768,7 +768,6 @@ class Wing(Component):
         body_width = self.aircraft.airframe.body.width
         body_length = self.aircraft.airframe.body.length
         body_height = self.aircraft.airframe.body.height
-        mtow = self.aircraft.weight_cg.mtow
 
         self.tip_toc = 0.10
         self.kink_toc = self.tip_toc + 0.01
@@ -782,7 +781,7 @@ class Wing(Component):
             print("geometry_predesign_, wing_wing_morphing index is unkown")
 
         y_root = 0.5*body_width
-        y_kink = 1.75*body_width
+        y_kink = 1.5*body_width
         y_tip = 0.5*self.span
 
         if(15< unit.deg_rad(self.sweep25)):  # With kink
