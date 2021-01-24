@@ -19,7 +19,7 @@ import unit, util
 #-----------------------------------------------------------------------------------------------------------------------
 
 class Airplane(object):
-    def __init__(self, cruise_mach=0.78, design_range=unit.m_NM(2500), cost_range=unit.m_NM(500),
+    def __init__(self, cruise_mach=0.78, design_range=unit.m_NM(3000), cost_range=unit.m_NM(500),
                  n_pax=150, n_aisle=1, n_front=6,
                  wing_area=122, wing_aspect_ratio=9, wing_taper_ratio=0.20, wing_toc_ratio=0.12, wing_sweep25=unit.rad_deg(25), wing_dihedral=unit.rad_deg(5), hld_type=9,
                  htp_aspect_ratio=5, htp_taper_ratio=0.35, htp_toc_ratio=0.10, htp_sweep25=unit.rad_deg(30), htp_dihedral=unit.rad_deg(5), volume=0.94,
@@ -27,7 +27,8 @@ class Airplane(object):
                  engine_slst=unit.N_kN(120.), engine_bpr=10, z_ratio = 0.55,
                  leg_length=3.7,
                  holding_time=unit.s_min(30), reserve_fuel_ratio=0.05, diversion_range=unit.m_NM(200),
-                 hld_conf_to=0.3, kvs1g_to=1.13, s2_min_path_to=0.024, hld_conf_ld=1., kvs1g_ld=1.23):
+                 hld_conf_to=0.3, kvs1g_req_to=1.13, s2_path_req_to=0.024, hld_conf_ld=1., kvs1g_ld=1.23,
+                 tofl_req=2300, app_speed_req=unit.mps_kt(137), vz_mcl_req=unit.mps_ftpmin(300), vz_mcr_req=unit.mps_ftpmin(0), oei_path_req=0.011):
 
         self.design_range = design_range
         self.cost_range = cost_range
@@ -41,6 +42,7 @@ class Airplane(object):
         self.vtp = VTP(self, vtp_aspect_ratio, vtp_taper_ratio, vtp_toc_ratio, vtp_sweep25, thrust_volume)
         self.nacelles = Nacelles(self, engine_slst, engine_bpr, z_ratio)
         self.landing_gears = LandingGears(self, leg_length)
+        self.systems = Systems(self)
 
         # Logical components
         self.aerodynamics = Aerodynamics(self, hld_type, hld_conf_to, hld_conf_ld)
@@ -49,7 +51,8 @@ class Airplane(object):
         self.mass = Mass(self)
 
         self.missions = Missions(self, holding_time, reserve_fuel_ratio, diversion_range)
-        self.operations = Operations(self, hld_conf_to, kvs1g_to, s2_min_path_to, hld_conf_ld, kvs1g_ld)
+        self.operations = Operations(self, hld_conf_to, kvs1g_req_to, s2_path_req_to, hld_conf_ld, kvs1g_ld,
+                                           tofl_req, app_speed_req, vz_mcl_req, vz_mcr_req, oei_path_req)
         self.economics = Economics(self)
 
     def __iter__(self):
@@ -118,6 +121,95 @@ class Airplane(object):
 
         plt.show()
         return
+
+    def print(self):
+        # Print some relevant output
+        #------------------------------------------------------------------------------------------------------
+        print("")
+        print("-------------------------------------------------------")
+        print("Design range = "+"%.0f"%unit.NM_m(self.design_range)+" NM")
+        print("Cost range = "+"%.0f"%unit.NM_m(self.cost_range)+" NM")
+        print("Cruise Mach = "+"%.2f"%self.cruise_mach)
+        print("Cruise pressure altitude = "+"%.0f"%unit.ft_m(self.cruise_altp)+" ft")
+        print("")
+        print("-------------------------------------------------------")
+        print("Engine Sea Level Static Thrust = "+"%.1f"%unit.kN_N(self.nacelles.engine_slst)+" kN")
+        print("Engine By Pass Ratio = "+"%.1f"%self.nacelles.engine_bpr)
+        print("Nacelle diameter = "+"%.2f"%self.nacelles.diameter+" m")
+        print("Fan cowl length = "+"%.2f"%self.nacelles.length+" m")
+        print("Spanwise position = "+"%.2f"%self.nacelles.span_position+" m")
+        print("")
+        print("Fuselage length = "+"%.2f"%self.fuselage.length+" m2")
+        print("Fuselage height = "+"%.2f"%self.fuselage.height+" m")
+        print("Fuselage width = "+"%.2f"%self.fuselage.width+" m")
+        print("")
+        print("Wing area = "+"%.2f"%self.wing.area+" m2")
+        print("Wing aspect ratio = "+"%.2f"%self.wing.aspect_ratio)
+        print("Wing taper ratio = "+"%.2f"%self.wing.taper_ratio)
+        print("Wing sweep angle = "+"%.1f"%unit.deg_rad(self.wing.sweep25)+" deg")
+        print("Wing spanwise kink position = "+"%.1f"%self.wing.kink_loc[1]+" m")
+        print("")
+        print("HTP area = "+"%.2f"%self.htp.area+" m2")
+        print("HTP lever arm = "+"%.2f"%self.htp.lever_arm+" m")
+        print("")
+        print("VTP area = "+"%.2f"%self.vtp.area+" m2")
+        print("VTP lever arm = "+"%.2f"%self.vtp.lever_arm+" m")
+        print("")
+        print("Landing gear leg length = "+"%.2f"%self.landing_gears.leg_length+" m")
+        print("")
+        print("-------------------------------------------------------")
+        print("MTOW = "+"%.0f"%self.mass.mtow+" kg")
+        print("MLW = "+"%.0f"%self.mass.mlw+" kg")
+        print("MZFW = "+"%.0f"%self.mass.mzfw+" kg")
+        print("OWE = "+"%.0f"%self.mass.owe+" kg")
+        print("MFW = "+"%.0f"%self.mass.mfw+" kg")
+        print("Nacelles mass = "+"%.0f"%self.nacelles.mass+" kg")
+        print("Fuselage mass = "+"%.0f"%self.fuselage.mass+" kg")
+        print("wing mass = "+"%.0f"%self.wing.mass+" kg")
+        print("HTP mass = "+"%.0f"%self.htp.mass+" kg")
+        print("VTP mass = "+"%.0f"%self.vtp.mass+" kg")
+        print("Landing_gears mass = "+"%.0f"%self.landing_gears.mass+" kg")
+        print("Systems mass = "+"%.0f"%self.systems.mass+" kg")
+        print("")
+        print("-------------------------------------------------------")
+        print("Nominal mission range = "+"%.0f"%unit.NM_m(self.missions.nominal.range)+" NM")
+        print("Nominal mission payload = "+"%.0f"%self.missions.nominal.payload+" kg")
+        print("Nominal mission time block = "+"%.0f"%unit.h_s(self.missions.nominal.time_block)+" h")
+        print("Nominal mission fuel block = "+"%.0f"%self.missions.nominal.fuel_block+" kg")
+        print("Nominal mission fuel total = "+"%.0f"%self.missions.nominal.fuel_total+" kg")
+        print("")
+        print("Max payload mission range = "+"%.0f"%unit.NM_m(self.missions.max_payload.range)+" NM")
+        print("Max payload mission payload = "+"%.0f"%self.missions.max_payload.payload+" kg")
+        print("")
+        print("Max fuel mission range = "+"%.0f"%unit.NM_m(self.missions.max_fuel.range)+" NM")
+        print("Max fuel mission payload = "+"%.0f"%self.missions.max_fuel.payload+" kg")
+        print("")
+        print("Zero payload mission range = "+"%.0f"%unit.NM_m(self.missions.zero_payload.range)+" NM")
+        print("Zero payload mission payload = "+"%.0f"%self.missions.zero_payload.payload+" kg")
+        print("")
+        print("-------------------------------------------------------")
+        print("Take off field length required = "+"%.1f"%self.operations.take_off.tofl_req+" m")
+        print("Take off field length effective = "+"%.1f"%self.operations.take_off.tofl_eff+" m")
+        print("Take off kvs1g effective = "+"%.3f"%self.operations.take_off.kvs1g_eff)
+        print("Take off path effective = "+"%.3f"%self.operations.take_off.s2_path_eff)
+        print("Take off limitation = "+self.operations.take_off.limit)
+        print("")
+        print("Approach speed required = "+"%.1f"%unit.kt_mps(self.operations.approach.app_speed_req)+" kt")
+        print("Approach speed effective = "+"%.1f"%unit.kt_mps(self.operations.approach.app_speed_eff)+" kt")
+        print("")
+        print("Vertical speed required MCL = "+"%.1f"%unit.ftpmin_mps(self.operations.mcl_ceiling.vz_req)+" ft/min")
+        print("Vertical speed effective MCL = "+"%.1f"%unit.ftpmin_mps(self.operations.mcl_ceiling.vz_eff)+" ft/min")
+        print("")
+        print("Vertical speed required MCR = "+"%.1f"%unit.ftpmin_mps(self.operations.mcr_ceiling.vz_req)+" ft/min")
+        print("Vertical speed effective MCR = "+"%.1f"%unit.ftpmin_mps(self.operations.mcr_ceiling.vz_eff)+" ft/min")
+        print("")
+        print("One engine path required = "+"%.1f"%self.operations.oei_ceiling.path_req)
+        print("One engine path effective = "+"%.1f"%self.operations.oei_ceiling.path_eff)
+        print("")
+        print("-------------------------------------------------------")
+        print("Cash Operating Cost = "+"%.1f"%self.economics.cash_op_cost+" $/trip")
+        print("Direct Operating Cost = "+"%.1f"%self.economics.direct_op_cost+" $/trip")
+
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -208,6 +300,7 @@ class Fuselage(Component):
         self.n_front = n_front
 
         self.width = None
+        self.height = None
         self.length = None
         self.cabin_center = None
 
@@ -230,9 +323,11 @@ class Fuselage(Component):
         self.form_factor = 1.05 # Form factor for drag calculation
 
     def eval_geometry(self):
-        self.width =  self.seat_width*self.n_front + self.aisle_width*self.n_aisle + 0.08 + self.wall_thickness
-        cabin_front = self.front_ratio * self.width
+        cabin_width = self.seat_width*self.n_front + self.aisle_width*self.n_aisle + 0.08
+        self.width = cabin_width  + 2 * self.wall_thickness
+        self.height = 1.25*(cabin_width - 0.15)
         cabin_length = self.seat_pitch*(self.n_pax/self.n_front) + 2*self.width
+        cabin_front = self.front_ratio * self.width
         self.cabin_center = cabin_front + 0.5*cabin_length
         self.length = (self.front_ratio + self.rear_ratio)*self.width + cabin_length
         self.nose_cone_length = 2.00 * self.width
@@ -248,7 +343,7 @@ class Fuselage(Component):
 
     def sketch_3view(self, side=None):
         body_width = self.width
-        body_height = self.width
+        body_height = self.height
         body_length = self.length
 
         nose,cone,section = self.get_this_shape(["nose1","cone1","sec1"])
@@ -712,9 +807,9 @@ class Nacelles(Component):
     def eval_mass(self):
         propulsion = self.airplane.propulsion
 
-        self.engine_mass = (1250. + 0.021*self.engine_slst) * propulsion.n_engine
-        self.pylon_mass = (0.0031*self.engine_slst) * propulsion.n_engine
-        self.mass = self.engine_mass + self.pylon_mass
+        self.engine_mass = (1250. + 0.021*self.engine_slst)
+        self.pylon_mass = (0.0031*self.engine_slst)
+        self.mass = (self.engine_mass + self.pylon_mass) * propulsion.n_engine
 
     def sketch_3view(self, side=1):
         nac_length = self.length
@@ -759,6 +854,21 @@ class Nacelles(Component):
         return "wing_nacelle", {"xy":nac_xy , "yz":nac_yz, "xz":nac_xz, "disk":disk_yz}
 
 
+class Systems(Component):
+    def __init__(self, airplane):
+        super(Systems, self).__init__(airplane)
+
+    def eval_geometry(self):
+        pass
+
+    def eval_mass(self):
+        mtow = self.airplane.mass.mtow
+        self.mass = 0.545*mtow**0.8    # global mass of all systems
+
+    def sketch_3view(self, side=None):
+        return "ldg", {}
+
+
 class LandingGears(Component):
     def __init__(self, airplane, leg_length):
         super(LandingGears, self).__init__(airplane)
@@ -771,7 +881,6 @@ class LandingGears(Component):
     def eval_mass(self):
         mtow = self.airplane.mass.mtow
         mlw = self.airplane.mass.mlw
-
         self.mass = (0.015*mtow**1.03 + 0.012*mlw)
 
     def sketch_3view(self, side=None):
@@ -946,9 +1055,13 @@ class Aerodynamics(object):
 
         cx_par = cxf*kp
 
+        # Fuselage tail cone drag
+        #-----------------------------------------------------------------------------------------------------------
+        cx_tap = 0.0020
+
         # Total zero lift drag
         #-----------------------------------------------------------------------------------------------------------
-        cx0 = cxf + cx_par
+        cx0 = cxf + cx_par + cx_tap
 
         # Induced drag
         #-----------------------------------------------------------------------------------------------------------
@@ -1158,7 +1271,7 @@ class Missions(Flight):
         self.max_payload.tow = self.airplane.mass.mtow
 
         self.max_payload.eval()
-        self.residual = self.max_payload.tow - (self.airplane.mass.owe + self.airplane.mass.max_payload + self.max_payload.fuel_total)
+        self.residual = self.airplane.mass.max_payload - self.max_payload.payload
 
     def eval_max_fuel_mission(self):
         """Compute missions
@@ -1217,6 +1330,7 @@ class Breguet(Flight):
 
         self.range = range_init             # Mission distance
         self.tow = tow_init                 # Take Off Weight
+        self.payload = None                 # Payload Weight
         self.time_block = None              # Mission block duration
         self.fuel_block = None              # Mission block fuel consumption
         self.fuel_reserve = None            # Mission reserve fuel
@@ -1304,21 +1418,22 @@ class Breguet(Flight):
         #-----------------------------------------------------------------------------------------------------------
         self.fuel_reserve = fuel_mission*self.reserve_fuel_ratio + fuel_diversion + fuel_holding
         self.fuel_total = self.fuel_block + self.fuel_reserve
+        self.payload = self.tow - self.airplane.mass.owe - self.fuel_total
 
         #-----------------------------------------------------------------------------------------------------------
         return
 
 
 class Operations(Flight):
-    def __init__(self, airplane, hld_conf_to, kvs1g_to, s2_min_path_to,
-                                 hld_conf_ld, kvs1g_ld):
+    def __init__(self, airplane, hld_conf_to, kvs1g_to, s2_min_path_to, hld_conf_ld, kvs1g_ld,
+                                 tofl_req, app_speed_req, vz_mcl_req, vz_mcr_req, oei_path_req):
         super(Operations, self).__init__(airplane)
 
-        self.take_off = TakeOff(airplane, hld_conf_to, kvs1g_to, s2_min_path_to)
-        self.approach = Approach(airplane, hld_conf_ld, kvs1g_ld)
-        self.mcl_ceiling = ClimbCeiling(airplane, rating="MCL", speed_mode="cas")
-        self.mcr_ceiling = ClimbCeiling(airplane, rating="MCR", speed_mode="mach")
-        self.oei_ceiling = OeiCeiling(airplane, path_req=0.011, rating="MCR", speed_mode="mach")
+        self.take_off = TakeOff(airplane, hld_conf_to, kvs1g_to, s2_min_path_to, tofl_req)
+        self.approach = Approach(airplane, hld_conf_ld, kvs1g_ld, app_speed_req)
+        self.mcl_ceiling = ClimbCeiling(airplane, rating="MCL", speed_mode="cas", vz_req=vz_mcl_req)
+        self.mcr_ceiling = ClimbCeiling(airplane, rating="MCR", speed_mode="mach", vz_req=vz_mcr_req)
+        self.oei_ceiling = OeiCeiling(airplane, rating="MCR", speed_mode="mach", path_req=oei_path_req)
 
     def eval_take_off(self):
         """Compute performances
@@ -1371,23 +1486,24 @@ class Operations(Flight):
 class TakeOff(Flight):
     """Take Off Field Length
     """
-    def __init__(self, airplane, hld_conf, kvs1g, s2_min_path):
+    def __init__(self, airplane, hld_conf, kvs1g_req, s2_path_req, tofl_req):
         super(TakeOff, self).__init__(airplane)
 
         self.disa = None
         self.altp = None
         self.tow = None
-
-        self.tofl = None
+        self.tofl_eff = None
         self.kvs1g_eff = None
-        self.v2 = None
-        self.mach2 = None
-        self.s2_path = None
+        self.s2_path_eff = None
         self.limit = None
 
+        self.v2 = None
+        self.mach2 = None
+
+        self.tofl_req = tofl_req
+        self.kvs1g_req = kvs1g_req
+        self.s2_path_req = s2_path_req
         self.hld_conf = hld_conf
-        self.kvs1g = kvs1g
-        self.s2_min_path = s2_min_path
 
     def eval(self):
         """Take off field length and climb path with eventual kVs1g increase to recover min regulatory slope
@@ -1396,8 +1512,8 @@ class TakeOff(Flight):
         altp = self.altp
         mass = self.tow
 
-        s2_min_path = self.s2_min_path
-        kvs1g = self.kvs1g
+        s2_min_path = self.s2_path_req
+        kvs1g = self.kvs1g_req
         hld_conf = self.hld_conf
         rating = "MTO"
         kfn = 1.
@@ -1432,12 +1548,12 @@ class TakeOff(Flight):
                 s2_path = 0.
                 limitation = None
 
-        self.tofl = tofl
+        self.tofl_eff = tofl
         self.kvs1g_eff = kvs1g
+        self.s2_path_eff = s2_path
+        self.limit = limitation
         self.v2 = cas
         self.mach2 = mach
-        self.s2_path = s2_path
-        self.limit = limitation
         return
 
     def take_off(self,kvs1g,altp,disa,mass,hld_conf,rating,kfn):
@@ -1474,14 +1590,15 @@ class TakeOff(Flight):
 class Approach(Flight):
     """Approach speed
     """
-    def __init__(self, airplane, hld_conf, kvs1g):
+    def __init__(self, airplane, hld_conf, kvs1g, app_speed_req):
         super(Approach, self).__init__(airplane)
 
         self.disa = None
         self.altp = None
         self.lw = None
-        self.app_speed = None
+        self.app_speed_eff = None
 
+        self.app_speed_req = app_speed_req
         self.hld_conf = hld_conf
         self.kvs1g = kvs1g
 
@@ -1502,22 +1619,23 @@ class Approach(Flight):
         cz = czmax / kvs1g**2
         mach = self.speed_from_lift(pamb,tamb,cz,mass)
         vapp = self.get_speed(pamb,"cas",mach)
-        self.app_speed = vapp
+        self.app_speed_eff = vapp
         return
 
 
 class ClimbCeiling(Flight):
     """Propulsion ceiling in MCL rating
     """
-    def __init__(self, airplane, rating, speed_mode):
+    def __init__(self, airplane, rating, speed_mode, vz_req):
         super(ClimbCeiling, self).__init__(airplane)
 
         self.disa = None
         self.altp = None
         self.mach = None
         self.mass = None
-        self.vz = None
+        self.vz_eff = None
 
+        self.vz_req = vz_req
         self.rating = rating
         self.speed_mode = speed_mode
 
@@ -1536,14 +1654,14 @@ class ClimbCeiling(Flight):
         pamb,tamb = util.atmosphere(altp, disa)
         speed = self.get_speed(pamb,self.speed_mode,mach)
         path,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
-        self.vz = vz
+        self.vz_eff = vz
         return
 
 
 class OeiCeiling(Flight):
     """One engine ceiling in MCN rating
     """
-    def __init__(self, airplane, path_req, rating, speed_mode):
+    def __init__(self, airplane, rating, speed_mode, path_req):
         super(OeiCeiling, self).__init__(airplane)
 
         self.disa = None
@@ -1664,7 +1782,7 @@ class Economics():
 
         # Cash Operating Cost
         #-----------------------------------------------------------------------------------------------------------------------------------------------
-        fuel_density = 0.803
+        fuel_density = 803.
         fuel_block = self.airplane.missions.cost.fuel_block
         self.fuel_cost = fuel_block*self.fuel_price/fuel_density
 
@@ -1795,6 +1913,8 @@ if __name__ == "__main__":
 
     ap.economics.eval()
 
+
+    ap.print()
 
     ap.view_3d("This_plane")
 
