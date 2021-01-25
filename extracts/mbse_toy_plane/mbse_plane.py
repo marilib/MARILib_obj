@@ -37,8 +37,10 @@ class Airplane(object):
         self.cruise_altp = unit.m_ft(35000)
 
         # Physical components
-        self.fuselage = Fuselage(self, n_pax, n_aisle, n_front)
+        self.cabin = Cabin(self, n_pax, n_aisle, n_front)
+        self.fuselage = Fuselage(self)
         self.wing = Wing(self, wing_area, wing_aspect_ratio, wing_taper_ratio, wing_toc_ratio, wing_sweep25, wing_dihedral)
+        self.tank = Tank(self)
         self.htp = HTP(self, htp_aspect_ratio, htp_taper_ratio, htp_toc_ratio, htp_sweep25, htp_dihedral, volume)
         self.vtp = VTP(self, vtp_aspect_ratio, vtp_taper_ratio, vtp_toc_ratio, vtp_sweep25, thrust_volume)
         self.nacelles = Nacelles(self, engine_slst, engine_bpr, z_ratio)
@@ -141,6 +143,9 @@ class Airplane(object):
         print("Spanwise position = "+"%.2f"%self.nacelles.span_position+" m")
         print("Groun clearence = "+"%.2f"%self.nacelles.ground_clearence+" m")
         print("")
+        print("Cabin length = "+"%.2f"%self.cabin.length+" m2")
+        print("Cabin width = "+"%.2f"%self.cabin.width+" m")
+        print("")
         print("Fuselage length = "+"%.2f"%self.fuselage.length+" m2")
         print("Fuselage height = "+"%.2f"%self.fuselage.height+" m")
         print("Fuselage width = "+"%.2f"%self.fuselage.width+" m")
@@ -150,6 +155,8 @@ class Airplane(object):
         print("Wing taper ratio = "+"%.2f"%self.wing.taper_ratio)
         print("Wing sweep angle = "+"%.1f"%unit.deg_rad(self.wing.sweep25)+" deg")
         print("Wing spanwise kink position = "+"%.1f"%self.wing.kink_loc[1]+" m")
+        print("")
+        print("Fuel tank volume = "+"%.2f"%self.tank.fuel_volume+" m3")
         print("")
         print("HTP area = "+"%.2f"%self.htp.area+" m2")
         print("HTP lever arm = "+"%.2f"%self.htp.lever_arm+" m")
@@ -231,6 +238,16 @@ class Component(object):
 
         self.form_factor = 0.
 
+    def eval_geometry(self):
+        pass
+
+    def eval_mass(self):
+        pass
+
+    def eval(self):
+        self.eval_geometry()
+        self.eval_mass()
+
     def get_this_shape(self, name): # TODO: is the docstring up to date ?
         """Contour curves for 3 view drawing
         nose1 : modern nose (A220, A350, 787)
@@ -296,26 +313,45 @@ class Component(object):
         return [curve[n] for n in name]
 
 
-class Fuselage(Component):
+class Cabin(Component):
     def __init__(self, airplane, n_pax, n_aisle, n_front):
-        super(Fuselage, self).__init__(airplane)
+        super(Cabin, self).__init__(airplane)
 
         self.n_pax = n_pax
         self.n_aisle = n_aisle
         self.n_front = n_front
 
         self.width = None
-        self.height = None
         self.length = None
-        self.cabin_center = None
 
-        self.fuselage_mass = None
         self.m_furnishing = None
         self.m_op_item = None
 
         self.seat_pitch = unit.m_inch(32)
         self.seat_width = unit.m_inch(19)
         self.aisle_width = unit.m_inch(20)
+
+    def eval_geometry(self):
+        self.width = self.seat_width*self.n_front + self.aisle_width*self.n_aisle + 0.08
+        self.length = self.seat_pitch*(self.n_pax/self.n_front) + 2*self.width
+
+    def eval_mass(self):
+        self.m_furnishing = (0.063*self.n_pax**2 + 9.76*self.n_pax)                     # Furnishings mass
+        self.m_op_item = max(160., 5.2*(self.n_pax*self.airplane.design_range*1e-6))    # Operator items mass
+        self.mass = self.m_furnishing + self.m_op_item
+
+    def sketch_3view(self, side=None):
+        return "cabin", {}
+
+
+class Fuselage(Component):
+    def __init__(self, airplane):
+        super(Fuselage, self).__init__(airplane)
+
+        self.width = None
+        self.height = None
+        self.length = None
+        self.cabin_center = None
 
         self.position = 0.
         self.wall_thickness = 0.20  # Overall fuselage wall thickness
@@ -328,23 +364,18 @@ class Fuselage(Component):
         self.form_factor = 1.05 # Form factor for drag calculation
 
     def eval_geometry(self):
-        cabin_width = self.seat_width*self.n_front + self.aisle_width*self.n_aisle + 0.08
-        self.width = cabin_width  + 2 * self.wall_thickness
-        self.height = 1.25*(cabin_width - 0.15)
-        cabin_length = self.seat_pitch*(self.n_pax/self.n_front) + 2*self.width
-        cabin_front = self.front_ratio * self.width
-        self.cabin_center = cabin_front + 0.5*cabin_length
-        self.length = (self.front_ratio + self.rear_ratio)*self.width + cabin_length
+        cabin = self.airplane.cabin
+        self.width = cabin.width  + 2 * self.wall_thickness
+        self.height = 1.25*(cabin.width - 0.15)
+        self.cabin_center = self.front_ratio * self.width + 0.5*cabin.length
+        self.length = (self.front_ratio + self.rear_ratio)*self.width + cabin.length
         self.nose_cone_length = 2.00 * self.width
         self.tail_cone_length = 3.45 * self.width
         self.wet_area = 2.70*self.length*self.width
         self.aero_length = self.length
 
     def eval_mass(self):
-        self.fuselage_mass = 5.80*(np.pi*self.length*self.width)**1.2                   # Statistical regression versus fuselage built surface
-        self.m_furnishing = (0.063*self.n_pax**2 + 9.76*self.n_pax)                     # Furnishings mass
-        self.m_op_item = max(160., 5.2*(self.n_pax*self.airplane.design_range*1e-6))    # Operator items mass
-        self.mass = self.fuselage_mass + self.m_furnishing + self.m_op_item
+        self.mass = 5.80*(np.pi*self.length*self.width)**1.2                   # Statistical regression versus fuselage built surface
 
     def sketch_3view(self, side=None):
         body_width = self.width
@@ -399,7 +430,6 @@ class Wing(Component):
         self.mac_loc = None
         self.mac_position = None    # X wise MAC position versus wing root
         self.position = None        # X wise wing root position versus fuselage
-        self.fuel_volume = None
 
         self.front_spar_ratio = 0.15
         self.rear_spar_ratio = 0.70
@@ -461,22 +491,6 @@ class Wing(Component):
         self.kink_loc = np.array([x_kink, y_kink, z_kink])
         self.tip_loc = np.array([x_tip, y_tip, z_tip])
         self.mac_loc = np.array([x_mac, y_mac, None])
-
-
-        # Fuel volume
-        dsr = self.rear_spar_ratio - self.front_spar_ratio
-
-        root_sec = dsr * self.root_toc*self.root_c**2
-        kink_sec = dsr * self.kink_toc*self.kink_c**2
-        tip_sec = dsr * self.tip_toc*self.tip_c**2
-
-        self.cantilever_gross_volume = (2./3.)*(
-            0.9*(self.kink_loc[1]-self.root_loc[1])*(root_sec+kink_sec+np.sqrt(root_sec*kink_sec))
-          + 0.7*(self.tip_loc[1]-self.kink_loc[1])*(kink_sec+tip_sec+np.sqrt(kink_sec*tip_sec)))
-
-        self.central_gross_volume = 0.8*dsr * fuselage.width * self.root_toc * self.root_c**2
-        self.gross_volume = self.central_gross_volume + self.cantilever_gross_volume
-        self.fuel_volume = self.gross_volume
 
         self.wet_area = 2*(self.area - fuselage.width*self.root_c)
         self.aero_length = self.mac
@@ -558,6 +572,33 @@ class Wing(Component):
                             [wing_x_tip+wing_c_tip       , wing_z_tip+wing_toc_t*wing_c_tip                           ]])
 
         return "wing", {"xy":wing_xy, "yz":wing_yz, "xz":wing_xz}
+
+
+class Tank(Component):
+    def __init__(self, airplane):
+        super(Tank, self).__init__(airplane)
+
+        self.fuel_volume = None
+
+    def eval_geometry(self):
+        fuselage = self.airplane.fuselage
+        wing = self.airplane.wing
+
+        dsr = wing.rear_spar_ratio - wing.front_spar_ratio
+
+        root_sec = dsr * wing.root_toc*wing.root_c**2
+        kink_sec = dsr * wing.kink_toc*wing.kink_c**2
+        tip_sec = dsr * wing.tip_toc*wing.tip_c**2
+
+        self.cantilever_volume = (2./3.)*(
+            0.9*(wing.kink_loc[1]-wing.root_loc[1])*(root_sec+kink_sec+np.sqrt(root_sec*kink_sec))
+          + 0.7*(wing.tip_loc[1]-wing.kink_loc[1])*(kink_sec+tip_sec+np.sqrt(kink_sec*tip_sec)))
+
+        self.central_volume = 0.8*dsr * fuselage.width * wing.root_toc * wing.root_c**2
+        self.fuel_volume = self.central_volume + self.cantilever_volume
+
+    def sketch_3view(self, side=None):
+        return "tank", {}
 
 
 class HTP(Component):
@@ -793,6 +834,7 @@ class Nacelles(Component):
         self.length = 0.86*self.diameter + self.engine_bpr**0.37      # statistical regression
         self.span_position = 0.6 * fuselage.width + 1.5 * self.diameter
 
+        # INFO: Ground clearence constraint can be realeased by changing wing dihedral and or nacelle span position
         self.ground_clearence = landing_gears.leg_length - landing_gears.attachment_loc[2] + self.span_position*np.tan(wing.dihedral) - (self.z_ratio+0.5)*self.diameter
 
         knac = np.pi * self.diameter * self.length
@@ -859,21 +901,6 @@ class Nacelles(Component):
         return "wing_nacelle", {"xy":nac_xy , "yz":nac_yz, "xz":nac_xz, "disk":disk_yz}
 
 
-class Systems(Component):
-    def __init__(self, airplane):
-        super(Systems, self).__init__(airplane)
-
-    def eval_geometry(self):
-        pass
-
-    def eval_mass(self):
-        mtow = self.airplane.mass.mtow
-        self.mass = 0.545*mtow**0.8    # global mass of all systems
-
-    def sketch_3view(self, side=None):
-        return "ldg", {}
-
-
 class LandingGears(Component):
     def __init__(self, airplane, leg_length):
         super(LandingGears, self).__init__(airplane)
@@ -895,6 +922,21 @@ class LandingGears(Component):
         mtow = self.airplane.mass.mtow
         mlw = self.airplane.mass.mlw
         self.mass = (0.015*mtow**1.03 + 0.012*mlw)
+
+    def sketch_3view(self, side=None):
+        return "ldg", {}
+
+
+class Systems(Component):
+    def __init__(self, airplane):
+        super(Systems, self).__init__(airplane)
+
+    def eval_geometry(self):
+        pass
+
+    def eval_mass(self):
+        mtow = self.airplane.mass.mtow
+        self.mass = 0.545*mtow**0.8    # global mass of all systems
 
     def sketch_3view(self, side=None):
         return "ldg", {}
@@ -930,7 +972,7 @@ class Mass(object):
     def __init__(self, airplane):
         self.airplane = airplane
 
-        mtow_init = 5. * 110. * airplane.fuselage.n_pax
+        mtow_init = 5. * 110. * airplane.cabin.n_pax
         mzfw_init = 0.75 * mtow_init
         mlw_init = 1.07 * mzfw_init
         owe_init = 0.5 * mtow_init
@@ -954,13 +996,13 @@ class Mass(object):
             self.owe += comp.mass
 
     def eval_other_mass(self):
-        self.nominal_payload = 105. * self.airplane.fuselage.n_pax
-        self.max_payload = 120. * self.airplane.fuselage.n_pax
+        self.nominal_payload = 105. * self.airplane.cabin.n_pax
+        self.max_payload = 120. * self.airplane.cabin.n_pax
         self.mtow = self.owe + self.nominal_payload + self.airplane.missions.nominal.fuel_total
         self.mzfw = self.owe + self.max_payload
         self.mlw = 1.07 * self.mzfw
-        self.mwe = self.owe - self.airplane.fuselage.m_op_item
-        self.mfw = 803. * self.airplane.wing.fuel_volume
+        self.mwe = self.owe - self.airplane.cabin.m_op_item
+        self.mfw = 803. * self.airplane.tank.fuel_volume
 
     def eval(self):
         """Mass computations
@@ -1335,7 +1377,7 @@ class Breguet(Flight):
         self.mach = None    # Cruise mach number
 
         range_init = airplane.design_range
-        tow_init = 5. * 110. * airplane.fuselage.n_pax
+        tow_init = 5. * 110. * airplane.cabin.n_pax
         total_fuel_init = 0.2 * tow_init
 
         self.range = range_init             # Mission distance
@@ -1776,7 +1818,7 @@ class Economics():
     def eval(self):
         """Computes Cash and Direct Operating Costs per flight (based on AAE 451 Spring 2004)
         """
-        n_pax_ref = self.airplane.fuselage.n_pax
+        n_pax_ref = self.airplane.cabin.n_pax
 
         nacelle_mass = self.airplane.nacelles.mass
 
@@ -1853,7 +1895,29 @@ if __name__ == "__main__":
 
     ap = Airplane()
 
-# High level
+
+# Component view
+#-----------------------------------------
+    ap.cabin.eval()
+
+    ap.fuselage.eval()
+
+    ap.wing.eval()
+
+    ap.tank.eval()
+
+    ap.htp.eval()
+
+    ap.vtp.eval()
+
+    ap.nacelles.eval()
+
+    ap.landing_gears.eval()
+
+    ap.systems.eval()
+
+
+# High level process view
 #-----------------------------------------
     ap.geometry.eval()
 
@@ -1868,26 +1932,36 @@ if __name__ == "__main__":
     ap.economics.eval()
 
 
-# Low level
+# Low level process view
 #-----------------------------------------
+    ap.cabin.eval_geometry()
+
     ap.fuselage.eval_geometry()
 
-    ap.wing.eval_geometry()
+    ap.wing.eval_geometry()         # Wing area to be optimized
 
-    ap.htp.eval_geometry()
+    ap.tank.eval_geometry()
 
-    ap.vtp.eval_geometry()
+    ap.htp.eval_geometry()          # HTP area to be computed
+
+    ap.vtp.eval_geometry()          # VTP area to be computed
 
     ap.nacelles.eval_geometry()
 
     ap.landing_gears.eval_geometry()
 
+    ap.systems.eval_geometry()
+
     ap.geometry.eval_wet_area()
 
+
+    ap.cabin.eval_mass()
 
     ap.fuselage.eval_mass()
 
     ap.wing.eval_mass()
+
+    ap.tank.eval_mass()
 
     ap.htp.eval_mass()
 
@@ -1896,6 +1970,8 @@ if __name__ == "__main__":
     ap.nacelles.eval_mass()
 
     ap.landing_gears.eval_mass()
+
+    ap.systems.eval_mass()
 
     ap.mass.eval_owe()
 
@@ -1909,6 +1985,8 @@ if __name__ == "__main__":
     ap.missions.eval_max_fuel_mission()
 
     ap.missions.eval_zero_payload_mission()
+
+    ap.missions.eval_cost_mission()
 
 
     ap.operations.eval_take_off()
