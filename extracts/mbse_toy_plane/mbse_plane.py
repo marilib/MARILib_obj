@@ -1321,7 +1321,7 @@ class Missions(Flight):
         self.max_payload.tow = self.airplane.mass.mtow
 
         self.max_payload.eval()
-        self.residual = self.airplane.mass.max_payload - self.max_payload.payload       # INFO: range must drive residual to zero
+        self.max_payload.residual = self.airplane.mass.max_payload - self.max_payload.payload       # INFO: range must drive residual to zero
 
     def eval_max_fuel_mission(self):
         """Compute missions
@@ -1331,7 +1331,7 @@ class Missions(Flight):
         self.max_fuel.tow = self.airplane.mass.mtow
 
         self.max_fuel.eval()
-        self.residual = self.airplane.mass.mfw - self.max_fuel.fuel_total       # INFO: range must drive residual to zero
+        self.max_fuel.residual = self.airplane.mass.mfw - self.max_fuel.fuel_total       # INFO: range must drive residual to zero
 
     def eval_zero_payload_mission(self):
         """Compute missions
@@ -1341,7 +1341,7 @@ class Missions(Flight):
         self.zero_payload.tow = self.airplane.mass.owe + self.airplane.mass.mfw
 
         self.zero_payload.eval()
-        self.residual = self.airplane.mass.mfw - self.zero_payload.fuel_total       # INFO: range must drive residual to zero
+        self.zero_payload.residual = self.airplane.mass.mfw - self.zero_payload.fuel_total       # INFO: range must drive residual to zero
 
     def eval_cost_mission(self):
         """Compute missions
@@ -1351,7 +1351,7 @@ class Missions(Flight):
         self.cost.range = self.airplane.cost_range
 
         self.cost.eval()
-        self.residual = self.airplane.mass.nominal_payload - self.cost.payload       # INFO: tow must drive residual to zero
+        self.cost.residual = self.airplane.mass.nominal_payload - self.cost.payload       # INFO: tow must drive residual to zero
 
     def eval_payload_range(self):
         """Compute missions
