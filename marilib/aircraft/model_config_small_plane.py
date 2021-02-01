@@ -27,7 +27,7 @@ class ModelConfiguration(object):
         },
         "Fuselage":{
             "forward_limit": [3., "m", "Distance between fuselage nose and forward cabin wall"],
-            "wall_thickness": [0.10, "m", "Fuselage wall total tchickness"],
+            "wall_thickness": [0.06, "m", "Fuselage wall total tchickness"],
             "nose_cone_ratio": [2., "no_dim", "Fuselage nose cone length (evolutive part) over fuselage diameter"],
             "tail_cone_ratio": [4., "no_dim", "Fuselage tail cone length (evolutive part) over fuselage diameter"],
             "section_type": ["square", "string", "Fuselage cross section 'ellipse' or 'square'"],

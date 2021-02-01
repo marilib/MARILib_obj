@@ -354,7 +354,7 @@ class Fuselage(Component):
         self.cabin_center = None
 
         self.position = 0.
-        self.wall_thickness = 0.20  # Overall fuselage wall thickness
+        self.wall_thickness = 0.15  # Overall fuselage wall thickness
         self.front_ratio = 1.2      # Cabin start over fuselage width
         self.rear_ratio = 1.5       # Cabin end to tail cone over fuselage width
 
@@ -1306,7 +1306,6 @@ class Missions(Flight):
     def eval_nominal_mission(self):
         """Compute missions
         """
-        self.nominal.disa = 0.
         self.nominal.altp = self.airplane.cruise_altp
         self.nominal.mach = self.airplane.cruise_mach
         self.nominal.range = self.airplane.design_range
@@ -1317,7 +1316,6 @@ class Missions(Flight):
     def eval_max_payload_mission(self):
         """Compute missions
         """
-        self.max_payload.disa = 0.
         self.max_payload.altp = self.airplane.cruise_altp
         self.max_payload.mach = self.airplane.cruise_mach
         self.max_payload.tow = self.airplane.mass.mtow
@@ -1328,7 +1326,6 @@ class Missions(Flight):
     def eval_max_fuel_mission(self):
         """Compute missions
         """
-        self.max_fuel.disa = 0.
         self.max_fuel.altp = self.airplane.cruise_altp
         self.max_fuel.mach = self.airplane.cruise_mach
         self.max_fuel.tow = self.airplane.mass.mtow
@@ -1339,7 +1336,6 @@ class Missions(Flight):
     def eval_zero_payload_mission(self):
         """Compute missions
         """
-        self.zero_payload.disa = 0.
         self.zero_payload.altp = self.airplane.cruise_altp
         self.zero_payload.mach = self.airplane.cruise_mach
         self.zero_payload.tow = self.airplane.mass.owe + self.airplane.mass.mfw
@@ -1350,7 +1346,6 @@ class Missions(Flight):
     def eval_cost_mission(self):
         """Compute missions
         """
-        self.cost.disa = 0.
         self.cost.altp = self.airplane.cruise_altp
         self.cost.mach = self.airplane.cruise_mach
         self.cost.range = self.airplane.cost_range
@@ -1362,7 +1357,6 @@ class Missions(Flight):
         """Compute missions
         """
         self.eval_max_payload_mission()
-        self.eval_nominal_mission()
         self.eval_max_fuel_mission()
         self.eval_zero_payload_mission()
         self.eval_cost_mission()
@@ -1372,7 +1366,7 @@ class Breguet(Flight):
     def __init__(self, airplane, holding_time, reserve_fuel_ratio, diversion_range):
         super(Breguet, self).__init__(airplane)
 
-        self.disa = None    # Mean cruise temperature shift
+        self.disa = 0.      # Mean cruise temperature shift
         self.altp = None    # Mean cruise altitude
         self.mach = None    # Cruise mach number
 
