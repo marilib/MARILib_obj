@@ -191,12 +191,19 @@ class Airplane(object):
         print("")
         print("Max payload mission range = "+"%.0f"%unit.NM_m(self.missions.max_payload.range)+" NM")
         print("Max payload mission payload = "+"%.0f"%self.missions.max_payload.payload+" kg")
+        print("Max payload mission residual = "+"%.4f"%self.missions.max_payload.residual)
         print("")
         print("Max fuel mission range = "+"%.0f"%unit.NM_m(self.missions.max_fuel.range)+" NM")
         print("Max fuel mission payload = "+"%.0f"%self.missions.max_fuel.payload+" kg")
+        print("Max fuel mission residual = "+"%.4f"%self.missions.max_fuel.residual)
         print("")
         print("Zero payload mission range = "+"%.0f"%unit.NM_m(self.missions.zero_payload.range)+" NM")
         print("Zero payload mission payload = "+"%.0f"%self.missions.zero_payload.payload+" kg")
+        print("Zero payload mission residual = "+"%.4f"%self.missions.zero_payload.residual)
+        print("")
+        print("Cost mission range = "+"%.0f"%self.missions.cost.tow+" kg")
+        print("Cost mission fuel_block = "+"%.0f"%self.missions.cost.fuel_block+" kg")
+        print("Cost mission residual = "+"%.4f"%self.missions.zero_payload.residual)
         print("")
         print("-------------------------------------------------------")
         print("Take off field length required = "+"%.1f"%self.operations.take_off.tofl_req+" m")
@@ -641,8 +648,6 @@ class HTP(Component):
         self.position = fuselage.length - 1.30 * self.axe_c
         self.lever_arm = (self.position + self.mac_position + 0.25*self.mac) - (wing.position + wing.mac_position + 0.25*wing.mac)
 
-        self.area = self.volume * wing.area * wing.mac / self.lever_arm
-
         self.wet_area = 1.63*self.area
         self.aero_length = self.mac
 
@@ -657,6 +662,10 @@ class HTP(Component):
 
         self.axe_loc = np.array([x_axe, y_axe, z_axe])
         self.tip_loc = np.array([x_tip, y_tip, z_tip])
+
+    def eval_area(self):
+        wing = self.airplane.wing
+        self.area = self.volume * wing.area * wing.mac / self.lever_arm
 
     def eval_mass(self):
         self.mass = 22. * self.area
@@ -746,8 +755,6 @@ class VTP(Component):
         self.position = htp.position - 0.35 * self.root_c
         self.lever_arm = (self.position + self.mac_position + 0.25*self.mac) - (wing.position + wing.mac_position + 0.25*wing.mac)
 
-        self.area = self.thrust_volume * (1.e-3*nacelles.engine_slst) * nacelles.span_position / self.lever_arm
-
         self.wet_area = 2.0*self.area
         self.aero_length = self.mac
 
@@ -762,6 +769,10 @@ class VTP(Component):
 
         self.root_loc = np.array([x_root, y_root, z_root])
         self.tip_loc = np.array([x_tip, y_tip, z_tip])
+
+    def eval_area(self):
+        nacelles = self.airplane.nacelles
+        self.area = self.thrust_volume * (1.e-3*nacelles.engine_slst) * nacelles.span_position / self.lever_arm
 
     def eval_mass(self):
         self.mass = 25. * self.area
@@ -958,6 +969,10 @@ class Geometry(object):
         self.total_wet_area = 0.
         for comp in self.airplane:
             self.total_wet_area += comp.wet_area
+
+    def eval_tail_areas(self):
+        self.airplane.htp.eval_area()
+        self.airplane.vtp.eval_area()
 
     def eval(self):
         """Compute global geometrical data
@@ -1902,7 +1917,11 @@ if __name__ == "__main__":
 
     ap.htp.eval()
 
+    ap.htp.eval_area()
+
     ap.vtp.eval()
+
+    ap.vtp.eval_area()
 
     ap.nacelles.eval()
 
@@ -1914,6 +1933,8 @@ if __name__ == "__main__":
 # High level process view
 #-----------------------------------------
     ap.geometry.eval()
+
+    ap.geometry.eval_tail_areas()
 
     ap.mass.eval()
 
@@ -1938,7 +1959,11 @@ if __name__ == "__main__":
 
     ap.htp.eval_geometry()          # HTP area to be computed
 
+    ap.htp.eval_area()          # HTP area to be computed
+
     ap.vtp.eval_geometry()          # VTP area to be computed
+
+    ap.vtp.eval_area()          # VTP area to be computed
 
     ap.nacelles.eval_geometry()
 
