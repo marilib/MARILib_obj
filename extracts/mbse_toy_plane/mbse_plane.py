@@ -1003,14 +1003,16 @@ class Mass(object):
         self.nominal_payload = None
         self.max_payload = None
 
-    def eval_owe(self):
+    def eval(self):
         """Mass computations
         """
+        for comp in self.airplane:
+            comp.eval_mass()
+
+    def eval_characteristic_mass(self):
         self.owe = 0.
         for comp in self.airplane:
             self.owe += comp.mass
-
-    def eval_other_mass(self):
         self.nominal_payload = 105. * self.airplane.cabin.n_pax
         self.max_payload = 120. * self.airplane.cabin.n_pax
         self.mtow = self.owe + self.nominal_payload + self.airplane.missions.nominal.fuel_total
@@ -1018,16 +1020,6 @@ class Mass(object):
         self.mlw = 1.07 * self.mzfw
         self.mwe = self.owe - self.airplane.cabin.m_op_item
         self.mfw = 803. * self.airplane.tank.fuel_volume
-
-    def eval(self):
-        """Mass computations
-        """
-        self.owe = 0.
-        for comp in self.airplane:
-            comp.eval_mass()
-            self.owe += comp.mass
-
-        self.eval_other_mass()
 
 
 class Aerodynamics(object):
@@ -1905,31 +1897,6 @@ if __name__ == "__main__":
     ap = Airplane()
 
 
-# Component view
-#-----------------------------------------
-    ap.cabin.eval()
-
-    ap.fuselage.eval()
-
-    ap.wing.eval()
-
-    ap.tank.eval()
-
-    ap.htp.eval()
-
-    ap.htp.eval_area()
-
-    ap.vtp.eval()
-
-    ap.vtp.eval_area()
-
-    ap.nacelles.eval()
-
-    ap.landing_gears.eval()
-
-    ap.systems.eval()
-
-
 # High level process view
 #-----------------------------------------
     ap.geometry.eval()
@@ -1937,6 +1904,8 @@ if __name__ == "__main__":
     ap.geometry.eval_tail_areas()
 
     ap.mass.eval()
+
+    ap.mass.eval_characteristic_mass()
 
     ap.missions.eval_nominal_mission()
 
@@ -1992,9 +1961,7 @@ if __name__ == "__main__":
 
     ap.systems.eval_mass()
 
-    ap.mass.eval_owe()
-
-    ap.mass.eval_other_mass()
+    ap.mass.eval_characteristic_mass()
 
 
     ap.missions.eval_nominal_mission()
