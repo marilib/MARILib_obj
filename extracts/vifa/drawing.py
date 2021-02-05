@@ -44,6 +44,8 @@ def plot_side_view(plt,x_shift,y_shift,dl,dm,kScale):
 
     eps = numpy.finfo(float).eps
 
+    plt.arrow(x_shift-geo.mgApp[0], y_shift-geo.mgApp[2], -kScale*geo.mg[0], -kScale*geo.mg[2], linewidth=0.1, width=0.2, color="black", shape="full", zorder=1)
+
     if (numpy.linalg.norm(geo.rWafVec)>eps):
         plt.arrow(x_shift-geo.WingRapp[0], y_shift-geo.WingRapp[2], -kScale*geo.rWafVec[0], -kScale*geo.rWafVec[2], linewidth=0.1, width=0.2, color="blue", shape="left", zorder=1)
 
@@ -131,6 +133,8 @@ def plot_back_view(plt,x_shift,y_shift,kScale):
 
 
     eps = numpy.finfo(float).eps
+
+    plt.arrow(x_shift+geo.mgApp[1], y_shift+geo.mgApp[2], kScale*geo.mg[1], -kScale*geo.mg[2], linewidth=0.1, width=0.2, color="black", shape="full", zorder=20)
 
     if (numpy.linalg.norm(geo.rWafVec)>eps):
         plt.arrow(x_shift+geo.WingRapp[1], y_shift-geo.WingRapp[2], kScale*geo.rWafVec[1], -kScale*geo.rWafVec[2], linewidth=0.1, width=0.2, color="blue", shape="left", zorder=20)

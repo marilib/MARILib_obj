@@ -10,19 +10,20 @@ import numpy
 import math
 
 import data as geo
-from tools import rad_deg, angle, renorm, ps, pv
+from tools import rad_deg, angle, norm, renorm, rotate, ps, pv
 
 
 #===================================================================================================================
-def force(mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn):
+def force(a0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn):
 
     g = 9.80665
     rho = 1.225
 
     Kdl = 0.20
-    Kdm = 0.90
+    Kdm = 0.80
     Kdn = 0.90
 
+    origin = numpy.array([0,0,0])
     uX = numpy.array([1,0,0])
     uY = numpy.array([0,1,0])
     uZ = numpy.array([0,0,1])
@@ -45,9 +46,9 @@ def force(mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn):
 
     tRatt = numpy.transpose(Ratt)
 
-    mg = g*mass*numpy.matmul(tRatt,[0.,0.,1.])        # Wairplane weight in airplane frame
+    # mg = g*mass*numpy.matmul(tRatt,[0.,0.,1.])        # Wairplane weight in airplane frame
 
-    mgApp = -(geo.WingXmac+xcg*geo.WingCmac)*uX           # Weight application point
+    geo.mgApp = -(geo.WingXmac+xcg*geo.WingCmac)*uX           # Weight application point
 
     # -----------------------------------------------------------------------------------------------------------
     Rbetha = numpy.array([[ math.cos(betha) , math.sin(betha) , 0. ],
@@ -57,10 +58,13 @@ def force(mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn):
     Ralpha = numpy.array([[ math.cos(alpha) , 0. , math.sin(alpha) ],
                           [ 0.              , 1. , 0.              ],
                           [-math.sin(alpha) , 0. , math.cos(alpha) ]])
+    tRalpha = numpy.transpose(Ralpha)
 
     Rba = numpy.matmul(Rbetha,Ralpha)
 
     Rab = numpy.transpose(Rba)
+
+    geo.mg = g*mass*numpy.matmul(Rab,[0.,0.,1.])        # Airplane weight in airplane frame supposing horizontal flight
 
     VairAf = vair*uX    # Airspeed in Aerodynamic frame
 
@@ -70,12 +74,15 @@ def force(mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn):
 
     # Aerodynamic
     # -------------------------------------------------------------------------------------------------------------------------
-    tRalpha = numpy.transpose(Ralpha)
+    WingAxe = rotate(origin, uY, a0, geo.WingAxe)
 
-    SpanDir = Rab[:,1]      # Span projection direction
+    WingRaxe = rotate(origin, uY, a0, geo.WingRaxe)
+    WingRnorm = renorm(pv(WingAxe,WingRaxe))
+    rWspan = norm(WingRaxe - ps(WingRaxe,Vdir)*Vdir)      # Right wing projected span
 
-    rWspan = ps(geo.WingRaxe,SpanDir)      # Right wing projected span
-    lWspan = ps(geo.WingLaxe,-SpanDir)      # Left wing projected span
+    WingLaxe = rotate(origin, uY, a0, geo.WingLaxe)
+    WingLnorm = renorm(pv(WingAxe,-WingLaxe))
+    lWspan = norm(WingLaxe - ps(WingLaxe,Vdir)*Vdir)      # Left wing projected span
 
     rWar = (2*rWspan)**2/geo.WingArea      # Virtual right wing aspect ratio
     lWar = (2*lWspan)**2/geo.WingArea      # Virtual left wing aspect ratio
@@ -83,54 +90,39 @@ def force(mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn):
     CzaWr = 0.5*(numpy.pi*rWar)/(1+math.sqrt(1+(rWar/2)**2))      # Right wing lift gradiant
     CzaWl = 0.5*(numpy.pi*lWar)/(1+math.sqrt(1+(lWar/2)**2))      # Left wing lift gradiant
 
-    rWortho = renorm(pv(geo.WingCdir,geo.WingRdir))
-    lWortho = renorm(pv(-geo.WingCdir,geo.WingLdir))
-
-    rWalphaDir = -renorm(pv(SpanDir,rWortho))
-    lWalphaDir = -renorm(pv(SpanDir,lWortho))
-
-    rWliftDir = pv(SpanDir,rWalphaDir)      # Right wing lift direction
-    lWliftDir = pv(SpanDir,lWalphaDir)      # Left wing lift direction
-
-    rWcos_a = ps(rWalphaDir,Vdir)
-    rWsin_a = ps(pv(Vdir,rWalphaDir),SpanDir)
-    rWalpha = angle(rWsin_a, rWcos_a, 1)      # Right wing angle of attack
-
-    lWcos_a = ps(lWalphaDir,Vdir)
-    lWsin_a = ps(pv(Vdir,lWalphaDir),SpanDir)
-    lWalpha = angle(lWsin_a, lWcos_a, 1)      # Left wing angle of attack
+    rWalpha = numpy.arcsin(ps(-Vdir,WingRnorm))      # Right wing angle of attack
+    lWalpha = numpy.arcsin(ps(-Vdir,WingLnorm))      # Left wing angle of attack
 
     rAalpha = math.atan(geo.AilCmed*math.sin(dl)/((geo.AilWingCmed-geo.AilCmed)+geo.AilCmed*math.cos(dl)))
     lAalpha = math.atan(geo.AilCmed*math.sin(-dl)/((geo.AilWingCmed-geo.AilCmed)+geo.AilCmed*math.cos(-dl)))
 
+    rWliftDir = renorm(WingRnorm - ps(WingRnorm,Vdir)*Vdir)
+    lWliftDir = renorm(WingLnorm - ps(WingLnorm,Vdir)*Vdir)
+
     # -------------------------------------------------------------------------------------------------------------------------
-    rHspan = ps(geo.HtpRaxe,SpanDir)      # Right HTP projected span
-    lHspan = ps(geo.HtpLaxe,-SpanDir)      # Left HTP projected span
+    HtpAxe = rotate(origin, uY, trim, geo.HtpAxe)
 
-    rHar = (2*rHspan)**2/geo.HtpArea      # Virtual right HTP aspect ratio
-    lHar = (2*lHspan)**2/geo.HtpArea      # Virtual left HTP aspect ratio
+    HtpRaxe = rotate(origin, uY, trim, geo.HtpRaxe)
+    HtpRnorm = renorm(pv(HtpAxe,HtpRaxe))
+    rHspan = norm(HtpRaxe - ps(HtpRaxe,Vdir)*Vdir)      # Right Htp projected span
 
-    CzaHr = 0.5*(math.pi*rHar)/(1+math.sqrt(1+(rHar/2)**2))
-    CzaHl = 0.5*(math.pi*lHar)/(1+math.sqrt(1+(lHar/2)**2))
+    HtpLaxe = rotate(origin, uY, trim, geo.HtpLaxe)
+    HtpLnorm = renorm(pv(HtpAxe,-HtpLaxe))
+    lHspan = norm(HtpLaxe - ps(HtpLaxe,Vdir)*Vdir)      # Left Htp projected span
 
-    rHortho = renorm(pv(geo.HtpCdir,geo.HtpRdir))
-    lHortho = renorm(pv(-geo.HtpCdir,geo.HtpLdir))
+    rHar = (2*rHspan)**2/geo.HtpArea      # Virtual right Htp aspect ratio
+    lHar = (2*lHspan)**2/geo.HtpArea      # Virtual left Htp aspect ratio
 
-    rHalphaDir = -renorm(pv(SpanDir,rHortho))
-    lHalphaDir = -renorm(pv(SpanDir,lHortho))
+    CzaHr = 0.5*(numpy.pi*rHar)/(1+math.sqrt(1+(rHar/2)**2))      # Right Htp lift gradiant
+    CzaHl = 0.5*(numpy.pi*lHar)/(1+math.sqrt(1+(lHar/2)**2))      # Left Htp lift gradiant
 
-    rHliftDir = pv(SpanDir,rHalphaDir)
-    lHliftDir = pv(SpanDir,lHalphaDir)
-
-    rHcos_a = ps(rHalphaDir,Vdir)
-    rHsin_a = ps(pv(Vdir,rHalphaDir),SpanDir)
-    rHalpha = angle(rHsin_a, rHcos_a, 1)      # Right HTP angle of attack
-
-    lHcos_a = ps(lHalphaDir,Vdir)
-    lHsin_a = ps(pv(Vdir,lHalphaDir),SpanDir)
-    lHalpha = angle(lHsin_a, lHcos_a, 1)      # Left HTP angle of attack
+    rHalpha = numpy.arcsin(ps(-Vdir,HtpRnorm))      # Right Htp angle of attack
+    lHalpha = numpy.arcsin(ps(-Vdir,HtpLnorm))      # Left Htp angle of attack
 
     rEalpha = math.atan(geo.ElevCaxe*math.sin(dm)/((geo.ElevHtpCaxe-geo.ElevCaxe)+geo.ElevCaxe*math.cos(dm)))
+
+    rHliftDir = renorm(HtpRnorm - ps(HtpRnorm,Vdir)*Vdir)
+    lHliftDir = renorm(HtpLnorm - ps(HtpLnorm,Vdir)*Vdir)
 
     # -------------------------------------------------------------------------------------------------------------------------
     vSpan = abs(ps(geo.VtpAxe,tRalpha[:,2]))
@@ -140,7 +132,6 @@ def force(mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn):
     CzaV = (math.pi*Var)/(1+math.sqrt(1+(Var/2)**2))      # VTP lift gradiant
 
     VliftDir = renorm(pv(Vdir,uZ))      # VTP lift direction
-    # VTP lift direction
 
     Valpha = betha      # VTP angle of attack
 
@@ -149,25 +140,35 @@ def force(mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn):
     # Forces
     # -------------------------------------------------------------------------------------------------------------------------
     Qdyn = 0.5*rho*vair**2
+    WingRotP = numpy.array([-geo.WingXaxe-0.5*geo.WingCaxe, 0., -geo.WingZaxe])
+    WingRotAxe = uY
 
-    geo.WingRapp = numpy.array([-geo.WingXmac-0.25*geo.WingCmac , geo.WingYmac , -geo.WingZmac])     # Right wing lift application point
+    WingRapp = numpy.array([-geo.WingXmac-0.25*geo.WingCmac , geo.WingYmac , -geo.WingZmac])     # Right wing lift application point
+    geo.WingRapp = rotate(WingRotP, WingRotAxe, a0, WingRapp)
     geo.rWafVec = Qdyn*geo.WingArea*CzaWr*rWalpha*rWliftDir
 
-    geo.AilRapp = numpy.array([-geo.AilWingXmed-0.25*geo.AilWingCmed , geo.AilYmed , -geo.AilZmed])      # Right aileron lift application point
+    AilRapp = numpy.array([-geo.AilWingXmed-0.25*geo.AilWingCmed , geo.AilYmed , -geo.AilZmed])      # Right aileron lift application point
+    geo.AilRapp = rotate(WingRotP, WingRotAxe, a0, AilRapp)
     geo.rAafVec = Qdyn*geo.WingArea*Kdl*CzaWr*rAalpha*rWliftDir
 
-    geo.WingLapp = numpy.array([-geo.WingXmac-0.25*geo.WingCmac , -geo.WingYmac , -geo.WingZmac])      # Left wing lift application point
+    WingLapp = numpy.array([-geo.WingXmac-0.25*geo.WingCmac , -geo.WingYmac , -geo.WingZmac])      # Left wing lift application point
+    geo.WingLapp = rotate(WingRotP, WingRotAxe, a0, WingLapp)
     geo.lWafVec = Qdyn*geo.WingArea*CzaWl*lWalpha*lWliftDir
 
-    geo.AilLapp = numpy.array([-geo.AilWingXmed-0.25*geo.AilWingCmed , -geo.AilYmed , -geo.AilZmed])      # Left aileron lift application point
+    AilLapp = numpy.array([-geo.AilWingXmed-0.25*geo.AilWingCmed , -geo.AilYmed , -geo.AilZmed])      # Left aileron lift application point
+    geo.AilLapp = rotate(WingRotP, WingRotAxe, a0, AilLapp)
     geo.lAafVec = Qdyn*geo.WingArea*Kdl*CzaWl*lAalpha*lWliftDir
 
+    HtpRotP = numpy.array([-geo.HtpXaxe-0.5*geo.HtpCaxe, 0., -geo.HtpZaxe])
+    HtpRotAxe = uY
 
-    geo.HtpRapp = numpy.array([-geo.HtpXmac-0.25*geo.HtpCmac , geo.HtpYmac , -geo.HtpZmac])      # Right HTP lift application point
+    HtpRapp = numpy.array([-geo.HtpXmac-0.25*geo.HtpCmac , geo.HtpYmac , -geo.HtpZmac])      # Right HTP lift application point
+    geo.HtpRapp = rotate(HtpRotP, HtpRotAxe, trim, HtpRapp)
     geo.rHafVec = Qdyn*geo.HtpArea*CzaHr*rHalpha*rHliftDir
     geo.rEafVec = Qdyn*geo.HtpArea*Kdm*CzaHr*rEalpha*rHliftDir
 
-    geo.HtpLapp = numpy.array([-geo.HtpXmac-0.25*geo.HtpCmac , -geo.HtpYmac , -geo.HtpZmac])      # Left HTP lift application point
+    HtpLapp = numpy.array([-geo.HtpXmac-0.25*geo.HtpCmac , -geo.HtpYmac , -geo.HtpZmac])      # Left HTP lift application point
+    geo.HtpLapp = rotate(HtpRotP, HtpRotAxe, trim, HtpLapp)
     geo.lHafVec = Qdyn*geo.HtpArea*CzaHl*lHalpha*lHliftDir
     geo.lEafVec = Qdyn*geo.HtpArea*Kdm*CzaHl*rEalpha*lHliftDir
 
@@ -180,24 +181,21 @@ def force(mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn):
     # Moments
     #--------------------------------------------------------------------------------------------------------------
 
-    Ftotal =   mg \
-             + geo.rWafVec + geo.lWafVec \
-             + geo.rAafVec + geo.lAafVec \
-             + geo.rHafVec+geo.rEafVec + geo.lHafVec+geo.lEafVec \
+    Ftotal =   geo.mg \
+             + geo.rWafVec + geo.lWafVec + geo.rAafVec + geo.lAafVec \
+             + geo.rHafVec + geo.rEafVec + geo.lHafVec + geo.lEafVec \
              + geo.VafVec + geo.RafVec
 
-    Mtotal =   pv(mgApp,mg) \
-             + pv(geo.WingRapp,geo.rWafVec) + pv(geo.WingLapp,geo.lWafVec) \
-             + pv(geo.AilRapp,geo.rAafVec) + pv(geo.AilLapp,geo.lAafVec) \
-             + pv(geo.HtpRapp,(geo.rHafVec+geo.rEafVec)) + pv(geo.HtpLapp,(geo.lHafVec+geo.lEafVec)) \
-             + pv(geo.FusApp,geo.VafVec) + pv(geo.VtpApp,geo.RafVec)
+    Mtotal =   pv((geo.WingRapp-geo.mgApp),geo.rWafVec) + pv((geo.WingLapp-geo.mgApp),geo.lWafVec) \
+             + pv((geo.AilRapp-geo.mgApp),geo.rAafVec) + pv((geo.AilLapp-geo.mgApp),geo.lAafVec) \
+             + pv((geo.HtpRapp-geo.mgApp),(geo.rHafVec+geo.rEafVec)) + pv((geo.HtpLapp-geo.mgApp),(geo.lHafVec+geo.lEafVec)) \
+             + pv((geo.FusApp-geo.mgApp),geo.VafVec) + pv((geo.VtpApp-geo.mgApp),geo.RafVec)
 
     geo.Ftotal = Ftotal
 
-    geo.MtotalXg = Mtotal + pv(mgApp,Ftotal)
+    geo.MtotalXg = Mtotal
 
     geo.MtotalAnchor = numpy.array([1.35*geo.FusLength , 0.95*geo.WingSpan , 0.50*geo.FusHeight])
-
 
     return
 

@@ -14,7 +14,7 @@ from tools import rad_deg, renorm
 
 
 #===================================================================================================================
-def geometry(a0,trim):
+def geometry():
 
     # VTP
     #-----------------------------------------------------------------------------------------------------------
@@ -44,9 +44,11 @@ def geometry(a0,trim):
     geo.RudZroot = (geo.VtpZroot*(1-geo.RudHeightRatioInt) + geo.VtpZtip*geo.RudHeightRatioInt)
 
     # ATTENTION changement de repère
+    geo.VtpRoot = numpy.array([-geo.VtpCroot , 0 , 0])
     geo.VtpAxe =   numpy.array([-geo.VtpXtip-0.25*geo.VtpCtip , geo.VtpYtip , -geo.VtpZtip]) \
                  - numpy.array([-geo.VtpXroot-0.25*geo.VtpCroot , 0 , -geo.VtpZroot])
     geo.VtpDir = renorm(geo.VtpAxe)
+
 
     # HTP
     #-----------------------------------------------------------------------------------------------------------
@@ -80,18 +82,16 @@ def geometry(a0,trim):
     geo.ElevZaxe = (geo.HtpZaxe*(1-geo.ElevSpanRatioInt) + geo.HtpZtip*geo.ElevSpanRatioInt)
 
     # ATTENTION changement de repère
-    geo.HtpCdir = numpy.array([-math.cos(trim) , 0. , -math.sin(trim)])
+    geo.HtpAxe = numpy.array([-geo.HtpCaxe , 0 , 0])
 
     geo.HtpRaxe =  numpy.array([-geo.HtpXtip-0.25*geo.HtpCtip , geo.HtpYtip , -geo.HtpZtip]) \
                  - numpy.array([-geo.HtpXaxe-0.25*geo.HtpCaxe , 0 , -geo.HtpZaxe])
     geo.HtpRdir = renorm(geo.HtpRaxe)
 
-    geo.HtpAxe = renorm(geo.HtpRaxe)
-    geo.HtpRnorm = renorm(geo.HtpRaxe)
-
     geo.HtpLaxe =  numpy.array([-geo.HtpXtip-0.25*geo.HtpCtip , -geo.HtpYtip , -geo.HtpZtip]) \
                  - numpy.array([-geo.HtpXaxe-0.25*geo.HtpCaxe , 0. , -geo.HtpZaxe])
     geo.HtpLdir = renorm(geo.HtpLaxe)
+
 
     # Wing
     # -----------------------------------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ def geometry(a0,trim):
     geo.AilZmed = 0.40*geo.AilZint + 0.60*geo.AilZext
 
     # ATTENTION changement de repère
-    geo.WingCdir = numpy.array([-math.cos(a0) , 0 , -math.sin(a0)])
+    geo.WingAxe = numpy.array([-geo.WingCaxe , 0 , 0])
 
     geo.WingRaxe =  numpy.array([-geo.WingXtip-0.25*geo.WingCtip , geo.WingYtip , -geo.WingZtip]) \
                   - numpy.array([-geo.WingXaxe-0.25*geo.WingCaxe , 0. , -geo.WingZaxe])

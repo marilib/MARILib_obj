@@ -116,24 +116,6 @@ def contour(a0,trim,dl,dm,dn):
     geo.lWingXYZ[:,1] = -geo.rWingXYZ[:,1]
 
 
-    #
-    #
-    #
-    # geo.rWingXYZ = numpy.array([[geo.WingXaxe              ,  0            , geo.WingZaxe ],
-    #                             [geo.WingXtip              ,  geo.WingYtip , geo.WingZtip ],
-    #                             [geo.AilXext ,  geo.WingYtip , geo.AilZext ],
-    #                             [geo.AilXint               ,  geo.AilYint  , geo.AilZint  ],
-    #                             [geo.AilXint+geo.AilCint   ,  geo.AilYint  , geo.AilZint  ],
-    #                             [geo.WingXaxe+geo.WingCaxe ,  0            , geo.WingZaxe ],
-    #                             [geo.WingXaxe              ,  0            , geo.WingZaxe ]])
-    #
-    #
-    # geo.lWingXYZ = numpy.copy(geo.rWingXYZ)
-    # geo.lWingXYZ[:,1] = -geo.rWingXYZ[:,1]
-    #
-    
- 
-
     # Aileron
     # -------------------------------------------------------------------------------------------------------------------------
     p0 = rotate(geo.WingRotP, geo.WingRotAxe, a0, numpy.array([geo.AilXint             , geo.AilYint  , geo.AilZint ]))
@@ -157,8 +139,6 @@ def contour(a0,trim,dl,dm,dn):
     p3 = rotate(p0,axis,dl,p3)
 
     geo.lAilXYZ = numpy.array([p0,p1,p2,p3,p0])
-    
-   
     
 
     # Nacelle
