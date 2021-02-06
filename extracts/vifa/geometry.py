@@ -155,5 +155,6 @@ def geometry():
     geo.NacZaxe = geo.NacYaxe*math.tan(geo.WingDihedral) - 0.5*geo.NacWidth
 
     # ATTENTION changement de repère
-    geo.NacApp = numpy.array([-geo.NacXaxe , geo.NacYaxe , -geo.NacZaxe])
+    geo.NacLapp = numpy.array([-geo.NacXaxe , geo.NacYaxe , -geo.NacZaxe])
+    geo.NacRapp = numpy.array([-geo.NacXaxe , -geo.NacYaxe , -geo.NacZaxe])
 

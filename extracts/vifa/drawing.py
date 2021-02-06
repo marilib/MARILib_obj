@@ -44,7 +44,11 @@ def plot_side_view(plt,x_shift,y_shift,dl,dm,kScale):
 
     eps = numpy.finfo(float).eps
 
+    plt.arrow(x_shift-geo.LiftApp[0], y_shift-geo.LiftApp[2], -kScale*geo.LiftTotal[0], -kScale*geo.LiftTotal[2], linewidth=0.1, width=0.2, color="darkturquoise", shape="full", zorder=1)
+
     plt.arrow(x_shift-geo.mgApp[0], y_shift-geo.mgApp[2], -kScale*geo.mg[0], -kScale*geo.mg[2], linewidth=0.1, width=0.2, color="black", shape="full", zorder=1)
+
+    plt.arrow(x_shift-geo.NacLapp[0], y_shift-geo.NacLapp[2], -kScale*geo.lNtfVec[0], -kScale*geo.lNtfVec[2], linewidth=0.1, width=0.2, color="darkred", shape="full", zorder=1)
 
     if (numpy.linalg.norm(geo.rWafVec)>eps):
         plt.arrow(x_shift-geo.WingRapp[0], y_shift-geo.WingRapp[2], -kScale*geo.rWafVec[0], -kScale*geo.rWafVec[2], linewidth=0.1, width=0.2, color="blue", shape="left", zorder=1)
@@ -134,7 +138,9 @@ def plot_back_view(plt,x_shift,y_shift,kScale):
 
     eps = numpy.finfo(float).eps
 
-    plt.arrow(x_shift+geo.mgApp[1], y_shift+geo.mgApp[2], kScale*geo.mg[1], -kScale*geo.mg[2], linewidth=0.1, width=0.2, color="black", shape="full", zorder=20)
+    plt.arrow(x_shift+geo.LiftApp[1], y_shift-geo.LiftApp[2], kScale*geo.LiftTotal[1], -kScale*geo.LiftTotal[2], linewidth=0.1, width=0.2, color="darkturquoise", shape="full", zorder=20)
+
+    plt.arrow(x_shift+geo.mgApp[1], y_shift-geo.mgApp[2], kScale*geo.mg[1], -kScale*geo.mg[2], linewidth=0.1, width=0.2, color="black", shape="full", zorder=20)
 
     if (numpy.linalg.norm(geo.rWafVec)>eps):
         plt.arrow(x_shift+geo.WingRapp[1], y_shift-geo.WingRapp[2], kScale*geo.rWafVec[1], -kScale*geo.rWafVec[2], linewidth=0.1, width=0.2, color="blue", shape="left", zorder=20)
@@ -193,6 +199,10 @@ def plot_top_view(plt,x_shift,y_shift,kScale):
     plt.plot(x_shift+geo.RudXYZ[0:,0], y_shift+geo.RudXYZ[0:,1], c="grey", zorder=12)
 
     eps = numpy.finfo(float).eps
+
+    plt.arrow(x_shift-geo.NacLapp[0], y_shift+geo.NacLapp[1], -kScale*geo.lNtfVec[0], kScale*geo.lNtfVec[1], linewidth=0.1, width=0.2, color="darkred", shape="full", zorder=20)
+
+    plt.arrow(x_shift-geo.NacRapp[0], y_shift+geo.NacRapp[1], -kScale*geo.rNtfVec[0], kScale*geo.rNtfVec[1], linewidth=0.1, width=0.2, color="darkred", shape="full", zorder=20)
 
     if (geo.rWafVec[2]<-eps):
         plt.arrow(x_shift-geo.WingRapp[0], y_shift+geo.WingRapp[1], -kScale*geo.rWafVec[0], kScale*geo.rWafVec[1], linewidth=0.1, width=0.2, color="blue", shape="left", zorder=20)

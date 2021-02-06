@@ -21,26 +21,33 @@ from drawing import init_plot_view, \
 
 import matplotlib.pyplot as plt
 
-xcg = 0.255
+g = 9.80665
+
+xcg = 0.2555
 mass = 70000
 
 vair = 150
 
-psi = 0
-theta = 0
-phi = 0
+psi = rad_deg(0)
+theta = rad_deg(10)
+phi = rad_deg(10)
 
 alpha = rad_deg(0)
-betha = rad_deg(0)
+betha = rad_deg(5)
 
-dl = rad_deg(0)
+dl = rad_deg(-4)
 dm = rad_deg(0)
-dn = rad_deg(0)
+dn = rad_deg(5)
+dx = 1
 
 trim = rad_deg(0)
 
 a0 = rad_deg(3.031)
+f0 = mass*g/5
 
+p = rad_deg(0)
+q = rad_deg(0)
+r = rad_deg(0)
 
 
 
@@ -49,7 +56,7 @@ geometry()
 
 contour(a0,trim,dl,dm,dn)
 
-force(a0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn)
+force(a0,f0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn,dx,p,q,r)
 
 
 

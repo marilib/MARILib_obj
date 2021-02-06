@@ -10,11 +10,11 @@ import numpy
 import math
 
 import data as geo
-from tools import rad_deg, angle, norm, renorm, rotate, ps, pv
+from tools import rad_deg, angle, norm, renorm, rotate, ps, pv, skew_sym, det, inv
 
 
 #===================================================================================================================
-def force(a0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn):
+def force(a0,f0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn,dx,p,q,r):
 
     g = 9.80665
     rho = 1.225
@@ -46,9 +46,9 @@ def force(a0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn):
 
     tRatt = numpy.transpose(Ratt)
 
-    # mg = g*mass*numpy.matmul(tRatt,[0.,0.,1.])        # Wairplane weight in airplane frame
+    geo.mg = g*mass*numpy.matmul(tRatt,[0.,0.,1.])        # Wairplane weight in airplane frame
 
-    geo.mgApp = -(geo.WingXmac+xcg*geo.WingCmac)*uX           # Weight application point
+    geo.mgApp = numpy.array([-geo.WingXmac-xcg*geo.WingCmac , 0 , -geo.WingZmac])     # Weight application point
 
     # -----------------------------------------------------------------------------------------------------------
     Rbetha = numpy.array([[ math.cos(betha) , math.sin(betha) , 0. ],
@@ -63,8 +63,6 @@ def force(a0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn):
     Rba = numpy.matmul(Rbetha,Ralpha)
 
     Rab = numpy.transpose(Rba)
-
-    geo.mg = g*mass*numpy.matmul(Rab,[0.,0.,1.])        # Airplane weight in airplane frame supposing horizontal flight
 
     VairAf = vair*uX    # Airspeed in Aerodynamic frame
 
@@ -178,24 +176,31 @@ def force(a0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn):
     geo.VtpApp = numpy.array([-geo.VtpXmac-0.25*geo.VtpCmac , 0 , -geo.VtpZmac])
     geo.RafVec = ps(-Qdyn*geo.VtpArea*Kdn*CzaV*Ralpha*VliftDir, uY)*uY
 
+    geo.lNtfVec = uX*f0*dx
+    geo.rNtfVec = uX*f0*dx
+
     # Moments
     #--------------------------------------------------------------------------------------------------------------
 
-    Ftotal =   geo.mg \
-             + geo.rWafVec + geo.lWafVec + geo.rAafVec + geo.lAafVec \
-             + geo.rHafVec + geo.rEafVec + geo.lHafVec + geo.lEafVec \
-             + geo.VafVec + geo.RafVec
+    geo.LiftTotal =   geo.rWafVec + geo.lWafVec + geo.rAafVec + geo.lAafVec \
+                    + geo.rHafVec + geo.rEafVec + geo.lHafVec + geo.lEafVec \
+                    + geo.VafVec + geo.RafVec
 
-    Mtotal =   pv((geo.WingRapp-geo.mgApp),geo.rWafVec) + pv((geo.WingLapp-geo.mgApp),geo.lWafVec) \
-             + pv((geo.AilRapp-geo.mgApp),geo.rAafVec) + pv((geo.AilLapp-geo.mgApp),geo.lAafVec) \
-             + pv((geo.HtpRapp-geo.mgApp),(geo.rHafVec+geo.rEafVec)) + pv((geo.HtpLapp-geo.mgApp),(geo.lHafVec+geo.lEafVec)) \
-             + pv((geo.FusApp-geo.mgApp),geo.VafVec) + pv((geo.VtpApp-geo.mgApp),geo.RafVec)
+    geo.MliftTotal =    pv(geo.WingRapp,geo.rWafVec) + pv(geo.WingLapp,geo.lWafVec) \
+                      + pv(geo.AilRapp,geo.rAafVec) + pv(geo.AilLapp,geo.lAafVec) \
+                      + pv(geo.HtpRapp,(geo.rHafVec+geo.rEafVec)) + pv(geo.HtpLapp,(geo.lHafVec+geo.lEafVec)) \
+                      + pv(geo.FusApp,geo.VafVec) + pv(geo.VtpApp,geo.RafVec)
 
-    geo.Ftotal = Ftotal
+    geo.LiftApp = numpy.array([-geo.MliftTotal[1] / geo.LiftTotal[2],
+                               geo.MliftTotal[0] / geo.LiftTotal[2],
+                               0.])
 
-    geo.MtotalXg = Mtotal
+    geo.MtotalXg = geo.MliftTotal - pv(geo.mgApp,geo.LiftTotal)
+
+    geo.Ftotal =   geo.mg + geo.LiftTotal
 
     geo.MtotalAnchor = numpy.array([1.35*geo.FusLength , 0.95*geo.WingSpan , 0.50*geo.FusHeight])
+
 
     return
 
