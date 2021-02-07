@@ -77,8 +77,12 @@ def plot_side_view(plt,x_shift,y_shift,dl,dm,kScale):
 
     if (numpy.linalg.norm(geo.lHafVec)>eps):
         plt.arrow(x_shift-geo.HtpLapp[0], y_shift-geo.HtpLapp[2], -kScale*geo.lHafVec[0], -kScale*geo.lHafVec[2], linewidth=0.1, width=0.2, color="blue", shape="right", zorder=13)
+
     if (numpy.linalg.norm(geo.lEafVec)>eps):
         plt.arrow(x_shift-geo.HtpLapp[0], y_shift-geo.HtpLapp[2], -kScale*geo.lEafVec[0], -kScale*geo.lEafVec[2], linewidth=0.1, width=0.2, color="brown", shape="full", zorder=14)
+
+    if (numpy.linalg.norm(geo.lHtpRafVec)>eps):
+        plt.arrow(x_shift-geo.HtpLapp[0], y_shift-geo.HtpLapp[2], -kScale*geo.lHtpRafVec[0], -kScale*geo.lHtpRafVec[2], linewidth=0.1, width=0.2, color="darkcyan", shape="full", zorder=14)
 
     if (dl>0):
         plt.fill(x_shift+geo.lAilXYZ[0:,0], y_shift+geo.lAilXYZ[0:,2], c="white", zorder=15)
@@ -94,8 +98,13 @@ def plot_side_view(plt,x_shift,y_shift,dl,dm,kScale):
     if (numpy.linalg.norm(geo.lAafVec)>eps):
         plt.arrow(x_shift-geo.AilLapp[0], y_shift-geo.AilLapp[2], -kScale*geo.lAafVec[0], -kScale*geo.lAafVec[2], linewidth=0.1, width=0.2, color="brown", shape="full", zorder=19)
 
+    if (numpy.linalg.norm(geo.lRafVec)>eps):
+        plt.arrow(x_shift-geo.RotLapp[0], y_shift-geo.RotLapp[2], -kScale*geo.lRafVec[0], -kScale*geo.lRafVec[2], linewidth=0.1, width=0.2, color="darkcyan", shape="full", zorder=19)
+
+
     if (geo.VafVec[1]<-eps):
         plt.arrow(x_shift-geo.FusApp[0], y_shift-geo.FusApp[2], -kScale*geo.VafVec[0], -kScale*geo.VafVec[2], linewidth=0.1, width=0.2, color="blue", shape="full", zorder=20)
+
     if (geo.RafVec[1]<-eps):
         plt.arrow(x_shift-geo.VtpApp[0], y_shift-geo.VtpApp[2], -kScale*geo.RafVec[0], -kScale*geo.RafVec[2], linewidth=0.1, width=0.2, color="brown", shape="full", zorder=20)
 
@@ -150,6 +159,10 @@ def plot_back_view(plt,x_shift,y_shift,kScale):
         plt.arrow(x_shift+geo.AilRapp[1], y_shift-geo.AilRapp[2], kScale*geo.rAafVec[1], -kScale*geo.rAafVec[2], linewidth=0.1, width=0.2, color="brown", shape="right", zorder=20)
     if (numpy.linalg.norm(geo.lAafVec)>eps):
         plt.arrow(x_shift+geo.AilLapp[1], y_shift-geo.AilLapp[2], kScale*geo.lAafVec[1], -kScale*geo.lAafVec[2], linewidth=0.1, width=0.2, color="brown", shape="left", zorder=20)
+    if (numpy.linalg.norm(geo.rRafVec)>eps):
+        plt.arrow(x_shift+geo.RotRapp[1], y_shift-geo.RotRapp[2], kScale*geo.rRafVec[1], -kScale*geo.rRafVec[2], linewidth=0.1, width=0.2, color="darkcyan", shape="left", zorder=20)
+    if (numpy.linalg.norm(geo.lRafVec)>eps):
+        plt.arrow(x_shift+geo.RotLapp[1], y_shift-geo.RotLapp[2], kScale*geo.lRafVec[1], -kScale*geo.lRafVec[2], linewidth=0.1, width=0.2, color="darkcyan", shape="right", zorder=20)
 
     if (numpy.linalg.norm(geo.rHafVec)>eps):
         plt.arrow(x_shift+geo.HtpRapp[1], y_shift-geo.HtpRapp[2], kScale*geo.rHafVec[1], -kScale*geo.rHafVec[2], linewidth=0.1, width=0.2, color="blue", shape="left", zorder=20)
@@ -159,11 +172,17 @@ def plot_back_view(plt,x_shift,y_shift,kScale):
         plt.arrow(x_shift+geo.HtpRapp[1], y_shift-geo.HtpRapp[2], kScale*geo.rEafVec[1], -kScale*geo.rEafVec[2], linewidth=0.1, width=0.2, color="brown", shape="right", zorder=20)
     if (numpy.linalg.norm(geo.lEafVec)>eps):
         plt.arrow(x_shift+geo.HtpLapp[1], y_shift-geo.HtpLapp[2], kScale*geo.lEafVec[1], -kScale*geo.lEafVec[2], linewidth=0.1, width=0.2, color="brown", shape="left", zorder=20)
+    if (numpy.linalg.norm(geo.rHtpRafVec)>eps):
+        plt.arrow(x_shift+geo.HtpRapp[1], y_shift-geo.HtpRapp[2], kScale*geo.rHtpRafVec[1], -kScale*geo.rHtpRafVec[2], linewidth=0.1, width=0.2, color="darkcyan", shape="left", zorder=20)
+    if (numpy.linalg.norm(geo.lHtpRafVec)>eps):
+        plt.arrow(x_shift+geo.HtpLapp[1], y_shift-geo.HtpLapp[2], kScale*geo.lHtpRafVec[1], -kScale*geo.lHtpRafVec[2], linewidth=0.1, width=0.2, color="darkcyan", shape="right", zorder=20)
 
     if (numpy.linalg.norm(geo.VafVec)>eps):
         plt.arrow(x_shift+geo.FusApp[1], y_shift-geo.FusApp[2], kScale*geo.VafVec[1], -kScale*geo.VafVec[2], linewidth=0.1, width=0.2, color="blue", shape="left", zorder=20)
     if (numpy.linalg.norm(geo.RafVec)>eps):
         plt.arrow(x_shift+geo.VtpApp[1], y_shift-geo.VtpApp[2], kScale*geo.RafVec[1], -kScale*geo.RafVec[2], linewidth=0.1, width=0.2, color="brown", shape="right", zorder=20)
+    if (numpy.linalg.norm(geo.rotVafVec)>eps):
+        plt.arrow(x_shift+geo.VtpApp[1], y_shift-geo.VtpApp[2], kScale*geo.rotVafVec[1], -kScale*geo.rotVafVec[2], linewidth=0.1, width=0.2, color="darkcyan", shape="full", zorder=20)
 
     if (numpy.linalg.norm(geo.MtotalXg)>eps):
         plt.arrow(x_shift+geo.MtotalAnchor[1], y_shift+geo.MtotalAnchor[2], 0, -0.01*kScale*geo.MtotalXg[0], linewidth=0.2, width=0.4, color="grey", shape="full", zorder=22)
@@ -226,6 +245,8 @@ def plot_top_view(plt,x_shift,y_shift,kScale):
         plt.arrow(x_shift-geo.FusApp[0], y_shift+geo.FusApp[1], -kScale*geo.VafVec[0], kScale*geo.VafVec[1], linewidth=0.1, width=0.2, color="blue", shape="full", zorder=20)
     if (numpy.linalg.norm(geo.RafVec)>eps):
         plt.arrow(x_shift-geo.VtpApp[0], y_shift+geo.VtpApp[1], -kScale*geo.RafVec[0], kScale*geo.RafVec[1], linewidth=0.1, width=0.2, color="brown", shape="full", zorder=20)
+    if (numpy.linalg.norm(geo.rotVafVec)>eps):
+        plt.arrow(x_shift-geo.VtpApp[0], y_shift+geo.VtpApp[1], -kScale*geo.rotVafVec[0], kScale*geo.rotVafVec[1], linewidth=0.1, width=0.2, color="darkcyan", shape="full", zorder=20)
 
     if (numpy.linalg.norm(geo.MtotalXg)>eps):
         plt.arrow(x_shift+geo.MtotalAnchor[0], y_shift, 0, -0.01*kScale*geo.MtotalXg[2], linewidth=0.2, width=0.4, color="grey", shape="full", zorder=22)

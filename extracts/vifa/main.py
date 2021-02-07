@@ -29,16 +29,16 @@ mass = 70000
 vair = 150
 
 psi = rad_deg(0)
-theta = rad_deg(10)
-phi = rad_deg(10)
+theta = rad_deg(0)
+phi = rad_deg(0)
 
 alpha = rad_deg(0)
-betha = rad_deg(5)
+betha = rad_deg(0)
 
-dl = rad_deg(-4)
+dl = rad_deg(0)
 dm = rad_deg(0)
-dn = rad_deg(5)
-dx = 1
+dn = rad_deg(0)
+dx = 0
 
 trim = rad_deg(0)
 
@@ -47,7 +47,7 @@ f0 = mass*g/5
 
 p = rad_deg(0)
 q = rad_deg(0)
-r = rad_deg(0)
+r = rad_deg(10)
 
 
 
