@@ -20,56 +20,43 @@ one_year = one_day * 365.
 
 
 data_dict = {
-    "n_panel": {"unit":"int", "mag":1e4, "txt":"Number of individual panels"},
-    "panel_area": {"unit":"m2", "mag":1e1, "txt":"Panel area"},
+    "n_panel": {"unit":"int", "mag":1e6, "txt":"Number of photovoltaïc panel unit"},
+    "panel_area": {"unit":"m2", "mag":1e0, "txt":"Area of photovoltaïc panel unit"},
+    "total_panel_area": {"unit":"m2", "mag":1e6, "txt":"Total area of the solar panels"},
     "panel_mass": {"unit":"kg", "mag":1e1, "txt":"Panel mass"},
-    "ground_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Required ground area over panel area"},
-    "grey_energy_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Fraction of produced energy needed to build, maintain and recycle the production device"},
+    "ground_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Required ground area over unit area"},
+    "grey_energy_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Required embodied energy over gross output energy"},
     "life_time": {"unit":"year", "mag":1e0, "txt":"Power plant reference life time"},
-    "gross_power_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Ratio of produced power over solar input power"},
+    "gross_power_efficiency": {"unit":"", "mag":1e3, "txt":"Gross output power over available input power"},
+    "net_yearly_enrg": {"unit":"TWh", "mag":1e2, "txt":"Mean net energy produced in one year : gross minus grey"},
     "ref_yearly_sun_power": {"unit":"W/m2", "mag":1e0, "txt":"Yearly mean sun power at power plant location"},
     "load_factor": {"unit":"no_dim", "mag":1e0, "txt":"Ratio of yearly mean power over peak power"},
-    "total_panel_area": {"unit":"m2", "mag":1e6, "txt":"Total area of the solar panels"},
     "foot_print": {"unit":"m2", "mag":1e6, "txt":"Ground footprint area of the power plant"},
     "net_power_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Power efficiency including grey energy spread over life time"},
-    "nominal_peak_power": {"unit":"MW", "mag":1e2, "txt":"Output power with ref_yearly_sun_power is input"},
+    "nominal_peak_power": {"unit":"MW", "mag":1e2, "txt":"Plant peak power"},
     "nominal_gross_power": {"unit":"MW", "mag":1e2, "txt":"Mean yearly output power"},
     "nominal_net_power": {"unit":"MW", "mag":1e2, "txt":"Mean yearly output power including grey energy spread over life time"},
-    "gross_yearly_enrg": {"unit":"GWh", "mag":1e2, "txt":"Mean yearly energy production"},
-    "net_yearly_enrg": {"unit":"GWh", "mag":1e2, "txt":"Mean yearly energy production including grey energy spread over life time"},
     "total_grey_enrg": {"unit":"GWh", "mag":1e3, "txt":"Total required grey energy over life time"},
     "total_footprint": {"unit":"km2", "mag":1e1, "txt":"Plant total footprint"},
-    "total_grey_enrg": {"unit":"TWh", "mag":1e0, "txt":"Plant total embodied energy"},
-    "nominal_peak_power": {"unit":"MW", "mag":1e2, "txt":"Plant peak power"},
     "nominal_mean_power": {"unit":"MW", "mag":1e2, "txt":"Mean gross power during one day"},
     "mean_dayly_energy": {"unit":"GWh", "mag":1e2, "txt":"Mean gross energy pruduced in one year"},
-    "regulation_time": {"unit":"h", "mag":1e1, "txt":"Regulated period (period during which regulated power can be maintained)"},
+    "production_time": {"unit":"h", "mag":1e1, "txt":"Regulated period (period during which regulated power can be maintained)"},
     "retrieval_time": {"unit":"h", "mag":1e1, "txt":"Retrieving period (power is coming from stored energy)"},
     "regulated_power": {"unit":"MW", "mag":1e2, "txt":"Mean regulated output power during regulated period"},
     "storage_capacity": {"unit":"GWh", "mag":1e2, "txt":"Retrievable stored energy"},
-    "regulation_power_efficiency": {"unit":"", "mag":1e3, "txt":"Efficiency of regulated power (including storage losses)"},
+    "production_power_efficiency": {"unit":"", "mag":1e3, "txt":"Efficiency of regulated power (including storage losses)"},
     "gross_yearly_enrg": {"unit":"TWh", "mag":1e2, "txt":"Mean gross energy produced in one year"},
-    "net_yearly_enrg": {"unit":"TWh", "mag":1e2, "txt":"Mean net energy produced in one year : gross minus grey"},
     "marginal_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"efficiency which includes grey energy and storage if any"},
-    "net_power_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"overall efficiency : captation, transformation and marginal"},
     "type": {"unit":"string", "mag":32, "txt":"Power plant technology"},
     "regulation_factor": {"unit":"no_dim", "mag":1e0, "txt":"Regulation factor, 0.:no storage, 1.:regulation period is 24h"},
     "n_mirror": {"unit":"", "mag":1e3, "txt":"Number of mirror unit"},
-    "n_panel": {"unit":"int", "mag":1e6, "txt":"Number of photovoltaïc panel unit"},
     "n_rotor": {"unit":"int", "mag":1e2, "txt":"Number of rotor"},
     "n_core": {"unit":"int", "mag":1e0, "txt":"Number of nuclear core"},
     "n_unit": {"unit":"int", "mag":1e3, "txt":"Number of production unit"},
     "mirror_area": {"unit":"m2", "mag":1e0, "txt":"Area of a mirror unit"},
-    "panel_area": {"unit":"m2", "mag":1e0, "txt":"Area of photovoltaïc panel unit"},
     "total_mirror_area": {"unit":"m2", "mag":1e5, "txt":"Total mirror area of the plant"},
-    "total_panel_area": {"unit":"m2", "mag":1e5, "txt":"Total panel area of the plant"},
-    "ground_ratio": {"unit":"", "mag":1e3, "txt":"Required footprint area per unit area"},
-    "life_time": {"unit":"year", "mag":1e1, "txt":"Plant life time"},
-    "gross_power_efficiency": {"unit":"", "mag":1e3, "txt":"Gross output power over available input power"},
     "storage_medium": {"unit":"string", "mag":32, "txt":"Type of storage medium depending on plant technology"},
-    "grey_energy_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Required embodied energy over gros output energy"},
     "mean_yearly_sun_power": {"unit":"W/m2", "mag":1e2, "txt":"Mean input sun radiative power over a year"},
-    "load_factor": {"unit":"", "mag":1e0, "txt":"Yearl mean output power over device peak power"},
     "ref_sun_power": {"unit":"", "mag":1e3, "txt":"Position free reference input radiative sun power, generally 1000W/m2"},
     "mean_sun_power": {"unit":"", "mag":1e2, "txt":"Effective mean input radiative sun power"},
     "rotor_width": {"unit":"m", "mag":1e2, "txt":"Rotor diameter"},
@@ -98,11 +85,11 @@ class PowerPlant(object):
         self.nominal_mean_power = None
         self.mean_dayly_energy = None
 
-        self.regulation_time = None
+        self.production_time = None
         self.retrieval_time = None
         self.regulated_power = None
         self.storage_capacity = None
-        self.regulation_power_efficiency = None
+        self.production_power_efficiency = None
         self.potential_energy_default = None
 
         self.gross_yearly_enrg = None
@@ -132,7 +119,7 @@ class PowerPlant(object):
         print("Nominal peak power = ", "%8.1f" % unit.MW_W(self.nominal_peak_power), " MW")
         print("Nominal mean power = ", "%8.1f" % unit.MW_W(self.nominal_mean_power), " MW")
         print("Regulated power = ", "%8.1f" % unit.MW_W(self.regulated_power), " MW")
-        print("Regulation time = ", "%8.1f" % unit.h_s(self.regulation_time), " h")
+        print("Production time = ", "%8.1f" % unit.h_s(self.production_time), " h")
         print("Retrieval time = ", "%8.1f" % unit.h_s(self.retrieval_time), " h")
         print("Storage capacity = ", "%8.1f" % unit.MWh_J(self.storage_capacity), " MWh")
         print("Yearly gross production = ", "%8.1f" % unit.GWh_J(self.gross_yearly_enrg), " GWh")
@@ -220,35 +207,35 @@ class PowerPlant(object):
             print("Thermal energy storage using concrete not implemented")
 
 
-
 class CspPowerPlant(PowerPlant):
 
-    def __init__(self, n_mirror, mean_sun_pw,
+    def __init__(self, n_mirror,
+                 ref_sun_pw = 250.,
+                 load_factor = 0.38,
                  reg_factor = 0.,
                  mirror_area = 68.,
                  ground_ratio = 4.,
                  life_time = 25.,
-                 gross_power_efficiency = 0.39,
-                 storage_medium = "molten_salt",
-                 grey_energy_ratio = 0.11,
-                 load_factor = 0.38):
+                 gross_pw_eff = 0.39,
+                 storage = "molten_salt",
+                 grey_enrg_ratio = 0.11):
         super(CspPowerPlant, self).__init__()
 
-        self.type = "Cylindroparabolic solar concentrated"
-        self.regulation_factor = reg_factor
+        self.type = "Cylindroparabolic solar concentration"
+        self.ref_sun_power = ref_sun_pw
+        self.load_factor = load_factor
+
         self.n_mirror = n_mirror
         self.mirror_area = mirror_area
+        self.total_mirror_area = mirror_area*n_mirror
         self.ground_ratio = ground_ratio
         self.life_time = life_time
 
-        self.gross_power_efficiency = gross_power_efficiency
-        self.storage_medium = storage_medium
-        self.grey_energy_ratio = grey_energy_ratio
+        self.regulation_factor = reg_factor
+        self.storage_medium = storage
 
-        self.mean_yearly_sun_power = mean_sun_pw
-        self.load_factor = load_factor
-
-        self.total_mirror_area = None
+        self.gross_power_efficiency = gross_pw_eff
+        self.grey_energy_ratio = grey_enrg_ratio
 
         self.update()
 
@@ -264,21 +251,21 @@ class CspPowerPlant(PowerPlant):
         self.total_mirror_area = self.mirror_area * self.n_mirror
         self.total_footprint = self.total_mirror_area * self.ground_ratio
 
-        self.nominal_peak_power = self.mean_yearly_sun_power * self.total_mirror_area * self.gross_power_efficiency
+        self.nominal_peak_power = self.ref_sun_power * self.total_mirror_area * self.gross_power_efficiency
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
         self.mean_daily_energy = self.nominal_mean_power * one_day
 
-        self.regulation_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
+        self.production_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
         self.retrieval_time = one_day * (1. - self.load_factor)*self.regulation_factor
         self.regulated_power = self.nominal_peak_power / (1. + self.regulation_factor*(1.-self.load_factor)/(self.load_factor*self.storage_efficiency))
         self.storage_capacity = (self.nominal_peak_power - self.regulated_power) * self.load_factor * self.storage_efficiency * one_day
-        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_daily_energy
-        self.potential_energy_default = self.nominal_mean_power * (one_day - self.regulation_time)
+        self.production_power_efficiency = self.regulated_power * self.production_time / self.mean_daily_energy
+        self.potential_energy_default = self.nominal_mean_power * (one_day - self.production_time)
 
-        self.marginal_efficiency = self.regulation_power_efficiency * (1.-self.grey_energy_ratio)
+        self.marginal_efficiency = self.production_power_efficiency * (1.-self.grey_energy_ratio)
         self.net_power_efficiency = self.gross_power_efficiency * self.marginal_efficiency
 
-        self.gross_yearly_enrg = self.regulated_power * self.regulation_time * 365.
+        self.gross_yearly_enrg = self.regulated_power * self.production_time * 365.
         self.net_yearly_enrg = self.gross_yearly_enrg - self.gross_yearly_enrg * self.grey_energy_ratio
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
@@ -301,34 +288,33 @@ class CspPowerPlant(PowerPlant):
 
 class PvPowerPlant(PowerPlant):
 
-    def __init__(self, n_panel, mean_sun_pw,
-                 ref_sun_power = 1000.,
+    def __init__(self, n_panel,
+                 ref_sun_pw = 1000.,
+                 load_factor = 0.14,
                  reg_factor = 0.,
                  panel_area = 2.,
                  ground_ratio = 2.6,
                  life_time = 25.,
-                 gross_power_efficiency = 0.15,
-                 storage_medium = "flow_battery",
-                 grey_energy_ratio = 0.11,
-                 load_factor = 0.14):
+                 gross_pw_eff = 0.15,
+                 storage = "flow_battery",
+                 grey_enrg_ratio = 0.11):
         super(PvPowerPlant, self).__init__()
 
         self.type = "Photovoltaïc"
-        self.ref_sun_power = ref_sun_power
-        self.regulation_factor = reg_factor
+        self.ref_sun_power = ref_sun_pw
+        self.load_factor = load_factor
+
         self.n_panel = n_panel
         self.panel_area = panel_area
+        self.total_panel_area = panel_area*n_panel
         self.ground_ratio = ground_ratio
         self.life_time = life_time
 
-        self.gross_power_efficiency = gross_power_efficiency
-        self.storage_medium = storage_medium
-        self.grey_energy_ratio = grey_energy_ratio
+        self.regulation_factor = reg_factor
+        self.storage_medium = storage
 
-        self.mean_yearly_sun_power = mean_sun_pw
-        self.load_factor = load_factor
-
-        self.total_panel_area = None
+        self.gross_power_efficiency = gross_pw_eff
+        self.grey_energy_ratio = grey_enrg_ratio
 
         self.update()
 
@@ -339,28 +325,26 @@ class PvPowerPlant(PowerPlant):
         self.n_panel = n_unit
 
     def update(self):
-        self.ref_yearly_sun_power = self.ref_sun_power * (self.mean_yearly_sun_power/250.)
-
         self.storage_efficiency = self.elec_storage(self.storage_medium)
 
         self.total_panel_area = self.panel_area * self.n_panel
         self.total_footprint = self.total_panel_area * self.ground_ratio
 
-        self.nominal_peak_power = self.ref_yearly_sun_power * self.total_panel_area * self.gross_power_efficiency
+        self.nominal_peak_power = self.ref_sun_power * self.total_panel_area * self.gross_power_efficiency
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
         self.mean_daily_energy = self.nominal_mean_power * one_day
 
-        self.regulation_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
+        self.production_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
         self.retrieval_time = one_day * (1. - self.load_factor)*self.regulation_factor
         self.regulated_power = self.nominal_peak_power / (1. + self.regulation_factor*(1.-self.load_factor)/(self.load_factor*self.storage_efficiency))
         self.storage_capacity = (self.nominal_peak_power - self.regulated_power) * self.load_factor * self.storage_efficiency * one_day
-        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_daily_energy
-        self.potential_energy_default = self.nominal_mean_power * (one_day - self.regulation_time)
+        self.production_power_efficiency = self.regulated_power * self.production_time / self.mean_daily_energy
+        self.potential_energy_default = self.nominal_mean_power * (one_day - self.production_time)
 
-        self.marginal_efficiency = self.regulation_power_efficiency * (1.-self.grey_energy_ratio)
+        self.marginal_efficiency = self.production_power_efficiency * (1.-self.grey_energy_ratio)
         self.net_power_efficiency = self.gross_power_efficiency * self.marginal_efficiency
 
-        self.gross_yearly_enrg = self.regulated_power * self.regulation_time * 365.
+        self.gross_yearly_enrg = self.regulated_power * self.production_time * 365.
         self.net_yearly_enrg = self.gross_yearly_enrg * (1. - self.grey_energy_ratio)
 
         self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
@@ -381,11 +365,11 @@ class PvPowerPlant(PowerPlant):
 
 class EolPowerPlant(PowerPlant):
 
-    def __init__(self, n_rotor, location,
+    def __init__(self, location, n_rotor,
+                 load_factor = None,
                  reg_factor = 0.,
                  rotor_width = None,
-                 rotor_peak_power = 2.5e6,
-                 load_factor = None,
+                 rotor_pk_pw = 2.5e6,
                  storage_medium = "flow_battery",
                  life_time = 25.):
         super(EolPowerPlant, self).__init__()
@@ -395,7 +379,7 @@ class EolPowerPlant(PowerPlant):
         self.regulation_factor = reg_factor
         self.n_rotor = n_rotor
         self.rotor_width = rotor_width
-        self.rotor_peak_power = rotor_peak_power
+        self.rotor_peak_power = rotor_pk_pw
         self.load_factor = load_factor
         self.storage_medium = storage_medium
         self.storage_efficiency = self.elec_storage(storage_medium)
@@ -440,14 +424,15 @@ class EolPowerPlant(PowerPlant):
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
         self.mean_daily_energy = self.nominal_mean_power * one_day
 
-        self.regulation_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
+        self.storage_efficiency = self.elec_storage(self.storage_medium)
+        self.production_time = one_day * (self.load_factor + (1. - self.load_factor)*self.regulation_factor)
         self.retrieval_time = one_day * (1. - self.load_factor)*self.regulation_factor
         self.regulated_power = self.nominal_peak_power / (1. + self.regulation_factor*(1.-self.load_factor)/(self.load_factor*self.storage_efficiency))
         self.storage_capacity = (self.nominal_peak_power - self.regulated_power) * self.load_factor * self.storage_efficiency * one_day
-        self.regulation_power_efficiency = self.regulated_power * self.regulation_time / self.mean_daily_energy
-        self.potential_energy_default = self.nominal_mean_power * (one_day - self.regulation_time)
+        self.production_power_efficiency = self.regulated_power * self.production_time / self.mean_daily_energy
+        self.potential_energy_default = self.nominal_mean_power * (one_day - self.production_time)
 
-        self.gross_yearly_enrg = self.regulated_power * self.regulation_time * 365.
+        self.gross_yearly_enrg = self.regulated_power * self.production_time * 365.
         self.net_yearly_enrg = self.gross_yearly_enrg - self.total_grey_enrg / self.life_time
         self.er_o_ei = self.net_yearly_enrg / (self.total_grey_enrg/self.life_time)
 
@@ -473,20 +458,20 @@ class EolPowerPlant(PowerPlant):
 class NuclearPowerPlant(PowerPlant):
 
     def __init__(self, n_core,
-                 core_peak_power = 1.0e9,
+                 core_pk_pw = 1.3e9,
                  load_factor = 0.80,
                  life_time = 50.,
                  grey_energy_ratio = 0.2,
-                 unit_footprint = 0.25e6):
+                 core_footprint = 0.25e6):
         super(NuclearPowerPlant, self).__init__()
 
         self.type = "Nuclear"
         self.n_core = n_core
-        self.core_peak_power = core_peak_power
+        self.core_peak_power = core_pk_pw
         self.load_factor = load_factor
         self.life_time = life_time
         self.grey_energy_ratio = grey_energy_ratio
-        self.unit_footprint = unit_footprint
+        self.unit_footprint = core_footprint
 
         self.update()
 
@@ -501,12 +486,12 @@ class NuclearPowerPlant(PowerPlant):
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
         self.total_footprint = self.unit_footprint * self.n_core
 
-        self.regulation_time = one_day
+        self.production_time = one_day
         self.retrieval_time = 0.
         self.regulated_power = self.nominal_mean_power
         self.storage_capacity = 0.
-        self.regulation_power_efficiency = 1.0
-        self.potential_energy_default = self.nominal_mean_power * (one_day - self.regulation_time)
+        self.production_power_efficiency = 1.0
+        self.potential_energy_default = self.nominal_mean_power * (one_day - self.production_time)
 
         self.mean_daily_energy = self.nominal_mean_power * one_day
         self.gross_yearly_enrg = self.nominal_mean_power * one_year
@@ -535,6 +520,23 @@ class NuclearPowerPlant(PowerPlant):
 # TODO        self.material.lead = np.nan
 
         self.material_grey_enrg = self.material.grey_energy()
+
+
+
+plant_profile = {"csp":{"Andasol3":{"n_mirror":7500., "ref_sun_pw":250., "load_factor":0.38, "reg_factor":0.51, "mirror_area":68.,
+                                    "ground_ratio":4., "life_time":25.,"gross_pw_eff":0.39, "storage":"molten_salt", "grey_enrg_ratio":0.11}
+                        },
+                 "pv":{"Cestas":{"n_panel":1e6, "ref_sun_pw":1000., "load_factor":0.14, "reg_factor":0., "panel_area":2., "ground_ratio":2.6,
+                                 "life_time":25., "gross_pw_eff":0.15, "storage":"none", "grey_enrg_ratio":0.11}
+                       },
+                 "eol":{"Fantanele Cogealav":{"location":"onshore", "n_rotor":240, "load_factor":0.25, "reg_factor":0., "rotor_width":100.,
+                                              "rotor_pk_pw":2.5e6, "storage":"none", "life_time":25.},
+                        "London Array":{"location":"offshore", "n_rotor": 175, "load_factor":0.50, "reg_factor":0., "rotor_width":112.5,
+                                              "rotor_pk_pw":3.5e6, "storage":"none", "life_time":25.}
+                        },
+                 "nuclear":{"Paluel":{"n_core":4, "core_pk_pw":1.3e9, "load_factor":0.8, "life_time":50., "grey_enrg_ratio":0.2,
+                                      "core_footprint":0.25e6}}
+                 }
 
 
 
@@ -634,16 +636,16 @@ if __name__ == "__main__":
     # Identify existing plants
     # ------------------------------------------------------------------------------------------------------
 
-    st1 = CspPowerPlant(7500., 250., reg_factor=0.51)
+    st1 = CspPowerPlant(7500., reg_factor=0.51)
     st1.print("Andasol 3")
 
-    pv1 = PvPowerPlant(1e6, 250., reg_factor=0.0)
+    pv1 = PvPowerPlant(1e6, reg_factor=0.0)
     pv1.print("Cestas")
 
-    eol1 = EolPowerPlant(240., "onshore", rotor_peak_power=2.5e6, load_factor=0.25)
+    eol1 = EolPowerPlant("onshore", 240., rotor_pk_pw=2.5e6, load_factor=0.25)
     eol1.print("Fantanele Cogealav")
 
-    eol2 = EolPowerPlant(175., "offshore", rotor_peak_power=3.5e6, load_factor=0.50)
+    eol2 = EolPowerPlant("offshore", 175., rotor_pk_pw=3.5e6, load_factor=0.50)
     eol2.print("London Array")
 
     atom1 = NuclearPowerPlant(4)
@@ -658,9 +660,9 @@ if __name__ == "__main__":
 
     st1 = CspPowerPlant(1e4, 250., reg_factor=0.50)
 
-    eol1 = EolPowerPlant(20., "onshore")
+    eol1 = EolPowerPlant("onshore", 20.)
 
-    eol2 = EolPowerPlant(200., "offshore", rotor_peak_power=3.5e6, load_factor=0.50)
+    eol2 = EolPowerPlant("offshore", 200., rotor_pk_pw=3.5e6)
 
     atom1 = NuclearPowerPlant(4)
 
