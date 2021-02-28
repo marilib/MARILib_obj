@@ -82,6 +82,39 @@ crt = "aircraft.weight_cg.mtow"
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
+comp = ac.draw.get_3d_curves()
+
+print(comp["name"])
+
+print("nombre de surfaces = ", len(comp["surface"]))
+for surf in comp["surface"]:
+    print("-----------------------------------------")
+    print("Leading edge")
+    print(surf["le"])
+    print("Trailing edge")
+    print(surf["te"])
+    print("Thickness over chord")
+    print(surf["toc"])
+
+print("nombre de bodies = ", len(comp["body"]))
+for body in comp["body"]:
+    print("-----------------------------------------")
+    print("XZ curves")
+    print(body["xz"])
+    print("XY curves")
+    print(body["xy"])
+
+print("nombre de nacelles = ", len(comp["nacelle"]))
+for nac in comp["nacelle"]:
+    print("-----------------------------------------")
+    print("Leading edge")
+    print(nac["le"])
+    print("Trailing edge")
+    print(nac["te"])
+    print("Thickness over chord")
+    print(nac["toc"])
+
+
 ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
 ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 

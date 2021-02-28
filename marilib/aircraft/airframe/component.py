@@ -279,7 +279,13 @@ class Nacelle(Component):
         d_fan_yz = np.stack([section[0:,0]*0.80*nac_width , section[0:,1]*0.80*nac_height , section[0:,2]*0.80*nac_height], axis=1)
 
         nac_yz = np.vstack([np.stack([nac_y+d_nac_yz[0:,0] , nac_z+d_nac_yz[0:,1]],axis=1) ,
-                               np.stack([nac_y+d_nac_yz[::-1,0] , nac_z+d_nac_yz[::-1,2]],axis=1)])
+                            np.stack([nac_y+d_nac_yz[::-1,0] , nac_z+d_nac_yz[::-1,2]],axis=1)])
+
+        nac_le = np.stack([[nac_x]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)
+
+        nac_te = np.stack([[nac_x+nac_length]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)
+
+        nac_toc = 0.15
 
         if hasattr(self, "propeller_width"):
             prop_width = self.propeller_width
@@ -290,7 +296,7 @@ class Nacelle(Component):
             disk_yz = np.vstack([np.stack([nac_y+d_fan_yz[0:,0] , nac_z+d_fan_yz[0:,1]],axis=1) ,
                                  np.stack([nac_y+d_fan_yz[::-1,0] , nac_z+d_fan_yz[::-1,2]],axis=1)])
 
-        return {"xy":nac_xy , "yz":nac_yz, "xz":nac_xz, "disk":disk_yz}
+        return {"xy":nac_xy , "yz":nac_yz, "xz":nac_xz, "disk":disk_yz, "le":nac_le, "te":nac_te, "toc":nac_toc}
 
 class Tank(Component):
 
@@ -423,7 +429,7 @@ class Pod(Component):
 
         pod_top = np.vstack([np.stack([pod_xy[1:-2,0]  , pod_xy[1:-2,1]],axis=1) , np.stack([pod_xy[:0:-1,0] , pod_xy[:0:-1,2]],axis=1)])
 
-        return {"xy":pod_top , "yz":pod_front, "xz":pod_side}
+        return {"xy":pod_top , "yz":pod_front, "xz":pod_side, "body_xz":pod_xz, "body_xy":pod_xy}
 
 
 class Cabin(Component):
@@ -690,7 +696,7 @@ class Fuselage(Component):
 
         body_top = np.vstack([np.stack([body_xy[1:-2,0]  , body_xy[1:-2,1]],axis=1) , np.stack([body_xy[:0:-1,0] , body_xy[:0:-1,2]],axis=1)])
 
-        return {"xy":body_top , "yz":body_front, "xz":body_side}
+        return {"xy":body_top , "yz":body_front, "xz":body_side, "body_xz":body_xz, "body_xy":body_xy}
 
 
 class Wing(Component):
@@ -971,6 +977,22 @@ class Wing(Component):
         wing_c_tip = self.tip_c
         wing_toc_t = self.tip_toc
 
+        le = np.array([[wing_x_tip              , -wing_y_tip  , wing_z_tip ],
+                       [wing_x_kink             , -wing_y_kink , wing_z_kink],
+                       [wing_x_root             , -wing_y_root , wing_z_root],
+                       [wing_x_root             ,  wing_y_root , wing_z_root],
+                       [wing_x_kink             ,  wing_y_kink , wing_z_kink],
+                       [wing_x_tip              ,  wing_y_tip  , wing_z_tip]])
+
+        te = np.array([[wing_x_tip+wing_c_tip   , -wing_y_tip  , wing_z_tip ],
+                       [wing_x_kink+wing_c_kink , -wing_y_kink , wing_z_kink],
+                       [wing_x_root+wing_c_root , -wing_y_root , wing_z_root],
+                       [wing_x_root+wing_c_root ,  wing_y_root , wing_z_root],
+                       [wing_x_kink+wing_c_kink ,  wing_y_kink , wing_z_kink],
+                       [wing_x_tip+wing_c_tip   ,  wing_y_tip  , wing_z_tip]])
+
+        toc = np.array([wing_toc_t, wing_toc_k, wing_toc_r, wing_toc_r, wing_toc_k, wing_toc_t])
+
         wing_xy = np.array([[wing_x_root             ,  wing_y_root ],
                             [wing_x_tip              ,  wing_y_tip  ],
                             [wing_x_tip+wing_c_tip   ,  wing_y_tip  ],
@@ -1029,7 +1051,7 @@ class Wing(Component):
         else:
             tip_wing_xz = None
 
-        return {"xy":wing_xy, "yz":wing_yz, "xz":wing_xz, "xz_tip":tip_wing_xz}
+        return {"xy":wing_xy, "yz":wing_yz, "xz":wing_xz, "xz_tip":tip_wing_xz, "le":le, "te":te, "toc":toc}
 
 
 class Vstab(Component):
@@ -1050,6 +1072,14 @@ class Vstab(Component):
         vtp_y_tip = self.tip_loc[1]
         vtp_z_tip = self.tip_loc[2]
         vtp_c_tip = self.tip_c
+
+        vtp_le = np.array([[vtp_x_root            , vtp_y_root , vtp_z_root ],
+                           [vtp_x_tip             , vtp_y_tip  , vtp_z_tip  ]])
+
+        vtp_te = np.array([[vtp_x_root+vtp_c_root , vtp_y_root , vtp_z_root ],
+                           [vtp_x_tip+vtp_c_tip   , vtp_y_tip  , vtp_z_tip  ]])
+
+        vtp_toc = np.array([vtp_t_o_c, vtp_t_o_c])
 
         vtp_xz = np.array([[vtp_x_root            , vtp_z_root ],
                            [vtp_x_tip             , vtp_z_tip  ],
@@ -1078,7 +1108,7 @@ class Vstab(Component):
                            [vtp_y_root - 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ],
                            [vtp_y_root + 0.5*vtp_t_o_c*vtp_c_root , vtp_z_root ]])
 
-        return {"xy":vtp_xy , "yz":vtp_yz, "xz":vtp_xz}
+        return {"xy":vtp_xy , "yz":vtp_yz, "xz":vtp_xz, "le":vtp_le, "te":vtp_te, "toc":vtp_toc}
 
 class VtpClassic(Vstab):
 
@@ -1388,6 +1418,16 @@ class Hstab(Component):
         htp_z_tip = self.tip_loc[2]
         htp_c_tip = self.tip_c
 
+        htp_le = np.array([[htp_x_tip           , -0.5*htp_span , htp_z_tip],
+                           [htp_x_axe           ,  0            , htp_z_axe],
+                           [htp_x_tip           ,  0.5*htp_span , htp_z_tip]])
+
+        htp_te = np.array([[htp_x_tip+htp_c_tip , -0.5*htp_span , htp_z_tip],
+                           [htp_x_axe+htp_c_axe ,  0            , htp_z_axe],
+                           [htp_x_tip+htp_c_tip ,  0.5*htp_span , htp_z_tip]])
+
+        htp_toc = np.array([htp_t_o_c, htp_t_o_c])
+
         htp_xy = np.array([[htp_x_axe           ,  0            ],
                            [htp_x_tip           ,  0.5*htp_span ],
                            [htp_x_tip+htp_c_tip ,  0.5*htp_span ],
@@ -1420,7 +1460,7 @@ class Hstab(Component):
                            [-0.5*htp_span , htp_z_axe+0.5*htp_span*np.tan(htp_dihedral)                     ],
                            [ 0            , htp_z_axe                                                       ]])
 
-        return {"xy":htp_xy , "yz":htp_yz, "xz":htp_xz}
+        return {"xy":htp_xy, "yz":htp_yz, "xz":htp_xz, "le":htp_le, "te":htp_te, "toc":htp_toc}
 
 class HtpClassic(Hstab):
 

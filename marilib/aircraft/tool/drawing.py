@@ -54,6 +54,77 @@ class Drawing(object):
 
         plt.show()
 
+
+    def get_section(self, length, toc):
+
+        nose2 = np.array([[ 0.0000 , 0.0000 ,  0.0000 ] ,
+                          [ 0.0050 , 0.0335 , -0.0335 ] ,
+                          [ 0.0191 , 0.0646 , -0.0646 ] ,
+                          [ 0.0624 , 0.1196 , -0.1196 ] ,
+                          [ 0.1355 , 0.1878 , -0.1878 ] ,
+                          [ 0.1922 , 0.2297 , -0.2297 ] ,
+                          [ 0.2773 , 0.2859 , -0.2859 ] ,
+                          [ 0.4191 , 0.3624 , -0.3624 ] ,
+                          [ 0.5610 , 0.4211 , -0.4211 ] ,
+                          [ 0.7738 , 0.4761 , -0.4761 ] ,
+                          [ 0.9156 , 0.4976 , -0.4976 ] ,
+                          [ 1.0000 , 0.5000 , -0.5000 ]])
+
+        cone2 = np.array([[ 0.0000 , 0.5000 , -0.5000 ] ,
+                          [ 0.0213 , 0.5000 , -0.5000 ] ,
+                          [ 0.0638 , 0.4956 , -0.4956 ] ,
+                          [ 0.1064 , 0.4875 , -0.4875 ] ,
+                          [ 0.1489 , 0.4794 , -0.4794 ] ,
+                          [ 0.1915 , 0.4720 , -0.4720 ] ,
+                          [ 0.2766 , 0.4566 , -0.4566 ] ,
+                          [ 0.3617 , 0.4330 , -0.4330 ] ,
+                          [ 0.4894 , 0.3822 , -0.3822 ] ,
+                          [ 0.6170 , 0.3240 , -0.3240 ] ,
+                          [ 0.7447 , 0.2577 , -0.2577 ] ,
+                          [ 0.8723 , 0.1834 , -0.1834 ] ,
+                          [ 0.8936 , 0.1679 , -0.1679 ] ,
+                          [ 0.9149 , 0.1524 , -0.1524 ] ,
+                          [ 0.9362 , 0.1333 , -0.1333 ] ,
+                          [ 0.9574 , 0.1097 , -0.1097 ] ,
+                          [ 0.9787 , 0.0788 , -0.0788 ] ,
+                          [ 0.9894 , 0.0589 , -0.0589 ] ,
+                          [ 1.0000 , 0.0162 , -0.0162 ]])
+
+        r_nose = 0.15       # Leading edga evolutive part
+        r_cone = 0.35       # Trailing edge evolutive part
+
+        width = length * toc
+
+        leading_edge_xy = np.stack([nose2[0:,0]*length*r_nose , nose2[0:,1]*width , nose2[0:,2]*width], axis=1)
+        trailing_edge_xy = np.stack([(1-r_cone)*length + cone2[0:,0]*length*r_cone , cone2[0:,1]*width , cone2[0:,2]*width], axis=1)
+        section_xy = np.vstack([leading_edge_xy , trailing_edge_xy])
+
+        return section_xy
+
+
+    def get_3d_curves(self):
+        """
+        Build 3D curves to print the plane
+        """
+        component = {"name":self.aircraft.name, "surface":[], "body":[], "nacelle":[]}
+
+        for comp in self.aircraft.airframe:
+            data = comp.sketch_3view()
+            if data is not None:
+                typ = comp.get_component_type()
+                if typ in ["wing","htp","vtp"]:
+                    component["surface"].append({"le":data["le"], "te":data["te"], "toc":data["toc"]})
+                elif typ in ["body","wing_pod_tank","piggyback_tank"]:
+                    component["body"].append({"xz":data["body_xz"], "xy":data["body_xy"]})
+
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Nacelle):
+                data = comp.sketch_3view()
+                component["nacelle"].append({"le":data["le"], "te":data["te"], "toc":data["toc"]})
+
+        return component
+
+
     def view_3d(self, window_title):
         """
         Build a 3 views drawing of the airplane
@@ -79,7 +150,7 @@ class Drawing(object):
 
         ref = {"xy":[xTopView,yTopView],"yz":[xFrontView,yFrontView],"xz":[xSideView,ySideView]}
 
-        l0w, l1, l2, l3, l4, l5, high  =  0, 1, 2, 3, 4, 5, 6
+        low, l1, l2, l3, l4, l5, high  =  0, 1, 2, 3, 4, 5, 6
 
         # Draw components
         #-----------------------------------------------------------------------------------------------------------
@@ -119,7 +190,7 @@ class Drawing(object):
                 pod = comp.sketch_3view()
                 typ = comp.get_component_type()
                 if typ=="wing_pod_tank" and self.aircraft.airframe.tank.frame_origin[2] < self.aircraft.airframe.tank.wing_axe_z:
-                    zpod["wing_pod_tank"]["xy"] = l0w
+                    zpod["wing_pod_tank"]["xy"] = low
                 for view in ["xy","yz","xz"]:
                     plt.fill(ref[view][0]+pod[view][0:,0], ref[view][1]+pod[view][0:,1], color="white", zorder=zpod[typ][view])    # draw mask
                     plt.plot(ref[view][0]+pod[view][0:,0], ref[view][1]+pod[view][0:,1], color="grey", zorder=zpod[typ][view])     # draw contour
@@ -133,11 +204,11 @@ class Drawing(object):
         # Draw nacelles
         #-----------------------------------------------------------------------------------------------------------
         #                                  top        front     side
-        znac = {          "wing_nacelle":{"xy":l0w,  "yz":l4,  "xz":high},
+        znac = {          "wing_nacelle":{"xy":low,  "yz":l4,  "xz":high},
                           "body_nacelle":{"xy":l3,   "yz":l1,  "xz":high},
-                     "body_tail_nacelle":{"xy":l1,   "yz":l0w, "xz":l0w},
-                      "pod_tail_nacelle":{"xy":l4,   "yz":l0w, "xz":l5},
-                "piggyback_tail_nacelle":{"xy":high, "yz":l0w, "xz":l2}}
+                     "body_tail_nacelle":{"xy":l1,   "yz":low, "xz":low},
+                      "pod_tail_nacelle":{"xy":l4,   "yz":low, "xz":l5},
+                "piggyback_tail_nacelle":{"xy":high, "yz":low, "xz":l2}}
 
         for comp in self.aircraft.airframe:
             if issubclass(type(comp),Nacelle):

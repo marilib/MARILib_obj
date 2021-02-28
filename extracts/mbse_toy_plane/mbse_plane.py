@@ -28,7 +28,7 @@ class Airplane(object):
                  leg_length=3.7,
                  holding_time=unit.s_min(30), reserve_fuel_ratio=0.05, diversion_range=unit.m_NM(200),
                  hld_conf_to=0.3, kvs1g_req_to=1.13, s2_path_req_to=0.024, hld_conf_ld=1., kvs1g_ld=1.23,
-                 tofl_req=2300, app_speed_req=unit.mps_kt(137), vz_mcl_req=unit.mps_ftpmin(300), vz_mcr_req=unit.mps_ftpmin(0),
+                 tofl_req=2500, app_speed_req=unit.mps_kt(137), vz_mcl_req=unit.mps_ftpmin(300), vz_mcr_req=unit.mps_ftpmin(0),
                  oei_path_req=0.011, oei_altp_req=unit.m_ft(15000)):
 
         self.design_range = design_range
@@ -226,6 +226,7 @@ class Airplane(object):
         print("One engine path effective = "+"%.3f"%self.operations.oei_ceiling.path_eff)
         print("")
         print("-------------------------------------------------------")
+        print("Utilization = "+"%.1f"%self.economics.utilization+" trip/year")
         print("Cash Operating Cost = "+"%.1f"%self.economics.cash_op_cost+" $/trip")
         print("Direct Operating Cost = "+"%.1f"%self.economics.direct_op_cost+" $/trip")
 
@@ -1751,8 +1752,8 @@ class Economics():
 
         cost_range = self.airplane.cost_range
 
-        self.irp = unit.s_year(10)
         self.period = unit.s_year(15)
+        self.irp = unit.s_year(10)
         self.interest_rate = 0.04
         self.labor_cost = 120.
         self.utilization = self.yearly_utilization(cost_range)

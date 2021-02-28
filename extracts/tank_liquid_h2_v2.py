@@ -48,14 +48,17 @@ class LH2Tank(object):
         str_volume_ref = (self.h2_mass_ref/self.vol_index_ref) - int_volume_ref
         ext_volume_ref = int_volume_ref + str_volume_ref
         length_ref = (ext_volume_ref/((np.pi/4.)*(1.-wolr/3.)*wolr**2))**(1./3.)
+        width_ref = length_ref * wolr
         tank_mass_ref = self.h2_mass_ref*((1./self.grav_index_ref)-1.)
-        str_density = tank_mass_ref / str_volume_ref
+        # str_density = tank_mass_ref / str_volume_ref
+        # On inner shell, extension constraints increase as diameter
+        str_density = (tank_mass_ref / str_volume_ref) * (1. + self.width/width_ref)/2.
 
         def tank_volume(length,width,thickness):
             return (np.pi/4.)*(length-width/3.-(4./3.)*thickness)*(width-2.*thickness)**2
 
         def fct(thickness):
-            return int_volume_ref - tank_volume(length_ref,length_ref*wolr,thickness)
+            return int_volume_ref - tank_volume(length_ref,width_ref,thickness)
 
         output_dict = fsolve(fct, x0=0.01, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
@@ -82,7 +85,7 @@ class LH2Tank(object):
         print("Total tank volume = ", "%.2f"%self.external_volume, " m3")
         print("Tank wall thickness = ", "%.3f"%self.wall_thickness, " m")
         print("")
-        print("Gravimetric index = ", "%.2f"%self.gravimetric_index, " kg/kg")
+        print("Gravimetric index = ", "%.3f"%self.gravimetric_index, " kg/kg")
         print("Volumetric index = ", "%.1f"%self.volumetric_index, " kg/m3")
 
 
