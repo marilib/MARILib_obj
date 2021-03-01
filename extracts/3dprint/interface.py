@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""
+Created on Thu Jan 20 20:20:20 2020
+
+@author: Conceptual Airplane Design & Operations (CADO team)
+         Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
+         Aircraft & Systems, Air Transport Departement, ENAC
+"""
+
+from tools import from_binary_file, get_section
+
+
+comp = from_binary_file('aircraft_curves.pkl')
+
+print(comp["name"])
+
+print("-----------------------------------------")
+print("number of surfaces = ", len(comp["surface"]))
+for surf in comp["surface"]:
+    print("-----------------------------------------")
+    print("Leading edge")
+    print("     X            Y            Z")
+    print(surf["le"])
+    print("Trailing edge")
+    print("     X            Y            Z")
+    print(surf["te"])
+    print("Thickness over chord")
+    print(surf["toc"])
+
+print("-----------------------------------------")
+print("number of bodies = ", len(comp["body"]))
+for body in comp["body"]:
+    print("-----------------------------------------")
+    print("XZ curves")
+    print("     X             Zup           Zdown")
+    print(body["xz"])
+    print("XY curves")
+    print("     X             Yright        Yleft")
+    print(body["xy"])
+
+print("-----------------------------------------")
+print("number of nacelles = ", len(comp["nacelle"]))
+for nac in comp["nacelle"]:
+    print("-----------------------------------------")
+    print("Leading edge")
+    print("     X            Y            Z")
+    print(nac["le"])
+    print("Trailing edge")
+    print("     X            Y            Z")
+    print(nac["te"])
+    print("Thickness over chord")
+    print(nac["toc"])
+
+print("-----------------------------------------")
+print("Example of section call")
+sec = get_section(2.5, 0.12)
+print("    X              Y              Z")
+print(sec)
+

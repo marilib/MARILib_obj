@@ -8,6 +8,7 @@ Created on Jan 16 17:18:19 2021
 """
 
 import numpy as np
+from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 
 import unit, util
@@ -61,6 +62,27 @@ class Airplane(object):
     def __iter__(self):
         public = [value for value in self.__dict__.values() if issubclass(type(value),Component)]
         return iter(public)
+
+    def mass_mission_adaptation(self):
+        def fct(x):
+            self.mass.mtow = x[0]
+            self.mass.mzfw = x[1]
+            self.mass.mlw = x[2]
+            self.mass.eval()
+            self.missions.eval_nominal_mission()
+            self.mass.eval_characteristic_mass()
+            return [x[0]-self.mass.mtow,
+                    x[1]-self.mass.mzfw,
+                    x[2]-self.mass.mlw]
+        xini = [self.mass.mtow, self.mass.mzfw, self.mass.mlw]
+        output_dict = fsolve(fct, x0=xini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        self.mass.mtow = output_dict[0][0]
+        self.mass.mzfw = output_dict[0][1]
+        self.mass.mlw = output_dict[0][2]
+        self.mass.eval()
+        self.missions.eval_nominal_mission()
+        self.mass.eval_characteristic_mass()
 
     def view_3d(self, window_title):
         """
@@ -201,7 +223,7 @@ class Airplane(object):
         print("Zero payload mission payload = "+"%.0f"%self.missions.zero_payload.payload+" kg")
         print("Zero payload mission residual = "+"%.4f"%self.missions.zero_payload.residual)
         print("")
-        print("Cost mission range = "+"%.0f"%self.missions.cost.tow+" kg")
+        print("Cost mission tow = "+"%.0f"%self.missions.cost.tow+" kg")
         print("Cost mission fuel_block = "+"%.0f"%self.missions.cost.fuel_block+" kg")
         print("Cost mission residual = "+"%.4f"%self.missions.zero_payload.residual)
         print("")
@@ -224,6 +246,7 @@ class Airplane(object):
         print("One engine required altitude = "+"%.0f"%unit.ft_m(self.operations.oei_ceiling.altp_req)," ft")
         print("One engine path required = "+"%.3f"%self.operations.oei_ceiling.path_req)
         print("One engine path effective = "+"%.3f"%self.operations.oei_ceiling.path_eff)
+        print("One engine Mach number = "+"%.3f"%self.operations.oei_ceiling.mach)
         print("")
         print("-------------------------------------------------------")
         print("Utilization = "+"%.1f"%self.economics.utilization+" trip/year")
@@ -668,6 +691,17 @@ class HTP(Component):
         wing = self.airplane.wing
         self.area = self.volume * wing.area * wing.mac / self.lever_arm
 
+    def solve_area(self):
+        def fct_htp(x):
+            self.area = x
+            self.eval_geometry()
+            self.eval_area()
+            return x-self.area
+        xini = self.area
+        output_dict = fsolve(fct_htp, x0=xini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        self.area = output_dict[0][0]
+
     def eval_mass(self):
         self.mass = 22. * self.area
 
@@ -742,7 +776,6 @@ class VTP(Component):
         fuselage = self.airplane.fuselage
         wing = self.airplane.wing
         htp = self.airplane.htp
-        nacelles = self.airplane.nacelles
 
         self.height = np.sqrt(self.area*self.aspect_ratio)
         self.root_c = (2/self.height) * (self.area / (1+self.taper_ratio))
@@ -774,6 +807,17 @@ class VTP(Component):
     def eval_area(self):
         nacelles = self.airplane.nacelles
         self.area = self.thrust_volume * (1.e-3*nacelles.engine_slst) * nacelles.span_position / self.lever_arm
+
+    def solve_area(self):
+        def fct_vtp(x):
+            self.area = x
+            self.eval_geometry()
+            self.eval_area()
+            return x-self.area
+        xini = self.area
+        output_dict = fsolve(fct_vtp, x0=xini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        self.area = output_dict[0][0]
 
     def eval_mass(self):
         self.mass = 25. * self.area
@@ -1300,6 +1344,27 @@ class Flight(object):
         else:
             return slope,vz
 
+    def max_air_path(self,nei,altp,disa,speed_mode,mass,rating,kfn):
+        """Optimize the speed of the aircraft to maximize the air path
+        """
+        def fct(cz):
+            pamb,tamb = util.atmosphere(altp, disa)
+            mach = self.speed_from_lift(pamb,tamb,cz,mass)
+            speed = self.get_speed(pamb,speed_mode,mach)
+            slope,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
+            if isformax: return slope
+            else: return slope,vz,mach
+
+        cz_ini = 0.5
+        dcz = 0.05
+
+        isformax = True
+        cz,slope,rc = util.maximize_1d(cz_ini,dcz,[fct])
+        isformax = False
+
+        slope,vz,mach = fct(cz)
+        return slope,vz,mach,cz
+
 
 class Missions(Flight):
     def __init__(self, airplane, holding_time, reserve_fuel_ratio, diversion_range):
@@ -1362,12 +1427,37 @@ class Missions(Flight):
         self.cost.residual = self.airplane.mass.nominal_payload - self.cost.payload       # INFO: tow must drive residual to zero
 
     def eval_payload_range(self):
-        """Compute missions
+        """Compute missions without solving them
         """
         self.eval_max_payload_mission()
         self.eval_max_fuel_mission()
         self.eval_zero_payload_mission()
         self.eval_cost_mission()
+
+    def eval_mission_solver(self, mission, var):
+
+        if mission not in ["max_payload","max_fuel","zero_payload","cost"]:
+            raise Exception("mission type not allowed")
+
+        def fct(x, self):
+            exec("self."+mission+"."+var+" = x")
+            eval("self.eval_"+mission+"_mission()")
+            return eval("self."+mission+".residual")
+
+        xini = eval("self."+mission+"."+var)
+        output_dict = fsolve(fct, x0=xini, args=(self), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        exec("self."+mission+"."+var+" = output_dict[0][0]")
+        eval("self.eval_"+mission+"_mission()")
+
+    def eval_payload_range_solver(self):
+        """Compute missions and solve them
+        """
+        self.eval_mission_solver("max_payload", "range")
+        self.eval_mission_solver("max_fuel", "range")
+        self.eval_mission_solver("zero_payload", "range")
+        self.eval_mission_solver("cost", "tow")
 
 
 class Breguet(Flight):
@@ -1526,6 +1616,13 @@ class Operations(Flight):
         self.oei_ceiling.disa = 15.
         self.oei_ceiling.mass = 0.97 * self.airplane.mass.mtow
         self.oei_ceiling.eval()
+
+    def solve_oei_ceiling(self):
+        """Compute performances
+        """
+        self.oei_ceiling.disa = 15.
+        self.oei_ceiling.mass = 0.97 * self.airplane.mass.mtow
+        self.oei_ceiling.solve()
 
     def eval(self):
         """Compute performances
@@ -1727,7 +1824,7 @@ class OeiCeiling(Flight):
         self.speed_mode = speed_mode
 
     def eval(self):
-        """Residual climb speed in MCL rating
+        """One engine ceiling in MCN rating WITHOUT speed optimization
         """
         disa = self.disa
         altp = self.altp_req
@@ -1741,6 +1838,22 @@ class OeiCeiling(Flight):
         pamb,tamb = util.atmosphere(altp, disa)
         speed = self.get_speed(pamb,speed_mode,mach)
         path,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
+        self.path_eff = path
+        return
+
+    def solve(self):
+        """One engine ceiling in MCN rating WITH speed optimization
+        """
+        disa = self.disa
+        altp = self.altp_req
+        mass = self.mass
+
+        speed_mode = self.speed_mode
+        rating = self.rating
+        kfn = 1.
+        nei = 1
+        path,vz,mach,cz = self.max_air_path(nei,altp,disa,speed_mode,mass,rating,kfn)
+        self.mach = mach
         self.path_eff = path
         return
 
@@ -1898,7 +2011,7 @@ if __name__ == "__main__":
     ap = Airplane()
 
 
-# High level process view
+# High level process view WITHOUT MDA
 #-----------------------------------------
     ap.geometry.eval()
 
@@ -1917,23 +2030,24 @@ if __name__ == "__main__":
     ap.economics.eval()
 
 
-# Low level process view
+
+# Low level process view WITHOUT MDA
 #-----------------------------------------
     ap.cabin.eval_geometry()
 
     ap.fuselage.eval_geometry()
 
-    ap.wing.eval_geometry()         # Wing area to be optimized
+    ap.wing.eval_geometry()
 
     ap.tank.eval_geometry()
 
-    ap.htp.eval_geometry()          # HTP area to be computed
+    ap.htp.eval_geometry()
 
-    ap.htp.eval_area()          # HTP area to be computed
+    ap.htp.eval_area()
 
-    ap.vtp.eval_geometry()          # VTP area to be computed
+    ap.vtp.eval_geometry()
 
-    ap.vtp.eval_area()          # VTP area to be computed
+    ap.vtp.eval_area()
 
     ap.nacelles.eval_geometry()
 
@@ -1967,6 +2081,7 @@ if __name__ == "__main__":
 
     ap.missions.eval_nominal_mission()
 
+
     ap.missions.eval_max_payload_mission()
 
     ap.missions.eval_max_fuel_mission()
@@ -1983,6 +2098,50 @@ if __name__ == "__main__":
     ap.operations.eval_climb_ceiling()
 
     ap.operations.eval_oei_ceiling()
+
+
+    ap.economics.eval()
+
+
+
+# Low level process view WITH MDA
+#-----------------------------------------
+    ap.cabin.eval_geometry()
+
+    ap.fuselage.eval_geometry()
+
+    ap.wing.eval_geometry()
+
+    ap.tank.eval_geometry()
+
+    ap.nacelles.eval_geometry()
+
+
+    ap.htp.solve_area()                     # Solver inside
+
+    ap.vtp.solve_area()                     # Solver inside
+
+
+    ap.landing_gears.eval_geometry()
+
+    ap.systems.eval_geometry()
+
+    ap.geometry.eval_wet_area()
+
+
+    ap.mass_mission_adaptation()            # Solver inside
+
+
+    ap.missions.eval_payload_range_solver() # Solver inside
+
+
+    ap.operations.eval_take_off()
+
+    ap.operations.eval_approach()
+
+    ap.operations.eval_climb_ceiling()
+
+    ap.operations.solve_oei_ceiling()       # Optimizer inside
 
 
     ap.economics.eval()

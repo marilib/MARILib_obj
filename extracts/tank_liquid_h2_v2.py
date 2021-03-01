@@ -20,7 +20,7 @@ class LH2Tank(object):
     def __init__(self, phd):
         self.phd = phd
 
-        self.grav_index_ref = 0.1   # kgH2/(kgH2+kgTank), Tank gravimetric index
+        self.grav_index_ref = 0.15   # kgH2/(kgH2+kgTank), Tank gravimetric index
         self.vol_index_ref = 43.    # kgH2/(m3H2+m3Tank), Tank volumetric index
         self.h2_mass_ref = 5.       # LH2 mass for these indices
         self.gas_ratio = 0.05       # Fraction of internal volume filled with gas
@@ -30,6 +30,7 @@ class LH2Tank(object):
         self.internal_volume = None     # Tank internal volume
         self.external_volume = None     # Tank external volume
         self.wall_thickness = None      # Tank wall thickness
+        self.wall_density = None        # Tank wall thickness
         self.mass = None                # Tank mass
 
         self.liquid_h2_volume = None    # Liquid H2 volume
@@ -50,9 +51,6 @@ class LH2Tank(object):
         length_ref = (ext_volume_ref/((np.pi/4.)*(1.-wolr/3.)*wolr**2))**(1./3.)
         width_ref = length_ref * wolr
         tank_mass_ref = self.h2_mass_ref*((1./self.grav_index_ref)-1.)
-        # str_density = tank_mass_ref / str_volume_ref
-        # On inner shell, extension constraints increase as diameter
-        str_density = (tank_mass_ref / str_volume_ref) * (1. + self.width/width_ref)/2.
 
         def tank_volume(length,width,thickness):
             return (np.pi/4.)*(length-width/3.-(4./3.)*thickness)*(width-2.*thickness)**2
@@ -64,13 +62,23 @@ class LH2Tank(object):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
         self.wall_thickness = output_dict[0][0]
 
+        # Density supposing a structure with skin frames and stiffeners and a constant thickness of the skin
+        # self.wall_density = tank_mass_ref / str_volume_ref
+
+        # Assumptions : reference shells have equal mass of skin versus frames and stiffeners
+        #               inner shell and outer shell have the same surface mass
+        #               when volume increases : outer shell is supposed to keep the same surface mass
+        #                                       inner shell skin keep the same thickness but frames and stiffeners mass
+        #                                       increases proportionnally to the diameter
+        self.wall_density = (tank_mass_ref / str_volume_ref) * (1. + self.width/width_ref)/2.
+
         self.external_volume = tank_volume(self.length,self.width,0.)
         self.internal_volume = tank_volume(self.length,self.width,self.wall_thickness)
 
         self.h2_volume = (1.-self.gas_ratio)*self.internal_volume
         self.h2_max_mass = self.h2_volume*lh2_density
 
-        self.mass = (self.external_volume - self.internal_volume)*str_density
+        self.mass = (self.external_volume - self.internal_volume)*self.wall_density
 
         self.gravimetric_index = self.h2_max_mass / (self.h2_max_mass + self.mass)
         self.volumetric_index = self.h2_max_mass / self.external_volume
