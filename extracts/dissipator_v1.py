@@ -339,7 +339,7 @@ hex_tube_area = hex_tube_perimeter * hex_length * hex_tube_count
 
 # Fuel cell stack data
 #-----------------------------------------------------------------------------------------------
-fcs_power = unit.W_kW(245.)                  # Total stack power
+fcs_power = unit.W_kW(150.)                  # Total stack power
 fcs_specific_area = 0.4/unit.W_kW(1.)       # m2/kW
 fcs_area = fcs_specific_area * fcs_power    # m2
 fcs_length = 0.4            # m
@@ -353,18 +353,17 @@ fluid_rho = 1000.           # density of water
 fluid_cp = 4200.            # J/kg/K
 fluid_pd = unit.Pa_bar(0.2) # Pressure drop in the pipes
 
-# Air data
-#-----------------------------------------------------------------------------------------------
-air_speed = 100.        # m/s
-air_temp = t0 + 15.     # K
 
 
 # Experiment
 #-----------------------------------------------------------------------------------------------
+air_speed = 50.        # m/s
 altp = 0.
 disa = 0.
 
 pamb,tamb = atmosphere(altp, disa)
+
+air_temp = tamb     # K
 
 pump_power = unit.W_kW(0.50)
 

@@ -372,7 +372,7 @@ hex_tube_area = hex_tube_perimeter * hex_width * hex_tube_count
 
 # Fuel cell stack data
 #-----------------------------------------------------------------------------------------------
-fcs_power = unit.W_kW(10.)                  # Total stack power
+fcs_power = unit.W_kW(150.)                  # Total stack power
 fcs_specific_area = 0.4/unit.W_kW(1.)       # m2/kW
 fcs_area = fcs_specific_area * fcs_power    # m2
 fcs_length = 0.4            # m
@@ -395,14 +395,15 @@ fluid_pd = unit.Pa_bar(0.2) # Pressure drop in the pipes
 r,gam,Cp,Cv = gas_data()
 
 inlet_sr = 1.0
-nozzl_sr = 0.2
+nozzl_sr = 1.0
 
 inlet_area = hex_section * inlet_sr
 nozzl_area = hex_section * nozzl_sr
 
-altp = 3000.
+altp = 0.
 disa = 15.
-vair_0 = 100.          # m/s
+vair_0 = 50.          # m/s
+
 pump_power = unit.W_kW(0.2)
 
 shaft_power = unit.W_kW(34.)
