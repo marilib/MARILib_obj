@@ -10,33 +10,42 @@ from contour import contour
 from force import force
 
 
-xcg = 0.20
-mass = 80000
+g = 9.80665
+
+xcg = 0.2555
+mass = 70000
 
 vair = 150
 
-psi = 0
-theta = 0
-phi = 0
+psi = rad_deg(0)
+theta = rad_deg(0)
+phi = rad_deg(0)
 
-alpha = rad_deg(4)
-betha = rad_deg(6)
+alpha = rad_deg(0)
+betha = rad_deg(0)
 
-dl = rad_deg(-20)
-dm = rad_deg(20)
-dn = rad_deg(30)
+dl = rad_deg(0)
+dm = rad_deg(0)
+dn = rad_deg(0)
+dx = 0
+
+p = rad_deg(0)
+q = rad_deg(0)
+r = rad_deg(0)
 
 trim = rad_deg(0)
 
-a0 = -rad_deg(0)
+# a0 = rad_deg(3.031)
+a0 = rad_deg(0)
+f0 = mass*g/5
+
+# NEW 2021
+# Apply scaling factor of 1.50e-5 on all forces and 1.50e-6 on moments (MtotalXg)
 
 
+geometry()
 
-
-
-geometry(a0,trim)
-
-contour(dl,dm,dn)
+contour(a0,trim,dl,dm,dn)
 
 #------------------REGEX---------------------------------
 
@@ -69,9 +78,9 @@ def onStartGettingShape(client, *args):
     IvySendMsg("ShapeStart name=aileronl")
     IvySendMsg("ShapeStart name=naceller")
     IvySendMsg("ShapeStart name=nacellel")
-    geometry(a0,trim)
+    geometry()
 
-    contour(dl,dm,dn)
+    contour(a0,trim,dl,dm,dn)
     
 #// fuselage
     
@@ -124,11 +133,10 @@ def onStartGettingShape(client, *args):
     IvySendMsg("Draw ffs")    
     
 def onStartComputing(agent, *args):
-    
 
     mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn = [float(arg) for arg in args]
     kscale = 1.5e-5
-    force(mass,xcg,vair,psi,theta,phi,alpha,betha,dl,dm,dn)
+    force(a0,f0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn,dx,p,q,r)
     # sending rWaf
     IvySendMsg("Force name=rWaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.WingRapp, *geo.rWafVec, "yellow"))
     # sending lWaf
@@ -137,6 +145,7 @@ def onStartComputing(agent, *args):
     IvySendMsg("Force name=rAaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.AilRapp, *geo.rAafVec, "red"))
     # sending lAaf
     IvySendMsg("Force name=lAaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.AilLapp, *geo.lAafVec, "red"))
+
     # sending rHaf
     IvySendMsg("Force name=rHaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.HtpRapp, *geo.rHafVec, "yellow"))
     # sending rEaf
@@ -145,14 +154,39 @@ def onStartComputing(agent, *args):
     IvySendMsg("Force name=lHaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.HtpLapp, *geo.lHafVec, "yellow"))
     # sending lEaf
     IvySendMsg("Force name=lEaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.HtpLapp, *geo.lEafVec, "red"))
+
     # sending Vaf
     IvySendMsg("Force name=Vaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.FusApp, *geo.VafVec, "yellow"))
     # sending Raf
     IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.VtpApp, *geo.RafVec, "red"))
+    # sending Total Moment
     IvySendMsg("Moment name=MTot normeX={0} normeY={1} normeZ={2}".format(*geo.MtotalXg))
 
-    
-    
+    # # TO BE ADDED
+    # # sending rRaf
+    # IvySendMsg("Force name=rEaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.RotRapp, *geo.rRafVec, "violet"))
+    # # sending lRaf
+    # IvySendMsg("Force name=lEaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.RotLapp, *geo.lRafVec, "violet"))
+    # # sending rRaf
+    # IvySendMsg("Force name=rEaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.HtpRapp, *geo.rHtpRafVec, "violet"))
+    # # sending lRaf
+    # IvySendMsg("Force name=lEaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.HtpLapp, *geo.lHtpRafVec, "violet"))
+    # # sending Raf
+    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.VtpApp, *geo.rotVafVec, "violet"))
+    #
+    # # TO BE ADDED
+    # # sending mg
+    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.NacRapp, *geo.rNtfVec, "grey"))
+    # # sending lift
+    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.NacLapp, *geo.lNtfVec, "grey"))
+    #
+    # # TO BE ADDED
+    # # sending mg
+    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.mgApp, *geo.mg, "brown"))
+    # # sending lift
+    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.LiftApp, *geo.LiftTotal, "blue"))
+
+
 def on_cnx(a,b):
     print("Initializing the bus....\n")
     

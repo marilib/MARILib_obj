@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jan 24 23:22:21 2019
+
 @author: DRUOT Thierry
 """
 
@@ -22,7 +23,7 @@ def force(a0,f0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn,dx,p,q,r):
     Kdm = 0.80
     Kdn = 0.90
 
-    Krot = 0.60
+    Krot = 1.0
 
     origin = numpy.array([0,0,0])
     uX = numpy.array([1,0,0])
@@ -59,6 +60,7 @@ def force(a0,f0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn,dx,p,q,r):
     Ralpha = numpy.array([[ math.cos(alpha) , 0. , math.sin(alpha) ],
                           [ 0.              , 1. , 0.              ],
                           [-math.sin(alpha) , 0. , math.cos(alpha) ]])
+
     tRalpha = numpy.transpose(Ralpha)
 
     Rba = numpy.matmul(Rbetha,Ralpha)

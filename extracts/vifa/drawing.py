@@ -112,7 +112,7 @@ def plot_side_view(plt,x_shift,y_shift,dl,dm,kScale):
     plt.plot(x_shift+geo.lNacXYZ[0:,0], y_shift+geo.lNacXYZ[0:,2], c="grey", zorder=21)
 
     if (numpy.linalg.norm(geo.MtotalXg)>eps):
-        plt.arrow(x_shift+geo.MtotalAnchor[0], y_shift+geo.MtotalAnchor[2], 0, -0.01*kScale*geo.MtotalXg[1], linewidth=0.2, width=0.4, color="grey", shape="full", zorder=22)
+        plt.arrow(x_shift+geo.MtotalAnchor[0], y_shift+geo.MtotalAnchor[2], 0, -0.1*kScale*geo.MtotalXg[1], linewidth=0.2, width=0.4, color="grey", shape="full", zorder=22)
 
 
 
@@ -185,7 +185,7 @@ def plot_back_view(plt,x_shift,y_shift,kScale):
         plt.arrow(x_shift+geo.VtpApp[1], y_shift-geo.VtpApp[2], kScale*geo.rotVafVec[1], -kScale*geo.rotVafVec[2], linewidth=0.1, width=0.2, color="darkcyan", shape="full", zorder=20)
 
     if (numpy.linalg.norm(geo.MtotalXg)>eps):
-        plt.arrow(x_shift+geo.MtotalAnchor[1], y_shift+geo.MtotalAnchor[2], 0, -0.01*kScale*geo.MtotalXg[0], linewidth=0.2, width=0.4, color="grey", shape="full", zorder=22)
+        plt.arrow(x_shift+geo.MtotalAnchor[1], y_shift+geo.MtotalAnchor[2], 0, -0.1*kScale*geo.MtotalXg[0], linewidth=0.2, width=0.4, color="grey", shape="full", zorder=22)
 
 
 #===================================================================================================================
@@ -249,6 +249,6 @@ def plot_top_view(plt,x_shift,y_shift,kScale):
         plt.arrow(x_shift-geo.VtpApp[0], y_shift+geo.VtpApp[1], -kScale*geo.rotVafVec[0], kScale*geo.rotVafVec[1], linewidth=0.1, width=0.2, color="darkcyan", shape="full", zorder=20)
 
     if (numpy.linalg.norm(geo.MtotalXg)>eps):
-        plt.arrow(x_shift+geo.MtotalAnchor[0], y_shift, 0, -0.01*kScale*geo.MtotalXg[2], linewidth=0.2, width=0.4, color="grey", shape="full", zorder=22)
+        plt.arrow(x_shift+geo.MtotalAnchor[0], y_shift, 0, -0.1*kScale*geo.MtotalXg[2], linewidth=0.2, width=0.4, color="grey", shape="full", zorder=22)
 
 
