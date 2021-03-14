@@ -33,11 +33,11 @@ theta = rad_deg(0)
 phi = rad_deg(0)
 
 alpha = rad_deg(0)
-betha = rad_deg(0)
+betha = rad_deg(10)
 
-dl = rad_deg(0)
+dl = rad_deg(-5)
 dm = rad_deg(0)
-dn = rad_deg(0)
+dn = rad_deg(10)
 dx = 0
 
 trim = rad_deg(0)

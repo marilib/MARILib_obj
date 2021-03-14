@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jan 24 23:22:21 2019
-
 @author: DRUOT Thierry
 """
 
@@ -122,7 +121,7 @@ def force(a0,f0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn,dx,p,q,r):
 
     CzaV = (math.pi*Var)/(1+math.sqrt(1+(Var/2)**2))      # VTP lift gradiant
 
-    VliftDir = renorm(pv(Vdir,uZ))      # VTP lift direction
+    VliftDir = renorm(pv(uZ,Vdir))      # VTP lift direction
 
     # Forces
     # -------------------------------------------------------------------------------------------------------------------------
@@ -196,12 +195,12 @@ def force(a0,f0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn,dx,p,q,r):
 
 
     geo.FusApp = numpy.array([-geo.FusLength*0.70 , 0 , -geo.FusHeight*1.20])
-    Valpha = betha      # VTP angle of attack
+    Valpha = numpy.arcsin(ps(-Vdir,uY))      # VTP angle of attack
     geo.VafVec = ps(Qdyn*geo.VtpArea*CzaV*Valpha*VliftDir, uY)*uY
 
     geo.VtpApp = numpy.array([-geo.VtpXmac-0.25*geo.VtpCmac , 0 , -geo.VtpZmac])
     Ralpha = math.atan(geo.RudCroot*math.sin(dn)/(geo.RudVtpCroot-(geo.RudCroot+geo.RudCroot*math.cos(dn))))
-    geo.RafVec = ps(-Qdyn*geo.VtpArea*Kdn*CzaV*Ralpha*VliftDir, uY)*uY
+    geo.RafVec = ps(Qdyn*geo.VtpArea*Kdn*CzaV*Ralpha*VliftDir, uY)*uY
 
     VtpVair = Vair + pv(Rot,(geo.VtpApp-geo.mgApp))
     VtpQdyn = 0.5*rho*norm(VtpVair)**2
@@ -227,7 +226,7 @@ def force(a0,f0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn,dx,p,q,r):
 
     geo.LiftApp = numpy.array([-geo.MliftTotal[1] / geo.LiftTotal[2],
                                geo.MliftTotal[0] / geo.LiftTotal[2],
-                               0.])
+                               -geo.WingZmac])
 
     geo.MtotalXg = geo.MliftTotal - pv(geo.mgApp,geo.LiftTotal)
 

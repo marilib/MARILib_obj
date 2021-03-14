@@ -50,7 +50,7 @@ class StepMission(Flight):
         self.heading_altp["west"] = [unit.m_ft(zp) for zp in altp_west]
         self.heading_altp["east"] = [unit.m_ft(zp) for zp in altp_east]
 
-        self.zstep = 2200.
+        self.zstep = 100.
         self.altp_list = np.arange(0., 16000., self.zstep)
         self.altpz = self.altp_list[-1]
 
@@ -1034,8 +1034,6 @@ class StepMission(Flight):
         return flight_profile
 
 
-
-
     def draw_flight_profile(self):
 
         plot_title = self.aircraft.name
@@ -1059,4 +1057,15 @@ class StepMission(Flight):
         plt.show()
 
 
+    def plot_data_dict_fkey(self, f_key):
+        plt.plot(self.data_dict["altp"]["low"], self.data_dict[f_key]["low"])
+        plt.plot(self.data_dict["altp"]["medium"], self.data_dict[f_key]["medium"])
+        plt.plot(self.data_dict["altp"]["high"], self.data_dict[f_key]["high"])
+        plt.xlabel("altp (m)")
+        plt.ylabel(f_key)
+        plt.show()
+
+    def plot_data_dict(self):
+        for f_key in self.data_dict.keys():
+            self.plot_data_dict_fkey(f_key)
 
