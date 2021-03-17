@@ -424,7 +424,7 @@ class StepMission(Flight):
         """Perform level cruise sequence(s) and descent
         """
         self.cruise_x_stop = x_stop
-        self.level_blocker = self.climb_dist*6.
+        self.level_blocker = self.climb_dist
         go_ahead = True
         level_index = 0
         sc = []

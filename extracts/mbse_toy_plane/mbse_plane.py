@@ -610,6 +610,8 @@ class Tank(Component):
         super(Tank, self).__init__(airplane)
 
         self.fuel_volume = None
+        self.cantilever_volume = None
+        self.central_volume = None
 
     def eval_geometry(self):
         fuselage = self.airplane.fuselage
@@ -872,6 +874,7 @@ class Nacelles(Component):
 
         self.diameter = None
         self.length = None
+        self.engine_loc = None
         self.span_position = 2.3 + 0.5*engine_bpr**0.7 + 5.E-6*engine_slst
         self.z_ratio = z_ratio
         self.ground_clearence = None      # INFO: ground_clearence must be higher or equal to 1 m

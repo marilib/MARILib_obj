@@ -23,7 +23,8 @@ import matplotlib.pyplot as plt
 
 g = 9.80665
 
-xcg = 0.2555
+# xcg = 0.2555
+xcg = 0.3
 mass = 70000
 
 vair = 150
@@ -33,7 +34,7 @@ theta = rad_deg(0)
 phi = rad_deg(0)
 
 alpha = rad_deg(0)
-betha = rad_deg(-10)
+betha = rad_deg(0)
 
 dl = rad_deg(0)
 dm = rad_deg(0)
