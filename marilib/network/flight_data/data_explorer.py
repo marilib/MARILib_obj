@@ -24,7 +24,9 @@ def analyse_data_base(oag_file_name, range_interval, capacity_interval, airport=
 
     # oag_df = oag_df_raw[oag_df_raw["Origin"]=="CDG"].copy()
     # oag_df = oag_df_raw[oag_df_raw["Destination"]=="ORY"].copy()
-    oag_df = oag_df_raw[oag_df_raw["Equipment"]=="359"].copy()
+    # oag_df = oag_df_raw[oag_df_raw["Equipment"]=="359"].copy()
+
+    oag_df = oag_df_raw.copy()
 
     print("Noms des colonnes = ", oag_df.keys())
     print("Total number of lines = ", len(oag_df))
