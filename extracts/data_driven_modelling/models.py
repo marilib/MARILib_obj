@@ -50,13 +50,58 @@ class DDM(object):                  # Data Driven Modelling
         self.narrow_body = "narrow_body"
         self.wide_body = "wide_body"
 
-        self.pax_allowance = {"general":90, "commuter":100, "business":150, "narrow_body":130, "wide_body":150}  # kg
+        self.mpax_allowance_low = [90, unit.m_km(400)]
+        self.mpax_allowance_high = [150, unit.m_km(8000)]
 
-        self.ref_lod = {"general":17, "business":17, "commuter":17, "narrow_body":17, "wide_body":17}
+        self.lod_low = [15, 1000]
+        self.lod_high = [20, 200000]
 
-        self.ref_tsfc = {"business":0.17e-5, "commuter":0.16e-5, "narrow_body":0.15e-5, "wide_body":0.15e-5} # kg/N/s
+        self.psfc_low = [unit.convert_from("lb/shp/h",0.6), unit.convert_from("kW",50)]
+        self.psfc_high = [unit.convert_from("lb/shp/h",0.4), unit.convert_from("kW",1000)]
 
-        self.ref_psfc = {"general":0.69e-7, "commuter":0.67e-7, "business":0.67e-7} # kg/w/s
+        self.tsfc_low = [unit.convert_from("kg/daN/h",0.60), unit.convert_from("MW",1)]
+        self.tsfc_high = [unit.convert_from("kg/daN/h",0.54), unit.convert_from("MW",10)]
+
+
+    def get_pax_allowance(self,distance):
+        mpax_min, dist_min = self.mpax_allowance_low
+        mpax_max, dist_max = self.mpax_allowance_high
+        if distance<dist_min:
+            return mpax_min
+        elif distance<dist_max:
+            return mpax_min + (mpax_max-mpax_min)*(distance-dist_min)/(dist_max-dist_min)
+        else:
+            return mpax_max
+
+    def get_lod(self,mtow):
+        lod_min, mtow_min = self.lod_low
+        lod_max, mtow_max = self.lod_high
+        if mtow<mtow_min:
+            return lod_min
+        elif mtow<mtow_max:
+            return lod_min + (lod_max-lod_min)*(mtow-mtow_min)/(mtow_max-mtow_min)
+        else:
+            return lod_max
+
+    def get_psfc(self,max_power):
+        psfc_max, pw_min = self.psfc_low
+        psfc_min, pw_max = self.psfc_high
+        if max_power<pw_min:
+            return psfc_max
+        elif max_power<pw_max:
+            return psfc_max - (psfc_max-psfc_min)*(max_power-pw_min)/(pw_max-pw_min)
+        else:
+            return psfc_min
+
+    def get_tsfc(self,max_power):
+        tsfc_max, pw_min = self.tsfc_low
+        tsfc_min, pw_max = self.tsfc_high
+        if max_power<pw_min:
+            return tsfc_max
+        elif max_power<pw_max:
+            return tsfc_max - (tsfc_max-tsfc_min)*(max_power-pw_min)/(pw_max-pw_min)
+        else:
+            return tsfc_min
 
     def get_tas(self,tamb,speed,speed_type):
         if speed_type=="mach":
@@ -92,77 +137,65 @@ class DDM(object):                  # Data Driven Modelling
             ff,dl,ht = 0.03, unit.m_NM(200), unit.s_min(30)
         return {"fuel_factor":ff, "diversion_leg":dl, "holding_time":ht}
 
-    def pax_allowance(self, airplane_type):
-        return self.pax_allowance[airplane_type]
-
-    def tsfc(self, airplane_type):
-        return self.ref_tsfc[airplane_type]
-
-    def psfc(self, airplane_type):
-        return self.ref_psfc[airplane_type]
-
-    def lod(self,engine_type,airplane_type):
-        return self.ref_lod[airplane_type]
-
     def ref_power(self, mtow):
         return mtow * 250
 
     def ref_owe(self, mtow):
         return mtow * 0.5
 
-    def leg_fuel(self,start_mass,distance,altp,speed,speed_type,engine_type,airplane_type):
+    def leg_fuel(self,start_mass,distance,altp,speed,speed_type,mtow,max_power,engine_type):
         """Compute the fuel over a given distance
         WARNING : when fuel is used, returned value is fuel mass (kg)
                   when battery is used, returned value is energy (J)
         """
         pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
-        lod = self.ref_lod[airplane_type]
+        lod = self.get_lod(mtow)
         if engine_type==self.turbofan:
             tas = self.get_tas(tamb,speed,speed_type)
-            sfc = self.ref_tsfc[airplane_type]
-            return start_mass*(1-np.exp(-(sfc*g*distance)/(tas*lod)))              # turbofan
+            sfc = self.get_tsfc(max_power)
+            return start_mass*(1.-np.exp(-(sfc*g*distance)/(tas*lod)))              # turbofan
         elif engine_type==self.fan_battery:
             return start_mass*g*distance / (self.eta_fan*self.eta_motor*lod)       # fan_battery
         elif engine_type==self.piston:
-            sfc = self.ref_psfc[airplane_type]
+            sfc = self.get_psfc(max_power)
             return start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
         elif engine_type==self.turboprop:
-            sfc = self.ref_psfc[airplane_type]
+            sfc = self.get_psfc(max_power)
             return start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
         elif engine_type==self.prop_battery:
             return start_mass*g*distance / (self.eta_prop*self.eta_motor*lod)      # prop_battery
         else:
             raise Exception("engine_type is unknown : "+engine_type)
 
-    def holding_fuel(self,start_mass,time,altp,speed,speed_type,engine_type,airplane_type):
+    def holding_fuel(self,start_mass,time,altp,speed,speed_type,mtow,max_power,engine_type):
         """Compute the fuel for a given holding time
         """
         pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
-        lod = self.ref_lod[airplane_type]
+        lod = self.get_lod(mtow)
         if engine_type==self.turbofan:
-            sfc = self.ref_tsfc[airplane_type]
+            sfc = self.get_tsfc(max_power)
             return start_mass*(1 - np.exp(-g*sfc*time/lod))             # turbofan
         elif engine_type==self.fan_battery:
             tas = self.get_tas(tamb,speed,speed_type)
             return start_mass*g*tas*time / (self.eta_fan*self.eta_motor*lod)       # fan_battery
         elif engine_type==self.piston:
             tas = self.get_tas(tamb,speed,speed_type)
-            sfc = self.ref_psfc[airplane_type]
+            sfc = self.get_psfc(max_power)
             return start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
         elif engine_type==self.turboprop:
             tas = self.get_tas(tamb,speed,speed_type)
-            sfc = self.ref_psfc[airplane_type]
+            sfc = self.get_psfc(max_power)
             return start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
         elif engine_type==self.prop_battery:
             tas = self.get_tas(tamb,speed,speed_type)
             return start_mass*g*tas*time / (self.eta_prop*self.eta_motor*lod)      # prop_battery
 
-    def total_fuel(self,tow,range,cruise_speed,speed_type,engine_type,airplane_type):
+    def total_fuel(self,tow,range,cruise_speed,speed_type,mtow,max_power,engine_type,airplane_type):
         """Compute the total fuel required for a mission
         """
         altitude = self.cruise_altp(airplane_type)
         cruise_altp = altitude["mission"]
-        mission_fuel = self.leg_fuel(tow,range,cruise_altp,cruise_speed,speed_type,engine_type,airplane_type)
+        mission_fuel = self.leg_fuel(tow,range,cruise_altp,cruise_speed,speed_type,mtow,max_power,engine_type)
         ldw = tow - mission_fuel
         data = self.reserve_data(airplane_type)
         reserve_fuel = 0.
@@ -171,40 +204,22 @@ class DDM(object):                  # Data Driven Modelling
         if data["diversion_leg"]>0:
             leg = data["diversion_leg"]
             diversion_altp = altitude["diversion"]
-            reserve_fuel += self.leg_fuel(ldw,leg,diversion_altp,cruise_speed,speed_type,engine_type,airplane_type)
+            reserve_fuel += self.leg_fuel(ldw,leg,diversion_altp,cruise_speed,speed_type,mtow,max_power,engine_type)
         if data["holding_time"]>0:
             time = data["holding_time"]
             holding_altp = altitude["diversion"]
             speed = 0.5 * cruise_speed
-            reserve_fuel += self.holding_fuel(ldw,time,holding_altp,speed,speed_type,engine_type,airplane_type)
+            reserve_fuel += self.holding_fuel(ldw,time,holding_altp,speed,speed_type,mtow,max_power,engine_type)
         return mission_fuel+reserve_fuel
 
-    def owe_performance(self, npax, mtow, range, cruise_speed, engine_type, airplane_type):
+    def owe_performance(self, npax, mtow, range, cruise_speed, max_power, engine_type, airplane_type):
         if cruise_speed>1:
             speed_type = "tas"
         else:
             speed_type = "mach"
-        total_fuel = self.total_fuel(mtow, range, cruise_speed, speed_type, engine_type, airplane_type)
-        payload = npax * self.pax_allowance[airplane_type]
-        # print(mtow, payload, total_fuel)
+        total_fuel = self.total_fuel(mtow, range, cruise_speed, speed_type, mtow, max_power, engine_type, airplane_type)
+        payload = npax * self.get_pax_allowance(range)
         return mtow-payload-total_fuel
-
-
-    def set_param(self, param):
-        self.ref_lod["general"]     = 15*param[0]
-        self.ref_lod["business"]    = 17*param[1]
-        self.ref_lod["commuter"]    = 17*param[2]
-        self.ref_lod["narrow_body"] = 17*param[3]
-        self.ref_lod["wide_body"]   = 19*param[4]
-
-        self.ref_tsfc["business"]    = 0.17e-5*param[5]
-        self.ref_tsfc["commuter"]    = 0.17e-5*param[6]
-        self.ref_tsfc["narrow_body"] = 0.16e-5*param[7]
-        self.ref_tsfc["wide_body"]   = 0.15e-5*param[8]
-
-        self.ref_psfc["general"]  = 0.69e-7*param[9]
-        self.ref_psfc["business"] = 0.67e-7*param[11]
-        self.ref_psfc["commuter"] = 0.67e-7*param[10]
 
 
 def read_db(file):
@@ -212,12 +227,12 @@ def read_db(file):
     un = raw_data.iloc[0:2,0:]                          # Take unit structure only
     df = raw_data.iloc[2:,0:].reset_index(drop=True)    # Remove unit rows and reset index
     for name in df.columns:
-        if un[name][0] not in ["string","int"] and name not in ["cruise_speed","max_speed"]:
-            df[name] = unit.convert_from(un[name][0], list(df[name]))
+        if un.loc[0,name] not in ["string","int"] and name not in ["cruise_speed","max_speed"]:
+            df[name] = unit.convert_from(un.loc[0,name], list(df[name]))
     for name in ["cruise_speed","max_speed"]:
         for j in df.index:
-            if df[name][j]>0.:
-                df[name][j] = unit.convert_from(un[name][0], df[name][j])
+            if df.loc[j,name]>1.:
+                df.loc[j,name] = float(unit.convert_from(un.loc[0,name], df.loc[j,name]))
     return df,un
 
 
@@ -251,15 +266,19 @@ def draw_reg(df, un, abs, ord, reg, coloration):
     title = ord + " - " + abs
     fig.suptitle(title, fontsize=12)
 
+    cloud = []
     for typ in coloration.keys():
-        abs_list = list(df.loc[df['airplane_type']==typ][abs])
-        ord_list = list(df.loc[df['airplane_type']==typ][ord])
-        plt.scatter(abs_list, ord_list, marker="o", c=coloration[typ], s=10)
+        abs_list = unit.convert_to(un.loc[0,abs],list(df.loc[df['airplane_type']==typ][abs]))
+        ord_list = unit.convert_to(un.loc[0,ord],list(df.loc[df['airplane_type']==typ][ord]))
+        cloud.append(plt.scatter(abs_list, ord_list, marker="o", c=coloration[typ], s=10, label=typ))
+        axes.add_artist(cloud[-1])
 
-    plt.plot(reg[0], reg[1], linewidth=1, color="grey")
+    plt.plot(unit.convert_to(un.loc[0,abs],reg[0]), unit.convert_to(un.loc[0,ord],reg[1]), linewidth=1, color="grey")
 
-    plt.ylabel(ord+' ('+un[ord][0]+')')
-    plt.xlabel(abs+' ('+un[abs][0]+')')
+    axes.legend(handles=cloud, loc="lower right")
+
+    plt.ylabel(ord+' ('+un.loc[0,ord]+')')
+    plt.xlabel(abs+' ('+un.loc[0,abs]+')')
     plt.grid(True)
     plt.show()
 
@@ -284,14 +303,14 @@ if __name__ == '__main__':
     # View data
     #-------------------------------------------------------------------------------------------------------------------
     abs = "MTOW"
-    ord = "OWE"
+    # ord = "OWE"
 
-    print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+    ord = "total_power"
 
-    # ord = "total_power"
-    #
-    # df[ord] = df['max_power']*df['n_engine']
-    # un[ord] = un['max_power']
+    df[ord] = df['max_power']*df['n_engine']
+    un[ord] = un['max_power']
+
+    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
 
     lin = False
     lst = True
@@ -299,41 +318,30 @@ if __name__ == '__main__':
     if lst:
         # Regression
         #-------------------------------------------------------------------------------------------------------------------
-        def fct(param, res="sqr"):
-            ddm.set_param(param)
-
+        def fct(res="sqr"):
             out = []
             for i in df.index:
-                npax = df['n_pax'][i]
-                mtow = df['MTOW'][i]
-                distance = df['nominal_range'][i]
-                cruise_speed = df['cruise_speed'][i]
+                npax = float(df['n_pax'][i])
+                mtow = float(df['MTOW'][i])
+                distance = float(df['nominal_range'][i])
+                cruise_speed = float(df['cruise_speed'][i])
+                max_power = float(df['max_power'][i])
                 airplane_type = df['airplane_type'][i]
                 engine_type = df['engine_type'][i]
-                owe_ref = df['OWE'][i]
-                owe_mod = ddm.owe_performance(npax, mtow, distance, cruise_speed, engine_type, airplane_type)
+                owe_ref = float(df['OWE'][i])
+                owe_mod = ddm.owe_performance(npax, mtow, distance, cruise_speed, max_power, engine_type, airplane_type)
                 if res=="sqr":
                     out.append((owe_ref-owe_mod)**2)
                 else:
                     out.append(owe_mod)
-
             return out
 
-        x0 = [1, 1, 1, 1, 1,    1, 1, 1, 1,    1, 1, 1]
-
-        df['OWE_mod'] = fct(x0, res="owe")
+        df['OWE_mod'] = fct(res="owe")
         un['OWE_mod'] = un['OWE']
 
         coloration = {"general":"yellow", "commuter":"green", "business":"blue", "narrow_body":"orange", "wide_body":"red"}
 
         draw_reg(df, un, 'OWE', 'OWE_mod', [[0,max(df['OWE'])], [0,max(df['OWE'])]], coloration)
-
-
-        # out = least_squares(residual, x0)
-        #
-        # ddm.set_param(out.x)
-        #
-        # print(out.x)
 
 
 
