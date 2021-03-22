@@ -8,7 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
-from scipy.optimize import least_squares
+from scipy.optimize import fsolve, least_squares
 
 import pandas as pd
 from tabulate import tabulate
@@ -35,7 +35,7 @@ class DDM(object):                  # Data Driven Modelling
         self.piston_eng_pw_density = unit.W_kW(1) # Wh/kg
         self.elec_motor_pw_density = unit.W_kW(4.5) # Wh/kg   (MAGNIX)
 
-        self.battery_enrg_density = unit.J_Wh(200)  # Wh/kg
+        self.battery_enrg_density = unit.J_Wh(400)  # Wh/kg
         self.battery_vol_density = 2500.            # kg/m3
 
         self.piston = "piston"
@@ -138,10 +138,18 @@ class DDM(object):                  # Data Driven Modelling
         return {"fuel_factor":ff, "diversion_leg":dl, "holding_time":ht}
 
     def ref_power(self, mtow):
-        return mtow * 250
+        """Required total power for an airplane with a given MTOW
+        """
+        a, b, c = [7.56013195e-05, 2.03471207e+02, 0. ]
+        power = (a*mtow + b)*mtow + c
+        return power
 
     def ref_owe(self, mtow):
-        return mtow * 0.5
+        """Averaged OWE for an airplane with a given MTOW
+        """
+        a, b, c = [-2.52877960e-07, 5.72803778e-01, 0. ]
+        owe = (a*mtow + b)*mtow + c
+        return owe
 
     def leg_fuel(self,start_mass,distance,altp,speed,speed_type,mtow,max_power,engine_type):
         """Compute the fuel over a given distance
@@ -153,50 +161,61 @@ class DDM(object):                  # Data Driven Modelling
         if engine_type==self.turbofan:
             tas = self.get_tas(tamb,speed,speed_type)
             sfc = self.get_tsfc(max_power)
-            return start_mass*(1.-np.exp(-(sfc*g*distance)/(tas*lod)))              # turbofan
+            fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(tas*lod)))             # turbofan
         elif engine_type==self.fan_battery:
-            return start_mass*g*distance / (self.eta_fan*self.eta_motor*lod)       # fan_battery
+            fuel = start_mass*g*distance / (self.eta_fan*self.eta_motor*lod)       # fan_battery
         elif engine_type==self.piston:
             sfc = self.get_psfc(max_power)
-            return start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
+            fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
         elif engine_type==self.turboprop:
             sfc = self.get_psfc(max_power)
-            return start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
+            fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
         elif engine_type==self.prop_battery:
-            return start_mass*g*distance / (self.eta_prop*self.eta_motor*lod)      # prop_battery
+            fuel = start_mass*g*distance / (self.eta_prop*self.eta_motor*lod)      # prop_battery
         else:
             raise Exception("engine_type is unknown : "+engine_type)
+        return fuel
 
     def holding_fuel(self,start_mass,time,altp,speed,speed_type,mtow,max_power,engine_type):
         """Compute the fuel for a given holding time
+        WARNING : when fuel is used, returned value is fuel mass (kg)
+                  when battery is used, returned value is energy (J)
         """
         pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
         lod = self.get_lod(mtow)
         if engine_type==self.turbofan:
             sfc = self.get_tsfc(max_power)
-            return start_mass*(1 - np.exp(-g*sfc*time/lod))             # turbofan
+            fuel = start_mass*(1 - np.exp(-g*sfc*time/lod))             # turbofan
         elif engine_type==self.fan_battery:
             tas = self.get_tas(tamb,speed,speed_type)
-            return start_mass*g*tas*time / (self.eta_fan*self.eta_motor*lod)       # fan_battery
+            fuel = start_mass*g*tas*time / (self.eta_fan*self.eta_motor*lod)       # fan_battery
         elif engine_type==self.piston:
             tas = self.get_tas(tamb,speed,speed_type)
             sfc = self.get_psfc(max_power)
-            return start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
+            fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
         elif engine_type==self.turboprop:
             tas = self.get_tas(tamb,speed,speed_type)
             sfc = self.get_psfc(max_power)
-            return start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
+            fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
         elif engine_type==self.prop_battery:
             tas = self.get_tas(tamb,speed,speed_type)
-            return start_mass*g*tas*time / (self.eta_prop*self.eta_motor*lod)      # prop_battery
+            fuel = start_mass*g*tas*time / (self.eta_prop*self.eta_motor*lod)      # prop_battery
+        else:
+            raise Exception("engine_type is unknown : "+engine_type)
+        return fuel
 
     def total_fuel(self,tow,range,cruise_speed,speed_type,mtow,max_power,engine_type,airplane_type):
         """Compute the total fuel required for a mission
+        WARNING : when fuel is used, returned value is fuel mass (kg)
+                  when battery is used, returned value is energy (J)
         """
         altitude = self.cruise_altp(airplane_type)
         cruise_altp = altitude["mission"]
         mission_fuel = self.leg_fuel(tow,range,cruise_altp,cruise_speed,speed_type,mtow,max_power,engine_type)
-        ldw = tow - mission_fuel
+        if engine_type in [self.prop_battery, self.fan_battery]:
+            ldw = tow
+        else:
+            ldw = tow - mission_fuel
         data = self.reserve_data(airplane_type)
         reserve_fuel = 0.
         if data["fuel_factor"]>0:
@@ -219,8 +238,65 @@ class DDM(object):                  # Data Driven Modelling
             speed_type = "mach"
         total_fuel = self.total_fuel(mtow, range, cruise_speed, speed_type, mtow, max_power, engine_type, airplane_type)
         payload = npax * self.get_pax_allowance(range)
-        return mtow-payload-total_fuel
+        if engine_type in [self.prop_battery, self.fan_battery]:
+            owe = mtow - payload - total_fuel/self.battery_enrg_density
+        else:
+            owe = mtow - payload - total_fuel
+        return owe
 
+    def owe_structure(self, mtow, initial_engine_type=None, target_engine_type=None):
+        power = self.ref_power(mtow)
+        owe = self.ref_owe(mtow)
+        dm = 0.
+        if initial_engine_type is not None:
+            if target_engine_type is not None:
+                # remove initial engine mass
+                if initial_engine_type==self.piston:
+                    dm -= power / self.piston_eng_pw_density
+                elif initial_engine_type==self.turboprop:
+                    dm -= power / self.turboprop_pw_density
+                elif initial_engine_type==self.turbofan:
+                    dm -= power / self.turbofan_pw_density
+                elif initial_engine_type==self.prop_battery:
+                    dm -= power / self.elec_motor_pw_density
+                elif initial_engine_type==self.fan_battery:
+                    dm -= power / self.elec_motor_pw_density
+                # Add new engine mass
+                if target_engine_type==self.piston:
+                    dm += power / self.piston_eng_pw_density
+                elif target_engine_type==self.turboprop:
+                    dm += power / self.turboprop_pw_density
+                elif target_engine_type==self.turbofan:
+                    dm += power / self.turbofan_pw_density
+                elif target_engine_type==self.prop_battery:
+                    dm += power / self.elec_motor_pw_density
+                elif target_engine_type==self.fan_battery:
+                    dm += power / self.elec_motor_pw_density
+        return owe+dm
+
+    def mass_mission_adapt(self, npax, distance, cruise_speed, airplane_type, engine_type, target_engine_type=None):
+
+        if target_engine_type is None: target_engine_type = engine_type
+
+        def fct(mtow):
+            max_power = self.ref_power(mtow)
+            owe_p = self.owe_performance(npax, mtow, distance, cruise_speed, max_power, target_engine_type, airplane_type)
+            owe_b = self.owe_structure(mtow, initial_engine_type=engine_type, target_engine_type=target_engine_type)
+            return (owe_p-owe_b)/owe_b
+
+        mtow_ini = (-8.57e-15*npax*distance + 1.09e-04)*npax*distance
+        output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        mtow = output_dict[0][0]
+        owe = self.owe_structure(mtow, initial_engine_type=engine_type, target_engine_type=target_engine_type)
+        return owe,mtow
+
+#-----------------------------------------------------------------------------------------------------------------------
+#
+#  Analysis functions
+#
+#-----------------------------------------------------------------------------------------------------------------------
 
 def read_db(file):
     raw_data = pd.read_excel(file)     # Load data base as a Pandas data frame
@@ -236,12 +312,15 @@ def read_db(file):
     return df,un
 
 
-def lin_lst_reg(abs, ord, order, df):
+def lin_lst_reg(df, abs, ord, order, through_zero):
 
     def make_mat(param,order):
-        mat = np.array(param**0)
-        for j in range(order):
-            mat = np.vstack([param**(1+j),mat])
+        mat_list = []
+        if through_zero: n = 1
+        else: n = 0
+        for j in range(n,order+1,1):
+            mat_list.append(param**(j))
+        mat = np.vstack(mat_list)
         return mat.T      # Need to transpose the stacked matrix
 
     param = np.array(list(df[abs]))
@@ -283,6 +362,91 @@ def draw_reg(df, un, abs, ord, reg, coloration):
     plt.show()
 
 
+def draw_hist(rer,title):
+    fig,axes = plt.subplots(1,1)
+    fig.canvas.set_window_title("Relative error distribution")
+    fig.suptitle(title, fontsize=12)
+
+    plt.hist(rer, bins=10, range=(-1,1))
+
+    plt.ylabel('Count')
+    plt.xlabel('Relative Error')
+    plt.show()
+
+
+
+def do_regression(df, un, abs, ord, coloration, order, through_zero=False):
+    # Regression
+    #-------------------------------------------------------------------------------------------------------------------
+    dict = lin_lst_reg(df, abs, ord, order, through_zero)
+
+    # Prints & Draws
+    #-------------------------------------------------------------------------------------------------------------------
+    print("Coef = ", dict["coef"])
+    print("Res = ", dict["res"])
+
+    draw_reg(df, un, abs, ord, dict["reg"], coloration)
+
+    return dict
+
+
+def compare_owe_base_and_model(coloration):
+    owe = []
+    rer = []
+    for i in df.index:
+        npax = float(df['n_pax'][i])
+        mtow = float(df['MTOW'][i])
+        distance = float(df['nominal_range'][i])
+        cruise_speed = float(df['cruise_speed'][i])
+        max_power = float(df['max_power'][i])
+        airplane_type = df['airplane_type'][i]
+        engine_type = df['engine_type'][i]
+        owe_ref = float(df['OWE'][i])
+        owe_mod = ddm.owe_performance(npax, mtow, distance, cruise_speed, max_power, engine_type, airplane_type)
+        rer.append((owe_mod-owe_ref)/owe_ref)
+        owe.append(owe_mod)
+
+    df['OWE_mod'] = owe
+    un['OWE_mod'] = un['OWE']
+
+    draw_reg(df, un, 'OWE', 'OWE_mod', [[0,max(df['OWE'])], [0,max(df['OWE'])]], coloration)
+
+    draw_hist(rer, 'OWE model - OWE base')
+
+
+def compare_adaptation(coloration, reg):
+    owe = []
+    mtow = []
+    rer_owe = []
+    rer_mtow = []
+    for i in df.index:
+        npax = float(df['n_pax'][i])
+        mtow_ref = float(df['MTOW'][i])
+        distance = float(df['nominal_range'][i])
+        cruise_speed = float(df['cruise_speed'][i])
+        max_power = float(df['max_power'][i])
+        airplane_type = df['airplane_type'][i]
+        engine_type = df['engine_type'][i]
+        owe_ref = float(df['OWE'][i])
+
+        owe_mod,mtow_mod = ddm.mass_mission_adapt(npax, distance, cruise_speed, airplane_type, engine_type)
+        mtow.append(mtow_mod)
+        owe.append(owe_mod)
+        rer_owe.append((owe_mod-owe_ref)/owe_ref)
+        rer_mtow.append((mtow_mod-mtow_ref)/mtow_ref)
+
+    df['OWE_mod'] = owe
+    un['OWE_mod'] = un['OWE']
+
+    df['MTOW_mod'] = mtow
+    un['MTOW_mod'] = un['MTOW']
+
+    draw_reg(df, un, 'MTOW_mod', 'OWE_mod', reg, coloration)
+
+    draw_hist(rer_owe, 'OWE model - OWE base')
+
+    draw_hist(rer_mtow, 'MTOW model - MTOW base')
+
 
 
 
@@ -300,65 +464,85 @@ if __name__ == '__main__':
     # Remove A380-800 row and reset index
     df = df[df['name']!='A380-800'].reset_index(drop=True)
 
-    # View data
+    # perform regressions
     #-------------------------------------------------------------------------------------------------------------------
+    coloration = {"general":"yellow", "commuter":"green", "business":"blue", "narrow_body":"orange", "wide_body":"red"}
+
     abs = "MTOW"
-    # ord = "OWE"
-
-    ord = "total_power"
-
-    df[ord] = df['max_power']*df['n_engine']
-    un[ord] = un['max_power']
+    ord = "OWE"
 
     # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
 
-    lin = False
-    lst = True
-
-    if lst:
-        # Regression
-        #-------------------------------------------------------------------------------------------------------------------
-        def fct(res="sqr"):
-            out = []
-            for i in df.index:
-                npax = float(df['n_pax'][i])
-                mtow = float(df['MTOW'][i])
-                distance = float(df['nominal_range'][i])
-                cruise_speed = float(df['cruise_speed'][i])
-                max_power = float(df['max_power'][i])
-                airplane_type = df['airplane_type'][i]
-                engine_type = df['engine_type'][i]
-                owe_ref = float(df['OWE'][i])
-                owe_mod = ddm.owe_performance(npax, mtow, distance, cruise_speed, max_power, engine_type, airplane_type)
-                if res=="sqr":
-                    out.append((owe_ref-owe_mod)**2)
-                else:
-                    out.append(owe_mod)
-            return out
-
-        df['OWE_mod'] = fct(res="owe")
-        un['OWE_mod'] = un['OWE']
-
-        coloration = {"general":"yellow", "commuter":"green", "business":"blue", "narrow_body":"orange", "wide_body":"red"}
-
-        draw_reg(df, un, 'OWE', 'OWE_mod', [[0,max(df['OWE'])], [0,max(df['OWE'])]], coloration)
+    order = 2
+    through_zero = True
+    # dict = do_regression(df, un, abs, ord, coloration, order, through_zero)
 
 
+    abs = "MTOW"
+    ord = "total_power"                           # Name of the new column
 
-    if lin:
-        # Regression
-        #-------------------------------------------------------------------------------------------------------------------
-        order = 2       # Select regression order
+    df[ord] = df['max_power']*df['n_engine']      # Add the new column to the dataframe
+    un[ord] = un['max_power']                     # Add its unit
 
-        dict = lin_lst_reg(abs, ord, order, df)
+    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
 
-        # Prints & Draws
-        #-------------------------------------------------------------------------------------------------------------------
-        print("Coef = ", dict["coef"])
-        print("Res = ", dict["res"])
+    order = 2
+    through_zero = True
+    # dict = do_regression(df, un, abs, ord, coloration, order, through_zero)
 
-        coloration = {"general":"yellow", "commuter":"green", "business":"blue", "narrow_body":"orange", "wide_body":"red"}
 
-        draw_reg(df, un, abs, ord, dict["reg"], coloration)
+    abs = "pax_distance"
+    ord = "MTOW"                           # Name of the new column
+
+    df[abs] = df['n_pax']*df['nominal_range']     # Add the new column to the dataframe
+    un[abs] = un['nominal_range']                 # Add its unit
+
+    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+
+    order = 2
+    through_zero = False
+    # dict = do_regression(df, un, abs, ord, coloration, order, through_zero)
+
+
+    # Analyse owe_performance
+    #-------------------------------------------------------------------------------------------------------------------
+    # compare_owe_base_and_model(coloration)
+
+
+    # compare_adaptation(coloration, dict["reg"])
+
+
+    npax = 6
+    distance = unit.convert_from("km", 500)
+    cruise_speed = unit.convert_from("km/h", 180)
+    airplane_type = "general"
+    engine_type = "piston"
+    # target = "piston"
+    target = "prop_battery"
+
+    # altp = ddm.cruise_altp(airplane_type)["mission"]
+    # max_power = ddm.ref_power(1400)
+    # fuel1 = ddm.leg_fuel(1400,200000,altp,cruise_speed,'tas',1400,max_power,"prop_battery")
+    # fuel2 = ddm.total_fuel(1400,200000,cruise_speed,'tas',1400,max_power,"prop_battery","general")
+    # print(fuel2,fuel2/ddm.battery_enrg_density)
+
+    owe,mtow = ddm.mass_mission_adapt(npax, distance, cruise_speed, airplane_type, engine_type, target_engine_type=target)
+
+    print("------------------------")
+    print(" npax = ", npax)
+    print(" distance = ", unit.convert_to("km", distance), " km")
+    print(" cruise_speed = ", unit.convert_to("km/h", cruise_speed), " km/h")
+    print(" airplane_type = ", airplane_type)
+    print(" Initial engine_type = ", engine_type)
+    print(" Target engine_type = ", target)
+    print("")
+    print(" owe = ", owe, " kg")
+    print(" mtow = ", mtow, " kg")
+
+
+
+
+
+
 
 
