@@ -50,8 +50,9 @@ class DDM(object):                  # Data Driven Modelling
         self.narrow_body = "narrow_body"
         self.wide_body = "wide_body"
 
-        self.mpax_allowance_low = [90, unit.m_km(400)]
-        self.mpax_allowance_high = [150, unit.m_km(8000)]
+        self.mpax_allowance_low = [90, unit.m_km(1000)]
+        self.mpax_allowance_med = [120, unit.m_km(8000)]
+        self.mpax_allowance_high = [150, unit.m_km(np.inf)]
 
         self.lod_low = [15, 1000]
         self.lod_high = [20, 200000]
@@ -65,11 +66,12 @@ class DDM(object):                  # Data Driven Modelling
 
     def get_pax_allowance(self,distance):
         mpax_min, dist_min = self.mpax_allowance_low
+        mpax_med, dist_med = self.mpax_allowance_med
         mpax_max, dist_max = self.mpax_allowance_high
         if distance<dist_min:
             return mpax_min
-        elif distance<dist_max:
-            return mpax_min + (mpax_max-mpax_min)*(distance-dist_min)/(dist_max-dist_min)
+        elif distance<dist_med:
+            return mpax_med
         else:
             return mpax_max
 
@@ -234,7 +236,11 @@ class DDM(object):                  # Data Driven Modelling
         return mission_fuel+reserve_fuel
 
 
-    def owe_performance(self, npax, mtow, range, cruise_speed, max_power, engine_type, altitude_data, reserve_data):
+    def owe_performance(self, npax, mtow, range, cruise_speed, max_power, engine_type, altitude_data, reserve_data, full_output=False):
+        """Compute OWE from the point of view of mission
+        WARNING : when fuel is used, returned value for energy_storage is fuel mass (kg)
+                  when battery is used, returned value for energy_storage is battery mass (kg)
+        """
         if cruise_speed>1:
             speed_type = "tas"
         else:
@@ -242,14 +248,20 @@ class DDM(object):                  # Data Driven Modelling
 
         total_fuel = self.total_fuel(mtow, range, cruise_speed, speed_type, mtow, max_power, engine_type, altitude_data, reserve_data)
         payload = npax * self.get_pax_allowance(range)
+
         if engine_type in [self.prop_battery, self.fan_battery]:
-            owe = mtow - payload - total_fuel/self.battery_enrg_density
+            energy_storage = total_fuel/self.battery_enrg_density
         else:
-            owe = mtow - payload - total_fuel
+            energy_storage = total_fuel
 
-        return owe
+        owe = mtow - payload - energy_storage
 
-    def owe_structure(self, mtow, initial_engine_type=None, target_engine_type=None):
+        if full_output:
+            return owe, payload, energy_storage
+        else:
+            return owe
+
+    def owe_structure(self, mtow, initial_engine_type=None, target_engine_type=None, full_output=False):
         power = self.ref_power(mtow)
         owe = self.ref_owe(mtow)
         dm = 0.
@@ -279,9 +291,12 @@ class DDM(object):                  # Data Driven Modelling
                     dm += power / self.elec_motor_pw_density
                 elif target_engine_type==self.fan_battery:
                     dm += power / self.elec_motor_pw_density
-        return owe+dm
+        if full_output:
+            return owe+dm, dm
+        else:
+            return owe+dm
 
-    def mass_mission_adapt(self, npax, distance, cruise_speed, altitude_data, reserve_data, engine_type, target_engine_type=None):
+    def mass_mission_adapt(self, npax, distance, cruise_speed, altitude_data, reserve_data, engine_type, target_engine_type=None, full_output=False):
 
         if target_engine_type is None: target_engine_type = engine_type
 
@@ -296,8 +311,15 @@ class DDM(object):                  # Data Driven Modelling
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         mtow = output_dict[0][0]
-        owe = self.owe_structure(mtow, initial_engine_type=engine_type, target_engine_type=target_engine_type)
-        return owe,mtow
+        max_power = self.ref_power(mtow)
+        owe,payload,fuel_total = self.owe_performance(npax, mtow, distance, cruise_speed, max_power, target_engine_type,
+                                                      altitude_data, reserve_data, full_output=full_output)
+        owe,dm = self.owe_structure(mtow, initial_engine_type=engine_type, target_engine_type=target_engine_type,
+                                    full_output=full_output)
+        if full_output:
+            return mtow,owe,payload,fuel_total,dm
+        else:
+            return mtow,owe
 
 #-----------------------------------------------------------------------------------------------------------------------
 #
@@ -451,7 +473,7 @@ def compare_adaptation(coloration, reg):
 
         altitude_data = ddm.cruise_altp(airplane_type)
         reserve_data = ddm.reserve_data(airplane_type)
-        owe_mod,mtow_mod = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, engine_type)
+        mtow_mod,owe_mod = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, engine_type)
 
         mtow.append(mtow_mod)
         owe.append(owe_mod)
@@ -519,18 +541,6 @@ if __name__ == '__main__':
 
     #----------------------------------------------------------------------------------
     abs = "MTOW"
-    ord = "power_to_weight"                           # Name of the new column
-
-    df[ord] = df['max_power']*df['n_engine']/df['MTOW']     # Add the new column to the dataframe
-    un[ord] = ["kW/kg", "None"]                             # Add its unit
-
-    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
-
-    order = [1, 0]
-    # dict = do_regression(df, un, abs, ord, coloration, order)
-
-    #----------------------------------------------------------------------------------
-    abs = "MTOW"
     ord = "wing_loading"                           # Name of the new column
 
     df[ord] = df['MTOW']/df['wing_area']     # Add the new column to the dataframe
@@ -569,6 +579,7 @@ if __name__ == '__main__':
     npax = 6
     distance = unit.convert_from("km", 500)
     cruise_speed = unit.convert_from("km/h", 180)
+
     airplane_type = "general"
     engine_type = "piston"
 
@@ -576,34 +587,46 @@ if __name__ == '__main__':
 
     altitude_data = ddm.cruise_altp(airplane_type)
     reserve_data = ddm.reserve_data(airplane_type)
-    owe1,mtow1 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, engine_type, target_engine_type=target)
+    mtow1,owe1,payload1,fuel_total1,dm1 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data,
+                                                                 engine_type, target_engine_type=target, full_output=True)
 
+    print(" airplane_type = ", airplane_type)
     print("------------------------------------------------")
+    print(" Initial engine_type = ", engine_type)
     print(" npax = ", npax)
     print(" distance = ", unit.convert_to("km", distance), " km")
     print(" cruise_speed = ", unit.convert_to("km/h", cruise_speed), " km/h")
-    print(" airplane_type = ", airplane_type)
-    print(" Initial engine_type = ", engine_type)
-    print(" Target engine_type = ", target)
     print("")
     print(" owe = ", "%.0f"%owe1, " kg")
     print(" mtow = ", "%.0f"%mtow1, " kg")
+    print(" payload = ", "%.0f"%payload1, " kg")
+    print(" fuel_total = ", "%.0f"%fuel_total1, " kg")
 
 
     npax = 6
     distance = unit.convert_from("km", 400)
+    cruise_speed = unit.convert_from("km/h", 180)
+
     target = "prop_battery"
 
     altitude_data = ddm.cruise_altp(airplane_type)
     reserve_data = ddm.reserve_data(airplane_type)
-    owe2,mtow2 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, engine_type, target_engine_type=target)
+    mtow2,owe2,payload2,fuel_total2,dm2 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data,
+                                                                 engine_type, target_engine_type=target, full_output=True)
 
     print("------------------------------------------------")
     print(" Target engine_type = ", target)
-    print(" Battery energy density : ", unit.convert_to("Wh/kg", ddm.battery_enrg_density), " Wh/kg")
+    print(" npax = ", npax)
+    print(" distance = ", unit.convert_to("km", distance), " km")
+    print(" cruise_speed = ", unit.convert_to("km/h", cruise_speed), " km/h")
     print("")
     print(" owe = ", "%.0f"%owe2, " kg")
     print(" mtow = ", "%.0f"%mtow2, " kg")
+    print(" payload = ", "%.0f"%payload2, " kg")
+    print(" battery = ", "%.0f"%fuel_total2, " kg")
+    print(" Battery energy density : ", unit.convert_to("Wh/kg", ddm.battery_enrg_density), " Wh/kg")
+    print(" Engine delta mass = ", "%.0f"%dm2, " kg")
+    print(" Delta structural mass = ", "%.0f"%(owe2-owe1-dm2), " kg")
 
     print("------------------------------------------------")
     print(" MTOW target / MTOW reference = ", mtow2/mtow1)
