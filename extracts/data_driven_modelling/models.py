@@ -26,9 +26,13 @@ class DDM(object):                  # Data Driven Modelling
 
         self.disa = 0.
 
+        self.kerosene_heat = unit.J_MJ(43)  # MJ/kg
+        self.hydrogen_heat = unit.J_MJ(121) # MJ/kg
+
         self.eta_prop = 0.82
         self.eta_fan = 0.82
         self.eta_motor = 0.95
+        self.eta_fuel_cell = 0.50   # (Horizon Fuel Cell)
 
         self.turbofan_pw_density = unit.W_kW(7)  # Wh/kg
         self.turboprop_pw_density = unit.W_kW(5) # Wh/kg
@@ -38,11 +42,25 @@ class DDM(object):                  # Data Driven Modelling
         self.battery_enrg_density = unit.J_Wh(400)  # Wh/kg
         self.battery_vol_density = 2500.            # kg/m3
 
+        self.fuel_cell_gravimetric_index = unit.W_kW(5)     # kW/kg
+
+        self.gh2_tank_gravimetric_index = 0.06              # kgH2 / (kg_H2 + kg_Tank)
+        self.gh2_tank_volumetric_index = 25                 # kgH2 / (m3_H2 + m3_Tank)
+
+        self.lh2_tank_gravimetric_index = 0.15              # kgH2 / (kg_H2 + kg_Tank)
+        self.lh2_tank_volumetric_index = 45                 # kgH2 / (m3_H2 + m3_Tank)
+
         self.piston = "piston"
         self.turbofan = "turbofan"
         self.turboprop = "turboprop"
+
         self.fan_battery = "fan_battery"
+        self.fan_fc_gh2 = "fan_fc_gh2"
+        self.fan_fc_lh2 = "fan_fc_lh2"
+
         self.prop_battery = "prop_battery"
+        self.prop_fc_gh2 = "prop_fc_gh2"
+        self.prop_fc_lh2 = "prop_fc_lh2"
 
         self.general = "general"
         self.commuter = "commuter"
@@ -161,20 +179,31 @@ class DDM(object):                  # Data Driven Modelling
         """
         pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
         lod = self.get_lod(mtow)
-        if engine_type==self.turbofan:
+        if engine_type==self.piston:
+            sfc = self.get_psfc(max_power)
+            fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # piston engine
+
+        elif engine_type==self.turbofan:
             tas = self.get_tas(tamb,speed,speed_type)
             sfc = self.get_tsfc(max_power)
             fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(tas*lod)))             # turbofan
+        elif engine_type in [self.fan_fc_gh2, self.fan_fc_lh2]:
+            eff = self.eta_fan * self.eta_motor * self.eta_fuel_cell
+            fhv = self.hydrogen_heat
+            fuel = start_mass*(1.-np.exp(-(g*distance)/(eff*fhv*lod)))             # electrofan + fuel cell
         elif engine_type==self.fan_battery:
-            fuel = start_mass*g*distance / (self.eta_fan*self.eta_motor*lod)       # fan_battery
-        elif engine_type==self.piston:
-            sfc = self.get_psfc(max_power)
-            fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
+            fuel = start_mass*g*distance / (self.eta_fan*self.eta_motor*lod)       # electrofan + battery
+
         elif engine_type==self.turboprop:
             sfc = self.get_psfc(max_power)
             fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
+        elif engine_type in [self.prop_fc_gh2, self.prop_fc_lh2]:
+            eff = self.eta_prop * self.eta_motor * self.eta_fuel_cell
+            fhv = self.hydrogen_heat
+            fuel = start_mass*(1.-np.exp(-(g*distance)/(eff*fhv*lod)))             # electroprop + fuel cell
         elif engine_type==self.prop_battery:
-            fuel = start_mass*g*distance / (self.eta_prop*self.eta_motor*lod)      # prop_battery
+            fuel = start_mass*g*distance / (self.eta_prop*self.eta_motor*lod)      # electroprop + battery
+
         else:
             raise Exception("engine_type is unknown : "+engine_type)
         return fuel * 1.05  # WARNING: correction to take account of climb phases
@@ -186,23 +215,36 @@ class DDM(object):                  # Data Driven Modelling
         """
         pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
         lod = self.get_lod(mtow)
-        if engine_type==self.turbofan:
-            sfc = self.get_tsfc(max_power)
-            fuel = start_mass*(1 - np.exp(-g*sfc*time/lod))             # turbofan
-        elif engine_type==self.fan_battery:
-            tas = self.get_tas(tamb,speed,speed_type)
-            fuel = start_mass*g*tas*time / (self.eta_fan*self.eta_motor*lod)       # fan_battery
-        elif engine_type==self.piston:
+        if engine_type==self.piston:
             tas = self.get_tas(tamb,speed,speed_type)
             sfc = self.get_psfc(max_power)
-            fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
+            fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # piston
+
+        elif engine_type==self.turbofan:
+            sfc = self.get_tsfc(max_power)
+            fuel = start_mass*(1 - np.exp(-g*sfc*time/lod))                         # turbofan
+        elif engine_type in [self.fan_fc_gh2, self.fan_fc_lh2]:
+            tas = self.get_tas(tamb,speed,speed_type)
+            eff = self.eta_fan * self.eta_motor * self.eta_fuel_cell
+            fhv = self.hydrogen_heat
+            fuel = start_mass*(1 - np.exp(-(g*tas*time)/(eff*fhv*lod)))             # electrofan + fuel cell
+        elif engine_type==self.fan_battery:
+            tas = self.get_tas(tamb,speed,speed_type)
+            fuel = start_mass*g*tas*time / (self.eta_fan*self.eta_motor*lod)        # electrofan + battery
+
         elif engine_type==self.turboprop:
             tas = self.get_tas(tamb,speed,speed_type)
             sfc = self.get_psfc(max_power)
             fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
+        elif engine_type in [self.prop_fc_gh2, self.prop_fc_lh2]:
+            tas = self.get_tas(tamb,speed,speed_type)
+            eff = self.eta_prop * self.eta_motor * self.eta_fuel_cell
+            fhv = self.hydrogen_heat
+            fuel = start_mass*(1 - np.exp(-(g*tas*time)/(eff*fhv*lod)))            # electroprop + fuel cell
         elif engine_type==self.prop_battery:
             tas = self.get_tas(tamb,speed,speed_type)
-            fuel = start_mass*g*tas*time / (self.eta_prop*self.eta_motor*lod)      # prop_battery
+            fuel = start_mass*g*tas*time / (self.eta_prop*self.eta_motor*lod)      # electroprop + battery
+
         else:
             raise Exception("engine_type is unknown : "+engine_type)
         return fuel
@@ -238,26 +280,32 @@ class DDM(object):                  # Data Driven Modelling
 
     def owe_performance(self, npax, mtow, range, cruise_speed, max_power, engine_type, altitude_data, reserve_data, full_output=False):
         """Compute OWE from the point of view of mission
-        WARNING : when fuel is used, returned value for energy_storage is fuel mass (kg)
-                  when battery is used, returned value for energy_storage is battery mass (kg)
+        energy_storage contains the battery weight or tank weight for GH2 or LH2 storage
         """
         if cruise_speed>1:
             speed_type = "tas"
         else:
             speed_type = "mach"
 
-        total_fuel = self.total_fuel(mtow, range, cruise_speed, speed_type, mtow, max_power, engine_type, altitude_data, reserve_data)
+        medium = self.total_fuel(mtow, range, cruise_speed, speed_type, mtow, max_power, engine_type, altitude_data, reserve_data)
         payload = npax * self.get_pax_allowance(range)
 
         if engine_type in [self.prop_battery, self.fan_battery]:
-            energy_storage = total_fuel/self.battery_enrg_density
+            total_fuel = 0.
+            energy_storage = medium/self.battery_enrg_density
+        elif engine_type in [self.prop_fc_gh2, self.fan_fc_gh2]:
+            total_fuel = medium
+            energy_storage = total_fuel * (1./self.gh2_tank_gravimetric_index - 1.)
+        elif engine_type in [self.prop_fc_lh2, self.fan_fc_lh2]:
+            total_fuel = medium
+            energy_storage = total_fuel * (1./self.lh2_tank_gravimetric_index - 1.)
         else:
-            energy_storage = total_fuel
+            total_fuel = medium
+            energy_storage = 0.
 
-        owe = mtow - payload - energy_storage
-
+        owe = mtow - payload - energy_storage - total_fuel
         if full_output:
-            return owe, payload, energy_storage
+            return owe, payload, energy_storage, total_fuel
         else:
             return owe
 
@@ -275,28 +323,32 @@ class DDM(object):                  # Data Driven Modelling
                     dm -= power / self.turboprop_pw_density
                 elif initial_engine_type==self.turbofan:
                     dm -= power / self.turbofan_pw_density
-                elif initial_engine_type==self.prop_battery:
-                    dm -= power / self.elec_motor_pw_density
-                elif initial_engine_type==self.fan_battery:
-                    dm -= power / self.elec_motor_pw_density
 
                 # Add new engine mass
                 if target_engine_type==self.piston:
                     dm += power / self.piston_eng_pw_density
                 elif target_engine_type==self.turboprop:
                     dm += power / self.turboprop_pw_density
-                elif target_engine_type==self.turbofan:
-                    dm += power / self.turbofan_pw_density
+                elif target_engine_type in [self.prop_fc_gh2, self.prop_fc_lh2]:
+                    dm += power / self.elec_motor_pw_density
+                    dm += power / self.fuel_cell_gravimetric_index
                 elif target_engine_type==self.prop_battery:
                     dm += power / self.elec_motor_pw_density
+
+                elif target_engine_type==self.turbofan:
+                    dm += power / self.turbofan_pw_density
+                elif target_engine_type in [self.fan_fc_gh2, self.fan_fc_lh2]:
+                    dm += power / self.elec_motor_pw_density
+                    dm += power / self.fuel_cell_gravimetric_index
                 elif target_engine_type==self.fan_battery:
                     dm += power / self.elec_motor_pw_density
+
         if full_output:
             return owe+dm, dm
         else:
             return owe+dm
 
-    def mass_mission_adapt(self, npax, distance, cruise_speed, altitude_data, reserve_data, engine_type, target_engine_type=None, full_output=False):
+    def mass_mission_adapt(self, npax, distance, cruise_speed, altitude_data, reserve_data, engine_type, target_engine_type=None):
 
         if target_engine_type is None: target_engine_type = engine_type
 
@@ -312,14 +364,11 @@ class DDM(object):                  # Data Driven Modelling
 
         mtow = output_dict[0][0]
         max_power = self.ref_power(mtow)
-        owe,payload,fuel_total = self.owe_performance(npax, mtow, distance, cruise_speed, max_power, target_engine_type,
-                                                      altitude_data, reserve_data, full_output=full_output)
+        owe,payload,energy_storage,fuel_total = self.owe_performance(npax, mtow, distance, cruise_speed, max_power, target_engine_type,
+                                                                     altitude_data, reserve_data, full_output=True)
         owe,dm = self.owe_structure(mtow, initial_engine_type=engine_type, target_engine_type=target_engine_type,
-                                    full_output=full_output)
-        if full_output:
-            return mtow,owe,payload,fuel_total,dm
-        else:
-            return mtow,owe
+                                    full_output=True)
+        return mtow,owe,payload,energy_storage,fuel_total,dm
 
 #-----------------------------------------------------------------------------------------------------------------------
 #
@@ -473,7 +522,7 @@ def compare_adaptation(coloration, reg):
 
         altitude_data = ddm.cruise_altp(airplane_type)
         reserve_data = ddm.reserve_data(airplane_type)
-        mtow_mod,owe_mod = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, engine_type)
+        mtow_mod,owe_mod,payload,energy_storage,fuel_total,dm = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, engine_type)
 
         mtow.append(mtow_mod)
         owe.append(owe_mod)
@@ -525,7 +574,7 @@ if __name__ == '__main__':
     # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
 
     order = [2, 1]
-    # dict = do_regression(df, un, abs, ord, coloration, order)
+    dict = do_regression(df, un, abs, ord, coloration, order)
 
     #----------------------------------------------------------------------------------
     abs = "MTOW"
@@ -566,12 +615,12 @@ if __name__ == '__main__':
 
     # Analyse OWE model versus OWE data base
     #-------------------------------------------------------------------------------------------------------------------
-    # compare_owe_base_and_model(coloration)
+    compare_owe_base_and_model(coloration)
 
 
     # Analyse OWE & MTOW model versus OWE & MTOW data base
     #-------------------------------------------------------------------------------------------------------------------
-    # compare_adaptation(coloration, dict["reg"])
+    compare_adaptation(coloration, dict["reg"])
 
 
     # Small experiment with battery airplane
@@ -587,8 +636,8 @@ if __name__ == '__main__':
 
     altitude_data = ddm.cruise_altp(airplane_type)
     reserve_data = ddm.reserve_data(airplane_type)
-    mtow1,owe1,payload1,fuel_total1,dm1 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data,
-                                                                 engine_type, target_engine_type=target, full_output=True)
+    mtow1,owe1,payload1,energy_storage1,fuel_total1,dm1 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data,
+                                                                                 engine_type, target_engine_type=target)
 
     print(" airplane_type = ", airplane_type)
     print("------------------------------------------------")
@@ -611,8 +660,8 @@ if __name__ == '__main__':
 
     altitude_data = ddm.cruise_altp(airplane_type)
     reserve_data = ddm.reserve_data(airplane_type)
-    mtow2,owe2,payload2,fuel_total2,dm2 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data,
-                                                                 engine_type, target_engine_type=target, full_output=True)
+    mtow2,owe2,payload2,energy_storage2,fuel_total2,dm2 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data,
+                                                                                 engine_type, target_engine_type=target)
 
     print("------------------------------------------------")
     print(" Target engine_type = ", target)
@@ -623,7 +672,7 @@ if __name__ == '__main__':
     print(" owe = ", "%.0f"%owe2, " kg")
     print(" mtow = ", "%.0f"%mtow2, " kg")
     print(" payload = ", "%.0f"%payload2, " kg")
-    print(" battery = ", "%.0f"%fuel_total2, " kg")
+    print(" battery = ", "%.0f"%energy_storage2, " kg")
     print(" Battery energy density : ", unit.convert_to("Wh/kg", ddm.battery_enrg_density), " Wh/kg")
     print(" Engine delta mass = ", "%.0f"%dm2, " kg")
     print(" Delta structural mass = ", "%.0f"%(owe2-owe1-dm2), " kg")
