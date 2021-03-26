@@ -304,7 +304,65 @@ if __name__ == '__main__':
     print("")
     print(" Efficiency factor, K.P/M = ", "%.2f"%(npax*unit.convert_to("km", distance)/dict1["mtow"]))
 
+    #-------------------------------------------------------------------------------------------------------------------
+    npax = 6
+    distance = unit.convert_from("km", 500)
+    cruise_speed = unit.convert_from("km/h", 180)
 
+    target_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.gh2}
+
+    altitude_data = ddm.cruise_altp(airplane_type)
+    reserve_data = ddm.reserve_data(airplane_type)
+    dict2 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=target_power_system)
+
+    print("")
+    print("------------------------------------------------")
+    print(" Target engine_type = ", target_power_system["engine_type"])
+    print(" Target energy source = ", target_power_system["energy_source"])
+    print(" npax = ", npax)
+    print(" distance = ", unit.convert_to("km", distance), " km")
+    print(" cruise_speed = ", unit.convert_to("km/h", cruise_speed), " km/h")
+    print("")
+    print(" power = ", "%.0f"%unit.kW_W(dict2["shaft_power"]), " kW")
+    print(" owe = ", "%.0f"%dict2["owe"], " kg")
+    print(" mtow = ", "%.0f"%dict2["mtow"], " kg")
+    print(" payload = ", "%.0f"%dict2["payload"], " kg")
+    print(" Engine delta mass = ", "%.0f"%dict2["delta_engine_mass"], " kg")
+    print(" Energy system mass = ", "%.0f"%dict2["energy_management_mass"], " kg")
+    print(" Battery energy density : ", unit.convert_to("Wh/kg", ddm.battery_enrg_density), " Wh/kg")
+    print("")
+    print(" Efficiency factor, K.P/M = ", "%.2f"%(npax*unit.convert_to("km", distance)/dict2["mtow"]))
+
+    #-------------------------------------------------------------------------------------------------------------------
+    npax = 6
+    distance = unit.convert_from("km", 500)
+    cruise_speed = unit.convert_from("km/h", 180)
+
+    target_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.lh2}
+
+    altitude_data = ddm.cruise_altp(airplane_type)
+    reserve_data = ddm.reserve_data(airplane_type)
+    dict2 = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=target_power_system)
+
+    print("")
+    print("------------------------------------------------")
+    print(" Target engine_type = ", target_power_system["engine_type"])
+    print(" Target energy source = ", target_power_system["energy_source"])
+    print(" npax = ", npax)
+    print(" distance = ", unit.convert_to("km", distance), " km")
+    print(" cruise_speed = ", unit.convert_to("km/h", cruise_speed), " km/h")
+    print("")
+    print(" power = ", "%.0f"%unit.kW_W(dict2["shaft_power"]), " kW")
+    print(" owe = ", "%.0f"%dict2["owe"], " kg")
+    print(" mtow = ", "%.0f"%dict2["mtow"], " kg")
+    print(" payload = ", "%.0f"%dict2["payload"], " kg")
+    print(" Engine delta mass = ", "%.0f"%dict2["delta_engine_mass"], " kg")
+    print(" Energy system mass = ", "%.0f"%dict2["energy_management_mass"], " kg")
+    print(" Battery energy density : ", unit.convert_to("Wh/kg", ddm.battery_enrg_density), " Wh/kg")
+    print("")
+    print(" Efficiency factor, K.P/M = ", "%.2f"%(npax*unit.convert_to("km", distance)/dict2["mtow"]))
+
+    #-------------------------------------------------------------------------------------------------------------------
     npax = 6
     distance = unit.convert_from("km", 500)
     cruise_speed = unit.convert_from("km/h", 180)
@@ -333,7 +391,7 @@ if __name__ == '__main__':
     print("")
     print(" Efficiency factor, K.P/M = ", "%.2f"%(npax*unit.convert_to("km", distance)/dict2["mtow"]))
 
-
+    #-------------------------------------------------------------------------------------------------------------------
     npax = 6
     distance = unit.convert_from("km", 500)
     cruise_speed = unit.convert_from("km/h", 180)
@@ -362,7 +420,7 @@ if __name__ == '__main__':
     print("")
     print(" Efficiency factor, K.P/M = ", "%.2f"%(npax*unit.convert_to("km", distance)/dict3["mtow"]))
 
-
+    #-------------------------------------------------------------------------------------------------------------------
     npax = 6
     distance = unit.convert_from("km", 500)
     cruise_speed = unit.convert_from("km/h", 180)

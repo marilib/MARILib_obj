@@ -117,11 +117,11 @@ class DDM(object):                  # Data Driven Modelling
         if fuel_type==self.kerosene:
             pass
         elif fuel_type==self.gh2:
-            psfc_min *= self.kerosene_heat/self.gh2_heat
-            psfc_max *= self.kerosene_heat/self.gh2_heat
+            psfc_min *= self.kerosene_heat/self.hydrogen_heat
+            psfc_max *= self.kerosene_heat/self.hydrogen_heat
         elif fuel_type==self.lh2:
-            psfc_min *= self.kerosene_heat/self.lh2_heat
-            psfc_max *= self.kerosene_heat/self.lh2_heat
+            psfc_min *= self.kerosene_heat/self.hydrogen_heat
+            psfc_max *= self.kerosene_heat/self.hydrogen_heat
         else:
             raise Exception("fuel type is unknown")
 
@@ -140,11 +140,11 @@ class DDM(object):                  # Data Driven Modelling
         if fuel_type==self.kerosene:
             pass
         elif fuel_type==self.gh2:
-            tsfc_min *= self.kerosene_heat/self.gh2_heat
-            tsfc_max *= self.kerosene_heat/self.gh2_heat
+            tsfc_min *= self.kerosene_heat/self.hydrogen_heat
+            tsfc_max *= self.kerosene_heat/self.hydrogen_heat
         elif fuel_type==self.lh2:
-            tsfc_min *= self.kerosene_heat/self.lh2_heat
-            tsfc_max *= self.kerosene_heat/self.lh2_heat
+            tsfc_min *= self.kerosene_heat/self.hydrogen_heat
+            tsfc_max *= self.kerosene_heat/self.hydrogen_heat
         else:
             raise Exception("fuel type is unknown")
 
