@@ -15,8 +15,16 @@ from tabulate import tabulate
 import matplotlib.pyplot as plt
 
 import unit
+import utils
 from physical_data import PhysicalData
 
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+#
+#  Main class
+#
+#-----------------------------------------------------------------------------------------------------------------------
 
 
 class DDM(object):                  # Data Driven Modelling
@@ -115,22 +123,24 @@ class DDM(object):                  # Data Driven Modelling
         psfc_min, pw_max = self.psfc_high
 
         if fuel_type==self.kerosene:
-            pass
+            fhv = self.kerosene_heat
         elif fuel_type==self.gh2:
+            fhv = self.hydrogen_heat
             psfc_min *= self.kerosene_heat/self.hydrogen_heat
             psfc_max *= self.kerosene_heat/self.hydrogen_heat
         elif fuel_type==self.lh2:
+            fhv = self.hydrogen_heat
             psfc_min *= self.kerosene_heat/self.hydrogen_heat
             psfc_max *= self.kerosene_heat/self.hydrogen_heat
         else:
             raise Exception("fuel type is unknown")
 
         if max_power<pw_min:
-            return psfc_max
+            return psfc_max, fhv
         elif max_power<pw_max:
-            return psfc_max - (psfc_max-psfc_min)*(max_power-pw_min)/(pw_max-pw_min)
+            return psfc_max - (psfc_max-psfc_min)*(max_power-pw_min)/(pw_max-pw_min), fhv
         else:
-            return psfc_min
+            return psfc_min, fhv
 
 
     def get_tsfc(self,max_power, fuel_type):
@@ -138,22 +148,24 @@ class DDM(object):                  # Data Driven Modelling
         tsfc_min, pw_max = self.tsfc_high
 
         if fuel_type==self.kerosene:
-            pass
+            fhv = self.kerosene_heat
         elif fuel_type==self.gh2:
+            fhv = self.hydrogen_heat
             tsfc_min *= self.kerosene_heat/self.hydrogen_heat
             tsfc_max *= self.kerosene_heat/self.hydrogen_heat
         elif fuel_type==self.lh2:
+            fhv = self.hydrogen_heat
             tsfc_min *= self.kerosene_heat/self.hydrogen_heat
             tsfc_max *= self.kerosene_heat/self.hydrogen_heat
         else:
             raise Exception("fuel type is unknown")
 
         if max_power<pw_min:
-            return tsfc_max
+            return tsfc_max, fhv
         elif max_power<pw_max:
-            return tsfc_max - (tsfc_max-tsfc_min)*(max_power-pw_min)/(pw_max-pw_min)
+            return tsfc_max - (tsfc_max-tsfc_min)*(max_power-pw_min)/(pw_max-pw_min), fhv
         else:
-            return tsfc_min
+            return tsfc_min, fhv
 
 
     def ref_power(self, mtow):
@@ -214,21 +226,19 @@ class DDM(object):                  # Data Driven Modelling
 
 
     def leg_fuel(self,start_mass,distance,altp,speed,speed_type,mtow,max_power,power_system):
-        """Compute the fuel over a given distance
-        WARNING : when fuel is used, returned value is fuel mass (kg)
-                  when battery is used, returned value is energy (J)
+        """Compute fuel and or energy over a given distance
         """
         pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
         lod = self.get_lod(mtow)
         if power_system["engine_type"]==self.piston:
-            sfc = self.get_psfc(max_power, power_system["energy_source"])
+            sfc,fhv = self.get_psfc(max_power, power_system["energy_source"])
             fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # piston engine
         elif power_system["engine_type"]==self.turboprop:
-            sfc = self.get_psfc(max_power, power_system["energy_source"])
+            sfc,fhv = self.get_psfc(max_power, power_system["energy_source"])
             fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
         elif power_system["engine_type"]==self.turbofan:
             tas = self.get_tas(tamb,speed,speed_type)
-            sfc = self.get_tsfc(max_power, power_system["energy_source"])
+            sfc,fhv = self.get_tsfc(max_power, power_system["energy_source"])
             fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(tas*lod)))             # turbofan
         elif power_system["engine_type"]==self.emotor:
             if power_system["thruster"]==self.propeller:
@@ -237,20 +247,27 @@ class DDM(object):                  # Data Driven Modelling
                     fhv = self.hydrogen_heat
                     fuel = start_mass*(1.-np.exp(-(g*distance)/(eff*fhv*lod)))             # electroprop + fuel cell
                 elif power_system["energy_source"]==self.battery:
-                    fuel = start_mass*g*distance / (self.eta_prop*self.eta_motor*lod)      # electroprop + battery
+                    enrg = start_mass*g*distance / (self.eta_prop*self.eta_motor*lod)      # electroprop + battery
             elif power_system["thruster"]==self.fan:
                 if power_system["energy_source"] in [self.gh2, self.lh2]:
                     eff = self.eta_fan * self.eta_motor * self.eta_fuel_cell
                     fhv = self.hydrogen_heat
                     fuel = start_mass*(1.-np.exp(-(g*distance)/(eff*fhv*lod)))             # electrofan + fuel cell
                 elif power_system["energy_source"]==self.battery:
-                    fuel = start_mass*g*distance / (self.eta_fan*self.eta_motor*lod)       # electrofan + battery
+                    enrg = start_mass*g*distance / (self.eta_fan*self.eta_motor*lod)       # electrofan + battery
             else:
                 raise Exception("power system - thruster type is unknown")
         else:
             raise Exception("power system - engine type is unknown")
 
-        return fuel * 1.05  # WARNING: correction to take account of climb phases
+        if power_system["energy_source"]==self.battery:
+            fuel = 0.
+            enrg *= 1.05  # WARNING: correction to take account of climb phases
+        else:
+            fuel *= 1.05  # WARNING: correction to take account of climb phases
+            enrg = fuel*fhv
+
+        return fuel,enrg
 
 
     def holding_fuel(self,start_mass,time,altp,speed,speed_type,mtow,max_power,power_system):
@@ -262,14 +279,14 @@ class DDM(object):                  # Data Driven Modelling
         lod = self.get_lod(mtow)
         if power_system["engine_type"]==self.piston:
             tas = self.get_tas(tamb,speed,speed_type)
-            sfc = self.get_psfc(max_power, power_system["energy_source"])
+            sfc,fhv = self.get_psfc(max_power, power_system["energy_source"])
             fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # piston
         elif power_system["engine_type"]==self.turboprop:
             tas = self.get_tas(tamb,speed,speed_type)
-            sfc = self.get_psfc(max_power, power_system["energy_source"])
+            sfc,fhv = self.get_psfc(max_power, power_system["energy_source"])
             fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
         elif power_system["engine_type"]==self.turbofan:
-            sfc = self.get_tsfc(max_power, power_system["energy_source"])
+            sfc,fhv = self.get_tsfc(max_power, power_system["energy_source"])
             fuel = start_mass*(1 - np.exp(-g*sfc*time/lod))                         # turbofan
         elif power_system["engine_type"]==self.emotor:
             if power_system["thruster"]==self.propeller:
@@ -280,7 +297,7 @@ class DDM(object):                  # Data Driven Modelling
                     fuel = start_mass*(1 - np.exp(-(g*tas*time)/(eff*fhv*lod)))            # electroprop + fuel cell
                 elif power_system["energy_source"]==self.battery:
                     tas = self.get_tas(tamb,speed,speed_type)
-                    fuel = start_mass*g*tas*time / (self.eta_prop*self.eta_motor*lod)      # electroprop + battery
+                    enrg = start_mass*g*tas*time / (self.eta_prop*self.eta_motor*lod)      # electroprop + battery
             elif power_system["thruster"]==self.fan:
                 if power_system["energy_source"] in [self.gh2, self.lh2]:
                     tas = self.get_tas(tamb,speed,speed_type)
@@ -289,13 +306,18 @@ class DDM(object):                  # Data Driven Modelling
                     fuel = start_mass*(1 - np.exp(-(g*tas*time)/(eff*fhv*lod)))             # electrofan + fuel cell
                 elif power_system["energy_source"]==self.battery:
                     tas = self.get_tas(tamb,speed,speed_type)
-                    fuel = start_mass*g*tas*time / (self.eta_fan*self.eta_motor*lod)        # electrofan + battery
+                    enrg = start_mass*g*tas*time / (self.eta_fan*self.eta_motor*lod)        # electrofan + battery
             else:
                 raise Exception("power system - thruster type is unknown")
         else:
             raise Exception("power system - engine type is unknown")
 
-        return fuel
+        if power_system["energy_source"]==self.battery:
+            fuel = 0.
+        else:
+            enrg = fuel*fhv
+
+        return fuel,enrg
 
 
     def total_fuel(self,tow,range,cruise_speed,speed_type,mtow,max_power,power_system,altitude_data,reserve_data):
@@ -304,26 +326,32 @@ class DDM(object):                  # Data Driven Modelling
                   when battery is used, returned value is energy (J)
         """
         cruise_altp = altitude_data["mission"]
-        mission_fuel = self.leg_fuel(tow,range,cruise_altp,cruise_speed,speed_type,mtow,max_power,power_system)
+        mission_fuel,mission_enrg = self.leg_fuel(tow,range,cruise_altp,cruise_speed,speed_type,mtow,max_power,power_system)
         if power_system["energy_source"]==self.battery:
             ldw = tow
         else:
             ldw = tow - mission_fuel
 
         reserve_fuel = 0.
+        reserve_enrg = 0.
         if reserve_data["fuel_factor"]>0:
             reserve_fuel += reserve_data["fuel_factor"]*mission_fuel
+            reserve_enrg += reserve_data["fuel_factor"]*mission_enrg
         if reserve_data["diversion_leg"]>0:
             leg = reserve_data["diversion_leg"]
             diversion_altp = altitude_data["diversion"]
-            reserve_fuel += self.leg_fuel(ldw,leg,diversion_altp,cruise_speed,speed_type,mtow,max_power,power_system)
+            lf,le = self.leg_fuel(ldw,leg,diversion_altp,cruise_speed,speed_type,mtow,max_power,power_system)
+            reserve_fuel += lf
+            reserve_enrg += le
         if reserve_data["holding_time"]>0:
             time = reserve_data["holding_time"]
             holding_altp = altitude_data["holding"]
             speed = 0.5 * cruise_speed
-            reserve_fuel += self.holding_fuel(ldw,time,holding_altp,speed,speed_type,mtow,max_power,power_system)
+            hf,he = self.holding_fuel(ldw,time,holding_altp,speed,speed_type,mtow,max_power,power_system)
+            reserve_fuel += hf
+            reserve_enrg += he
 
-        return mission_fuel+reserve_fuel
+        return mission_fuel+reserve_fuel, mission_enrg+reserve_enrg
 
 
     def owe_performance(self, npax, mtow, range, cruise_speed, max_power, power_system, altitude_data, reserve_data):
@@ -337,20 +365,16 @@ class DDM(object):                  # Data Driven Modelling
 
         payload = npax * self.get_pax_allowance(range)
 
-        medium = self.total_fuel(mtow, range, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
+        total_fuel, total_enrg = self.total_fuel(mtow, range, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
 
         if power_system["energy_source"]==self.kerosene:
-            total_fuel = medium
             energy_storage = 0.
         elif power_system["energy_source"]==self.gh2:
-            total_fuel = medium
             energy_storage = total_fuel * (1./self.gh2_tank_gravimetric_index - 1.)
         elif power_system["energy_source"]==self.lh2:
-            total_fuel = medium
             energy_storage = total_fuel * (1./self.lh2_tank_gravimetric_index - 1.)
         elif power_system["energy_source"]==self.battery:
-            total_fuel = 0.
-            energy_storage = medium/self.battery_enrg_density
+            energy_storage = total_enrg/self.battery_enrg_density
         else:
             raise Exception("power system - energy source is unknown")
 
@@ -358,6 +382,7 @@ class DDM(object):                  # Data Driven Modelling
 
         return {"owe":owe,
                 "energy_storage":energy_storage,
+                "total_energy":total_enrg,
                 "total_fuel":total_fuel,
                 "payload":payload}
 
@@ -436,8 +461,25 @@ class DDM(object):                  # Data Driven Modelling
                 "payload":dict_p["payload"],
                 "delta_engine_mass":dict_s["delta_engine_mass"],
                 "energy_management_mass":dict_p["energy_storage"]+dict_s["delta_system_mass"],
+                "total_energy":dict_p["total_energy"],
                 "total_fuel":dict_p["total_fuel"],
-                "shaft_power":dict_s["shaft_power"]}
+                "shaft_power":dict_s["shaft_power"],
+                "pk_o_mass":npax*distance/mtow,
+                "pk_o_enrg":npax*distance/dict_p["total_energy"]}
 
 
+    def get_best_range(self, criterion, npax, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=None):
+        """Look for the design range that maximizes the criterion PK/M
+        """
+        def fct(distance):
+            dict = self.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=target_power_system)
+            return dict[criterion]
 
+        xini = unit.m_km(200)
+        dx = unit.m_km(20)
+        distance, res, rc = utils.maximize_1d(xini,dx,[fct])
+
+        dict = self.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=target_power_system)
+
+        dict["range"] = distance
+        return dict
