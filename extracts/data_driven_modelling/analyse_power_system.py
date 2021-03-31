@@ -31,35 +31,35 @@ if __name__ == '__main__':
     phd = PhysicalData()
     ddm = DDM(phd)
 
-    # Airplane design analysis
-    #-------------------------------------------------------------------------------------------------------------------
-    npax = 6
-    distance = unit.convert_from("km", 500)
-    cruise_speed = unit.convert_from("km/h", 180)
-
-    airplane_type = "general"
-    initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.kerosene}
-
-    altitude_data = ddm.cruise_altp(airplane_type)
-    reserve_data = ddm.reserve_data(airplane_type)
-
-    tpws = [{"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.kerosene},
-            {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.gh2},
-            {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.lh2},
-            {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.battery},
-            {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.gh2},
-            {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.lh2}]
-
-    for target_power_system in tpws:
-        ac_dict = ddm.design(npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
-        ddm.print_design(ac_dict)
-
-        ac_dict = ddm.get_best_range("pk_o_mass", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
-        ddm.print_design(ac_dict, content="criteria")
-
-        ac_dict = ddm.get_best_range("pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
-        ddm.print_design(ac_dict, content="criteria")
-
+    # # Airplane design analysis
+    # #-------------------------------------------------------------------------------------------------------------------
+    # npax = 6
+    # distance = unit.convert_from("km", 500)
+    # cruise_speed = unit.convert_from("km/h", 180)
+    #
+    # airplane_type = "general"
+    # initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.kerosene}
+    #
+    # altitude_data = ddm.cruise_altp(airplane_type)
+    # reserve_data = ddm.reserve_data(airplane_type)
+    #
+    # tpws = [{"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.kerosene},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.gh2},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.lh2},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.battery},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.gh2},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.lh2}]
+    #
+    # for target_power_system in tpws:
+    #     ac_dict = ddm.design(npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+    #     ddm.print_design(ac_dict)
+    #
+    #     ac_dict = ddm.get_best_range("pk_o_mass", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+    #     ddm.print_design(ac_dict, content="criteria")
+    #
+    #     ac_dict = ddm.get_best_range("pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+    #     ddm.print_design(ac_dict, content="criteria")
+    #
 
 
     # # Airplane design analysis
@@ -91,5 +91,31 @@ if __name__ == '__main__':
     #     ac_dict = ddm.get_best_range("pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
     #     ddm.print_design(ac_dict, content="criteria")
     #
+
+    # Airplane design analysis
+    #-------------------------------------------------------------------------------------------------------------------
+    npax = 150
+    distance = unit.convert_from("NM", 3000)
+    cruise_speed = 0.78
+
+    airplane_type = "narrow_body"
+    initial_power_system = {"thruster":ddm.fan, "engine_type":ddm.turbofan, "energy_source":ddm.kerosene}
+
+    altitude_data = ddm.cruise_altp(airplane_type)
+    reserve_data = ddm.reserve_data(airplane_type)
+
+    tpws = [{"thruster":ddm.fan, "engine_type":ddm.turbofan, "energy_source":ddm.kerosene},
+            {"thruster":ddm.fan, "engine_type":ddm.turbofan, "energy_source":ddm.gh2},
+            {"thruster":ddm.fan, "engine_type":ddm.turbofan, "energy_source":ddm.lh2}]
+
+    for target_power_system in tpws:
+        ac_dict = ddm.design(npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+        ddm.print_design(ac_dict)
+
+        ac_dict = ddm.get_best_range("pk_o_mass", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+        ddm.print_design(ac_dict, content="criteria")
+
+        ac_dict = ddm.get_best_range("pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+        ddm.print_design(ac_dict, content="criteria")
 
 

@@ -83,13 +83,13 @@ class DDM(object):                  # Data Driven Modelling
         self.wide_body = "wide_body"
 
         self.mpax_allowance_low = [90, unit.m_km(1000)]
-        self.mpax_allowance_med = [120, unit.m_km(8000)]
+        self.mpax_allowance_med = [110, unit.m_km(8000)]
         self.mpax_allowance_high = [150, unit.m_km(np.inf)]
 
         self.lod_low = [15, 1000]
         self.lod_high = [20, 200000]
 
-        self.psfc_low = [unit.convert_from("lb/shp/h",0.6), unit.convert_from("kW",50)]     # here power is
+        self.psfc_low = [unit.convert_from("lb/shp/h",0.6), unit.convert_from("kW",50)]     # here power is shaft power
         self.psfc_high = [unit.convert_from("lb/shp/h",0.4), unit.convert_from("kW",1000)]
 
         self.tsfc_low = [unit.convert_from("kg/daN/h",0.60), unit.convert_from("MW",1)]     # Here, power is equivalent shaft power developped during take off as defined in the data base
@@ -341,7 +341,7 @@ class DDM(object):                  # Data Driven Modelling
         if reserve_data["diversion_leg"]>0:
             leg = reserve_data["diversion_leg"]
             diversion_altp = altitude_data["diversion"]
-            lf,le = self.leg_fuel(ldw,leg,diversion_altp,cruise_speed,speed_type,mtow,max_power,power_system)
+            lf,le,lod = self.leg_fuel(ldw,leg,diversion_altp,cruise_speed,speed_type,mtow,max_power,power_system)
             reserve_fuel += lf
             reserve_enrg += le
         if reserve_data["holding_time"]>0:

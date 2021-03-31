@@ -8,6 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
+from scipy.interpolate import interp1d
 from scipy.optimize import fsolve, least_squares
 
 import pandas as pd
@@ -96,6 +97,22 @@ def draw_reg(df, un, abs, ord, reg, coloration):
     plt.show()
 
 
+def get_error(df, un, abs, ord, reg, abs_interval):
+
+    # Remove A380-800 row and reset index
+    df1 = df[abs_interval[0]<=df[abs]].reset_index(drop=True).copy()
+    df1 = df1[df1[abs]<=abs_interval[1]].reset_index(drop=True)
+
+    fct = interp1d(reg[0], reg[1], kind="cubic", fill_value='extrapolate')
+
+    df1['relative_error'] = (fct(df1[abs]) - df1[ord]) / df1[ord]
+
+    print("Mean relative error = ", np.mean(list(df1['relative_error'])))
+    print("Variance of relative error = ", np.var(list(df1['relative_error'])))
+
+    draw_hist(list(df1['relative_error']), "error")
+
+
 def draw_hist(rer,title):
     """Draw the histogram of relative errors given into "reg" as [abs_list, ord_list]
     """
@@ -173,7 +190,7 @@ def compare_adaptation(coloration, reg):
 
         altitude_data = ddm.cruise_altp(airplane_type)
         reserve_data = ddm.reserve_data(airplane_type)
-        dict = ddm.mass_mission_adapt(npax, distance, cruise_speed, altitude_data, reserve_data, power_system)
+        dict = ddm.design(npax, distance, cruise_speed, altitude_data, reserve_data, power_system)
 
         mtow.append(dict["mtow"])
         owe.append(dict["owe"])
@@ -223,6 +240,8 @@ if __name__ == '__main__':
 
     order = [2, 1]
     dict_owe = do_regression(df, un, abs, ord, coloration, order)
+
+    # get_error(df, un, abs, ord, dict_owe["reg"], [0, 10000])
 
     #----------------------------------------------------------------------------------
     abs = "MTOW"
