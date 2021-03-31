@@ -352,7 +352,13 @@ class DDM(object):                  # Data Driven Modelling
             reserve_fuel += hf
             reserve_enrg += he
 
-        return mission_fuel+reserve_fuel, mission_enrg+reserve_enrg, mission_lod
+        return {"total_fuel":mission_fuel+reserve_fuel,
+                "mission_fuel":mission_fuel,
+                "reserve_fuel":reserve_fuel,
+                "total_enrg":mission_enrg+reserve_enrg,
+                "mission_enrg":mission_enrg,
+                "reserve_enrg":reserve_enrg,
+                "mission_lod":mission_lod}
 
 
     def owe_performance(self, npax, mtow, range, cruise_speed, max_power, power_system, altitude_data, reserve_data):
@@ -366,31 +372,30 @@ class DDM(object):                  # Data Driven Modelling
 
         payload = npax * self.get_pax_allowance(range)
 
-        total_fuel, total_enrg, lod = self.total_fuel(mtow, range, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
+        dict = self.total_fuel(mtow, range, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
 
         if power_system["energy_source"]==self.kerosene:
             energy_storage = 0.
         elif power_system["energy_source"]==self.gh2:
-            energy_storage = total_fuel * (1./self.gh2_tank_gravimetric_index - 1.)
+            energy_storage = dict["total_fuel"] * (1./self.gh2_tank_gravimetric_index - 1.)
         elif power_system["energy_source"]==self.lh2:
-            energy_storage = total_fuel * (1./self.lh2_tank_gravimetric_index - 1.)
+            energy_storage = dict["total_fuel"] * (1./self.lh2_tank_gravimetric_index - 1.)
         elif power_system["energy_source"]==self.battery:
-            energy_storage = total_enrg/self.battery_enrg_density
+            energy_storage = dict["total_enrg"]/self.battery_enrg_density
         else:
             raise Exception("power system - energy source is unknown")
 
-        owe = mtow - payload - total_fuel
+        owe = mtow - payload - dict["total_fuel"]
 
         return {"owe":owe,
                 "energy_storage":energy_storage,
-                "total_energy":total_enrg,
-                "total_fuel":total_fuel,
+                "total_energy":dict["total_enrg"],
+                "total_fuel":dict["total_fuel"],
                 "payload":payload,
-                "lod":lod}
+                "lod":dict["mission_lod"]}
 
 
-    def owe_structure(self, mtow, energy_storage, initial_power_system=None, target_power_system=None):
-        power = self.ref_power(mtow)
+    def owe_structure(self, mtow, max_power, energy_storage, initial_power_system=None, target_power_system=None):
         owe = self.ref_owe(mtow)
         delta_system_mass = 0.
         if initial_power_system is not None:
@@ -398,43 +403,43 @@ class DDM(object):                  # Data Driven Modelling
 
                 # remove initial engine mass
                 if initial_power_system["engine_type"]==self.piston:
-                    initial_engine_mass = power / self.piston_eng_pw_density
-                    initial_engine_mass += power / self.propeller_pw_density
+                    initial_engine_mass = max_power / self.piston_eng_pw_density
+                    initial_engine_mass += max_power / self.propeller_pw_density
                 elif initial_power_system["engine_type"]==self.turboprop:
-                    initial_engine_mass = power / self.turboprop_pw_density
-                    initial_engine_mass += power / self.propeller_pw_density
+                    initial_engine_mass = max_power / self.turboprop_pw_density
+                    initial_engine_mass += max_power / self.propeller_pw_density
                 elif initial_power_system["engine_type"]==self.turbofan:
-                    initial_engine_mass = power / self.turbofan_pw_density
+                    initial_engine_mass = max_power / self.turbofan_pw_density
                 else:
-                    raise Exception("power system - engine type is unknown for initial architecture")
+                    raise Exception("initial power system - engine type is not allowed")
 
                 # Add new engine mass
                 if target_power_system["engine_type"]==self.piston:
-                    target_engine_mass = power / self.piston_eng_pw_density
-                    target_engine_mass += power / self.propeller_pw_density
+                    target_engine_mass = max_power / self.piston_eng_pw_density
+                    target_engine_mass += max_power / self.propeller_pw_density
                 elif target_power_system["engine_type"]==self.turboprop:
-                    target_engine_mass = power / self.turboprop_pw_density
-                    target_engine_mass += power / self.propeller_pw_density
+                    target_engine_mass = max_power / self.turboprop_pw_density
+                    target_engine_mass += max_power / self.propeller_pw_density
                 elif target_power_system["engine_type"]==self.turbofan:
-                    target_engine_mass = power / self.turbofan_pw_density
+                    target_engine_mass = max_power / self.turbofan_pw_density
                 elif target_power_system["engine_type"]==self.emotor:
-                    target_engine_mass = power / self.elec_motor_pw_density
+                    target_engine_mass = max_power / self.elec_motor_pw_density
                     if target_power_system["thruster"]==self.fan:
-                        target_engine_mass += power / self.fan_nacelle_pw_density
+                        target_engine_mass += max_power / self.fan_nacelle_pw_density
                     elif target_power_system["thruster"]==self.propeller:
-                        target_engine_mass += power / self.propeller_pw_density
+                        target_engine_mass += max_power / self.propeller_pw_density
                     else:
-                        raise Exception("power system - thruster type is unknown")
+                        raise Exception("target power system - thruster type is unknown")
                     if target_power_system["energy_source"] in [self.gh2, self.lh2]:
-                        delta_system_mass += (power / self.eta_motor) / self.fuel_cell_gravimetric_index
+                        delta_system_mass += (max_power / self.eta_motor) / self.fuel_cell_gravimetric_index
                         eff = self.eta_motor*self.eta_fuel_cell
-                        delta_system_mass += power * (1-eff)/eff / self.cooling_gravimetric_index  # All power which is not on the shaft have to be dissipated
+                        delta_system_mass += max_power * (1-eff)/eff / self.cooling_gravimetric_index  # All power which is not on the shaft have to be dissipated
                     elif target_power_system["energy_source"]==self.battery:
                         pass
                     else:
-                        raise Exception("power system - energy_source is unknown for target architecture")
+                        raise Exception("target power system - energy_source is unknown")
                 else:
-                    raise Exception("power system - engine type is unknown")
+                    raise Exception("target power system - engine type is unknown")
 
         delta_engine_mass = target_engine_mass - initial_engine_mass
         delta_system_mass += energy_storage
@@ -444,17 +449,17 @@ class DDM(object):                  # Data Driven Modelling
                 "target_engine_mass":target_engine_mass,
                 "delta_engine_mass":delta_engine_mass,
                 "delta_system_mass":delta_system_mass,
-                "shaft_power":power}
+                "max_power":max_power}
 
 
-    def design(self, npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=None):
+    def design(self, npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system=None):
 
-        if target_power_system is None: target_power_system = power_system
+        if target_power_system is None: target_power_system = initial_power_system
 
         def fct(mtow):
             max_power = self.ref_power(mtow)
-            dict_p = self.owe_performance(npax, mtow, distance, cruise_speed, max_power, target_power_system,altitude_data, reserve_data)
-            dict_s = self.owe_structure(mtow, dict_p["energy_storage"], initial_power_system=power_system, target_power_system=target_power_system)
+            dict_p = self.owe_performance(npax, mtow, distance, cruise_speed, max_power, target_power_system, altitude_data, reserve_data)
+            dict_s = self.owe_structure(mtow, max_power, dict_p["energy_storage"], initial_power_system, target_power_system)
             return (dict_p["owe"]-dict_s["owe"])/dict_s["owe"]
 
         mtow_ini = (-8.57e-15*npax*distance + 1.09e-04)*npax*distance
@@ -464,7 +469,7 @@ class DDM(object):                  # Data Driven Modelling
         mtow = output_dict[0][0]
         max_power = self.ref_power(mtow)
         dict_p = self.owe_performance(npax, mtow, distance, cruise_speed, max_power, target_power_system, altitude_data, reserve_data)
-        dict_s = self.owe_structure(mtow, dict_p["energy_storage"], initial_power_system=power_system, target_power_system=target_power_system)
+        dict_s = self.owe_structure(mtow, max_power, dict_p["energy_storage"], initial_power_system, target_power_system)
 
         pamb,tamb,g = self.phd.atmosphere(0)
 
@@ -472,18 +477,16 @@ class DDM(object):                  # Data Driven Modelling
                 "npax":npax,
                 "design_range":distance,
                 "cruise_speed":cruise_speed,
+                "altitude_data":altitude_data,
+                "reserve_data":reserve_data,
 
-                "initial_engine_type":power_system["engine_type"],
-                "initial_thruster":power_system["thruster"],
-                "initial_energy_source":power_system["energy_source"],
+                "initial_power_system":initial_power_system,
                 "initial_engine_mass":dict_s["initial_engine_mass"],
 
-                "target_engine_type":target_power_system["engine_type"],
-                "target_thruster":target_power_system["thruster"],
-                "target_energy_source":target_power_system["energy_source"],
+                "target_power_system":target_power_system,
                 "target_engine_mass":dict_s["target_engine_mass"],
 
-                "shaft_power":dict_s["shaft_power"],
+                "max_power":max_power,
                 "delta_engine_mass":dict_s["delta_engine_mass"],
                 "delta_system_mass":dict_s["delta_system_mass"],
 
@@ -526,16 +529,16 @@ class DDM(object):                  # Data Driven Modelling
             print(" Cruise speed = ", unit.convert_to("km/h", dict["cruise_speed"]), " km/h")
             print("")
             print("--------------------------------------------------------")
-            print(" power = ", "%.0f"%unit.kW_W(dict["shaft_power"]), " kW")
+            print(" Max power = ", "%.0f"%unit.kW_W(dict["max_power"]), " kW")
             print("")
-            print(" Initial engine type = ", dict["initial_engine_type"])
-            print(" Initial thruster type = ", dict["initial_thruster"])
-            print(" Initial energy source = ", dict["initial_energy_source"])
+            print(" Initial engine type = ", dict["initial_power_system"]["engine_type"])
+            print(" Initial thruster type = ", dict["initial_power_system"]["thruster"])
+            print(" Initial energy source = ", dict["initial_power_system"]["energy_source"])
             print(" Initial engine mass = ", "%.0f"%dict["initial_engine_mass"])
             print("")
-            print(" Target engine type = ", dict["target_engine_type"])
-            print(" Target thruster type = ", dict["target_thruster"])
-            print(" Target energy source = ", dict["target_energy_source"])
+            print(" Target engine type = ", dict["target_power_system"]["engine_type"])
+            print(" Target thruster type = ", dict["target_power_system"]["thruster"])
+            print(" Target energy source = ", dict["target_power_system"]["energy_source"])
             print(" Target engine mass = ", "%.0f"%dict["target_engine_mass"])
             print("")
             print(" Delta engine mass = ", "%.0f"%dict["delta_engine_mass"], " kg")
@@ -557,4 +560,38 @@ class DDM(object):                  # Data Driven Modelling
             print(" Mass efficiency factor, P.K/M = ", "%.2f"%unit.km_m(dict["pk_o_mass"]), " pax.km/kg")
             print(" Energy efficiency factor, P.K/E = ", "%.2f"%(unit.km_m(dict["pk_o_enrg"])/unit.kWh_J(1)), " pax.km/kWh")
             print(" Trip efficiency, M.g.D/lod/E = ", "%.2f"%dict["trip_efficiency"])
+
+
+    def fly_airplane(self, ac_dict, distance, npax):
+
+        cruise_speed = ac_dict["cruise_speed"]
+        if cruise_speed>1:
+            speed_type = "tas"
+        else:
+            speed_type = "mach"
+        mtow = ac_dict["mtow"]
+        owe = ac_dict["owe"]
+        mpax = ac_dict["payload"]/ac_dict["npax"]
+        max_power = ac_dict["max_power"]
+        power_system = ac_dict["target_power_system"]
+        altitude_data = ac_dict["altitude_data"]
+        reserve_data = ac_dict["reserve_data"]
+
+        def fct(tow):
+            dict = self.total_fuel(tow, distance, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
+            return tow - (owe + npax*mpax + dict["total_fuel"])
+
+        tow_ini = 0.75*mtow
+        output_dict = fsolve(fct, x0=tow_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        tow = output_dict[0][0]
+        dict = self.total_fuel(tow, distance, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
+        dict["payload"] = npax*mpax
+        dict["tow"] = tow
+
+        return dict
+
+
+
 

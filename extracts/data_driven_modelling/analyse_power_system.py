@@ -51,14 +51,14 @@ if __name__ == '__main__':
             {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.lh2}]
 
     for target_power_system in tpws:
-        dict = ddm.design(npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
-        ddm.print_design(dict)
+        ac_dict = ddm.design(npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+        ddm.print_design(ac_dict)
 
-        dict = ddm.get_best_range("pk_o_mass", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
-        ddm.print_design(dict, content="criteria")
+        ac_dict = ddm.get_best_range("pk_o_mass", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+        ddm.print_design(ac_dict, content="criteria")
 
-        dict = ddm.get_best_range("pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
-        ddm.print_design(dict, content="criteria")
+        ac_dict = ddm.get_best_range("pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+        ddm.print_design(ac_dict, content="criteria")
 
 
 
@@ -82,14 +82,14 @@ if __name__ == '__main__':
     #         {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.lh2}]
     #
     # for target_power_system in tpws:
-    #     dict = ddm.design(npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
-    #     ddm.print_design(dict)
+    #     ac_dict = ddm.design(npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+    #     ddm.print_design(ac_dict)
     #
-    #     dict = ddm.get_best_range("pk_o_mass", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
-    #     ddm.print_design(dict, content="criteria")
+    #     ac_dict = ddm.get_best_range("pk_o_mass", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+    #     ddm.print_design(ac_dict, content="criteria")
     #
-    #     dict = ddm.get_best_range("pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
-    #     ddm.print_design(dict, content="criteria")
+    #     ac_dict = ddm.get_best_range("pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system)
+    #     ddm.print_design(ac_dict, content="criteria")
     #
 
 
