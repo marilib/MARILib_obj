@@ -345,7 +345,7 @@ fcs_area = fcs_specific_area * fcs_power    # m2
 fcs_length = 0.4            # m
 fcs_temp = t0 + 75.         # °K
 fcs_h = 350.                # W/m2/K
-fcs_pd = unit.Pa_bar(0.4)   # Fluid pressure drop through the fuel cell stack
+fcs_pd = unit.Pa_bar(0.001)   # Fluid pressure drop through the fuel cell stack
 
 # Fluid data
 #-----------------------------------------------------------------------------------------------

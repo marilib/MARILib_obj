@@ -33,6 +33,7 @@ class DDM(object):                  # Data Driven Modelling
         self.phd = phd
 
         self.disa = 0.
+        self.max_payload_factor = 1.20
 
         self.kerosene_heat = unit.convert_from("MJ",43)  # MJ/kg
         self.hydrogen_heat = unit.convert_from("MJ",121) # MJ/kg
@@ -86,8 +87,8 @@ class DDM(object):                  # Data Driven Modelling
         self.mpax_allowance_med = [110, unit.m_km(8000)]
         self.mpax_allowance_high = [150, unit.m_km(np.inf)]
 
-        self.lod_low = [15, 1000]
-        self.lod_high = [20, 200000]
+        self.lod_low = [15, 1000]       # [lod, mtow]
+        self.lod_high = [20, 200000]    # [lod, mtow]
 
         self.psfc_low = [unit.convert_from("lb/shp/h",0.6), unit.convert_from("kW",50)]     # here power is shaft power
         self.psfc_high = [unit.convert_from("lb/shp/h",0.4), unit.convert_from("kW",1000)]
@@ -111,12 +112,10 @@ class DDM(object):                  # Data Driven Modelling
     def get_lod(self,mtow):
         lod_min, mtow_min = self.lod_low
         lod_max, mtow_max = self.lod_high
-        if mtow<mtow_min:
-            return lod_min
-        elif mtow<mtow_max:
-            return lod_min + (lod_max-lod_min)*(mtow-mtow_min)/(mtow_max-mtow_min)
-        else:
-            return lod_max
+        mtow_list = [0.     , mtow_min, mtow_max, np.inf]
+        lod_list =  [lod_min, lod_min , lod_max , lod_max]
+        lod = utils.lin_interp_1d(mtow, mtow_list, lod_list)
+        return lod
 
 
     def get_psfc(self,max_power, fuel_type):
@@ -136,12 +135,10 @@ class DDM(object):                  # Data Driven Modelling
         else:
             raise Exception("fuel type is unknown")
 
-        if max_power<pw_min:
-            return psfc_max, fhv
-        elif max_power<pw_max:
-            return psfc_max - (psfc_max-psfc_min)*(max_power-pw_min)/(pw_max-pw_min), fhv
-        else:
-            return psfc_min, fhv
+        mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
+        psfc_list = [psfc_max, psfc_max, psfc_min, psfc_min]
+        psfc = utils.lin_interp_1d(max_power, mxpw_list, psfc_list)
+        return psfc,fhv
 
 
     def get_tsfc(self,max_power, fuel_type):
@@ -161,12 +158,10 @@ class DDM(object):                  # Data Driven Modelling
         else:
             raise Exception("fuel type is unknown")
 
-        if max_power<pw_min:
-            return tsfc_max, fhv
-        elif max_power<pw_max:
-            return tsfc_max - (tsfc_max-tsfc_min)*(max_power-pw_min)/(pw_max-pw_min), fhv
-        else:
-            return tsfc_min, fhv
+        mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
+        psfc_list = [tsfc_max, tsfc_max, tsfc_min, tsfc_min]
+        tsfc = utils.lin_interp_1d(max_power, mxpw_list, psfc_list)
+        return tsfc,fhv
 
 
     def ref_power(self, mtow):
@@ -321,13 +316,13 @@ class DDM(object):                  # Data Driven Modelling
         return fuel,enrg
 
 
-    def total_fuel(self,tow,range,cruise_speed,speed_type,mtow,max_power,power_system,altitude_data,reserve_data):
+    def total_fuel(self,tow,distance,cruise_speed,speed_type,mtow,max_power,power_system,altitude_data,reserve_data):
         """Compute the total fuel required for a mission
         WARNING : when fuel is used, returned value is fuel mass (kg)
                   when battery is used, returned value is energy (J)
         """
         cruise_altp = altitude_data["mission"]
-        mission_fuel,mission_enrg,mission_lod = self.leg_fuel(tow,range,cruise_altp,cruise_speed,speed_type,mtow,max_power,power_system)
+        mission_fuel,mission_enrg,mission_lod = self.leg_fuel(tow,distance,cruise_altp,cruise_speed,speed_type,mtow,max_power,power_system)
         if power_system["energy_source"]==self.battery:
             ldw = tow
         else:
@@ -352,7 +347,9 @@ class DDM(object):                  # Data Driven Modelling
             reserve_fuel += hf
             reserve_enrg += he
 
-        return {"total_fuel":mission_fuel+reserve_fuel,
+        return {"tow":tow,
+                "distance":distance,
+                "total_fuel":mission_fuel+reserve_fuel,
                 "mission_fuel":mission_fuel,
                 "reserve_fuel":reserve_fuel,
                 "total_enrg":mission_enrg+reserve_enrg,
@@ -452,7 +449,7 @@ class DDM(object):                  # Data Driven Modelling
                 "max_power":max_power}
 
 
-    def design(self, npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system=None):
+    def design_airplane(self, npax, distance, cruise_speed, altitude_data, reserve_data, initial_power_system, target_power_system=None):
 
         if target_power_system is None: target_power_system = initial_power_system
 
@@ -470,6 +467,9 @@ class DDM(object):                  # Data Driven Modelling
         max_power = self.ref_power(mtow)
         dict_p = self.owe_performance(npax, mtow, distance, cruise_speed, max_power, target_power_system, altitude_data, reserve_data)
         dict_s = self.owe_structure(mtow, max_power, dict_p["energy_storage"], initial_power_system, target_power_system)
+
+        payload_max = dict_p["payload"] * self.max_payload_factor
+
 
         pamb,tamb,g = self.phd.atmosphere(0)
 
@@ -489,6 +489,7 @@ class DDM(object):                  # Data Driven Modelling
                 "max_power":max_power,
                 "delta_engine_mass":dict_s["delta_engine_mass"],
                 "delta_system_mass":dict_s["delta_system_mass"],
+                "system_energy_density":dict_p["total_energy"]/(dict_s["delta_system_mass"]+dict_p["total_fuel"]),
 
                 "mtow":mtow,
                 "owe":dict_s["owe"],
@@ -497,22 +498,20 @@ class DDM(object):                  # Data Driven Modelling
                 "total_energy":dict_p["total_energy"],
 
                 "pk_o_mass":npax*distance/mtow,
-                "pk_o_enrg":npax*distance/dict_p["total_energy"],
-                "trip_efficiency":mtow*g*distance/(dict_p["lod"]*dict_p["total_energy"])}
+                "pk_o_enrg":npax*distance/dict_p["total_energy"]}
 
 
-    def get_best_range(self, criterion, npax, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=None):
+    def get_best_range(self, range_init, range_step, criterion, npax, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=None):
         """Look for the design range that maximizes the criterion PK/M
         """
         def fct(distance):
-            dict = self.design(npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=target_power_system)
+            dict = self.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=target_power_system)
             return dict[criterion]
 
-        xini = unit.m_km(200)
-        dx = unit.m_km(20)
-        distance, res, rc = utils.maximize_1d(xini,dx,[fct])
+        dx = range_step
+        distance, res, rc = utils.maximize_1d(range_init,dx,[fct])
 
-        dict = self.design(npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=target_power_system)
+        dict = self.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=target_power_system)
 
         dict["range"] = distance
         return dict
@@ -543,6 +542,7 @@ class DDM(object):                  # Data Driven Modelling
             print("")
             print(" Delta engine mass = ", "%.0f"%dict["delta_engine_mass"], " kg")
             print(" Delta system mass = ", "%.0f"%dict["delta_system_mass"], " kg")
+            print(" System energy density = ", "%.0f"%unit.Wh_J(dict["system_energy_density"]), " Wh/kg")
             print("")
             print(" mtow = ", "%.0f"%dict["mtow"], " kg")
             print(" owe = ", "%.0f"%dict["owe"], " kg")
@@ -552,17 +552,15 @@ class DDM(object):                  # Data Driven Modelling
             print("")
             print(" Mass efficiency factor, P.K/M = ", "%.2f"%unit.km_m(dict["pk_o_mass"]), " pax.km/kg")
             print(" Energy efficiency factor, P.K/E = ", "%.2f"%(unit.km_m(dict["pk_o_enrg"])/unit.kWh_J(1)), " pax.km/kWh")
-            print(" Trip efficiency, M.g.D/lod/E = ", "%.2f"%dict["trip_efficiency"])
 
         elif content=="criteria":
             print("")
             print(" Design range = ", "%.0f"%unit.convert_to("km", dict["design_range"]), " km")
             print(" Mass efficiency factor, P.K/M = ", "%.2f"%unit.km_m(dict["pk_o_mass"]), " pax.km/kg")
             print(" Energy efficiency factor, P.K/E = ", "%.2f"%(unit.km_m(dict["pk_o_enrg"])/unit.kWh_J(1)), " pax.km/kWh")
-            print(" Trip efficiency, M.g.D/lod/E = ", "%.2f"%dict["trip_efficiency"])
 
 
-    def fly_airplane(self, ac_dict, distance, npax):
+    def fly_distance(self, ac_dict, distance, npax):
 
         cruise_speed = ac_dict["cruise_speed"]
         if cruise_speed>1:
@@ -572,6 +570,7 @@ class DDM(object):                  # Data Driven Modelling
         mtow = ac_dict["mtow"]
         owe = ac_dict["owe"]
         mpax = ac_dict["payload"]/ac_dict["npax"]
+        payload = npax*mpax
         max_power = ac_dict["max_power"]
         power_system = ac_dict["target_power_system"]
         altitude_data = ac_dict["altitude_data"]
@@ -579,7 +578,7 @@ class DDM(object):                  # Data Driven Modelling
 
         def fct(tow):
             dict = self.total_fuel(tow, distance, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
-            return tow - (owe + npax*mpax + dict["total_fuel"])
+            return tow - (owe + payload + dict["total_fuel"])
 
         tow_ini = 0.75*mtow
         output_dict = fsolve(fct, x0=tow_ini, args=(), full_output=True)
@@ -587,8 +586,38 @@ class DDM(object):                  # Data Driven Modelling
 
         tow = output_dict[0][0]
         dict = self.total_fuel(tow, distance, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
-        dict["payload"] = npax*mpax
-        dict["tow"] = tow
+        dict["payload"] = payload
+
+        return dict
+
+
+    def fly_tow(self, ac_dict, tow, npax):
+
+        cruise_speed = ac_dict["cruise_speed"]
+        if cruise_speed>1:
+            speed_type = "tas"
+        else:
+            speed_type = "mach"
+        mtow = ac_dict["mtow"]
+        owe = ac_dict["owe"]
+        mpax = ac_dict["payload"]/ac_dict["npax"]
+        payload = npax*mpax
+        max_power = ac_dict["max_power"]
+        power_system = ac_dict["target_power_system"]
+        altitude_data = ac_dict["altitude_data"]
+        reserve_data = ac_dict["reserve_data"]
+
+        def fct(distance):
+            dict = self.total_fuel(tow, distance, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
+            return tow - (owe + payload + dict["total_fuel"])
+
+        dist_ini = 0.75*ac_dict["design_range"]
+        output_dict = fsolve(fct, x0=dist_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        distance = output_dict[0][0]
+        dict = self.total_fuel(tow, distance, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
+        dict["payload"] = payload
 
         return dict
 

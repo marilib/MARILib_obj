@@ -265,7 +265,7 @@ if __name__ == '__main__':
     # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
 
     order = [0.8, 0.20, 0.02]
-    # dict = do_regression(df, un, abs, ord, coloration, order)
+    dict = do_regression(df, un, abs, ord, coloration, order)
 
     #----------------------------------------------------------------------------------
     abs = "nominal_range"                           # Name of the new column

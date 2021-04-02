@@ -222,6 +222,7 @@ class CspPowerPlant(PowerPlant):
         super(CspPowerPlant, self).__init__()
 
         self.type = "Cylindroparabolic solar concentration"
+
         self.ref_sun_power = ref_sun_pw
         self.load_factor = load_factor
 
@@ -280,9 +281,9 @@ class CspPowerPlant(PowerPlant):
         self.material.glass = 112.e3 * unit.MW_W(self.nominal_peak_power)
         self.material.oil = 2.82e3 * unit.MW_W(self.nominal_peak_power)
 
-        self.heat_storage(self.storage_medium, self.storage_capacity, self.material)
-
         self.material_grey_enrg = self.material.grey_energy()
+
+        self.heat_storage(self.storage_medium, self.storage_capacity, self.material)
 
 
 

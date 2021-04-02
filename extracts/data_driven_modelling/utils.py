@@ -16,6 +16,24 @@ import numpy as np
 #
 #-----------------------------------------------------------------------------------------------------------------------
 
+def lin_interp_1d(x,X,Y):
+    """linear interpolation without any control
+
+    :param x: current position
+    :param X: array of the abscissa of the known points
+    :param Y: array of the known values at given abscissa
+    :return: y the interpolated value of Y at x
+
+    """
+    n = np.size(X)
+    for j in range(1,n):
+        if x<X[j] :
+            y = Y[j-1]+(Y[j]-Y[j-1])*(x-X[j-1])/(X[j]-X[j-1])
+            return y
+    y = Y[n-2]+(Y[n-1]-Y[n-2])*(x-X[n-2])/(X[n-1]-X[n-2])
+    return y
+
+
 def vander3(X):
     """Return the vandermonde matrix of a dim 3 array A = [X^2, X, 1]
     """
