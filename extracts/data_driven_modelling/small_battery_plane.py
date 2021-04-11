@@ -155,6 +155,20 @@ class SmallPlane(object):
         elif type=="electric":
             return self.full_elec_design(mtow, type)
 
+    def best_distance(self, type="classic"):
+        def fct(dist):
+            self.distance = dist
+            dict = self.design_solver(type)
+            return dict["pk_o_m"] - dict["pk_o_m_min"]
+
+        dist_ini = self.distance * 2.
+        output_dict = fsolve(fct, x0=dist_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        self.distance = output_dict[0][0]
+
+        return self.design_solver(type)
+
+
     def print(self, dict):
         print("")
         print("Airplane type = ", dict["airplane_type"])
@@ -191,6 +205,12 @@ if __name__ == '__main__':
 
     spc.print(dict)
 
+    spc.best_distance(type="classic")
+
+    print("")
+    print("Best distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
+
+
 
     spe = SmallPlane(npax=4, dist=unit.m_km(400), tas=unit.mps_kmph(180))
 
@@ -199,3 +219,9 @@ if __name__ == '__main__':
     dict = spe.design_solver("electric")
 
     spe.print(dict)
+
+    spe.best_distance(type="electric")
+
+    print("")
+    print("Best distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
+
