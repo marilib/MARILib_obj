@@ -40,10 +40,10 @@ class DDM(object):                  # Data Driven Modelling
         self.kerosene_heat = unit.convert_from("MJ",43)  # MJ/kg
         self.hydrogen_heat = unit.convert_from("MJ",121) # MJ/kg
 
-        self.eta_prop = 0.80
-        self.eta_fan = 0.82
-        self.eta_motor = 0.95       # MAGNIX
-        self.eta_fuel_cell = 0.50   # (Horizon Fuel Cell)
+        self.prop_eff = 0.80
+        self.fan_eff = 0.82
+        self.motor_eff = 0.95       # MAGNIX
+        self.fuel_cell_eff = 0.50   # (Horizon Fuel Cell)
 
         self.turbofan_pw_density = unit.W_kW(7)  # W/kg
         self.turboprop_pw_density = unit.W_kW(5) # W/kg
@@ -97,6 +97,9 @@ class DDM(object):                  # Data Driven Modelling
 
         self.tsfc_low = [unit.convert_from("kg/daN/h",0.60), unit.convert_from("MW",1)]     # Here, power is equivalent shaft power developped during take off as defined in the data base
         self.tsfc_high = [unit.convert_from("kg/daN/h",0.54), unit.convert_from("MW",10)]
+
+        self.fc_eff_low = [0.45, 1.0]     # Fuel cell efficiency at system level for design power (max power)
+        self.fc_eff_high = [0.75, 0.1]    # Fuel cell efficiency at system level for low power (power close to zero)
 
 
     def get_pax_allowance(self,distance):
@@ -166,6 +169,15 @@ class DDM(object):                  # Data Driven Modelling
         return tsfc,fhv
 
 
+    def get_fuel_cell_eff(self, pw, pw_max):
+        eff_min, kpw_max = self.fc_eff_low
+        eff_max, kpw_min = self.fc_eff_high
+        pw_list =  [0.     , kpw_min*pw_max, kpw_max*pw_max]
+        eff_list = [eff_max, eff_max       , eff_min]
+        eff = utils.lin_interp_1d(pw, pw_list, eff_list)
+        return eff
+
+
     def ref_power(self, mtow):
         """Required total power for an airplane with a given MTOW
         """
@@ -230,10 +242,10 @@ class DDM(object):                  # Data Driven Modelling
         lod = self.get_lod(mtow)
         if power_system["engine_type"]==self.piston:
             sfc,fhv = self.get_psfc(max_power, power_system["energy_source"])
-            fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # piston engine
+            fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.prop_eff*lod)))   # piston engine
         elif power_system["engine_type"]==self.turboprop:
             sfc,fhv = self.get_psfc(max_power, power_system["energy_source"])
-            fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.eta_prop*lod)))   # turboprop
+            fuel = start_mass*(1.-np.exp(-(sfc*g*distance)/(self.prop_eff*lod)))   # turboprop
         elif power_system["engine_type"]==self.turbofan:
             tas = self.get_tas(tamb,speed,speed_type)
             sfc,fhv = self.get_tsfc(max_power, power_system["energy_source"])
@@ -241,18 +253,18 @@ class DDM(object):                  # Data Driven Modelling
         elif power_system["engine_type"]==self.emotor:
             if power_system["thruster"]==self.propeller:
                 if power_system["energy_source"] in [self.gh2, self.lh2]:
-                    eff = self.eta_prop * self.eta_motor * self.eta_fuel_cell
+                    eff = self.prop_eff * self.motor_eff * self.fuel_cell_eff
                     fhv = self.hydrogen_heat
                     fuel = start_mass*(1.-np.exp(-(g*distance)/(eff*fhv*lod)))             # electroprop + fuel cell
                 elif power_system["energy_source"]==self.battery:
-                    enrg = start_mass*g*distance / (self.eta_prop*self.eta_motor*lod)      # electroprop + battery
+                    enrg = start_mass*g*distance / (self.prop_eff*self.motor_eff*lod)      # electroprop + battery
             elif power_system["thruster"]==self.fan:
                 if power_system["energy_source"] in [self.gh2, self.lh2]:
-                    eff = self.eta_fan * self.eta_motor * self.eta_fuel_cell
+                    eff = self.fan_eff * self.motor_eff * self.fuel_cell_eff
                     fhv = self.hydrogen_heat
                     fuel = start_mass*(1.-np.exp(-(g*distance)/(eff*fhv*lod)))             # electrofan + fuel cell
                 elif power_system["energy_source"]==self.battery:
-                    enrg = start_mass*g*distance / (self.eta_fan*self.eta_motor*lod)       # electrofan + battery
+                    enrg = start_mass*g*distance / (self.fan_eff*self.motor_eff*lod)       # electrofan + battery
             else:
                 raise Exception("power system - thruster type is unknown")
         else:
@@ -268,7 +280,7 @@ class DDM(object):                  # Data Driven Modelling
         return fuel,enrg,lod
 
 
-    def holding_fuel(self,start_mass,time,altp,speed,speed_type,mtow,max_power,power_system):
+    def holding_fuel(self, start_mass, time, altp, speed, speed_type, mtow, max_power, power_system):
         """Compute the fuel for a given holding time
         WARNING : when fuel is used, returned value is fuel mass (kg)
                   when battery is used, returned value is energy (J)
@@ -278,11 +290,11 @@ class DDM(object):                  # Data Driven Modelling
         if power_system["engine_type"]==self.piston:
             tas = self.get_tas(tamb,speed,speed_type)
             sfc,fhv = self.get_psfc(max_power, power_system["energy_source"])
-            fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # piston
+            fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.prop_eff*lod)))   # piston
         elif power_system["engine_type"]==self.turboprop:
             tas = self.get_tas(tamb,speed,speed_type)
             sfc,fhv = self.get_psfc(max_power, power_system["energy_source"])
-            fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.eta_prop*lod)))   # turboprop
+            fuel = start_mass*(1.-np.exp(-(sfc*g*tas*time)/(self.prop_eff*lod)))   # turboprop
         elif power_system["engine_type"]==self.turbofan:
             sfc,fhv = self.get_tsfc(max_power, power_system["energy_source"])
             fuel = start_mass*(1 - np.exp(-g*sfc*time/lod))                         # turbofan
@@ -290,21 +302,21 @@ class DDM(object):                  # Data Driven Modelling
             if power_system["thruster"]==self.propeller:
                 if power_system["energy_source"] in [self.gh2, self.lh2]:
                     tas = self.get_tas(tamb,speed,speed_type)
-                    eff = self.eta_prop * self.eta_motor * self.eta_fuel_cell
+                    eff = self.prop_eff * self.motor_eff * self.fuel_cell_eff
                     fhv = self.hydrogen_heat
                     fuel = start_mass*(1 - np.exp(-(g*tas*time)/(eff*fhv*lod)))            # electroprop + fuel cell
                 elif power_system["energy_source"]==self.battery:
                     tas = self.get_tas(tamb,speed,speed_type)
-                    enrg = start_mass*g*tas*time / (self.eta_prop*self.eta_motor*lod)      # electroprop + battery
+                    enrg = start_mass*g*tas*time / (self.prop_eff*self.motor_eff*lod)      # electroprop + battery
             elif power_system["thruster"]==self.fan:
                 if power_system["energy_source"] in [self.gh2, self.lh2]:
                     tas = self.get_tas(tamb,speed,speed_type)
-                    eff = self.eta_fan * self.eta_motor * self.eta_fuel_cell
+                    eff = self.fan_eff * self.motor_eff * self.fuel_cell_eff
                     fhv = self.hydrogen_heat
                     fuel = start_mass*(1 - np.exp(-(g*tas*time)/(eff*fhv*lod)))             # electrofan + fuel cell
                 elif power_system["energy_source"]==self.battery:
                     tas = self.get_tas(tamb,speed,speed_type)
-                    enrg = start_mass*g*tas*time / (self.eta_fan*self.eta_motor*lod)        # electrofan + battery
+                    enrg = start_mass*g*tas*time / (self.fan_eff*self.motor_eff*lod)        # electrofan + battery
             else:
                 raise Exception("power system - thruster type is unknown")
         else:
@@ -430,8 +442,8 @@ class DDM(object):                  # Data Driven Modelling
                     else:
                         raise Exception("target power system - thruster type is unknown")
                     if target_power_system["energy_source"] in [self.gh2, self.lh2]:
-                        delta_system_mass += (max_power / self.eta_motor) / self.fuel_cell_gravimetric_index
-                        eff = self.eta_motor*self.eta_fuel_cell
+                        delta_system_mass += (max_power / self.motor_eff) / self.fuel_cell_gravimetric_index
+                        eff = self.motor_eff*self.fuel_cell_eff
                         delta_system_mass += max_power * (1-eff)/eff / self.cooling_gravimetric_index  # All power which is not on the shaft have to be dissipated
                     elif target_power_system["energy_source"]==self.battery:
                         pass

@@ -16,6 +16,7 @@ from tabulate import tabulate
 import matplotlib.pyplot as plt
 
 import unit
+import utils
 from physical_data import PhysicalData
 from models import DDM
 
@@ -222,7 +223,7 @@ if __name__ == '__main__':
 
     # Read data
     #-------------------------------------------------------------------------------------------------------------------
-    path_to_data_base = "All_Data.xlsx"
+    path_to_data_base = "All_Data_extract.xlsx"
 
     df,un = read_db(path_to_data_base)
 
@@ -231,13 +232,15 @@ if __name__ == '__main__':
 
     # perform regressions
     #-------------------------------------------------------------------------------------------------------------------
-    coloration = {"general":"yellow", "commuter":"green", "business":"blue", "narrow_body":"orange", "wide_body":"red"}
+    coloration = {"general":"gold", "commuter":"green", "business":"blue", "narrow_body":"darkorange", "wide_body":"red"}
 
     abs = "MTOW"
     ord = "OWE"
 
     # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+    df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
 
+    # order = [1]
     order = [2, 1]
     dict_owe = do_regression(df, un, abs, ord, coloration, order)
 
@@ -254,6 +257,25 @@ if __name__ == '__main__':
 
     order = [2, 1]
     dict = do_regression(df, un, abs, ord, coloration, order)
+
+    # #----------------------------------------------------------------------------------
+    # abs = "total_power"
+    # ord = "cruise_power"                           # Name of the new column
+    #
+    # lod_min, mtow_min = [15, 1000]
+    # lod_max, mtow_max = [20, 200000]
+    # mtow_list = [0.     , mtow_min, mtow_max, np.inf]
+    # lod_list =  [lod_min, lod_min , lod_max , lod_max]
+    # fct = interp1d(mtow_list, lod_list, kind="linear", fill_value="extrapolate")
+    #
+    # # df['cruise_speed'] = df['cruise_speed'].mul(296.5)
+    #
+    # df[ord] = 9.81*df['MTOW']*df['cruise_speed']/fct(df['MTOW'])      # Add the new column to the dataframe
+    # un[ord] = un['max_power']                     # Add its unit
+    #
+    # # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+    #
+    # draw_reg(df, un, 'cruise_power', 'total_power', [[0,max(df['total_power'])], [0,max(df['total_power'])]], coloration)
 
     #----------------------------------------------------------------------------------
     abs = "MTOW"

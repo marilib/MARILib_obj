@@ -98,6 +98,7 @@ class PowerPlant(object):
         self.marginal_efficiency = None
         self.net_power_efficiency = None
         self.er_o_ei = None
+        self.enrg_pay_back_time = None
 
         self.material = Material()
         self.material_grey_enrg = None
@@ -129,6 +130,7 @@ class PowerPlant(object):
         print("Total grey energy = ", "%8.1f" % unit.GWh_J(self.total_grey_enrg), " GWh")
         print("Total footprint = ", "%8.1f" % unit.km2_m2(self.total_footprint), " km2")
         print("Energy returned over energy invested = ", "%8.1f" % self.er_o_ei)
+        print("Energy pay back time = ", "%8.1f" % self.enrg_pay_back_time)
         print("Total material embodied energy = ", "%8.1f" % unit.GWh_J(self.material_grey_enrg), " GWh")
         if (self.material.concrete > 0.):     print("    Concrete = ", "%8.0f" % (self.material.concrete*1.e-3), " t")
         if (self.material.iron > 0.):         print("        Iron = ", "%8.0f" % (self.material.iron*1.e-3), " t")
@@ -146,7 +148,7 @@ class PowerPlant(object):
         if (self.material.quinone > 0.):      print("     quinone = ", "%8.0f" % (self.material.quinone*1.e-3), " t")
 
     def elec_storage(self, storage_type, *kwargs):
-        """Provide storage efficiency or add materials required for heat storage
+        """Provide storage efficiency or add materials required for storage
 
         :param storage_type: "electrolysis", "flow_battery"
         :param energy_capacity:
@@ -166,8 +168,9 @@ class PowerPlant(object):
             energy_capacity = kwargs[0]
             material = kwargs[1]
 
+        # Materials analysis
         if (storage_type=="electrolysis"):
-            print("Electric energy storage using electrolysis not implemented")
+            print("Materials for energy storage using electrolysis not implemented")
         elif (storage_type=="flow_battery"):
             material.quinone = energy_capacity / unit.J_Wh(50.)   # 50 Wh/kg
 
@@ -196,6 +199,7 @@ class PowerPlant(object):
             energy_capacity = kwargs[0]
             material = kwargs[1]
 
+        # Materials analysis
         if (storage_type=="molten_salt"):
             material.Na2CO3 = 45.6e3 * unit.MWh_J(energy_capacity)
             material.KNO3 = 30.4e3 * unit.MWh_J(energy_capacity)
@@ -204,7 +208,7 @@ class PowerPlant(object):
             material.steel += 4.6e3 * unit.MWh_J(energy_capacity)
             material.fiber_glass += 0.16e3 * unit.MWh_J(energy_capacity)
         elif (storage_type=="concrete"):
-            print("Thermal energy storage using concrete not implemented")
+            print("Materials for thermal energy storage using concrete not implemented")
 
 
 class CspPowerPlant(PowerPlant):
@@ -212,13 +216,13 @@ class CspPowerPlant(PowerPlant):
     def __init__(self, n_mirror,
                  ref_sun_pw = 250.,
                  load_factor = 0.38,
-                 reg_factor = 0.,
                  mirror_area = 68.,
                  ground_ratio = 4.,
                  life_time = 25.,
                  gross_pw_eff = 0.39,
-                 storage = "molten_salt",
-                 grey_enrg_ratio = 0.11):
+                 specific_grey_enrg = unit.J_kWh(300.),
+                 reg_factor = 0.,
+                 storage = "molten_salt"):
         super(CspPowerPlant, self).__init__()
 
         self.type = "Cylindroparabolic solar concentration"
@@ -236,7 +240,8 @@ class CspPowerPlant(PowerPlant):
         self.storage_medium = storage
 
         self.gross_power_efficiency = gross_pw_eff
-        self.grey_energy_ratio = grey_enrg_ratio
+        self.specific_grey_enrg = specific_grey_enrg    # J/m2, Energy per mirror square meter installed, at system level
+        self.total_grey_enrg = specific_grey_enrg*mirror_area*n_mirror
 
         self.update()
 
@@ -263,14 +268,14 @@ class CspPowerPlant(PowerPlant):
         self.production_power_efficiency = self.regulated_power * self.production_time / self.mean_daily_energy
         self.potential_energy_default = self.nominal_mean_power * (one_day - self.production_time)
 
-        self.marginal_efficiency = self.production_power_efficiency * (1.-self.grey_energy_ratio)
-        self.net_power_efficiency = self.gross_power_efficiency * self.marginal_efficiency
-
         self.gross_yearly_enrg = self.regulated_power * self.production_time * 365.
-        self.net_yearly_enrg = self.gross_yearly_enrg - self.gross_yearly_enrg * self.grey_energy_ratio
+        self.total_grey_enrg = self.specific_grey_enrg * self.total_mirror_area
+        self.net_yearly_enrg = self.gross_yearly_enrg - self.total_grey_enrg / self.life_time
 
-        self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
-        self.er_o_ei = self.net_yearly_enrg / (self.gross_yearly_enrg * self.grey_energy_ratio)
+        self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
+        self.net_power_efficiency = self.gross_power_efficiency * self.marginal_efficiency
+        self.er_o_ei = self.net_yearly_enrg / (self.total_grey_enrg/self.life_time)
+        self.enrg_pay_back_time = self.total_grey_enrg / self.net_yearly_enrg
 
         self.material.concrete = 760.e3 * unit.MW_W(self.nominal_peak_power)
         self.material.steel = 186.e3 * unit.MW_W(self.nominal_peak_power)
@@ -286,19 +291,18 @@ class CspPowerPlant(PowerPlant):
         self.heat_storage(self.storage_medium, self.storage_capacity, self.material)
 
 
-
 class PvPowerPlant(PowerPlant):
 
     def __init__(self, n_panel,
                  ref_sun_pw = 1000.,
                  load_factor = 0.14,
-                 reg_factor = 0.,
                  panel_area = 2.,
                  ground_ratio = 2.6,
                  life_time = 25.,
                  gross_pw_eff = 0.15,
-                 storage = "flow_battery",
-                 grey_enrg_ratio = 0.11):
+                 specific_grey_enrg = unit.J_kWh(350.),
+                 reg_factor = 0.,
+                 storage = "flow_battery"):
         super(PvPowerPlant, self).__init__()
 
         self.type = "Photovoltaïc"
@@ -315,7 +319,8 @@ class PvPowerPlant(PowerPlant):
         self.storage_medium = storage
 
         self.gross_power_efficiency = gross_pw_eff
-        self.grey_energy_ratio = grey_enrg_ratio
+        self.specific_grey_enrg = specific_grey_enrg    # J/m2, Energy per square meter installed, at system level
+        self.total_grey_enrg = specific_grey_enrg*panel_area*n_panel
 
         self.update()
 
@@ -342,14 +347,15 @@ class PvPowerPlant(PowerPlant):
         self.production_power_efficiency = self.regulated_power * self.production_time / self.mean_daily_energy
         self.potential_energy_default = self.nominal_mean_power * (one_day - self.production_time)
 
-        self.marginal_efficiency = self.production_power_efficiency * (1.-self.grey_energy_ratio)
-        self.net_power_efficiency = self.gross_power_efficiency * self.marginal_efficiency
-
         self.gross_yearly_enrg = self.regulated_power * self.production_time * 365.
-        self.net_yearly_enrg = self.gross_yearly_enrg * (1. - self.grey_energy_ratio)
+        self.total_grey_enrg = self.specific_grey_enrg * self.total_panel_area
+        self.net_yearly_enrg = self.gross_yearly_enrg - self.total_grey_enrg / self.life_time
 
-        self.total_grey_enrg = self.gross_yearly_enrg * self.grey_energy_ratio * self.life_time
-        self.er_o_ei = self.net_yearly_enrg / (self.gross_yearly_enrg * self.grey_energy_ratio)
+        self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
+        self.net_power_efficiency = self.gross_power_efficiency * self.marginal_efficiency
+        self.er_o_ei = self.net_yearly_enrg / (self.total_grey_enrg/self.life_time)
+        self.enrg_pay_back_time = self.total_grey_enrg / self.net_yearly_enrg
+
 
         self.material.steel = 16.5 * self.total_panel_area
         self.material.aluminium = 0.6 * self.total_panel_area
@@ -363,16 +369,17 @@ class PvPowerPlant(PowerPlant):
         self.material_grey_enrg = self.material.grey_energy()
 
 
-
 class EolPowerPlant(PowerPlant):
 
     def __init__(self, location, n_rotor,
                  load_factor = None,
-                 reg_factor = 0.,
                  rotor_width = None,
                  rotor_pk_pw = 2.5e6,
-                 storage_medium = "flow_battery",
-                 life_time = 25.):
+                 life_time = 25.,
+                 gross_power_eff = 0.35,
+                 specific_grey_enrg = 10e6,
+                 reg_factor = 0.,
+                 storage_medium = "flow_battery"):
         super(EolPowerPlant, self).__init__()
 
         self.type = location+" Wind turbine"
@@ -382,6 +389,8 @@ class EolPowerPlant(PowerPlant):
         self.rotor_width = rotor_width
         self.rotor_peak_power = rotor_pk_pw
         self.load_factor = load_factor
+        self.gross_power_efficiency = gross_power_eff
+        self.specific_grey_enrg = specific_grey_enrg    # J/W, Energy per installed rated power (peak power here), system level
         self.storage_medium = storage_medium
         self.storage_efficiency = self.elec_storage(storage_medium)
         self.life_time = life_time
@@ -415,12 +424,6 @@ class EolPowerPlant(PowerPlant):
                                 "offshore":0.50
                                 }.get(self.location, "Error, location is unknown")
 
-        self.rotor_grey_enrg = {"onshore": unit.J_GWh(1.27) * (self.rotor_area / 6362.),
-                                "offshore": unit.J_GWh(2.28) * (self.rotor_area / 6362.)
-                                }.get(self.location, "Error, location is unknown")
-
-        self.total_grey_enrg = self.rotor_grey_enrg * self.n_rotor
-
         self.nominal_peak_power = self.rotor_peak_power * self.n_rotor
         self.nominal_mean_power = self.nominal_peak_power * self.load_factor
         self.mean_daily_energy = self.nominal_mean_power * one_day
@@ -433,13 +436,18 @@ class EolPowerPlant(PowerPlant):
         self.production_power_efficiency = self.regulated_power * self.production_time / self.mean_daily_energy
         self.potential_energy_default = self.nominal_mean_power * (one_day - self.production_time)
 
-        self.gross_yearly_enrg = self.regulated_power * self.production_time * 365.
-        self.net_yearly_enrg = self.gross_yearly_enrg - self.total_grey_enrg / self.life_time
-        self.er_o_ei = self.net_yearly_enrg / (self.total_grey_enrg/self.life_time)
+        self.rotor_grey_enrg = {"onshore": self.specific_grey_enrg * self.rotor_peak_power,
+                                "offshore": 1.8 * self.specific_grey_enrg * self.rotor_peak_power
+                                }.get(self.location, "Error, location is unknown")
 
-        self.gross_power_efficiency = 0.35
+        self.gross_yearly_enrg = self.regulated_power * self.production_time * 365.
+        self.total_grey_enrg = self.rotor_grey_enrg * self.n_rotor
+        self.net_yearly_enrg = self.gross_yearly_enrg - self.total_grey_enrg / self.life_time
+
         self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
         self.net_power_efficiency =  self.gross_power_efficiency * self.marginal_efficiency
+        self.er_o_ei = self.net_yearly_enrg / (self.total_grey_enrg/self.life_time)
+        self.enrg_pay_back_time = self.total_grey_enrg / self.net_yearly_enrg
 
         self.material.concrete = {"onshore":320000., "offshore":640000.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
         self.material.steel = {"onshore":61500., "offshore":91500.}.get(self.location) * unit.MW_W(self.nominal_peak_power)
@@ -500,6 +508,7 @@ class NuclearPowerPlant(PowerPlant):
         self.total_grey_enrg = self.gross_yearly_enrg * self.life_time * self.grey_energy_ratio
         self.net_yearly_enrg = self.gross_yearly_enrg * self.life_time * (1. - self.grey_energy_ratio) / self.life_time
         self.er_o_ei = self.net_yearly_enrg / (self.gross_yearly_enrg * self.grey_energy_ratio)
+        self.enrg_pay_back_time = self.total_grey_enrg / self.net_yearly_enrg
 
         self.gross_power_efficiency = 0.37
         self.marginal_efficiency = self.net_yearly_enrg / (self.nominal_mean_power * one_year)
