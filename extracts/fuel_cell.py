@@ -8,6 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 
 import unit
+from scipy.interpolate import interp1d
 
 from physical_data import PhysicalData
 
@@ -22,11 +23,14 @@ class FuelCellStack(object):
         self.fuel_type = "liquid_h2"
         self.controller_efficiency = 0.99
         self.motor_efficiency = 0.99
-        self.design_disa = 25.
-        self.design_altp = 0.
+        self.design_disa = 0.
+        self.design_altp = unit.m_ft(10000.)
 
         # Component data
-        self.fuel_cell_efficiency = 0.5
+        self.fuel_cell_temperature = 273.15 + 75.   # Low temperature FC
+        self.fuel_cell_heat_exhaust_factor = 0.15   # Proportion of the produced heat that goes out with the air flow
+        self.fuel_cell_air_overfeed_factor = 2.5    # Required air flow versus stoichiometry
+        self.fuel_cell_efficiency_curve = np.array([[0, 1], [0.80, 0.50]])
         self.fuel_cell_pw_density = unit.W_kW(2.)   # 2. kW/kg
         self.fuel_cell_output_power_ref = None      # Design output power
         self.fuel_cell_mass = None
@@ -37,10 +41,10 @@ class FuelCellStack(object):
         self.compressor_power_ref = None
         self.compressor_mass = None
 
-        self.cooling_gravimetric_index = unit.W_kW(5.)  # 5. kW/kg
-        self.cooling_power_index = 0.005    # Required power per kW of heat dissipated
-        self.cooling_heat_power_ref = None  # Design dissipated heat power
-        self.cooling_power_ref = None       # Cooling system power
+        self.cooling_gravimetric_index = unit.W_kW(5.)  # 5. kW/kg, dissipated heat power per kg of cooling device
+        self.cooling_power_index = 0.005                # Required power per kW of heat dissipated
+        self.cooling_heat_power_ref = None              # Design dissipated heat power
+        self.cooling_power_ref = None                   # Cooling system power
         self.cooling_mass = None
 
         self.wiring_efficiency = 0.999
@@ -48,6 +52,11 @@ class FuelCellStack(object):
         self.wiring_mass = None
 
         self.power_chain_mass = None    # Without controleur, motor ande propoller
+
+    def fuel_cell_efficiency(self, pw_max, pw):
+        fct = interp1d(self.fuel_cell_efficiency_curve[0]*pw_max, self.fuel_cell_efficiency_curve[0], kind='linear', fill_value='extrapolate')
+        return fct(pw)
+
 
     def print(self):
         print("")
@@ -59,9 +68,9 @@ class FuelCellStack(object):
         print("Design disa = ", "%.1f"%self.design_disa, " degK")
         print("Design altp = ", "%.0f"%unit.ft_m(self.design_altp), " ft")
         print("")
-        print("Fuel cell efficiency = ", "%.3f"%self.fuel_cell_efficiency)
+        print("Fuel cell efficiency = ", "%.3f"%self.fuel_cell_efficiency(self.fuel_cell_output_power_ref, self.fuel_cell_output_power_ref))
         print("Fuel cell power density = ", "%.1f"%unit.kW_W(self.fuel_cell_pw_density), " kW/kg")
-        print("Fuel cell output power density = ", "%.1f"%unit.kW_W(self.fuel_cell_output_power_ref), " kW")
+        print("Fuel cell required output power = ", "%.1f"%unit.kW_W(self.fuel_cell_output_power_ref), " kW")
         print("Fuel cell stack mass = ", "%.0f"%self.fuel_cell_mass, " kg")
         print("")
         print("Compressor efficiency = ", "%.3f"%self.compressor_efficiency)
@@ -130,25 +139,32 @@ class FuelCellStack(object):
                                 + self.cooling_mass
 
     def eval_fuel_cell_power(self,required_power,pamb,tamb):
-        r,gam,Cp,Cv = self.phd.gas_data()
+        """Compute the working point of a fuel cell that would produce the required power at system level
+        Input air flow is supposed to be compressed to P0 + over_pressure
+        Liquid hydrogen is supposed to be warmed to fuel cell working temperature using part of produced heat
+        """
+        p0,t0 = self.phd.sea_level_data()
+        r,gam,Cp,Cv = self.phd.gas_data("air")
+        r_h2,gam_h2,Cp_h2,Cv_h2 = self.phd.gas_data("hydrogen")
+        lh_lh2, tb_lh2 = self.phd.lh2_latent_heat()
 
         fuel_heat = phd.fuel_heat(self.fuel_type)
 
         # air_mass_flow = fuel_cell_power * relative_air_mass_flow
-        st_mass_ratio = phd.stoichiometry("air","hydrogen")
-        relative_fuel_flow = (1./self.fuel_cell_efficiency) / fuel_heat
-        relative_air_mass_flow = relative_fuel_flow * st_mass_ratio
-        relative_compressor_power = (1./self.compressor_efficiency)*(relative_air_mass_flow*Cv)*tamb*(((pamb+self.compressor_over_pressure)/pamb)**((gam-1.)/gam)-1.)
+        st_mass_ratio = phd.stoichiometry("air","hydrogen") * self.fuel_cell_air_overfeed_factor
+        relative_fuel_flow = (1./self.fuel_cell_efficiency) / fuel_heat     # kg of H2 per produced gross power
+        relative_air_mass_flow = relative_fuel_flow * st_mass_ratio         # kg of air per produced gross power
+        relative_compressor_power = (1./self.compressor_efficiency)*(relative_air_mass_flow*Cv)*tamb*(((p0+self.compressor_over_pressure)/pamb)**((gam-1.)/gam)-1.)
 
-        # heat_power = fuel_cell_power * relative_heat_power
-        relative_heat_power = (1.-self.fuel_cell_efficiency)/self.fuel_cell_efficiency
-        relative_cooling_power = relative_heat_power*self.cooling_power_index
+        relative_heat_power = (1.-self.fuel_cell_efficiency)/self.fuel_cell_efficiency      # Heat power per produced electrical power
+        relative_cooling_power = relative_heat_power*self.cooling_power_index               # cooling system power  per produced electrical power
 
         fuel_cell_power = required_power / (1. - relative_compressor_power - relative_cooling_power)
         fuel_flow = fuel_cell_power * relative_fuel_flow
 
         compressor_power = fuel_cell_power * relative_compressor_power
-        heat_power = fuel_cell_power * relative_heat_power
+        lh2_heating_power = lh_lh2 * fuel_flow + Cp_h2 * (self.fuel_cell_temperature - tb_lh2) * fuel_flow  # Heat absorbed by hydrogen from liquid to FC temp
+        heat_power = fuel_cell_power * relative_heat_power * (1-self.fuel_cell_heat_exhaust_factor) - lh2_heating_power
         cooling_power = heat_power * self.cooling_power_index
 
         return {"fuel_cell_power":fuel_cell_power,
@@ -162,6 +178,7 @@ class FuelCellStack(object):
         print("Power chain operation")
         print("---------------------------------------------------------")
         print("Fuel cell power = ", "%.2f"%unit.kW_W(dict["fuel_cell_power"]), " kW")
+        print("Fuel cell efficiency = ", "%.3f"%self.fuel_cell_efficiency(self.fuel_cell_output_power_ref, dict["fuel_cell_power"]))
         print("Compressor power = ", "%.2f"%unit.kW_W(dict["compressor_power"]), " kW")
         print("Cooling power = ", "%.2f"%unit.kW_W(dict["cooling_power"]), " kW")
         print("Heat power = ", "%.2f"%unit.kW_W(dict["heat_power"]), " kW")
@@ -185,9 +202,9 @@ if __name__ == "__main__":
 
     # Operation time
     #-----------------------------------------------------------------
-    disa = 10.
+    disa = 0.
     altp = unit.m_ft(5000.)
-    power = unit.W_kW(175.)
+    power = unit.W_kW(250.)
 
     dict = fcs.operate(disa,altp,power)
 

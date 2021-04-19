@@ -238,7 +238,7 @@ if __name__ == '__main__':
     ord = "OWE"
 
     # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
-    df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
+    # df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
 
     # order = [1]
     order = [2, 1]
@@ -277,17 +277,34 @@ if __name__ == '__main__':
     #
     # draw_reg(df, un, 'cruise_power', 'total_power', [[0,max(df['total_power'])], [0,max(df['total_power'])]], coloration)
 
-    #----------------------------------------------------------------------------------
-    abs = "MTOW"
-    ord = "wing_loading"                           # Name of the new column
-
-    df[ord] = df['MTOW']/df['wing_area']     # Add the new column to the dataframe
-    un[ord] = ["kg/m2", "None"]                             # Add its unit
-
-    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
-
-    order = [0.8, 0.20, 0.02]
-    dict = do_regression(df, un, abs, ord, coloration, order)
+    # #----------------------------------------------------------------------------------
+    # abs = "MTOW"
+    # ord = "wing_loading"                           # Name of the new column
+    #
+    # df[ord] = df['MTOW']/df['wing_area']     # Add the new column to the dataframe
+    # un[ord] = ["kg/m2", "None"]                             # Add its unit
+    #
+    # # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+    #
+    # order = [0.8, 0.20, 0.02]
+    # # dict = do_regression(df, un, abs, ord, coloration, order)
+    #
+    # #----------------------------------------------------------------------------------
+    # abs = "n_pax"                           # Name of the new column
+    # ord = "PoM"
+    #
+    # df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
+    # # df1 = df.copy()
+    # un1 = un.copy()
+    #
+    # df1[ord] = df1['n_pax']/df1['MTOW']     # Add the new column to the dataframe
+    # un1[ord] = "m/kg"                 # Add its unit
+    #
+    # # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+    #
+    # # order = [1.8, 0.8]
+    # order = [2, 1, 0]
+    # dict = do_regression(df1, un1, abs, ord, coloration, order)
 
     #----------------------------------------------------------------------------------
     abs = "nominal_range"                           # Name of the new column
@@ -298,7 +315,44 @@ if __name__ == '__main__':
     un1 = un.copy()
 
     df1[ord] = df1['n_pax']*df1['nominal_range']/df1['MTOW']     # Add the new column to the dataframe
-    un1[ord] = un['nominal_range']                 # Add its unit
+    un1[ord] = "m/kg"                 # Add its unit
+
+    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+
+    # order = [1.8, 0.8]
+    order = [2, 0.8]
+    dict = do_regression(df1, un1, abs, ord, coloration, order)
+
+    #----------------------------------------------------------------------------------
+
+    npax_list = list(df1['n_pax'])
+    dist_list = unit.convert_to("km", list(df1['nominal_range']))
+    pkom_list = unit.convert_to("km", list(df1['PKoM']))
+
+    fig = plt.figure("Test")
+    c = plt.tricontourf(dist_list, npax_list, pkom_list)
+    fig.colorbar(c)
+
+    plt.scatter(dist_list, npax_list)
+
+    plt.show()
+
+
+
+
+
+
+
+    #----------------------------------------------------------------------------------
+    abs = "nominal_range"                           # Name of the new column
+    ord = "PKoM"
+
+    df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
+    # df1 = df.copy()
+    un1 = un.copy()
+
+    df1[ord] = df1['n_pax']*df1['nominal_range']/df1['MTOW']     # Add the new column to the dataframe
+    un1[ord] = "km/kg"                 # Add its unit
 
     # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
 

@@ -34,7 +34,7 @@ if __name__ == '__main__':
     # Airplane design analysis
     #-------------------------------------------------------------------------------------------------------------------
     npax = 6
-    distance = unit.convert_from("km", 600)
+    distance = unit.convert_from("km", 400)
     cruise_speed = unit.convert_from("km/h", 180)
 
     airplane_type = "general"

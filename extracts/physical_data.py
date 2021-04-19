@@ -22,6 +22,11 @@ class PhysicalData(object):
     def __init__(self):
         pass
 
+    def sea_level_data(self):
+        p0 = 101325.    # Pascals
+        t0 = 288.15    # Kelvins
+        return p0,t0
+
     def atmosphere(self, altp, disa=0.):
         """Ambiant data from pressure altitude from ground to 50 km according to Standard Atmosphere
         """
@@ -69,6 +74,11 @@ class PhysicalData(object):
         cv = r/(gam-1.)
         cp = gam*cv
         return r,gam,cp,cv
+
+    def lh2_latent_heat(self):
+        boil_temp = 20.4
+        latent_heat = unit.J_kJ(454.3)  # J/kg
+        return latent_heat, boil_temp
 
     def gas_density(self, pamb,tamb, gas="air"):
         """Ideal gas density

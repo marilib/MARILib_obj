@@ -8,17 +8,9 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
-from scipy.interpolate import interp1d
-from scipy.optimize import fsolve, least_squares
-
-import pandas as pd
-from tabulate import tabulate
-import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
 
 import unit
-import utils
-from physical_data import PhysicalData
-from models import DDM
 
 
 
@@ -51,12 +43,14 @@ class SmallPlane(object):
         self.battery_enrg_density = unit.J_Wh(400)  # Wh/kg
 
     def breguet(self, tow):
+        """Used for classical airplane burning gasoline
+        """
         fuel_mission = tow*(1.-np.exp(-(self.psfc*self.g*self.distance)/(self.prop_eff*self.lod)))   # piston engine
         fuel_reserve = (tow-fuel_mission)*(1.-np.exp(-(self.psfc*self.g*self.vtas*self.diversion_time)/(self.prop_eff*self.lod)))
         return fuel_mission, fuel_reserve
 
     def classic_design(self, mtow, type):
-        """Aggregate all discipline outputs to build design point characteristics
+        """Aggregate all discipline to compute design point characteristics of a classicla airplane burning gasoline
         """
         pw_max = self.max_power(mtow)
         owe = self.basic_owe(mtow)
@@ -71,6 +65,7 @@ class SmallPlane(object):
                 "total_fuel":fuel_total,
                 "mission_energy":fuel_mission * self.fuel_hv,
                 "reserve_energy":fuel_reserve*self.fuel_hv,
+                "total_energy":total_energy,
                 "mtow":mtow,
                 "owe":owe,
                 "payload":payload,
@@ -79,15 +74,21 @@ class SmallPlane(object):
                 "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
 
     def aerodynamic(self, mass):
+        """Compute required thrust at cruise point
+        """
         fn = mass * self.g / self.lod
         return fn
 
     def propulsion(self, pw_max, fn):
+        """Copute required power at cruise point and engine mass
+        """
         pw = fn * self.vtas / (self.prop_eff*self.motor_eff)
         m_engine = pw_max / self.elec_motor_pw_density
         return pw, m_engine
 
     def energy_system(self, pw_max, pw, mass):
+        """Compute added system and battery masses
+        """
         m_system = pw_max / self.power_elec_pw_density
         m_battery = (  pw * (self.distance/self.vtas)
                      + mass*self.g*self.alt/(self.motor_eff*self.prop_eff)
@@ -95,19 +96,26 @@ class SmallPlane(object):
         return m_system, m_battery
 
     def regulation(self, pw):
+        """Compute additional battery mass for reserve
+        """
         m_reserve = (pw * self.diversion_time) / self.battery_enrg_density
         return m_reserve
 
     def max_power(self, mtow):
+        """Estimate max installed power
+        """
         pw_max = (0.0197*mtow + 100.6)*mtow
         return pw_max
 
     def basic_owe(self, mtow):
-        owe_basic = 0.606 * mtow
+        """Estimate classical airplane empty weight
+        """
+        owe_basic = (-9.6325e-07 * mtow + 6.1041e-01) * mtow
+        # owe_basic = 0.606 * mtow
         return owe_basic
 
     def full_elec_design(self, mtow, type):
-        """Aggregate all discipline outputs to build design point characteristics
+        """Aggregate all discipline outputs to compute design point characteristics of a full electric airplane
         """
         pw_max = self.max_power(mtow)
         owe_basic = self.basic_owe(mtow)
@@ -127,6 +135,7 @@ class SmallPlane(object):
                 "battery_mass":m_battery+m_reserve,
                 "mission_energy":m_battery*self.battery_enrg_density,
                 "reserve_energy":m_reserve*self.battery_enrg_density,
+                "total_energy":total_energy,
                 "mtow":mtow,
                 "owe":owe,
                 "payload":payload,
@@ -135,6 +144,8 @@ class SmallPlane(object):
                 "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
 
     def design_solver(self, type="classic"):
+        """Compute the design point
+        """
         def fct(mtow):
             if type=="classic":
                 dict = self.classic_design(mtow, type)
@@ -155,7 +166,9 @@ class SmallPlane(object):
         elif type=="electric":
             return self.full_elec_design(mtow, type)
 
-    def best_distance(self, type="classic"):
+    def max_distance(self, type="classic"):
+        """Compute the design that brings the minimum value for the PK/M criterion
+        """
         def fct(dist):
             self.distance = dist
             dict = self.design_solver(type)
@@ -170,6 +183,8 @@ class SmallPlane(object):
 
 
     def print(self, dict):
+        """Print main figures
+        """
         print("")
         print("Airplane type = ", dict["airplane_type"])
         print("-----------------------------------------------")
@@ -187,6 +202,7 @@ class SmallPlane(object):
 
         print("Mission energy = ", "%.0f"%unit.kWh_J(dict["mission_energy"]), " kWh")
         print("Reserve energy = ", "%.0f"%unit.kWh_J(dict["reserve_energy"]), " kWh")
+        print("Total energy = ", "%.0f"%unit.kWh_J(dict["total_energy"]), " kWh")
         print("MTOW = ", "%.0f"%dict["mtow"], " kg")
         print("OWE = ", "%.0f"%dict["owe"], " kg")
         print("Payload = ", "%.0f"%dict["payload"], " kg")
@@ -199,29 +215,41 @@ class SmallPlane(object):
 
 if __name__ == '__main__':
 
-    spc = SmallPlane(npax=4, dist=unit.m_km(900), tas=unit.mps_kmph(180))
+    npax = 9
+    dist = 200
+    vtas = 200
 
-    dict = spc.design_solver("classic")
+    spc = SmallPlane(npax=npax, dist=unit.m_km(dist), tas=unit.mps_kmph(vtas))
 
-    spc.print(dict)
+    spc_dict = spc.design_solver("classic")
 
-    spc.best_distance(type="classic")
+    spc.print(spc_dict)
+
+    # spc.max_distance(type="classic")
+    #
+    # print("")
+    # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
+
+
+
+    spe = SmallPlane(npax=npax, dist=unit.m_km(dist), tas=unit.mps_kmph(vtas))
+
+    spe.battery_enrg_density = unit.J_Wh(200)
+
+    spe_dict = spe.design_solver("electric")
+
+    spe.print(spe_dict)
+
+    # spe.max_distance(type="electric")
+    #
+    # print("")
+    # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
 
     print("")
-    print("Best distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
+    print("Criteria = ", "%.3f"%(spe_dict["pk_o_m"]/spc_dict["pk_o_m"]))
 
 
 
-    spe = SmallPlane(npax=4, dist=unit.m_km(400), tas=unit.mps_kmph(180))
 
-    spe.battery_enrg_density = unit.J_Wh(400)
 
-    dict = spe.design_solver("electric")
-
-    spe.print(dict)
-
-    spe.best_distance(type="electric")
-
-    print("")
-    print("Best distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
 

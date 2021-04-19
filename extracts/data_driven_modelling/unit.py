@@ -65,6 +65,9 @@ def deg_rad(rad): return rad*180./numpy.pi   # Translate radians into degrees
 def J_MJ(MJ): return MJ*1.e6   # Translate MJ into J
 def MJ_J(J): return J*1.e-6   # Translate J into MJ
 
+def J_kJ(kJ): return kJ*1.e3   # Translate kJ into J
+def kJ_J(J): return J*1.e-3   # Translate J into kJ
+
 def J_Wh(Wh): return Wh*3.6e3   # Translate kWh into J
 def Wh_J(J): return J/3.6e3   # Translate J into kWh
 

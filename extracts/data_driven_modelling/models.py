@@ -49,6 +49,7 @@ class DDM(object):                  # Data Driven Modelling
         self.turboprop_pw_density = unit.W_kW(5) # W/kg
         self.piston_eng_pw_density = unit.W_kW(1) # W/kg
         self.elec_motor_pw_density = unit.W_kW(4.5) # W/kg   MAGNIX
+        self.power_elec_pw_density = unit.W_kW(10) # W/kg
         self.propeller_pw_density = unit.W_kW(9) # W/kg     ATR
         self.fan_nacelle_pw_density = unit.W_kW(10) # W/kg
 
@@ -435,6 +436,7 @@ class DDM(object):                  # Data Driven Modelling
                     target_engine_mass = max_power / self.turbofan_pw_density
                 elif target_power_system["engine_type"]==self.emotor:
                     target_engine_mass = max_power / self.elec_motor_pw_density
+                    target_engine_mass += max_power / self.power_elec_pw_density
                     if target_power_system["thruster"]==self.fan:
                         target_engine_mass += max_power / self.fan_nacelle_pw_density
                     elif target_power_system["thruster"]==self.propeller:
