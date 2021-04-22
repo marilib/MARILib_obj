@@ -8,6 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
 
 import unit
@@ -16,31 +17,37 @@ import unit
 
 class SmallPlane(object):
 
-    def __init__(self, npax=4, alt=unit.m_ft(3000), dist=unit.m_km(200), tas=unit.mps_kmph(150)):
+    def __init__(self, npax=4, alt=unit.m_ft(3000), dist=unit.m_km(200), tas=unit.mps_kmph(150), mode="classic"):
+        # Earth and atmosphere
         self.g = 9.80665
-
         self.disa = 0.
 
+        # Top level requirements
         self.alt = alt
         self.vtas = tas
         self.distance = dist
-
         self.n_pax = npax
+        self.mode = mode  # "classic" or "electric"
+
+        # Additionnal informations
         self.m_pax = 90
         self.diversion_time = unit.s_min(30)
+        self.lod = 14  # Aerodynamic efficiency
 
-        self.lod = 14   # Aerodynamic efficiency
-
+        # Propulsion
         self.prop_eff = 0.80
-        self.motor_eff = 0.95       # MAGNIX
+        self.motor_eff = 0.95  # MAGNIX
 
-        self.psfc = unit.convert_from("lb/shp/h",0.6)
-        self.fuel_hv = unit.J_MJ(43)    # gasoline
-
-        self.piston_eng_pw_density = unit.W_kW(1)   # W/kg
-        self.elec_motor_pw_density = unit.W_kW(4.5) # W/kg   MAGNIX
+        # Energy storage
+        self.psfc = unit.convert_from("lb/shp/h", 0.6)
+        self.fuel_hv = unit.J_MJ(43)  # gasoline
+        self.piston_eng_pw_density = unit.W_kW(1)  # W/kg
+        self.elec_motor_pw_density = unit.W_kW(4.5)  # W/kg   MAGNIX
         self.power_elec_pw_density = unit.W_kW(10)  # W/kg
         self.battery_enrg_density = unit.J_Wh(400)  # Wh/kg
+
+        # design results
+        self.design = None
 
     def breguet(self, tow):
         """Used for classical airplane burning gasoline
@@ -49,7 +56,7 @@ class SmallPlane(object):
         fuel_reserve = (tow-fuel_mission)*(1.-np.exp(-(self.psfc*self.g*self.vtas*self.diversion_time)/(self.prop_eff*self.lod)))
         return fuel_mission, fuel_reserve
 
-    def classic_design(self, mtow, type):
+    def classic_design(self, mtow):
         """Aggregate all discipline to compute design point characteristics of a classicla airplane burning gasoline
         """
         pw_max = self.max_power(mtow)
@@ -58,7 +65,7 @@ class SmallPlane(object):
         fuel_total = fuel_mission + fuel_reserve
         payload = self.n_pax * self.m_pax
         total_energy = fuel_total * self.fuel_hv
-        return {"airplane_type":type,
+        return {"airplane_mode":self.mode,
                 "pw_max":pw_max,
                 "mission_fuel":fuel_mission,
                 "reserve_fuel":fuel_reserve,
@@ -114,7 +121,7 @@ class SmallPlane(object):
         # owe_basic = 0.606 * mtow
         return owe_basic
 
-    def full_elec_design(self, mtow, type):
+    def full_elec_design(self, mtow):
         """Aggregate all discipline outputs to compute design point characteristics of a full electric airplane
         """
         pw_max = self.max_power(mtow)
@@ -128,7 +135,7 @@ class SmallPlane(object):
              + m_engine + m_system + m_battery + m_reserve
         payload = self.n_pax * self.m_pax
         total_energy = (m_battery + m_reserve) * self.battery_enrg_density
-        return {"airplane_type":type,
+        return {"airplane_mode":self.mode,
                 "pw_max":pw_max,
                 "pw_cruise":pw,
                 "fn_cruise":fn,
@@ -143,35 +150,73 @@ class SmallPlane(object):
                 "pk_o_m":self.n_pax*unit.km_m(self.distance)/mtow,
                 "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
 
-    def design_solver(self, type="classic"):
+    def design_solver(self):
         """Compute the design point
         """
         def fct(mtow):
-            if type=="classic":
-                dict = self.classic_design(mtow, type)
+            if self.mode=="classic":
+                dict = self.classic_design(mtow)
                 return mtow - dict["owe"] - dict["payload"] - dict["total_fuel"]
-            elif type=="electric":
-                dict = self.full_elec_design(mtow, type)
+            elif self.mode=="electric":
+                dict = self.full_elec_design(mtow)
                 return mtow - dict["owe"] - dict["payload"]
             else:
-                raise Exception("Aircraft type is unknown")
+                raise Exception("Aircraft mode is unknown")
 
         mtow_ini = 2000
         output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
         mtow = output_dict[0][0]
 
-        if type=="classic":
-            return self.classic_design(mtow, type)
-        elif type=="electric":
-            return self.full_elec_design(mtow, type)
+        if self.mode=="classic":
+            self.design = self.classic_design(mtow)
+        elif self.mode=="electric":
+            self.design = self.full_elec_design(mtow)
 
-    def max_distance(self, type="classic"):
+    def new_design_solver(self,err=1e-4,maxiter=200):
+        """ Uses a fixed point iteration procedure to solve the design. It recquires more iterations than a gradient based method,
+        but convergences towards the attractive solution point (positive MTOW).
+
+        The procedure starts with an initial guess for mtow.
+        The first iteration computes the airplane design from this initial guess. This results in a new mtow.
+        Then we iteratively solve f(mtow)=mtow, with f() the MTOW computed by the aircraft design.
+
+        * err : the relative precision criterion for convergence. Default 1e-4.
+        """
+
+        if self.mode=="classic":
+            def fct(mtow):
+                design = self.classic_design(mtow)
+                return design["owe"] + design["payload"] + design["total_fuel"]
+        elif self.mode=="electric":
+            def fct(mtow):
+                design = self.full_elec_design(mtow)
+                return design["owe"] + design["payload"]
+        else:
+            raise Exception("Aircraft mode is unknown")
+
+        mtow_old =0
+        mtow=2000 # initial guess
+        i = 0
+        while (mtow-mtow_old)/mtow>err and i<maxiter:
+            mtow_old = mtow
+            mtow = fct(mtow)
+            i+=1
+
+        if i == maxiter:
+            raise RuntimeWarning("Convergence problem, exceed max number of iterations.")
+
+        if self.mode == "classic":
+            self.design = self.classic_design(mtow)
+        elif self.mode == "electric":
+            self.design = self.full_elec_design(mtow)
+
+    def max_distance(self):
         """Compute the design that brings the minimum value for the PK/M criterion
         """
         def fct(dist):
             self.distance = dist
-            dict = self.design_solver(type)
+            dict = self.design_solver()
             return dict["pk_o_m"] - dict["pk_o_m_min"]
 
         dist_ini = self.distance * 2.
@@ -179,37 +224,43 @@ class SmallPlane(object):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
         self.distance = output_dict[0][0]
 
-        return self.design_solver(type)
+        return self.design_solver()
 
-
-    def print(self, dict):
+    def __str__(self):
         """Print main figures
         """
-        print("")
-        print("Airplane type = ", dict["airplane_type"])
-        print("-----------------------------------------------")
-        print("Max power = ", "%.0f"%unit.kW_W(dict["pw_max"]), " kW")
+        s = ["\nAirplane : %s" %self.mode,
+             "Npax     %d" % self.n_pax,
+             "Distance %d km" % unit.km_m(self.distance),
+             "TAS      %d km/h" % unit.kmph_mps(self.vtas),
+             "Altitude %d ft" % unit.ft_m(self.alt),
+             "---------------------------------"]
 
-        if dict["airplane_type"]=="classic":
-            print("Mission fuel = ", "%.0f"%dict["mission_fuel"], " kg")
-            print("Reserve fuel = ", "%.0f"%dict["reserve_fuel"], " kg")
-            print("Total fuel = ", "%.0f"%dict["total_fuel"], " kg")
-        elif dict["airplane_type"]=="electric":
-            print("Cruise power = ", "%.0f"%unit.kW_W(dict["pw_cruise"]), " kW")
-            print("Battery mass = ", "%.0f"%dict["battery_mass"], " kg")
+        if self.design==None:
+            s.append(">>  NO DESIGN  <<")
+            return "\n".join(s) # print only recquirements
+
+        s.append("Max power = %.0f kW" %unit.kW_W(self.design["pw_max"]))
+        if self.design["airplane_mode"]=="classic":
+            s.append("Mission fuel = %.0f kg" %self.design["mission_fuel"])
+            s.append("Reserve fuel = %.0f kg" %self.design["reserve_fuel"])
+            s.append("Total fuel = %.0f kg" %self.design["total_fuel"])
+        elif self.design["airplane_mode"]=="electric":
+            s.append("Cruise power = %.0f kW" %unit.kW_W(self.design["pw_cruise"]))
+            s.append("Battery mass = %.0f kg" %self.design["battery_mass"])
         else:
-            raise Exception("Aircraft type is unknown")
-
-        print("Mission energy = ", "%.0f"%unit.kWh_J(dict["mission_energy"]), " kWh")
-        print("Reserve energy = ", "%.0f"%unit.kWh_J(dict["reserve_energy"]), " kWh")
-        print("Total energy = ", "%.0f"%unit.kWh_J(dict["total_energy"]), " kWh")
-        print("MTOW = ", "%.0f"%dict["mtow"], " kg")
-        print("OWE = ", "%.0f"%dict["owe"], " kg")
-        print("Payload = ", "%.0f"%dict["payload"], " kg")
-        print("")
-        print("PK / MTOW minimum = ", "%.2f"%dict["pk_o_m_min"], " pk/kg")
-        print("PK / MTOW = ", "%.2f"%dict["pk_o_m"], " pk/kg")
-        print("PK / Energy = ", "%.2f"%dict["pk_o_e"], " pk/kWh")
+            raise Exception("Aircraft mode is unknown")
+        s.append("Mission energy = %.0f kWh" %unit.kWh_J(self.design["mission_energy"]))
+        s.append("Reserve energy = %.0f kWh" %unit.kWh_J(self.design["reserve_energy"]))
+        s.append("Total energy = %.0f kWh" %unit.kWh_J(self.design["total_energy"]))
+        s.append("MTOW = %.0f kg"%self.design["mtow"])
+        s.append("OWE = %.0f kg"%self.design["owe"])
+        s.append("Payload = %.0f kg"%self.design["payload"])
+        s.append("")
+        s.append("PK / MTOW minimum = %.2f pk/km" %self.design["pk_o_m_min"])
+        s.append("PK / MTOW = %.2f pk/kg" %self.design["pk_o_m"])
+        s.append("PK / Energy = %.2f pk/kWh"%self.design["pk_o_e"])
+        return "\n|\t".join(s)
 
 
 
@@ -219,34 +270,58 @@ if __name__ == '__main__':
     dist = 200
     vtas = 200
 
-    spc = SmallPlane(npax=npax, dist=unit.m_km(dist), tas=unit.mps_kmph(vtas))
+    spc = SmallPlane(npax=npax, dist=unit.m_km(dist), tas=unit.mps_kmph(vtas),mode="classic")
+    spc.design_solver()
+    print(spc)
 
-    spc_dict = spc.design_solver("classic")
-
-    spc.print(spc_dict)
-
-    # spc.max_distance(type="classic")
-    #
+    # spc.max_distance(mode="classic")
     # print("")
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
 
-
-
-    spe = SmallPlane(npax=npax, dist=unit.m_km(dist), tas=unit.mps_kmph(vtas))
-
+    spe = SmallPlane(npax=npax, dist=unit.m_km(dist), tas=unit.mps_kmph(vtas),mode="electric")
     spe.battery_enrg_density = unit.J_Wh(200)
-
-    spe_dict = spe.design_solver("electric")
-
-    spe.print(spe_dict)
-
-    # spe.max_distance(type="electric")
-    #
+    spe.design_solver()
+    print(spe)
+    # spe.max_distance(mode="electric")
     # print("")
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
 
     print("")
-    print("Criteria = ", "%.3f"%(spe_dict["pk_o_m"]/spc_dict["pk_o_m"]))
+    print("Criteria = ", "%.3f" % (spe.design["pk_o_m"] / spc.design["pk_o_m"]))
+
+
+    #--------------------------------------------------
+    # MAP display : minimal working example
+
+    distances = np.linspace(50e3, 500e3, 30)
+    npaxs = np.arange(1, 20)
+    X, Y = np.meshgrid(distances, npaxs)
+
+    pkm=[]
+    sp = SmallPlane(tas=unit.mps_kmph(130),mode="electric")
+    for x,y in zip(X.flatten(),Y.flatten()):
+        sp.distance = x
+        sp.n_pax = y
+        sp.new_design_solver()
+        pkm.append(sp.design["pk_o_m"]/sp.design["pk_o_m_min"])
+
+    # convert to numpy array with good shape
+    pkm = np.array(pkm)
+    pkm = pkm.reshape(np.shape(X))
+    # Plot contour
+    cs = plt.contourf(X / 1000, Y, pkm, levels=20)
+    c = plt.contour(X / 1000, Y, pkm, levels=[1,2], colors =['red'],linewidths=2)
+    plt.clabel(c, inline=True, fmt="%d",fontsize=20)
+    plt.plot(X / 1000, Y, '+k')
+    plt.colorbar(cs, label=r"P.K/M")
+    plt.xlabel("Distance (km)")
+    plt.ylabel("N passenger")
+
+    plt.show()
+
+
+
+
 
 
 
