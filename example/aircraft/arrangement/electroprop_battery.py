@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -30,7 +30,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    fuel_type = "battery")          # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 reqs = Requirement(n_pax_ref = 19.,
-                   design_range = unit.m_NM(100.),
+                   design_range = unit.m_NM(50.),
                    cruise_mach = 0.45,
                    cruise_altp = unit.m_ft(20000.))
 
@@ -39,8 +39,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(2800.)      # twin
-ac.airframe.wing.area = 76.                             # twin
+ac.power_system.reference_power = unit.W_kW(1750.)      # twin
+ac.airframe.wing.area = 56.                             # twin
 # ac.power_system.reference_power = unit.W_kW(1550.)      # quadri
 # ac.airframe.wing.area = 83.                             # quadri
 
@@ -63,7 +63,7 @@ cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.t
        "aircraft.performance.mcr_ceiling.vz_eff - aircraft.performance.mcr_ceiling.vz_req",
        "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
        "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff",
-       "aircraft.airframe.tank.mfw_volume_limited - aircraft.performance.mission.nominal.fuel_total"]
+       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.battery_mass"]
 
 # Magnitude used to scale constraints
 cst_mag = ["aircraft.performance.take_off.tofl_req",
@@ -72,15 +72,15 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
            "unit.mps_ftpmin(100.)",
            "aircraft.performance.oei_ceiling.path_req",
            "aircraft.performance.time_to_climb.ttc_req",
-           "aircraft.airframe.tank.mfw_volume_limited"]
+           "aircraft.weight_cg.mfw"]
 
 # Optimization criteria
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-#opt = process.Optimizer()
-#opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
-#algo_points= opt.computed_points
+# opt = process.Optimizer()
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
+# algo_points= opt.computed_points
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ data = [["Power", "kW", "%8.1f", var[0]+"/1000."],
         ["Vz_MCL", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcl_ceiling.vz_eff)"],
         ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcr_ceiling.vz_eff)"],
         ["TTC", "min", "%8.1f", "unit.min_s(aircraft.performance.time_to_climb.ttc_eff)"],
-        ["Battery", "kg", "%8.1f", "aircraft.airframe.tank.mfw_volume_limited"],
+        ["Battery", "kg", "%8.1f", "aircraft.weight_cg.mfw"],
         ["Cost_Block_enrg", "MW", "%8.1f", "aircraft.performance.mission.cost.enrg_block"],
         ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
         ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],

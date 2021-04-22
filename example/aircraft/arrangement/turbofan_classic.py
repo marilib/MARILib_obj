@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -24,10 +24,10 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",   # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "wing_box",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
-                   power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
@@ -41,14 +41,14 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_thrust = unit.N_kN(170.)
-ac.airframe.wing.area = 130.
+ac.power_system.reference_thrust = unit.N_kN(120.)
+ac.airframe.wing.area = 122.5
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 
-
-
+#
+#
 # miss = StepMission(ac)
 #
 # disa = 0.
@@ -84,9 +84,14 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 #
 # # miss.draw_flight_profile()
 #
-# profile = miss.flight_profile["data"][:,[0,1,2,7]]
+# profile1 = miss.flight_profile["data"][:,[0,1,2,4,5,7]]
+# k_list = [k for k,t in enumerate(profile1[1:,0]) if t==profile1[k,0]]
+# profile2 = np.delete(profile1,k_list,axis=0)
 #
-# flight_path = miss.fly_this_profile(disa,tow,profile)
+# print("------------------------------")
+# print(tabulate(profile2))
+#
+# flight_path = miss.fly_this_profile(disa,tow,profile2)
 #
 # print("------------------------------")
 # print(miss.flight_profile["data"][0,3] - miss.flight_profile["data"][-1,3])
@@ -105,7 +110,7 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 # print(tabulate(table4))
 #
 # raise Exception("ici")
-
+#
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -122,7 +127,7 @@ cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.t
        "aircraft.performance.mcr_ceiling.vz_eff - aircraft.performance.mcr_ceiling.vz_req",
        "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
        "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff",
-       "aircraft.airframe.tank.mfw_volume_limited - aircraft.performance.mission.nominal.fuel_total"]
+       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total"]
 
 # Magnitude used to scale constraints
 cst_mag = ["aircraft.performance.take_off.tofl_req",
@@ -131,7 +136,7 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
            "unit.mps_ftpmin(100.)",
            "aircraft.performance.oei_ceiling.path_req",
            "aircraft.performance.time_to_climb.ttc_req",
-           "aircraft.airframe.tank.mfw_volume_limited"]
+           "aircraft.weight_cg.mfw"]
 
 # Optimization criteria
 crt = "aircraft.weight_cg.mtow"
@@ -139,22 +144,22 @@ crt = "aircraft.weight_cg.mtow"
 # Perform an MDF optimization process
 opt = process.Optimizer()
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
-algo_points = opt.computed_points
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+# algo_points = opt.computed_points
 # algo_points = None
 
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
-
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 # dico = io.from_string(json)
 
 io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
 # ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
+
+ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 
 # Configure design space exploration
@@ -177,7 +182,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["Vz_MCL", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcl_ceiling.vz_eff)"],
         ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcr_ceiling.vz_eff)"],
         ["TTC", "min", "%8.1f", "unit.min_s(aircraft.performance.time_to_climb.ttc_eff)"],
-        ["FUEL", "kg", "%8.1f", "aircraft.airframe.tank.mfw_volume_limited"],
+        ["FUEL", "kg", "%8.1f", "aircraft.weight_cg.mfw"],
         ["Cost_Block_fuel", "kg", "%8.1f", "aircraft.performance.mission.cost.fuel_block"],
         ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
         ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],
@@ -190,6 +195,7 @@ file = "aircraft_explore_design.txt"
 res = process.explore_design_space(ac, var, step, data, file)      # Build a set of experiments using above config data and store it in a file
 
 field = 'MTOW'                                                                  # Optimization criteria, keys are from data
+other = ['MLW']                                                                 # Additional useful data to show
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC', 'FUEL']    # Constrained performances, keys are from data
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub", "lb"])                    # ub: upper bound, lb: lower bound
 color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow', 'black']         # Constraint color in the graph
@@ -201,7 +207,6 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
          ac.performance.mission.nominal.fuel_total]              # Limit values
 
-# process.draw_design_space(file, res, field, const, color, limit, bound, optim_points=algo_points) # Used stored result to build a graph of the design space
-process.draw_design_space(file, res, field, const, color, limit, bound) # Used stored result to build a graph of the design space
+process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
 
 

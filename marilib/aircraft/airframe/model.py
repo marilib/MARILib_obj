@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -13,7 +13,7 @@ from marilib.utils.math import lin_interp_1d, maximize_1d
 
 from marilib.utils import earth
 
-from marilib.aircraft.model_config import get_init
+from marilib.aircraft.airframe.component import Nacelle, Tank, Pod
 from marilib.aircraft.performance import Flight
 
 
@@ -26,17 +26,17 @@ class Aerodynamics(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.cx_correction = get_init(self,"cx_correction")  # Drag correction on cx coefficient
-        self.cruise_lodmax = get_init(self,"cruise_lodmax")  # Assumption on L/D max for some initializations
+        self.cx_correction = aircraft.get_init(self,"cx_correction")  # Drag correction on cx coefficient
+        self.cruise_lodmax = aircraft.get_init(self,"cruise_lodmax")  # Assumption on L/D max for some initializations
         self.cz_cruise_lodmax = None
 
-        self.hld_conf_clean = get_init(self,"hld_conf_clean")
+        self.hld_conf_clean = aircraft.get_init(self,"hld_conf_clean")
         self.czmax_conf_clean = None
 
-        self.hld_conf_to = get_init(self,"hld_conf_to")
+        self.hld_conf_to = aircraft.get_init(self,"hld_conf_to")
         self.czmax_conf_to = None
 
-        self.hld_conf_ld = get_init(self,"hld_conf_ld")
+        self.hld_conf_ld = aircraft.get_init(self,"hld_conf_ld")
         self.czmax_conf_ld = None
 
     def aerodynamic_analysis(self):
@@ -65,7 +65,13 @@ class Aerodynamics(object):
             nwa = comp.get_net_wet_area()
             ael = comp.get_aero_length()
             frm = comp.get_form_factor()
-            cxf += frm*((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) * (nwa/self.aircraft.airframe.wing.area)
+            if ael>0.:
+                # Drag model is based on flat plane friction drag
+                cxf += frm * ((0.455/fac)*(np.log(10)/np.log(re*ael))**2.58 ) \
+                           * (nwa/self.aircraft.airframe.wing.area)
+            else:
+                # Drag model is based on drag area, in that case nwa is frontal area
+                cxf += frm * (nwa/self.aircraft.airframe.wing.area)
             ac_nwa += nwa
 
         # Parasitic drag (seals, antennas, sensors, ...)
@@ -261,6 +267,11 @@ class WeightCg(object):
 
         if (self.aircraft.arrangement.power_source=="battery"):
             self.mlw = self.mtow
+        elif (self.aircraft.arrangement.fuel_type=="hydrogen"):
+            if (self.aircraft.airframe.cabin.n_pax_ref>100):
+                self.mlw = min(self.mtow , (1.03*self.mzfw))    # Because energy density of hydrogen is higher than kerosene
+            else:
+                self.mlw = self.mtow
         else:
             if (self.aircraft.airframe.cabin.n_pax_ref>100):
                 self.mlw = min(self.mtow , (1.07*self.mzfw))
@@ -268,7 +279,11 @@ class WeightCg(object):
                 self.mlw = self.mtow
 
         # WARNING : for battery powered architecture, MFW corresponds to max battery weight
-        self.mfw = min(self.aircraft.airframe.tank.mfw_volume_limited, self.mtow - self.owe)
+        mfw = 0.
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Tank) or issubclass(type(comp),Pod):
+                mfw += comp.get_mfw()
+        self.mfw = min(mfw, self.mtow - self.owe)
 
         # TODO
         # calculer les cg
@@ -663,15 +678,15 @@ class Electroprop(PowerSystem, Flight):
 
         fn = dict["fn"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        pw_net = pw / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        pw_net = pw / self.aircraft.airframe.system.wiring_efficiency
         sec = pw_net / fn
 
         dict = {"fn":fn, "pw":pw_net, "sec":sec, "fn1":fn}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fuel_heat = earth.fuel_heat(fuel_type)
-            dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
-            dict["ff"] = dict["sfc"] * dict["fn"]
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            dict["sfc"] = fc_dict["fuel_flow"] / pw_net     # WARNING : PSFC here
+            dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
             dict["sfc"] = 0.
             dict["ff"] = 0.
@@ -686,13 +701,14 @@ class Electroprop(PowerSystem, Flight):
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
+        dict["sec"] = dict["sec"] / self.aircraft.airframe.system.wiring_efficiency
 
-        dict["sec"] = dict["sec"] / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        pw_net  = dict["sec"] * thrust
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fuel_heat = earth.fuel_heat(fuel_type)
-            dict["sfc"] = 1. / (self.aircraft.airframe.system.power_chain_efficiency * self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
-            dict["ff"] = dict["sfc"] * thrust
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            dict["sfc"] = fc_dict["fuel_flow"] / pw_net     # WARNING : PSFC here
+            dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
             dict["sfc"] = 0.
             dict["ff"] = 0.
@@ -802,15 +818,15 @@ class Electrofan(PowerSystem, Flight):
 
         fn = dict["fn"]*(n_engine-nei)
         pw = dict["pw"]*(n_engine-nei)
-        pw_net = pw / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        pw_net = pw / self.aircraft.airframe.system.wiring_efficiency
         sec = pw_net / fn
 
         dict = {"fn":fn, "pw":pw_net, "sec":sec, "fn1":fn}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fuel_heat = earth.fuel_heat(fuel_type)
-            dict["sfc"] = sec / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
-            dict["ff"] = dict["sfc"] * dict["fn"]
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            dict["sfc"] = fc_dict["fuel_flow"] / fn     # TSFC here
+            dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
             dict["sfc"] = 0.
             dict["ff"] = 0.
@@ -825,13 +841,14 @@ class Electrofan(PowerSystem, Flight):
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
+        dict["sec"] = dict["sec"] / self.aircraft.airframe.system.wiring_efficiency
 
-        dict["sec"] = dict["sec"] / (self.aircraft.airframe.system.wiring_efficiency * self.aircraft.airframe.system.cooling_efficiency)
+        pw_net  = dict["sec"] * thrust
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fuel_heat = earth.fuel_heat(fuel_type)
-            dict["sfc"] = dict["sec"] / (self.aircraft.airframe.system.fuel_cell_efficiency * fuel_heat)
-            dict["ff"] = dict["sfc"] * thrust
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            dict["sfc"] = fc_dict["fuel_flow"] / thrust     # TSFC here
+            dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
             dict["sfc"] = 0.
             dict["ff"] = 0.

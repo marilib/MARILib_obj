@@ -2,7 +2,7 @@
 """
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 
 .. note:: All physical parameters are given in SI units.
 """

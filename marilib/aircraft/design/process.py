@@ -2,7 +2,7 @@
 """
 :author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 
 The main design processes are defined in this module:
 
@@ -55,6 +55,7 @@ def mda(aircraft, mass_mission_matching=True):
     aircraft.aerodynamics.aerodynamic_analysis()
 
     aircraft.handling_quality.analysis()
+    # aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
 
     if mass_mission_matching:
         aircraft.performance.mission.mass_mission_adaptation()
@@ -67,7 +68,7 @@ def mda(aircraft, mass_mission_matching=True):
 
     aircraft.environment.fuel_efficiency_metric()
 
-    # aircraft.power_system.thrust_analysis()
+    aircraft.power_system.thrust_analysis()
 
 
 def mda_hq(aircraft):
@@ -82,6 +83,7 @@ def mda_hq(aircraft):
 
     aircraft.aerodynamics.aerodynamic_analysis()
 
+    # aircraft.handling_quality.analysis()
     aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
 
     aircraft.performance.mission.mass_mission_adaptation()
@@ -393,7 +395,7 @@ def explore_design_space(ac, var, step, data, file):
     return res
 
 
-def draw_design_space(file, mark, field, const, color, limit, bound, optim_points=None):
+def draw_design_space(file, mark, other, field, const, color, limit, bound, optim_points=None):
     # Read information
     #------------------------------------------------------------------------------------------------------
     dataframe = np.genfromtxt(file, dtype=str, delimiter=";")
@@ -414,11 +416,11 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
     ny = len(ord)
 
     dat = {}
-    for j in range(2,len(data[0])):
+    for j in range(2,len(data[:,0])):
         dat[name[j]] = data[j,:]
 
     uni = {}
-    for j in range(2,len(data[0])):
+    for j in range(2,len(data[:,0])):
         uni[name[j]] = uni_[j]
 
     res = []
@@ -454,6 +456,11 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
     axe.plot(res[0],res[1],'ok',ms='10',mfc='none')             # Draw solution point
     marker, = axe.plot(res[0],res[1],'+k',ms='10',mfc='none')     # Draw plot marker
 
+    # Build interpolator for other data
+    for j in range(0,len(other),1):
+        Z = dat[other[j]].reshape(ny,nx)
+        F[other[j]] = interpolate.interp2d(X, Y, Z, kind=typ)
+
     bnd = [{"ub":1.e10,"lb":-1.e10}.get(s) for s in bound]
 
     ctr = []
@@ -480,10 +487,14 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
     axe = plt.subplot(gs[1,0])
     axe.axis('off')
     val1 = [["%6.0f"%12000., uni_[0]], ["%5.2f"%135.4, uni_[1]], ["%6.0f"%70000., uni[field]]]
-    rowlabel=(name[0], name[1], field)
+    rowlabel = [name[0], name[1], field]
+    for j in range(len(other)):
+        val1.append(["%6.0f"%70000., uni[other[j]]])
+        rowlabel.append(other[j])
 
     the_table = axe.table(cellText=val1,rowLabels=rowlabel,rowLoc='right', cellLoc='left',
-                          colWidths=[0.3,0.3], bbox=[0.1,0.5,0.8,0.5],edges='closed')
+                          colWidths=[0.3,0.3], bbox=[0.1,0.,1.,1.],edges='closed')
+                          # colWidths=[0.3,0.3], bbox=[0.1,0.5,0.8,0.5],edges='closed')
     the_table.auto_set_font_size(False)
     the_table.set_fontsize(10)
 
@@ -494,7 +505,8 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
 
     val2 = np.random.random(len(const))*100.
     val2 = ["%8.1f" %v for v in val2]
-    val2 = list(map(list, zip(*[val2,cst_uni])))
+    cst_val = ["%8.1f" %v for v in limit]
+    val2 = list(map(list, zip(*[val2,cst_val,cst_uni])))
 
     ax3 = plt.subplot(gs[1,1])
     ax3.axis("off")
@@ -508,6 +520,8 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
     the_table[0,0].get_text().set_text("%6.0f" %res[0])
     the_table[1,0].get_text().set_text("%5.2f" %res[1])
     the_table[2,0].get_text().set_text("%6.0f" %F[field](res[0],res[1]))
+    for j in range(len(other)):
+        the_table[3+j,0].get_text().set_text("%6.0f" %F[other[j]](res[0],res[1]))
     for j in range(len(const)):
         the_table2[j,0].get_text().set_text("%8.1f" %F[const[j]](res[0],res[1]))
 
@@ -519,6 +533,8 @@ def draw_design_space(file, mark, field, const, color, limit, bound, optim_point
             the_table[0,0].get_text().set_text("%6.0f" %ix)
             the_table[1,0].get_text().set_text("%5.2f" %iy)
             the_table[2,0].get_text().set_text("%6.0f" %F[field](ix,iy))
+            for j in range(len(other)):
+                the_table[3+j,0].get_text().set_text("%6.0f" %F[other[j]](res[0],res[1]))
             for j in range(len(const)):
                 the_table2[j,0].get_text().set_text("%8.1f" %F[const[j]](ix,iy))
             marker.set_xdata(ix)

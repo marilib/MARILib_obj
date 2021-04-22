@@ -4,14 +4,13 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
 from marilib.utils import earth, unit
 from marilib.utils.math import lin_interp_1d
 from marilib.aircraft.performance import Flight
-from marilib.aircraft.model_config import get_init
 
 
 class Economics():
@@ -21,15 +20,15 @@ class Economics():
 
         cost_range = self.aircraft.requirement.cost_range
 
-        self.irp = get_init(self,"irp")
-        self.period = get_init(self,"period")
-        self.interest_rate = get_init(self,"interest_rate")
-        self.labor_cost = get_init(self,"labor_cost")
-        self.utilization = get_init(self,"utilization", val=self.yearly_utilization(cost_range))
+        self.irp = aircraft.get_init(self,"irp")
+        self.period = aircraft.get_init(self,"period")
+        self.interest_rate = aircraft.get_init(self,"interest_rate")
+        self.labor_cost = aircraft.get_init(self,"labor_cost")
+        self.utilization = aircraft.get_init(self,"utilization", val=self.yearly_utilization(cost_range))
 
-        self.fuel_price = get_init(self,"fuel_price")
-        self.energy_price = get_init(self,"energy_price")
-        self.battery_price = get_init(self,"battery_price")
+        self.fuel_price = aircraft.get_init(self,"fuel_price")
+        self.energy_price = aircraft.get_init(self,"energy_price")
+        self.battery_price = aircraft.get_init(self,"battery_price")
 
         self.engine_price = None
         self.gear_price = None

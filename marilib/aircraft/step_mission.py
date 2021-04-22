@@ -4,8 +4,8 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 from marilib.utils import earth, unit
@@ -18,8 +18,6 @@ from scipy.interpolate import interp1d, interp2d
 from scipy.integrate import RK23, RK45, solve_ivp
 
 from marilib.aircraft.performance import Flight
-
-from marilib.aircraft.model_config import get_init
 
 
 class StepMission(Flight):
@@ -52,7 +50,7 @@ class StepMission(Flight):
         self.heading_altp["west"] = [unit.m_ft(zp) for zp in altp_west]
         self.heading_altp["east"] = [unit.m_ft(zp) for zp in altp_east]
 
-        self.zstep = 2200.
+        self.zstep = 100.
         self.altp_list = np.arange(0., 16000., self.zstep)
         self.altpz = self.altp_list[-1]
 
@@ -264,12 +262,15 @@ class StepMission(Flight):
         return
 
     def cruise_profile(self,mass,vz_mcr,vz_mcl,heading):
+        # Build the list of decreasing masses, starting from current mass
         rev_mass_list = [mass]
         for m in reversed(self.mass_list):
             if m<mass: rev_mass_list.append(m)
+
+        # Build the list of flight level according to the the heading in between cross-over and max altitude
         altp_list = [zp for zp in self.heading_altp[heading] if self.altpy<=zp<=self.altpz]
 
-        rev_mass_list = list(reversed(self.mass_list))
+        # rev_mass_list = list(reversed(self.mass_list))
         k_altp = np.argmax([self.get_val("sar",z,rev_mass_list[0])[0] for z in altp_list])
 
         best_sar_altp = [altp_list[k_altp]]
@@ -330,7 +331,7 @@ class StepMission(Flight):
 
             k_altp += 1
 
-        # Computing effetive changing mass according to SAR and climb capabilities
+        # Computing effective changing mass according to SAR and climb capabilities
         constraint = ["sar","mcr","mcl"]
         self.change_altp = [best_sar_altp[0]]
         self.change_mass = [min([best_sar_mass[0], max_mcr_mass[0], max_mcl_mass[0]])]
@@ -423,7 +424,7 @@ class StepMission(Flight):
         """Perform level cruise sequence(s) and descent
         """
         self.cruise_x_stop = x_stop
-        self.level_blocker = self.climb_dist*6.
+        self.level_blocker = self.climb_dist
         go_ahead = True
         level_index = 0
         sc = []
@@ -587,8 +588,8 @@ class StepMission(Flight):
         ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
-        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        mach = np.ones(len(sol.t))*self.mach
+        cas = [earth.vcas_from_mach(p,ma) for p,ma in zip(pamb,mach)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
@@ -612,7 +613,7 @@ class StepMission(Flight):
         ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        cas = np.ones(len(sol.t))*self.cas2
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
@@ -662,7 +663,7 @@ class StepMission(Flight):
         ff = [self.get_val("ff_fid",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        cas = np.ones(len(sol.t))*self.cas1
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
@@ -720,7 +721,7 @@ class StepMission(Flight):
         ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        cas = np.ones(len(sol.t))*self.cas1
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s1 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
@@ -750,6 +751,18 @@ class StepMission(Flight):
         cas = [earth.vcas_from_mach(pamb[0],ma) for ma in mach]
         s2 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
+        # Precompute cruise profile
+        #---------------------------------------------------------------------------------------------------------------
+        self.cruise_profile(mass[-1],vz_min_mcr,vz_min_mcl,heading)
+
+        print(self.mass_list)
+        print("")
+        print(mass[-1])
+        print(self.altpy)
+        print(self.change_altp)
+        print(self.change_mass)
+        print(self.change_cstr)
+
         # Second climb segment, constant cas2, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
         z0 = self.altpx
@@ -770,20 +783,10 @@ class StepMission(Flight):
         ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
+        cas = np.ones(len(sol.t))*self.cas2
         mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s3 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
-
-        # Precomputecruise profile
-        #---------------------------------------------------------------------------------------------------------------
-        self.cruise_profile(mass[-1],vz_min_mcr,vz_min_mcl,heading)
-
-        # print(self.mass_list)
-        # print("")
-        # print(self.change_altp)
-        # print(self.change_mass)
-        # print(self.change_cstr)
 
         # Third climb segment, constant mach, state = [t,x,mass]
         #---------------------------------------------------------------------------------------------------------------
@@ -805,8 +808,8 @@ class StepMission(Flight):
         ff = [self.get_val("ff_mcl",z,m)[0] for z,m in zip(altp,mass)]
         pamb = [self.get_val("pamb",z,m)[0] for z,m in zip(altp,mass)]
         tamb = [self.get_val("tamb",z,m)[0] for z,m in zip(altp,mass)]
-        cas = [self.get_val("cas",z,m)[0] for z,m in zip(altp,mass)]
-        mach = [earth.mach_from_vcas(p,v) for p,v in zip(pamb,cas)]
+        mach = np.ones(len(sol.t))*self.mach
+        cas = [earth.vcas_from_mach(p,ma) for p,ma in zip(pamb,mach)]
         tas = [ma*earth.sound_speed(t) for ma,t in zip(mach,tamb)]
         s4 = np.vstack((time,dist,altp,mass,pamb,tamb,mach,tas,cas,fn,ff))
 
@@ -876,106 +879,101 @@ class StepMission(Flight):
         profile = np.delete(flight_profile,k_list,axis=0)
 
         time_ = profile[:,0]
+        nseg = len(time_) - 1   # Number of segments of the profile
+
         dist_ = profile[:,1]
         altp_ = profile[:,2]
-        # vtas_ = profile[:,3]
+        pamb_ = profile[:,3]
+        tamb_ = profile[:,4]
 
-        nseg = len(time_) - 1
-
-        # # Compute mean speed on each segment segment
-        # x_d = []
-        # z_d = []
-        # dat = []
-        # for k in range(nseg):
-        #     x_d.append((dist_[k+1]-dist_[k])/(time_[k+1]-time_[k]))
-        #     z_d.append((altp_[k+1]-altp_[k])/(time_[k+1]-time_[k]))
-        #     dat.append(0.5*(time_[k]+time_[k+1]))
+        # vtas_ = profile[:,5]
         #
-        # # Compute mean acceleration in between each segment
-        # x_ddm = [0.]
-        # z_ddm = [0.]
-        # for k in range(nseg-1):
-        #     x_ddm.append((x_d[k+1]-x_d[k])/(dat[k+1]-dat[k]))
-        #     z_ddm.append((z_d[k+1]-z_d[k])/(dat[k+1]-dat[k]))
-        # x_ddm.append(0.)
-        # z_ddm.append(0.)
-        # x_ddm[0] = x_ddm[1]
-        # x_ddm[-1] = x_ddm[-2]
-        # z_ddm[0] = z_ddm[1]
-        # z_ddm[-1] = z_ddm[-2]
-        #
-        # # Compute mean acceleration WITHIN each segment
-        # x_dd = [0.]
-        # z_dd = [0.]
+        # # Build quadratic trajectory functions by segment
+        # # With quadratic function, acceleration is supposed constant along the segment
+        # coef = {"dist":[], "altp":[], "pamb":[], "tamb":[]}
         # for k in range(nseg):
-        #     x_dd.append(0.5*(x_ddm[k]+x_ddm[k+1]))
-        #     z_dd.append(0.5*(z_ddm[k]+z_ddm[k+1]))
-        #     # print(unit.ft_m(altp_[k]),x_dd[-1],z_dd[-1])
-
-        # # Build polynomial trajectory functions by segment
-        # coef = []
-        # for k in range(nseg):
-        #     Ax   = np.array([[3.*time_[k]     , 2.*time_[k]     , 1.        , 0.],
+        #     Ax   = np.array([[3.*time_[k]**2  , 2.*time_[k]     , 1.        , 0.],
         #                      [   time_[k]**3  ,    time_[k]**2  , time_[k]  , 1.],
-        #                      [3.*time_[k+1]   , 2.*time_[k+1]   , 1.        , 0.],
-        #                      [   time_[k+1]**2,    time_[k+1]**2, time_[k+1], 1.]])
+        #                      [3.*time_[k+1]**2, 2.*time_[k+1]   , 1.        , 0.],
+        #                      [   time_[k+1]**3,    time_[k+1]**2, time_[k+1], 1.]])
         #     Bx = [vtas_[k], dist_[k], vtas_[k+1], dist_[k+1]]
         #     Cx = np.linalg.solve(Ax,Bx)
+        #     coef["dist"].append(Cx)
         #
-        #     Az   = np.array([[time_[k]  , 1.],
-        #                      [time_[k+1], 1.]])
+        #     A   = np.array([[time_[k]  , 1.],
+        #                     [time_[k+1], 1.]])
+        #
         #     Bz = [altp_[k], altp_[k+1]]
-        #     Cz = np.linalg.solve(Az,Bz)
+        #     Cz = np.linalg.solve(A,Bz)
+        #     coef["altp"].append(Cz)
         #
-        #     coef.append(np.concatenate((Cx,Cz)))
-
+        #     Bp = [pamb_[k], pamb_[k+1]]
+        #     Cp = np.linalg.solve(A,Bp)
+        #     coef["pamb"].append(Cp)
+        #
+        #     Bt = [tamb_[k], tamb_[k+1]]
+        #     Ct = np.linalg.solve(A,Bt)
+        #     coef["tamb"].append(Ct)
+        #
         # # Interpolate into the trajectory
         # def get_interp_data(t):
         #     k = max(0,np.searchsorted(time_[:-1],t)-1)
-        #     x_d = (3.*coef[k][0]*t + 2.*coef[k][1])*t + coef[k][2]
-        #     z_d = coef[k][4]
-        #     zp = coef[k][4]*t + coef[k][5]
+        #
+        #     x_d = 3.*coef["dist"][k][0]*t**2 + 2.*coef["dist"][k][1]*t + coef["dist"][k][2]
+        #     z_d = coef["altp"][k][0]
         #     sin_path = z_d/x_d
         #     tas = np.sqrt(x_d**2+z_d**2)
-        #     x_dd = 6.*coef[k][0]*t + 2.*coef[k][1]
-        #     z_dd = 0.
-        #     acc = (x_dd*x_d+z_dd*z_d)/tas
-        #     return zp,sin_path,tas,acc
+        #     acc = 6.*coef["dist"][k][0]*t + 2.*coef["dist"][k][1]
+        #     zp = coef["altp"][k][0]*t + coef["altp"][k][1]
+        #     pamb = coef["pamb"][k][0]*t + coef["pamb"][k][1]
+        #     tamb = coef["tamb"][k][0]*t + coef["tamb"][k][1]
+        #     return zp,sin_path,tas,acc,pamb,tamb
+        #
 
-        # # Compute mean acceleration WITHIN each segment
-        # acc_ = []
-        # for k in range(nseg):
-        #     acc_.append((vtas_[k+1]-vtas_[k])/(time_[k+1]-time_[k]))
 
-        # Build polynomial trajectory functions by segment
-        coef = []
+        # Build linear trajectory functions by segment
+        # With linear function, speed is supposed constant along the segment
+        coef = {"dist":[], "altp":[], "pamb":[], "tamb":[]}
         for k in range(nseg):
             A   = np.array([[time_[k]  , 1.],
                             [time_[k+1], 1.]])
+
             Bx = [dist_[k], dist_[k+1]]
             Cx = np.linalg.solve(A,Bx)
+            coef["dist"].append(Cx)
 
             Bz = [altp_[k], altp_[k+1]]
             Cz = np.linalg.solve(A,Bz)
+            coef["altp"].append(Cz)
 
-            coef.append(np.concatenate((Cx,Cz)))
+            Bp = [pamb_[k], pamb_[k+1]]
+            Cp = np.linalg.solve(A,Bp)
+            coef["pamb"].append(Cp)
+
+            Bt = [tamb_[k], tamb_[k+1]]
+            Ct = np.linalg.solve(A,Bt)
+            coef["tamb"].append(Ct)
 
         # Interpolate into the trajectory
         def get_interp_data(t):
             k = max(0,np.searchsorted(time_[:-1],t)-1)
-            x_d = coef[k][0]
-            z_d = coef[k][2]
-            zp = coef[k][2]*t + coef[k][3]
+            x_d = coef["dist"][k][0]
+            z_d = coef["altp"][k][0]
+            zp = coef["altp"][k][0]*t + coef["altp"][k][1]
             sin_path = z_d/x_d
             tas = np.sqrt(x_d**2+z_d**2)
             acc = 0.
-            return zp,sin_path,tas,acc
+            pamb = coef["pamb"][k][0]*t + coef["pamb"][k][1]
+            tamb = coef["tamb"][k][0]*t + coef["tamb"][k][1]
+            return zp,sin_path,tas,acc,pamb,tamb
+
+
+
 
         # Compute airplane performances at a given trajectory point
         def all_values(t,mass):
-            altp,sin_path,tas,acc = get_interp_data(t)
-            print(t,altp,sin_path,tas,acc)
-            pamb,tamb,tstd,dtodz = earth.atmosphere(altp,disa)
+            altp,sin_path,tas,acc,pamb,tamb = get_interp_data(t)
+            # print(t,altp,sin_path,tas,acc,pamb,tamb)
             vsnd = earth.sound_speed(tamb)
             mach = tas/vsnd
             cas = earth.vcas_from_mach(pamb,mach)
@@ -1006,7 +1004,8 @@ class StepMission(Flight):
             t0 = time_[k]
             t1 = time_[k+1]
             t_eval = [t1]
-            sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="LSODA")
+            # print("------->", t0)
+            sol = solve_ivp(state_dot,[t0,t1],state0,t_eval=t_eval, method="RK45")
             mass_.append(sol.y[0])
             state0[0] = sol.y[0]
 
@@ -1035,8 +1034,6 @@ class StepMission(Flight):
         return flight_profile
 
 
-
-
     def draw_flight_profile(self):
 
         plot_title = self.aircraft.name
@@ -1060,4 +1057,15 @@ class StepMission(Flight):
         plt.show()
 
 
+    def plot_data_dict_fkey(self, f_key):
+        plt.plot(self.data_dict["altp"]["low"], self.data_dict[f_key]["low"])
+        plt.plot(self.data_dict["altp"]["medium"], self.data_dict[f_key]["medium"])
+        plt.plot(self.data_dict["altp"]["high"], self.data_dict[f_key]["high"])
+        plt.xlabel("altp (m)")
+        plt.ylabel(f_key)
+        plt.show()
+
+    def plot_data_dict(self):
+        for f_key in self.data_dict.keys():
+            self.plot_data_dict_fkey(f_key)
 

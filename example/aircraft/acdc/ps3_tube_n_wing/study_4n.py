@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -80,7 +80,11 @@ crt = "aircraft.weight_cg.mtow"
 
 
 # Perform an MDF optimization process
-process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+opt = process.Optimizer()
+opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+algo_points = opt.computed_points
+# algo_points = None
 
 
 # Main output
@@ -147,7 +151,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["Vz_MCL", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcl_ceiling.vz_eff)"],
         ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcr_ceiling.vz_eff)"],
         ["TTC", "min", "%8.1f", "unit.min_s(aircraft.performance.time_to_climb.ttc_eff)"],
-        ["FUEL", "kg", "%8.1f", "aircraft.airframe.tank.mfw_volume_limited"],
+        ["FUEL", "kg", "%8.1f", "aircraft.weight_cg.mfw"],
         ["Cost_Block_fuel", "kg", "%8.1f", "aircraft.performance.mission.cost.fuel_block"],
         ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
         ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],

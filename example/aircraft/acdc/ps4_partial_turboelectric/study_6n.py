@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -25,7 +25,7 @@ agmt = Arrangement(body_type = "fuselage",            # "fuselage" or "blended"
                    tank_architecture = "wing_box",    # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",         # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",       # "wing", "rear" or "pods"
-                   power_architecture = "pte",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_architecture = "tf",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
                    power_source = "fuel",             # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")            # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
@@ -49,15 +49,16 @@ ac.airframe.system.cruise_energy = unit.J_kWh(140)          # J, energy stored i
 
 ac.airframe.system.chain_power = unit.W_MW(1.)
 
-ac.airframe.tail_nacelle.bli_effect = "yes"         # Include BLI effect in thrust computation
+if (ac.arrangement.power_architecture=="pte"):
+    ac.airframe.tail_nacelle.bli_effect = "yes"         # Include BLI effect in thrust computation
+
+    ac.airframe.tail_nacelle.controller_efficiency = 0.99
+    ac.airframe.tail_nacelle.motor_efficiency = 0.95
 
 ac.airframe.system.generator_efficiency = 0.95
-ac.airframe.system.rectifier_efficiency = 0.98
+ac.airframe.system.rectifier_efficiency = 0.99
 ac.airframe.system.wiring_efficiency = 0.995
-ac.airframe.system.cooling_efficiency = 0.99
-
-ac.airframe.tail_nacelle.controller_efficiency = 0.99
-ac.airframe.tail_nacelle.motor_efficiency = 0.95
+ac.airframe.system.cooling_efficiency = 0.995
 
 
 # Configure optimization problem
@@ -85,7 +86,10 @@ crt = "aircraft.weight_cg.mtow"
 
 
 # Perform an MDF optimization process
-process.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+opt = process.Optimizer()
+opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+algo_points = opt.computed_points
+# algo_points = None
 
 
 # Main output
@@ -126,7 +130,8 @@ if (ac.arrangement.power_architecture=="pte"):
 print("")
 print("LoD cruise = ","%.2f"%ac.performance.mission.crz_lod," no_dim")
 print("TSFC cruise = ","%.3f"%(ac.performance.mission.crz_tsfc*36000)," kg/daN/h")
-print("SEC cruise = ","%.3f"%(ac.performance.mission.crz_sec/100)," kW/daN (tail engine only)")
+if (ac.arrangement.power_architecture=="pte"):
+    print("SEC cruise = ","%.3f"%(ac.performance.mission.crz_sec/100)," kW/daN (tail engine only)")
 print("Design mission block fuel = ","%.1f"%(ac.performance.mission.nominal.fuel_block)," kg")
 
 print("")
@@ -169,7 +174,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["Vz_MCL", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcl_ceiling.vz_eff)"],
         ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcr_ceiling.vz_eff)"],
         ["TTC", "min", "%8.1f", "unit.min_s(aircraft.performance.time_to_climb.ttc_eff)"],
-        ["FUEL", "kg", "%8.1f", "aircraft.airframe.tank.mfw_volume_limited"],
+        ["FUEL", "kg", "%8.1f", "aircraft.weight_cg.mfw"],
         ["Cost_Block_fuel", "kg", "%8.1f", "aircraft.performance.mission.cost.fuel_block"],
         ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
         ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],

@@ -4,8 +4,9 @@ Created on Thu Jan 20 20:20:20 2020
 
 :author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
+from marilib.utils import earth, unit
 
 from marilib.aircraft.airframe.airframe_root import Airframe
 from marilib.aircraft.airframe import propulsion, component, system, model
@@ -15,25 +16,27 @@ from marilib.engine import interface
 from marilib.aircraft.handling_quality import HandlingQuality
 from marilib.aircraft.performance import Performance
 from marilib.aircraft.mission import AllMissionVarMass, AllMissionIsoMass
-from marilib.aircraft.environment import Economics
-from marilib.aircraft.environment import Environment
+from marilib.aircraft.environment import Environment, Economics
 
 from marilib.aircraft.tool.drawing import Drawing
+
+
 
 
 class Arrangement(object):
     """Architectural choices
     """
-    def __init__(self,body_type = "fuselage",          # "fuselage" or "blended"
-                      wing_type = "classic",           # "classic" or "blended"
-                      wing_attachment = "low",         # "low" or "high"
-                      stab_architecture = "classic",   # "classic", "t_tail" or "h_tail"
-                      tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
-                      number_of_engine = "twin",       # "twin" or "quadri"
-                      nacelle_attachment = "wing",     # "wing", "pod" or "rear"
-                      power_architecture = "tf",       # "tf", "tp", "ef", "pte1", "ef1", "ep1",
-                      power_source = "fuel",           # "fuel", "battery", "fuel_cell"
-                      fuel_type = "kerosene"           # "kerosene", "liquid_h2", "Compressed_h2" or "battery"
+    def __init__(self,body_type = "fuselage",               # "fuselage" or "blended"
+                      wing_type = "classic",                # "classic" or "blended"
+                      wing_attachment = "low",              # "low" or "high"
+                      stab_architecture = "classic",        # "classic", "t_tail" or "h_tail"
+                      tank_architecture = "wing_box",       # "wing_box", "piggy_back" or "pods"
+                      gear_architecture = "retractable",    # "retractable", "bare_fixed"
+                      number_of_engine = "twin",            # "twin" or "quadri"
+                      nacelle_attachment = "wing",          # "wing", "pod" or "rear"
+                      power_architecture = "tf",            # "tf", "tp", "ef", "pte1", "ef1", "ep1",
+                      power_source = "fuel",                # "fuel", "battery", "fuel_cell"
+                      fuel_type = "kerosene"                # "kerosene", "liquid_h2", "Compressed_h2" or "battery"
                  ):
 
         self.body_type = body_type
@@ -41,6 +44,7 @@ class Arrangement(object):
         self.wing_attachment = wing_attachment
         self.stab_architecture = stab_architecture
         self.tank_architecture = tank_architecture
+        self.gear_architecture = gear_architecture
         self.number_of_engine = number_of_engine
         self.nacelle_attachment = nacelle_attachment
         self.power_architecture = power_architecture
@@ -67,6 +71,9 @@ class Aircraft(object):
         self.economics = None
         self.environment = None
         self.draw = Drawing(self)
+
+    def get_init(self, obj,key,val=None):
+        return self.requirement.model_config.get__init(obj,key,val=val)
 
     def factory(self, arrangement, requirement):
         """Build an aircraft according to architectural choices
@@ -115,18 +122,30 @@ class Aircraft(object):
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.tank_architecture=="wing_box"):
             self.airframe.tank = component.TankWingBox(self)
+            self.airframe.tank_analysis_order = ["tank"]
+        elif (self.arrangement.tank_architecture=="floor"):
+            self.airframe.tank = component.TankFuselageFloor(self)
+            self.airframe.tank_analysis_order = ["tank"]
         elif (self.arrangement.tank_architecture=="rear"):
             self.airframe.tank = component.TankRearFuselage(self)
+            self.airframe.tank_analysis_order = ["tank"]
         elif (self.arrangement.tank_architecture=="piggy_back"):
             self.airframe.tank = component.TankPiggyBack(self)
+            self.airframe.tank_analysis_order = ["tank"]
         elif (self.arrangement.tank_architecture=="pods"):
             self.airframe.tank = component.TankWingPod(self,"right")
             self.airframe.other_tank = component.TankWingPod(self,"left")
+            self.airframe.tank_analysis_order = ["tank","other_tank"]
         else:
             raise Exception("Type of tank is unknown")
 
 # ----------------------------------------------------------------------------------------------------------------------
-        self.airframe.landing_gear = component.LandingGear(self)
+        if (self.arrangement.gear_architecture=="retractable"):
+            self.airframe.landing_gear = component.RetractableLandingGear(self)
+        elif (self.arrangement.gear_architecture=="bare_fixed"):
+            self.airframe.landing_gear = component.BareFixedLandingGear(self)
+        else:
+            raise Exception("Type of landing gear is unknown")
 
 # ----------------------------------------------------------------------------------------------------------------------
         if (self.arrangement.power_source == "battery"):
@@ -425,7 +444,9 @@ class Aircraft(object):
 # ----------------------------------------------------------------------------------------------------------------------
         self.airframe.mass_analysis_order =   ["cabin","body","wing","landing_gear","cargo"] \
                                             + self.airframe.engine_analysis_order \
-                                            + ["vertical_stab","horizontal_stab","tank","system"]
+                                            + ["vertical_stab","horizontal_stab"] \
+                                            + self.airframe.tank_analysis_order \
+                                            + ["system"]
 
 # ----------------------------------------------------------------------------------------------------------------------
         self.aerodynamics = model.Aerodynamics(self)

@@ -10,7 +10,10 @@ Created on Thu Jan 24 23:22:21 2019
 import numpy
 from copy import deepcopy
 
-      
+
+def kg_t(t): return t*1000.
+def t_kg(kg): return kg/1000.
+
 def year_s(s): return s/31557600.
 def s_year(year): return year*31557600.
 
@@ -31,6 +34,9 @@ def min_s(s): return s/60.      # Translate seconds into minutes
 
 def s_h(h): return h*3600.   # Translate hours into seconds
 def h_s(s): return s/3600.   # Translate seconds into hours
+
+def m_inch(inch): return inch*0.0254   # Translate inch into metres
+def inch_m(m): return m/0.0254      # Translate metres into inch
 
 def m_ft(ft): return ft*0.3048   # Translate feet into metres
 def ft_m(m): return m/0.3048   # Translate metres into feet
@@ -59,6 +65,12 @@ def usgal_m3(m3): return m3/0.0037853982   # Translate m3 into US gallons
 def rad_deg(deg): return deg*numpy.pi/180.   # Translate degrees into radians
 def deg_rad(rad): return rad*180./numpy.pi   # Translate radians into degrees
 
+def J_MJ(MJ): return MJ*1.e6   # Translate MJ into J
+def MJ_J(J): return J*1.e-6   # Translate J into MJ
+
+def J_kJ(kJ): return kJ*1.e3   # Translate kJ into J
+def kJ_J(J): return J*1.e-3   # Translate J into kJ
+
 def J_Wh(Wh): return Wh*3.6e3   # Translate kWh into J
 def Wh_J(J): return J/3.6e3   # Translate J into kWh
 
@@ -72,12 +84,16 @@ def J_GWh(GWh): return GWh*3.6e12   # Translate MWh into J
 def GWh_J(J): return J/3.6e12   # Translate J into MWh
 
 def J_TWh(TWh): return TWh*3.6e15   # Translate MWh into J
-
 def TWh_J(J): return J/3.6e15   # Translate J into MWh
-def daN_N(N): return N/10.   # Translate N into daN
 
+def Jpm_kWhpkm(kWhpkm): return kWhpkm*3.6e3   # Translate kWh/km into J/m
+def kWhpkm_Jpm(Jpm): return Jpm/3.6e3   # Translate J/m into kWh/km
+
+def daN_N(N): return N/10.   # Translate N into daN
 def N_daN(daN): return daN*10.   # Translate daN into N
+
 def N_kN(kN): return kN*1000.   # Translate kN into N
+def kN_N(N): return N/1000.   # Translate N into kN
 
 def Pa_bar(bar): return bar*1.e5   # Translate bar into Pascal
 def bar_Pa(Pa): return Pa/1.e5   # Translate Pascal into bar
@@ -534,6 +550,7 @@ UNIT["1e-12.K/m2/km/year"] = 1.e-12
 UNIT["structure"] = 1
 UNIT["dict"] = 1
 UNIT["array"] = 1
+
 
 
 # Conversion functions

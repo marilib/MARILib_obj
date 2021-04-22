@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 from marilib.utils import earth, unit
@@ -13,9 +13,7 @@ import numpy as np
 from scipy.optimize import fsolve
 
 from marilib.aircraft.performance import Flight
-from marilib.aircraft.model_config import get_init
 
-from marilib.utils.math import vander3, trinome, maximize_1d
 
 
 class HandlingQuality(Flight):
@@ -25,7 +23,7 @@ class HandlingQuality(Flight):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.static_stab_margin = get_init(self,"static_stab_margin")
+        self.static_stab_margin = aircraft.get_init(self,"static_stab_margin")
 
         self.forward_cg_mass = None
         self.forward_cg_req = None

@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -22,7 +22,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",   # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "wing_box",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
@@ -41,7 +41,7 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 
 # Get the values that have been set by initialization
 #------------------------------------------------------------------------------------------------------
-morphing_i = "aspect_ratio_driven" # wing morphing : "aspect_ratio_driven" or "span_driven"
+wing_morphing_i = "aspect_ratio_driven" # wing morphing : "aspect_ratio_driven" or "span_driven"
 wing_span_i = ac.airframe.wing.span
 wing_aspect_ratio_i = ac.airframe.wing.aspect_ratio
 wing_area_i = ac.airframe.wing.area
@@ -49,9 +49,9 @@ mtow_i = ac.weight_cg.mtow
 
 # Eventual update of some values
 #------------------------------------------------------------------------------------------------------
-ac.airframe.wing.wing_morphing = morphing_i
+ac.airframe.wing.wing_morphing = wing_morphing_i
 
-ac.airframe.wing.area = wing_area_i
+ac.airframe.wing.area = 150.
 ac.airframe.wing.span = wing_span_i
 ac.airframe.wing.aspect_ratio = wing_aspect_ratio_i
 
@@ -94,5 +94,6 @@ print("required MTOW = ","%.0f"%mtow_req," kg")
 print("")
 print("True air speed = ","%.2f"%unit.kt_mps(vtas)," kt")
 print("Fuel mission = ","%.2f"%ac.performance.mission.nominal.fuel_block," kg")
+print("LoD max = ","%.2f"%ac.aerodynamics.cruise_lodmax," no_dim")
 print("LoD cruise = ","%.2f"%ac.performance.mission.crz_lod," no_dim")
 print("TSFC cruise = ","%.3f"%(ac.performance.mission.crz_tsfc*36000)," kg/daN/h")

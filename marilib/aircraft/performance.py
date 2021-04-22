@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 from marilib.utils import earth, unit
@@ -210,7 +210,7 @@ class Flight(object):
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
         mach = self.get_mach(pamb,speed_mode,speed)
 
-        dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating)
+        dict = self.aircraft.power_system.thrust(pamb,tamb,mach,rating,nei=nei)
         fn = dict["fn"]*kfn
         ff = dict["ff"]*kfn
         if kfn!=1. and full_output:
@@ -423,7 +423,6 @@ class TakeOff(Flight):
     """
     def __init__(self, aircraft):
         super(TakeOff, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -499,7 +498,8 @@ class TakeOff(Flight):
         fn = kfn*dict["fn"]
 
         ml_factor = mass**2 / (cz_to*fn*self.aircraft.airframe.wing.area*sig**0.8 )  # Magic Line factor
-        tofl = 15.5*ml_factor + 100.    # Magic line
+        # tofl = 15.5*ml_factor + 100.    # Magic line
+        tofl = 11.8*ml_factor + 100.    # Magic line
 
         nei = 1             # For 2nd segment computation
         speed_mode = "cas"  # Constant CAS
@@ -515,7 +515,6 @@ class Approach(Flight):
     """
     def __init__(self, aircraft):
         super(Approach, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -544,7 +543,6 @@ class MclCeiling(Flight):
     """
     def __init__(self, aircraft):
         super(MclCeiling, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -578,7 +576,6 @@ class McrCeiling(Flight):
     """
     def __init__(self, aircraft):
         super(McrCeiling, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -612,7 +609,6 @@ class OeiCeiling(Flight):
     """
     def __init__(self, aircraft):
         super(OeiCeiling, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None
@@ -645,7 +641,6 @@ class TimeToClimb(Flight):
     """
     def __init__(self, aircraft):
         super(TimeToClimb, self).__init__(aircraft)
-        self.aircraft = aircraft
 
         self.disa = None
         self.altp = None

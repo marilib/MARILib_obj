@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Avionic & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Departement, ENAC
 """
 
 import numpy as np
@@ -49,15 +49,24 @@ ac.airframe.system.cruise_energy = unit.J_kWh(140)          # J, energy stored i
 
 ac.airframe.system.chain_power = unit.W_MW(1.)      # Shaft power of the electric motor
 
-ac.airframe.tail_nacelle.bli_effect = "yes"         # Include BLI effect in thrust computation
+if (ac.arrangement.power_architecture=="pte"):
+    ac.airframe.tail_nacelle.bli_effect = "yes"         # Include BLI effect in thrust computation
+
+    ac.airframe.tail_nacelle.controller_efficiency = 0.99
+    ac.airframe.tail_nacelle.motor_efficiency = 0.95
 
 ac.airframe.system.generator_efficiency = 0.95
-ac.airframe.system.rectifier_efficiency = 0.98
+ac.airframe.system.rectifier_efficiency = 0.99
 ac.airframe.system.wiring_efficiency = 0.995
-ac.airframe.system.cooling_efficiency = 0.99
+ac.airframe.system.cooling_efficiency = 0.995
 
-ac.airframe.tail_nacelle.controller_efficiency = 0.99
-ac.airframe.tail_nacelle.motor_efficiency = 0.95
+#     ac.airframe.tail_nacelle.controller_efficiency = 1.
+#     ac.airframe.tail_nacelle.motor_efficiency = 1.
+#
+# ac.airframe.system.generator_efficiency = 1.
+# ac.airframe.system.rectifier_efficiency = 1.
+# ac.airframe.system.wiring_efficiency = 1.
+# ac.airframe.system.cooling_efficiency = 1.
 
 # Run MDA analysis
 #------------------------------------------------------------------------------------------------------
@@ -101,7 +110,8 @@ if (ac.arrangement.power_architecture=="pte"):
 print("")
 print("LoD cruise = ","%.2f"%ac.performance.mission.crz_lod," no_dim")
 print("TSFC cruise = ","%.3f"%(ac.performance.mission.crz_tsfc*36000)," kg/daN/h")
-print("SEC cruise = ","%.3f"%(ac.performance.mission.crz_sec/100)," kW/daN (tail engine only)")
+if (ac.arrangement.power_architecture=="pte"):
+    print("SEC cruise = ","%.3f"%(ac.performance.mission.crz_sec/100)," kW/daN (tail engine only)")
 print("Design mission block fuel = ","%.1f"%(ac.performance.mission.nominal.fuel_block)," kg")
 
 print("")

@@ -22,7 +22,7 @@ from marilib.utils.math import lin_interp_1d
 # Airplane object definition
 # ------------------------------------------------------------------------------------------------------
 class Aircraft(object):
-    """Plane object
+    """Airplane object
     """
     def __init__(self,
                  npax=150.,
@@ -56,6 +56,10 @@ class Aircraft(object):
         self.design_aircraft()
 
     def __eff_ratio(self, npax):
+        """Ratio L/D over SFC for Breguet equation
+        This ratio is related to the capacity segment of the aircraft so,
+        it is computed according to the number of passenger
+        """
         pax_list = [10., 60., 260., 360.]
         lod_list = [15., 15.,  19.,  19.]
         lod = lin_interp_1d(npax, pax_list, lod_list)
@@ -63,17 +67,17 @@ class Aircraft(object):
         return lod/sfc
 
     def structure(self, mtow, coef=None):
-        """Structural relation
+        """Link between MTOW and OWE. This link implecitly represents the structural sizing
         """
         if coef is not None: self.owe_coef = coef
         owe = (self.owe_coef[0]*mtow + self.owe_coef[1]) * mtow + self.owe_coef[2]    # Structure design rule
         return owe
 
     def mission(self, tow, fuel_mission, effr=None):
-        """Mission relation
-        Warning : if given effr must be expressed in daN.h/kg
+        """Mission evaluation based on Breguet equation
+        Warning : if given effr must be expressed in N.s/kg
         """
-        if effr is not None: self.eff_ratio = effr / unit.convert_from("kg/daN/h", 1.)
+        if effr is not None: self.eff_ratio = effr
         pamb,tamb,vsnd,g = self.atmosphere(self.cruise_altp)
         range_factor = (self.cruise_mach*vsnd*self.eff_ratio)/g
         range = range_factor*np.log(tow/(tow-fuel_mission))       # Breguet equation
@@ -81,6 +85,7 @@ class Aircraft(object):
 
     def operation(self, n_pax, range):
         """Operational mission
+        Compute mission data from passenger on board and range
 
         :param range: Distance to fly
         :param n_pax: Number of passengers
@@ -102,7 +107,7 @@ class Aircraft(object):
         return mission_fuel,mission_time,tow
 
     def eval_design(self, X):
-        """Evaluation function for design_plane
+        """Evaluation function for design_aircraft
         """
         self.mtow = X[0]
         self.fuel_mission = X[1]

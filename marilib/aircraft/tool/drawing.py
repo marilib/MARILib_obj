@@ -54,6 +54,30 @@ class Drawing(object):
 
         plt.show()
 
+
+    def get_3d_curves(self):
+        """
+        Build 3D curves to print the plane
+        """
+        component = {"name":self.aircraft.name, "surface":[], "body":[], "nacelle":[]}
+
+        for comp in self.aircraft.airframe:
+            data = comp.sketch_3view()
+            if data is not None:
+                typ = comp.get_component_type()
+                if typ in ["wing","htp","vtp"]:
+                    component["surface"].append({"le":data["le"], "te":data["te"], "toc":data["toc"]})
+                elif typ in ["body","wing_pod_tank","piggyback_tank"]:
+                    component["body"].append({"xz":data["body_xz"], "xy":data["body_xy"]})
+
+        for comp in self.aircraft.airframe:
+            if issubclass(type(comp),Nacelle):
+                data = comp.sketch_3view()
+                component["nacelle"].append({"le":data["le"], "te":data["te"], "toc":data["toc"]})
+
+        return component
+
+
     def view_3d(self, window_title):
         """
         Build a 3 views drawing of the airplane
@@ -79,7 +103,7 @@ class Drawing(object):
 
         ref = {"xy":[xTopView,yTopView],"yz":[xFrontView,yFrontView],"xz":[xSideView,ySideView]}
 
-        l0w, l1, l2, l3, l4, l5, high  =  0, 1, 2, 3, 4, 5, 6
+        low, l1, l2, l3, l4, l5, high  =  0, 1, 2, 3, 4, 5, 6
 
         # Draw components
         #-----------------------------------------------------------------------------------------------------------
@@ -119,7 +143,7 @@ class Drawing(object):
                 pod = comp.sketch_3view()
                 typ = comp.get_component_type()
                 if typ=="wing_pod_tank" and self.aircraft.airframe.tank.frame_origin[2] < self.aircraft.airframe.tank.wing_axe_z:
-                    zpod["wing_pod_tank"]["xy"] = l0w
+                    zpod["wing_pod_tank"]["xy"] = low
                 for view in ["xy","yz","xz"]:
                     plt.fill(ref[view][0]+pod[view][0:,0], ref[view][1]+pod[view][0:,1], color="white", zorder=zpod[typ][view])    # draw mask
                     plt.plot(ref[view][0]+pod[view][0:,0], ref[view][1]+pod[view][0:,1], color="grey", zorder=zpod[typ][view])     # draw contour
@@ -133,11 +157,11 @@ class Drawing(object):
         # Draw nacelles
         #-----------------------------------------------------------------------------------------------------------
         #                                  top        front     side
-        znac = {          "wing_nacelle":{"xy":l0w,  "yz":l4,  "xz":high},
+        znac = {          "wing_nacelle":{"xy":low,  "yz":l4,  "xz":high},
                           "body_nacelle":{"xy":l3,   "yz":l1,  "xz":high},
-                     "body_tail_nacelle":{"xy":l1,   "yz":l0w, "xz":l0w},
-                      "pod_tail_nacelle":{"xy":l4,   "yz":l0w, "xz":l5},
-                "piggyback_tail_nacelle":{"xy":high, "yz":l0w, "xz":l2}}
+                     "body_tail_nacelle":{"xy":l1,   "yz":low, "xz":low},
+                      "pod_tail_nacelle":{"xy":l4,   "yz":low, "xz":l5},
+                "piggyback_tail_nacelle":{"xy":high, "yz":low, "xz":l2}}
 
         for comp in self.aircraft.airframe:
             if issubclass(type(comp),Nacelle):
