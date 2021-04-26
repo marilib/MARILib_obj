@@ -10,6 +10,7 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
+from matplotlib.widgets import Slider, Button, RadioButtons
 
 import unit
 
@@ -44,7 +45,7 @@ class SmallPlane(object):
         self.piston_eng_pw_density = unit.W_kW(1)  # W/kg
         self.elec_motor_pw_density = unit.W_kW(4.5)  # W/kg   MAGNIX
         self.power_elec_pw_density = unit.W_kW(10)  # W/kg
-        self.battery_enrg_density = unit.J_Wh(400)  # Wh/kg
+        self.battery_enrg_density = unit.J_Wh(200)  # Wh/kg
 
         # design results
         self.design = None
@@ -263,8 +264,8 @@ class SmallPlane(object):
         return "\n|\t".join(s)
 
 
-
 if __name__ == '__main__':
+
 
     npax = 9
     dist = 200
@@ -279,7 +280,7 @@ if __name__ == '__main__':
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
 
     spe = SmallPlane(npax=npax, dist=unit.m_km(dist), tas=unit.mps_kmph(vtas),mode="electric")
-    spe.battery_enrg_density = unit.J_Wh(200)
+    spe.battery_enrg_density = unit.J_Wh(400)
     spe.design_solver()
     print(spe)
     # spe.max_distance(mode="electric")
@@ -293,31 +294,127 @@ if __name__ == '__main__':
     #--------------------------------------------------
     # MAP display : minimal working example
 
-    distances = np.linspace(50e3, 500e3, 30)
-    npaxs = np.arange(1, 20)
+    def pkom(X, Y,battery_enrg_density=None, **kwargs):
+        """
+        Compute the ratio between the Passenger.distance/MTOW (PKoM) and the minimum acceptable PKoM for a set of design range an number of passenger.
+        :param X: 2D array of distance
+        :param Y: 2D array of Npax
+        :param kwargs: keys for SmallPlane settings
+        :return: 2D array of computed values
+        """
+        pkm=[]
+        sp = SmallPlane(**kwargs)
+        if battery_enrg_density is not None:
+            sp.battery_enrg_density = battery_enrg_density
+        for x,y in zip(X.flatten(),Y.flatten()):
+            sp.distance = x
+            sp.n_pax = y
+            sp.new_design_solver()
+            pkm.append(sp.design["pk_o_m"]/sp.design["pk_o_m_min"])
+        # reshape pkm to 2D array
+        pkm = np.array(pkm)
+        return pkm.reshape(np.shape(X))
+
+
+    # Set distance and npax grid
+    distances = np.linspace(50e3, 500e3, 10)
+    npaxs = np.arange(1, 20, 2)
     X, Y = np.meshgrid(distances, npaxs)
 
-    pkm=[]
-    sp = SmallPlane(tas=unit.mps_kmph(130),mode="electric")
-    for x,y in zip(X.flatten(),Y.flatten()):
-        sp.distance = x
-        sp.n_pax = y
-        sp.new_design_solver()
-        pkm.append(sp.design["pk_o_m"]/sp.design["pk_o_m_min"])
+    # Create Plot contour
+    fig,ax = plt.subplots(figsize=(8,7))
+    pkm = pkom(X,Y)
+    CS = ax.contourf(X / 1000, Y, pkm, levels=10)
+    C = ax.contour(X / 1000, Y, pkm, levels=[1], colors =['red'],linewidths=2)
+    ax.clabel(C, inline=True, fmt="%d",fontsize=20)
+    CB = plt.colorbar(CS, label=r"P.K/M") # get the colorbar axes
+    plt.xlabel("Distance (km)",fontsize=15)
+    plt.ylabel("N passenger",fontsize=15)
+    ax.grid(True)
+    plt.subplots_adjust(left=0.1,bottom=0.5,right=1.) # adjust position
 
-    # convert to numpy array with good shape
-    pkm = np.array(pkm)
-    pkm = pkm.reshape(np.shape(X))
-    # Plot contour
-    cs = plt.contourf(X / 1000, Y, pkm, levels=20)
-    c = plt.contour(X / 1000, Y, pkm, levels=[1,2], colors =['red'],linewidths=2)
-    plt.clabel(c, inline=True, fmt="%d",fontsize=20)
-    plt.plot(X / 1000, Y, '+k')
-    plt.colorbar(cs, label=r"P.K/M")
-    plt.xlabel("Distance (km)")
-    plt.ylabel("N passenger")
 
-    plt.show()
+    # ------------------------------------------------------- SLIDERS
+
+    left = 0.2
+    tas_ax = plt.axes([left, 0.1, 0.65, 0.03])    # Airspeed (km/h)
+    tas_slider = Slider(
+        ax=tas_ax,
+        label="Speed",
+        valmin=100,
+        valmax=500,
+        valfmt='%d km/h',
+        valinit=150,
+    )
+    alt_ax = plt.axes([left, 0.2, 0.65, 0.03])    # Altitude (m)
+    alt_slider = Slider(
+        ax=alt_ax,
+        label="Altitude",
+        valmin=0,
+        valmax=12e3,
+        valfmt='%d m',
+        valinit=unit.m_ft(3000),
+    )
+    bat_ax = plt.axes([left, 0.3, 0.65, 0.03])  # Battery energetic density (Wh/kg)
+    bat_slider = Slider(
+        ax=bat_ax,
+        label="Bat Enrg Density",
+        valmin=100,
+        valmax=1000,
+        valfmt='%d Wh/kg',
+        valinit=200,
+    )
+
+    # ------------------------------------------------------- MODE
+    mode_ax = plt.axes([0.4, 0.9, 0.2, 0.1])
+    mode_rbutton = RadioButtons(
+        ax = mode_ax,
+        labels = ('classic','electric'),
+        #active=0
+    )
+
+    # ------------------------------------------------------- RESET BUTTON
+    # Reset Button
+    reset_ax = plt.axes([0.9, 0, 0.1, 0.05])
+    reset_button = Button(reset_ax, 'Reset')
+
+    # ------------------------------------------------------- CONNECT ALL (SLIDERS + BUTTONS)
+    # The function to be called anytime a slider's value changes
+    def update(val):
+        # remove all previous contours
+        ax.clear()
+        # Read sliders values
+        tas = unit.mps_kmph(tas_slider.val)
+        alt = alt_slider.val
+        bat = unit.J_Wh(bat_slider.val)
+        mod = mode_rbutton.value_selected
+        # Recompute and plot data
+        pkm = pkom(X, Y, battery_enrg_density=bat, tas=tas, alt=alt, mode=mod)
+        CS = ax.contourf(X / 1000, Y, pkm, levels=10)
+        C = ax.contour(X / 1000, Y, pkm, levels=[1], colors=['red'], linewidths=2)
+        ax.clabel(C, inline=True, fmt="%d", fontsize=20)
+        plt.colorbar(CS, cax=CB.ax, label=r"PK/M")
+        ax.set_xlabel("Distance (km)", fontsize=15)
+        ax.set_ylabel("N passenger", fontsize=15)
+        ax.grid(True)
+
+    # Connect Sliders and radio button
+    sliders = [tas_slider, alt_slider, bat_slider]
+    for s in sliders:
+        s.on_changed(update)
+    mode_rbutton.on_clicked(update)
+
+    # Connect reset button
+    def reset(event):
+        for s in sliders:
+            s.reset()
+        mode_rbutton.set_active(0)
+
+    reset_button.on_clicked(reset)
+
+
+
+    plt.show() # THE END
 
 
 
