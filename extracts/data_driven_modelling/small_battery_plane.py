@@ -54,6 +54,42 @@ class SmallPlane(object):
         # design results
         self.design = None
 
+    def __str__(self):
+        """Print main figures
+        """
+        s = ["\nAirplane : %s" %self.mode,
+             "Npax     %d" % self.n_pax,
+             "Distance %d km" % unit.km_m(self.distance),
+             "TAS      %d km/h" % unit.kmph_mps(self.vtas),
+             "Altitude %d ft" % unit.ft_m(self.alt),
+             "---------------------------------"]
+
+        if self.design==None:
+            s.append(">>  NO DESIGN  <<")
+            return "\n".join(s) # print only recquirements
+
+        s.append("Max power = %.0f kW" %unit.kW_W(self.design["pw_max"]))
+        if self.design["airplane_mode"]=="classic":
+            s.append("Mission fuel = %.0f kg" %self.design["mission_fuel"])
+            s.append("Reserve fuel = %.0f kg" %self.design["reserve_fuel"])
+            s.append("Total fuel = %.0f kg" %self.design["total_fuel"])
+        elif self.design["airplane_mode"]=="electric":
+            s.append("Cruise power = %.0f kW" %unit.kW_W(self.design["pw_cruise"]))
+            s.append("Battery mass = %.0f kg" %self.design["battery_mass"])
+        else:
+            raise Exception("Aircraft mode is unknown")
+        s.append("Mission energy = %.0f kWh" %unit.kWh_J(self.design["mission_energy"]))
+        s.append("Reserve energy = %.0f kWh" %unit.kWh_J(self.design["reserve_energy"]))
+        s.append("Total energy = %.0f kWh" %unit.kWh_J(self.design["total_energy"]))
+        s.append("MTOW = %.0f kg"%self.design["mtow"])
+        s.append("OWE = %.0f kg"%self.design["owe"])
+        s.append("Payload = %.0f kg"%self.design["payload"])
+        s.append("")
+        s.append("PK / MTOW minimum = %.2f pk/km" %self.design["pk_o_m_min"])
+        s.append("PK / MTOW = %.2f pk/kg" %self.design["pk_o_m"])
+        s.append("PK / Energy = %.2f pk/kWh"%self.design["pk_o_e"])
+        return "\n|\t".join(s)
+
     def breguet(self, tow):
         """Used for classical airplane burning gasoline
         """
@@ -178,7 +214,7 @@ class SmallPlane(object):
         elif self.mode=="electric":
             self.design = self.full_elec_design(mtow)
 
-    def design_solver(self,err=1e-4,maxiter=200):
+    def design_solver(self, err=1e-4, maxiter=200):
         """ Uses a fixed point iteration procedure to solve the design. It recquires more iterations than a gradient based method,
         but convergences towards the attractive solution point (positive MTOW).
 
@@ -231,7 +267,7 @@ class SmallPlane(object):
 
         return self.design_solver()
 
-    def pkom(self,X, Y, **kwargs):
+    def compute_PKoM_on_grid(self, X, Y, **kwargs):
         """
         Compute the ratio between the Passenger.distance/MTOW (PKoM) and the minimum acceptable PKoM for a set of design range an number of passenger.
         :param X: 2D array of distance
@@ -254,41 +290,18 @@ class SmallPlane(object):
         pkm = np.array(pkm)
         return pkm.reshape(np.shape(X))
 
-    def __str__(self):
-        """Print main figures
-        """
-        s = ["\nAirplane : %s" %self.mode,
-             "Npax     %d" % self.n_pax,
-             "Distance %d km" % unit.km_m(self.distance),
-             "TAS      %d km/h" % unit.kmph_mps(self.vtas),
-             "Altitude %d ft" % unit.ft_m(self.alt),
-             "---------------------------------"]
-
-        if self.design==None:
-            s.append(">>  NO DESIGN  <<")
-            return "\n".join(s) # print only recquirements
-
-        s.append("Max power = %.0f kW" %unit.kW_W(self.design["pw_max"]))
-        if self.design["airplane_mode"]=="classic":
-            s.append("Mission fuel = %.0f kg" %self.design["mission_fuel"])
-            s.append("Reserve fuel = %.0f kg" %self.design["reserve_fuel"])
-            s.append("Total fuel = %.0f kg" %self.design["total_fuel"])
-        elif self.design["airplane_mode"]=="electric":
-            s.append("Cruise power = %.0f kW" %unit.kW_W(self.design["pw_cruise"]))
-            s.append("Battery mass = %.0f kg" %self.design["battery_mass"])
+    def plot_PKoM(self,X, Y, PKM, cax=None):
+        """Plot Passenger*distance/MTOW ratio versus Npax and Distance"""
+        CS = ax.contourf(X / 1000, Y, PKM, levels=10)
+        C = ax.contour(X / 1000, Y, PKM, levels=[1], colors=['red'], linewidths=2)
+        ax.clabel(C, inline=True, fmt="%d")
+        ax.set_xlabel("Distance (km)")
+        ax.set_ylabel("N passenger")
+        ax.grid(True)
+        if cax is None:
+            return plt.colorbar(CS, label=r"PK/M")  # create colorbar
         else:
-            raise Exception("Aircraft mode is unknown")
-        s.append("Mission energy = %.0f kWh" %unit.kWh_J(self.design["mission_energy"]))
-        s.append("Reserve energy = %.0f kWh" %unit.kWh_J(self.design["reserve_energy"]))
-        s.append("Total energy = %.0f kWh" %unit.kWh_J(self.design["total_energy"]))
-        s.append("MTOW = %.0f kg"%self.design["mtow"])
-        s.append("OWE = %.0f kg"%self.design["owe"])
-        s.append("Payload = %.0f kg"%self.design["payload"])
-        s.append("")
-        s.append("PK / MTOW minimum = %.2f pk/km" %self.design["pk_o_m_min"])
-        s.append("PK / MTOW = %.2f pk/kg" %self.design["pk_o_m"])
-        s.append("PK / Energy = %.2f pk/kWh"%self.design["pk_o_e"])
-        return "\n|\t".join(s)
+            plt.colorbar(CS, cax=CB.ax, label=r"PK/M")  # redraw colorbar on existing axes
 
 
 if __name__ == '__main__':
@@ -316,30 +329,25 @@ if __name__ == '__main__':
     print("")
     print("Criteria = ", "%.3f" % (spe.design["pk_o_m"] / spc.design["pk_o_m"]))
 
+    #----------------------------------------------- PLOT NPAX vs DISTANCE
 
-    # Set distance and npax grid
+    # Set the grid distance and npax
     distances = np.linspace(50e3, 500e3, 10)
     npaxs = np.arange(1, 20, 2)
     X, Y = np.meshgrid(distances, npaxs)
 
-    # Create Plot contour
+    # Initialize Plot
     fig,ax = plt.subplots(figsize=(10,7))
     sp = SmallPlane()
-    pkm = sp.pkom(X,Y)
-    CS = ax.contourf(X / 1000, Y, pkm, levels=10)
-    C = ax.contour(X / 1000, Y, pkm, levels=[1], colors =['red'],linewidths=2)
-    ax.clabel(C, inline=True, fmt="%d")
-    CB = plt.colorbar(CS, label=r"P.K/M") # get the colorbar axes
-    plt.xlabel("Distance (km)")
-    plt.ylabel("N passenger")
-    ax.grid(True)
+    pkm = sp.compute_PKoM_on_grid(X,Y)
+    CB = sp.plot_PKoM(X,Y,pkm)
     plt.subplots_adjust(left=0.1,bottom=0.5,right=1.,top=0.98) # adjust position
 
     # ------------------------------------------------------- SLIDERS
-    left = 0.25
-    width = 0.4
-    space = 0.04
-    height = 0.02
+    left = 0.25 # left starting point of the slider
+    width = 0.4 # width of the slider
+    space = 0.04 # vertical space between sliders
+    height = 0.02 # height of a slider
     tas_ax = plt.axes([left, 8*space, width, height])    # Airspeed (km/h)
     tas_slider = Slider(
         ax=tas_ax,
@@ -394,7 +402,7 @@ if __name__ == '__main__':
         valfmt='%0.1f kW/kg',
         valinit=4.5,
     )
-    epd_ax = plt.axes([left, 2*space, width, height])  # Electronic systems Power density (kW/kg)
+    epd_ax = plt.axes([left, 2*space, width, height])  # Electric systems Power density (kW/kg)
     epd_slider = Slider(
         ax=epd_ax,
         label="Elec Power dens.",
@@ -425,10 +433,11 @@ if __name__ == '__main__':
     reset_button = Button(reset_ax, 'Reset')
 
     # ------------------------------------------------------- CONNECT AND UPDATE (SLIDERS + BUTTONS)
-    # The function to be called anytime a slider's value changes
     def update(val):
+        """The function to be called anytime a slider's value changes"""
         # remove all previous contours
         ax.clear()
+        CB.ax.clear()
         # Read sliders values
         tas = unit.mps_kmph(tas_slider.val) # m/s
         alt = alt_slider.val # m
@@ -440,15 +449,10 @@ if __name__ == '__main__':
         bat = unit.J_Wh(bat_slider.val) # J/kg
         mod = mode_rbutton.value_selected
         # Recompute and plot data
-        pkm = sp.pkom(X, Y, vtas=tas, alt=alt, lod=lod, motor_eff=mef, prop_eff=pef,
+        pkm = sp.compute_PKoM_on_grid(X, Y, vtas=tas, alt=alt, lod=lod, motor_eff=mef, prop_eff=pef,
                       elec_motor_pw_density=mpd, power_elec_pw_density=epd, battery_enrg_density=bat, mode=mod)
-        CS = ax.contourf(X / 1000, Y, pkm, levels=10)
-        C = ax.contour(X / 1000, Y, pkm, levels=[1], colors=['red'], linewidths=2)
-        ax.clabel(C, inline=True, fmt="%d")
-        plt.colorbar(CS, cax=CB.ax, label=r"PK/M")
-        ax.set_xlabel("Distance (km)")
-        ax.set_ylabel("N passenger")
-        ax.grid(True)
+        sp.plot_PKoM(X,Y,pkm,cax=CB.ax)
+
 
     # Connect Sliders and radio button
     sliders = [tas_slider, alt_slider,lod_slider,mef_slider,pef_slider,mpd_slider,epd_slider,bat_slider]
