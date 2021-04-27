@@ -82,9 +82,14 @@ def draw_reg(df, un, abs, ord, reg, coloration):
     fig.suptitle(title, fontsize=12)
 
     cloud = []
+    xmax = 0
+    ymax = 0
     for typ in coloration.keys():
         abs_list = unit.convert_to(un.loc[0,abs],list(df.loc[df['airplane_type']==typ][abs]))
         ord_list = unit.convert_to(un.loc[0,ord],list(df.loc[df['airplane_type']==typ][ord]))
+        if len(abs_list)>0:
+            xmax = max(xmax, max(abs_list))
+            ymax = max(ymax, max(ord_list))
         cloud.append(plt.scatter(abs_list, ord_list, marker="o", c=coloration[typ], s=10, label=typ))
         axes.add_artist(cloud[-1])
 
@@ -94,6 +99,8 @@ def draw_reg(df, un, abs, ord, reg, coloration):
 
     plt.ylabel(ord+' ('+un.loc[0,ord]+')')
     plt.xlabel(abs+' ('+un.loc[0,abs]+')')
+    plt.xlim([0, xmax*1.05])
+    plt.ylim([0, ymax*1.05])
     plt.grid(True)
     plt.show()
 
@@ -223,7 +230,7 @@ if __name__ == '__main__':
 
     # Read data
     #-------------------------------------------------------------------------------------------------------------------
-    path_to_data_base = "All_Data_extract.xlsx"
+    path_to_data_base = "All_Data_v2.xlsx"
 
     df,un = read_db(path_to_data_base)
 
@@ -238,7 +245,7 @@ if __name__ == '__main__':
     ord = "OWE"
 
     # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
-    # df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
+    df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
 
     # order = [1]
     order = [2, 1]
@@ -305,6 +312,19 @@ if __name__ == '__main__':
     # # order = [1.8, 0.8]
     # order = [2, 1, 0]
     # dict = do_regression(df1, un1, abs, ord, coloration, order)
+
+    #----------------------------------------------------------------------------------
+    abs = "nominal_range"                           # Name of the new column
+    ord = "n_pax"
+
+    df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
+    # df1 = df.copy()
+    un1 = un.copy()
+
+    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+
+    order = [2, 1, 0]
+    dict = do_regression(df1, un1, abs, ord, coloration, order)
 
     #----------------------------------------------------------------------------------
     abs = "nominal_range"                           # Name of the new column

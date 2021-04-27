@@ -17,7 +17,7 @@ import unit
 
 class SmallPlane(object):
 
-    def __init__(self, npax=4, alt=unit.m_ft(3000), dist=unit.m_km(200), tas=unit.mps_kmph(150), mode="classic"):
+    def __init__(self, npax=4, alt=unit.m_ft(3000), dist=unit.m_km(500), tas=unit.mps_kmph(180), mode="classic"):
         # Earth and atmosphere
         self.g = 9.80665
         self.disa = 0.
@@ -76,7 +76,7 @@ class SmallPlane(object):
                 "mtow":mtow,
                 "owe":owe,
                 "payload":payload,
-                "pk_o_m_min":unit.km_m(self.distance)/500,
+                "pk_o_m_min":unit.km_m(self.distance)/670,
                 "pk_o_m":self.n_pax*unit.km_m(self.distance)/mtow,
                 "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
 
@@ -117,8 +117,8 @@ class SmallPlane(object):
     def basic_owe(self, mtow):
         """Estimate classical airplane empty weight
         """
-        owe_basic = (-9.6325e-07 * mtow + 6.1041e-01) * mtow
-        # owe_basic = 0.606 * mtow
+        # owe_basic = (-9.6325e-07 * mtow + 6.1041e-01) * mtow
+        owe_basic = 0.606 * mtow
         return owe_basic
 
     def full_elec_design(self, mtow):
@@ -146,7 +146,7 @@ class SmallPlane(object):
                 "mtow":mtow,
                 "owe":owe,
                 "payload":payload,
-                "pk_o_m_min":unit.km_m(self.distance)/500,
+                "pk_o_m_min":unit.km_m(self.distance)/670,
                 "pk_o_m":self.n_pax*unit.km_m(self.distance)/mtow,
                 "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
 
@@ -163,7 +163,7 @@ class SmallPlane(object):
             else:
                 raise Exception("Aircraft mode is unknown")
 
-        mtow_ini = 2000
+        mtow_ini = 5000
         output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
         mtow = output_dict[0][0]
@@ -230,7 +230,7 @@ class SmallPlane(object):
         """Print main figures
         """
         s = ["\nAirplane : %s" %self.mode,
-             "Npax     %d" % self.n_pax,
+             "Npax     %.1f" % self.n_pax,
              "Distance %d km" % unit.km_m(self.distance),
              "TAS      %d km/h" % unit.kmph_mps(self.vtas),
              "Altitude %d ft" % unit.ft_m(self.alt),
@@ -266,11 +266,10 @@ class SmallPlane(object):
 
 if __name__ == '__main__':
 
-    npax = 9
-    dist = 200
-    vtas = 200
+    #-------------------------------------------------------------------------------------------------------------------
+    # Validation examples
 
-    spc = SmallPlane(npax=npax, dist=unit.m_km(dist), tas=unit.mps_kmph(vtas),mode="classic")
+    spc = SmallPlane(npax=4.5, dist=unit.m_km(1300), tas=unit.mps_kmph(280),mode="classic")     # TB20
     spc.design_solver()
     print(spc)
 
@@ -278,27 +277,32 @@ if __name__ == '__main__':
     # print("")
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
 
-    spe = SmallPlane(npax=npax, dist=unit.m_km(dist), tas=unit.mps_kmph(vtas),mode="electric")
+
+    spe = SmallPlane(npax=2, dist=unit.m_km(130), tas=unit.mps_kmph(130),mode="electric")       # H55
     spe.battery_enrg_density = unit.J_Wh(200)
     spe.design_solver()
     print(spe)
+
     # spe.max_distance(mode="electric")
     # print("")
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
 
-    print("")
-    print("Criteria = ", "%.3f" % (spe.design["pk_o_m"] / spc.design["pk_o_m"]))
 
-
-    #--------------------------------------------------
+    #-------------------------------------------------------------------------------------------------------------------
     # MAP display : minimal working example
 
-    distances = np.linspace(50e3, 500e3, 30)
+    sp = SmallPlane(alt=unit.m_ft(3000),
+                    tas=unit.mps_kmph(130),
+                    mode="electric")
+
+    sp.battery_enrg_density = unit.J_Wh(500)
+
+
+    distances = np.linspace(50e3, 1200e3, 30)
     npaxs = np.arange(1, 20)
     X, Y = np.meshgrid(distances, npaxs)
 
-    pkm=[]
-    sp = SmallPlane(tas=unit.mps_kmph(130),mode="electric")
+    pkm = []
     for x,y in zip(X.flatten(),Y.flatten()):
         sp.distance = x
         sp.n_pax = y
@@ -308,12 +312,30 @@ if __name__ == '__main__':
     # convert to numpy array with good shape
     pkm = np.array(pkm)
     pkm = pkm.reshape(np.shape(X))
+
+    print("")
     # Plot contour
     cs = plt.contourf(X / 1000, Y, pkm, levels=20)
-    c = plt.contour(X / 1000, Y, pkm, levels=[1,2], colors =['red'],linewidths=2)
-    plt.clabel(c, inline=True, fmt="%d",fontsize=20)
-    plt.plot(X / 1000, Y, '+k')
+
+    c2c = plt.contour(X / 1000, Y, Y/X*1e3, levels=[0.0146], colors =['lightgrey'], linewidths=2)
+    c2h = plt.contourf(X / 1000, Y, Y/X*1e3, levels=[0.0146,1], linewidths=2, colors='none', hatches=['\\'])
+    for c in c2h.collections:
+        c.set_edgecolor('lightgrey')
+
+    # # plt.clabel(c1, inline=True, fmt="%d",fontsize=15)
+
+    c1c = plt.contour(X / 1000, Y, pkm, levels=[1], colors =['yellow'], linewidths=2)
+    c1h = plt.contourf(X / 1000, Y, pkm, levels=[0,1], colors='none', linewidths=2, hatches=['\\'])
+    for c in c1h.collections:
+        c.set_edgecolor('yellow')
+
+    # plt.plot(X / 1000, Y, '+k')
+    # plt.plot([0, distances[-1]*1e-3], [0, (19./1300.)*distances[-1]*1e-3], linestyle='solid', color='blue')
+
     plt.colorbar(cs, label=r"P.K/M")
+    plt.grid(True)
+
+    plt.suptitle("PK/M Field")
     plt.xlabel("Distance (km)")
     plt.ylabel("N passenger")
 

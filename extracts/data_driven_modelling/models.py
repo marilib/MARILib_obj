@@ -57,6 +57,7 @@ class DDM(object):                  # Data Driven Modelling
         self.battery_vol_density = 2500.            # kg/m3
 
         self.fuel_cell_gravimetric_index = unit.convert_from("kW/kg", 5)    # kW/kg, Horizon Fuel Cell
+        self.fc_system_gravimetric_index = unit.convert_from("kW/kg", 2)    # kW/kg
         self.cooling_gravimetric_index = unit.convert_from("kW/kg", 5)      # kW/kg, Dissipated thermal power per cooloing system mass
 
         self.gh2_tank_gravimetric_index = 0.05              # kgH2 / (kg_H2 + kg_Tank)
@@ -445,6 +446,7 @@ class DDM(object):                  # Data Driven Modelling
                         raise Exception("target power system - thruster type is unknown")
                     if target_power_system["energy_source"] in [self.gh2, self.lh2]:
                         delta_system_mass += (max_power / self.motor_eff) / self.fuel_cell_gravimetric_index
+                        delta_system_mass += (max_power / self.motor_eff) / self.fc_system_gravimetric_index
                         eff = self.motor_eff*self.fuel_cell_eff
                         delta_system_mass += max_power * (1-eff)/eff / self.cooling_gravimetric_index  # All power which is not on the shaft have to be dissipated
                     elif target_power_system["energy_source"]==self.battery:

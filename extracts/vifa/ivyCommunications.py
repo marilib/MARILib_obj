@@ -1,6 +1,10 @@
+
 from ivy.std_api import IvySendMsg, IvyBindMsg, IvyMainLoop, IvyInit, IvyStart
 
 import numpy
+import argparse
+import platform
+import sys
 
 import data as geo
 
@@ -9,6 +13,9 @@ from geometry import geometry
 from contour import contour
 from force import force
 
+
+DEFAULTBUS = {'Darwin': "224.255.255.255:2010",
+              'Linux': "127.255.255.255:2010"}
 
 g = 9.80665
 
@@ -192,16 +199,28 @@ def on_cnx(a,b):
     
 def on_die(a,b):
     print("Exiting the bus....\n")
- 
-    
+
+def args(argv):
+    """analyse les arguments en ligne de commande"""
+    defaultbus = DEFAULTBUS.get(platform.system(), "127.255.255.255:2010")
+    parser = argparse.ArgumentParser(description='ivy message viewer')
+    parser.add_argument('-b', type=str, help='Ivy bus domain')
+    args = parser.parse_args()
+    bus = args.b if args.b else defaultbus
+    return bus
+
+
 if __name__=="__main__":
 
+    my_bus = args(sys.argv)
 
     agent_name = "pythonApp"
     ready_msg = "pythonApp ready!"
     
     IvyInit(agent_name, ready_msg, on_cnx, on_die)
-    IvyStart()
+
+    IvyStart(my_bus)
+
     IvyBindMsg(onStartComputing, STARTCOMPUTING)
     IvyBindMsg(onStartGettingShape, STARTGETTINGSHAPES)
     IvyMainLoop()

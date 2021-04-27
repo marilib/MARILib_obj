@@ -471,7 +471,7 @@ def draw_design_space(file, mark, other, field, const, color, limit, bound, opti
         ctr.append(axe.contour(X, Y, Z, levels=[limit[j]], colors=color[j]))
         levels = [limit[j],bnd[j]]
         levels.sort()
-        axe.contourf(X, Y, Z, levels=levels,alpha=0.,hatches=['/'])
+        axe.contourf(X, Y, Z, levels=levels, alpha=0.,hatches=['/'])
         h,_ = ctr[j].legend_elements()
         hdl.append(h[0])
 

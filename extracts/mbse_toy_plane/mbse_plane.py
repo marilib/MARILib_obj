@@ -68,7 +68,7 @@ class Airplane(object):
             self.mass.mtow = x[0]
             self.mass.mzfw = x[1]
             self.mass.mlw = x[2]
-            self.mass.eval()
+            self.mass.eval_equiped_mass()
             self.missions.eval_nominal_mission()
             self.mass.eval_characteristic_mass()
             return [x[0]-self.mass.mtow,
@@ -80,7 +80,7 @@ class Airplane(object):
         self.mass.mtow = output_dict[0][0]
         self.mass.mzfw = output_dict[0][1]
         self.mass.mlw = output_dict[0][2]
-        self.mass.eval()
+        self.mass.eval_equiped_mass()
         self.missions.eval_nominal_mission()
         self.mass.eval_characteristic_mass()
 
@@ -210,22 +210,22 @@ class Airplane(object):
         print("Nominal mission time block = "+"%.0f"%unit.h_s(self.missions.nominal.time_block)+" h")
         print("Nominal mission fuel block = "+"%.0f"%self.missions.nominal.fuel_block+" kg")
         print("Nominal mission fuel total = "+"%.0f"%self.missions.nominal.fuel_total+" kg")
-        print("")
-        print("Max payload mission range = "+"%.0f"%unit.NM_m(self.missions.max_payload.range)+" NM")
-        print("Max payload mission payload = "+"%.0f"%self.missions.max_payload.payload+" kg")
-        print("Max payload mission residual = "+"%.4f"%self.missions.max_payload.residual)
-        print("")
-        print("Max fuel mission range = "+"%.0f"%unit.NM_m(self.missions.max_fuel.range)+" NM")
-        print("Max fuel mission payload = "+"%.0f"%self.missions.max_fuel.payload+" kg")
-        print("Max fuel mission residual = "+"%.4f"%self.missions.max_fuel.residual)
-        print("")
-        print("Zero payload mission range = "+"%.0f"%unit.NM_m(self.missions.zero_payload.range)+" NM")
-        print("Zero payload mission payload = "+"%.0f"%self.missions.zero_payload.payload+" kg")
-        print("Zero payload mission residual = "+"%.4f"%self.missions.zero_payload.residual)
+        # print("")
+        # print("Max payload mission range = "+"%.0f"%unit.NM_m(self.missions.max_payload.range)+" NM")
+        # print("Max payload mission payload = "+"%.0f"%self.missions.max_payload.payload+" kg")
+        # print("Max payload mission residual = "+"%.4f"%self.missions.max_payload.residual)
+        # print("")
+        # print("Max fuel mission range = "+"%.0f"%unit.NM_m(self.missions.max_fuel.range)+" NM")
+        # print("Max fuel mission payload = "+"%.0f"%self.missions.max_fuel.payload+" kg")
+        # print("Max fuel mission residual = "+"%.4f"%self.missions.max_fuel.residual)
+        # print("")
+        # print("Zero payload mission range = "+"%.0f"%unit.NM_m(self.missions.zero_payload.range)+" NM")
+        # print("Zero payload mission payload = "+"%.0f"%self.missions.zero_payload.payload+" kg")
+        # print("Zero payload mission residual = "+"%.4f"%self.missions.zero_payload.residual)
         print("")
         print("Cost mission tow = "+"%.0f"%self.missions.cost.tow+" kg")
         print("Cost mission fuel_block = "+"%.0f"%self.missions.cost.fuel_block+" kg")
-        print("Cost mission residual = "+"%.4f"%self.missions.zero_payload.residual)
+        print("Cost mission residual = "+"%.4f"%self.missions.cost.residual)
         print("")
         print("-------------------------------------------------------")
         print("Take off field length required = "+"%.1f"%self.operations.take_off.tofl_req+" m")
@@ -1051,7 +1051,7 @@ class Mass(object):
         self.nominal_payload = None
         self.max_payload = None
 
-    def eval(self):
+    def eval_equiped_mass(self):
         """Mass computations
         """
         for comp in self.airplane:
@@ -1460,6 +1460,11 @@ class Missions(Flight):
         self.eval_mission_solver("max_payload", "range")
         self.eval_mission_solver("max_fuel", "range")
         self.eval_mission_solver("zero_payload", "range")
+        self.eval_mission_solver("cost", "tow")
+
+    def eval_cost_mission_solver(self):
+        """Compute missions and solve them
+        """
         self.eval_mission_solver("cost", "tow")
 
 
@@ -2020,7 +2025,7 @@ if __name__ == "__main__":
 
     ap.geometry.eval_tail_areas()
 
-    ap.mass.eval()
+    ap.mass.eval_equiped_mass()
 
     ap.mass.eval_characteristic_mass()
 
@@ -2150,17 +2155,24 @@ if __name__ == "__main__":
     ap.economics.eval()
 
 
-    # Info
-    #-----------------------------------------
-    print("")
-    print("-------------------------------------------------------")
-    print("Warning : no solving achieved")
-    print("   - All couplings must be solved")
-    print("   - All residuals must be driven to zero")
-    print("   - Local optimization of flight speed to be done for One Engine Ceiling")
-    print("   - Wing_area and Engine_slst must minimize MTOW, COC or DOC")
-    print("")
-    print("For some more info, look for 'INFO:' labels")
+
+# High level process according to proposed N2
+#-----------------------------------------
+    ap.geometry.eval()
+
+    ap.geometry.eval_tail_areas()
+
+    ap.mass.eval_equiped_mass()
+
+    ap.mass.eval_characteristic_mass()
+
+    ap.missions.eval_nominal_mission()
+
+    ap.missions.eval_cost_mission_solver()
+
+    ap.operations.eval()
+
+    ap.economics.eval()
 
 
 # Utils
