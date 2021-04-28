@@ -230,7 +230,8 @@ if __name__ == '__main__':
 
     # Read data
     #-------------------------------------------------------------------------------------------------------------------
-    path_to_data_base = "All_Data_v2.xlsx"
+    path_to_data_base = "All_Data_extract.xlsx"
+    # path_to_data_base = "All_Data_v2.xlsx"
 
     df,un = read_db(path_to_data_base)
 
@@ -245,7 +246,7 @@ if __name__ == '__main__':
     ord = "OWE"
 
     # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
-    df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
+    # df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
 
     # order = [1]
     order = [2, 1]
@@ -263,6 +264,19 @@ if __name__ == '__main__':
     # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
 
     order = [2, 1]
+    dict = do_regression(df, un, abs, ord, coloration, order)
+
+
+    #----------------------------------------------------------------------------------
+    abs = "PK"
+    ord = "MTOW"                           # Name of the new column
+
+    df[abs] = df['n_pax']*df['nominal_range']      # Add the new column to the dataframe
+    un[abs] = un['nominal_range']                     # Add its unit
+
+    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+
+    order = [2, 1, 0]
     dict = do_regression(df, un, abs, ord, coloration, order)
 
     # #----------------------------------------------------------------------------------

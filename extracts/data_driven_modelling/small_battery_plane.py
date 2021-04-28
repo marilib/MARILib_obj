@@ -191,7 +191,7 @@ class SmallPlane(object):
                 "pk_o_m":self.n_pax*unit.km_m(self.distance)/mtow,
                 "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
 
-    def old_design_solver(self):
+    def design_solver(self):
         """Compute the design point
         """
         def fct(mtow):
@@ -204,7 +204,7 @@ class SmallPlane(object):
             else:
                 raise Exception("Aircraft mode is unknown")
 
-        mtow_ini = 3000
+        mtow_ini = 100000   # Use very high init to avoid negative root
         output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
         mtow = output_dict[0][0]
@@ -212,45 +212,6 @@ class SmallPlane(object):
         if self.mode=="classic":
             self.design = self.classic_design(mtow)
         elif self.mode=="electric":
-            self.design = self.full_elec_design(mtow)
-
-
-    def design_solver(self, err=1e-4, maxiter=200):
-        """ Uses a fixed point iteration procedure to solve the design. It recquires more iterations than a gradient based method,
-        but convergences towards the attractive solution point (positive MTOW).
-
-        The procedure starts with an initial guess for mtow.
-        The first iteration computes the airplane design from this initial guess. This results in a new mtow.
-        Then we iteratively solve f(mtow)=mtow, with f() the MTOW computed by the aircraft design.
-
-        * err : the relative precision criterion for convergence. Default 1e-4.
-        """
-
-        if self.mode=="classic":
-            def fct(mtow):
-                design = self.classic_design(mtow)
-                return design["owe"] + design["payload"] + design["total_fuel"]
-        elif self.mode=="electric":
-            def fct(mtow):
-                design = self.full_elec_design(mtow)
-                return design["owe"] + design["payload"]
-        else:
-            raise Exception("Aircraft mode is unknown")
-
-        mtow_old =0
-        mtow=2000 # initial guess
-        i = 0
-        while (mtow-mtow_old)/mtow>err and i<maxiter:
-            mtow_old = mtow
-            mtow = fct(mtow)
-            i+=1
-
-        if i == maxiter:
-            raise RuntimeWarning("Convergence problem, exceed max number of iterations.")
-
-        if self.mode == "classic":
-            self.design = self.classic_design(mtow)
-        elif self.mode == "electric":
             self.design = self.full_elec_design(mtow)
 
 
@@ -302,11 +263,11 @@ if __name__ == '__main__':
                     tas=unit.mps_kmph(130),
                     mode="electric")
 
-    sp.battery_enrg_density = unit.J_Wh(400)
+    sp.battery_enrg_density = unit.J_Wh(200)
 
 
     distances = np.linspace(50e3, 1000e3, 30)
-    npaxs = np.arange(0, 19)
+    npaxs = np.arange(1, 19)
     X, Y = np.meshgrid(distances, npaxs)
 
     pkm = []

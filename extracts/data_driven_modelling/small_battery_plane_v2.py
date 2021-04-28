@@ -58,7 +58,7 @@ class SmallPlane(object):
         """Print main figures
         """
         s = ["\nAirplane : %s" %self.mode,
-             "Npax     %d" % self.n_pax,
+             "Npax     %.1f" % self.n_pax,
              "Distance %d km" % unit.km_m(self.distance),
              "TAS      %d km/h" % unit.kmph_mps(self.vtas),
              "Altitude %d ft" % unit.ft_m(self.alt),
@@ -191,7 +191,7 @@ class SmallPlane(object):
                 "pk_o_m":self.n_pax*unit.km_m(self.distance)/mtow,
                 "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
 
-    def old_design_solver(self):
+    def design_solver(self):
         """Compute the design point
         """
         def fct(mtow):
@@ -204,7 +204,7 @@ class SmallPlane(object):
             else:
                 raise Exception("Aircraft mode is unknown")
 
-        mtow_ini = 5000
+        mtow_ini = 100000
         output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
         mtow = output_dict[0][0]
@@ -212,44 +212,6 @@ class SmallPlane(object):
         if self.mode=="classic":
             self.design = self.classic_design(mtow)
         elif self.mode=="electric":
-            self.design = self.full_elec_design(mtow)
-
-    def new_design_solver(self, err=1e-4, maxiter=200):
-        """ Uses a fixed point iteration procedure to solve the design. It recquires more iterations than a gradient based method,
-        but convergences towards the attractive solution point (positive MTOW).
-
-        The procedure starts with an initial guess for mtow.
-        The first iteration computes the airplane design from this initial guess. This results in a new mtow.
-        Then we iteratively solve f(mtow)=mtow, with f() the MTOW computed by the aircraft design.
-
-        * err : the relative precision criterion for convergence. Default 1e-4.
-        """
-
-        if self.mode=="classic":
-            def fct(mtow):
-                design = self.classic_design(mtow)
-                return design["owe"] + design["payload"] + design["total_fuel"]
-        elif self.mode=="electric":
-            def fct(mtow):
-                design = self.full_elec_design(mtow)
-                return design["owe"] + design["payload"]
-        else:
-            raise Exception("Aircraft mode is unknown")
-
-        mtow_old =0
-        mtow=2000 # initial guess
-        i = 0
-        while (mtow-mtow_old)/mtow>err and i<maxiter:
-            mtow_old = mtow
-            mtow = fct(mtow)
-            i+=1
-
-        if i == maxiter:
-            raise RuntimeWarning("Convergence problem, exceed max number of iterations.")
-
-        if self.mode == "classic":
-            self.design = self.classic_design(mtow)
-        elif self.mode == "electric":
             self.design = self.full_elec_design(mtow)
 
     def max_distance(self):
@@ -269,26 +231,6 @@ class SmallPlane(object):
 
     def compute_PKoM_on_grid(self, X, Y, **kwargs):
         """
-        s = ["\nAirplane : %s" %self.mode,
-             "Npax     %.1f" % self.n_pax,
-             "Distance %d km" % unit.km_m(self.distance),
-             "TAS      %d km/h" % unit.kmph_mps(self.vtas),
-             "Altitude %d ft" % unit.ft_m(self.alt),
-             "---------------------------------"]
-
-        if self.design==None:
-            s.append(">>  NO DESIGN  <<")
-            return "\n".join(s) # print only recquirements
-
-        s.append("Max power = %.0f kW" %unit.kW_W(self.design["pw_max"]))
-        if self.design["airplane_mode"]=="classic":
-            s.append("Mission fuel = %.0f kg" %self.design["mission_fuel"])
-            s.append("Reserve fuel = %.0f kg" %self.design["reserve_fuel"])
-            s.append("Total fuel = %.0f kg" %self.design["total_fuel"])
-        elif self.design["airplane_mode"]=="electric":
-            s.append("Cruise power = %.0f kW" %unit.kW_W(self.design["pw_cruise"]))
-            s.append("Battery mass = %.0f kg" %self.design["battery_mass"])
-
         Compute the ratio between the Passenger.distance/MTOW (PKoM) and the minimum acceptable PKoM for a set of design range an number of passenger.
         :param X: 2D array of distance
         :param Y: 2D array of Npax
@@ -304,7 +246,7 @@ class SmallPlane(object):
         for x,y in zip(X.flatten(),Y.flatten()):
             self.distance = x
             self.n_pax = y
-            self.new_design_solver()
+            self.design_solver()
             pkm.append(self.design["pk_o_m"]/self.design["pk_o_m_min"])
         # reshape pkm to 2D array
         pkm = np.array(pkm)
@@ -330,7 +272,7 @@ if __name__ == '__main__':
     # Validation examples
 
     spc = SmallPlane(npax=4.5, dist=unit.m_km(1300), tas=unit.mps_kmph(280),mode="classic")     # TB20
-    spc.new_design_solver()
+    spc.design_solver()
     print(spc)
 
     # spc.max_distance(mode="classic")
@@ -340,7 +282,7 @@ if __name__ == '__main__':
 
     spe = SmallPlane(npax=2, dist=unit.m_km(130), tas=unit.mps_kmph(130),mode="electric")       # H55
     spe.battery_enrg_density = unit.J_Wh(200)
-    spe.new_design_solver()
+    spe.design_solver()
     print(spe)
 
     # spe.max_distance(mode="electric")
@@ -366,7 +308,7 @@ if __name__ == '__main__':
     for x,y in zip(X.flatten(),Y.flatten()):
         sp.distance = x
         sp.n_pax = y
-        sp.new_design_solver()
+        sp.design_solver()
         pkm.append(sp.design["pk_o_m"]/sp.design["pk_o_m_min"])
 
     # convert to numpy array with good shape

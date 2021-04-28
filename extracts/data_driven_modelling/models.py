@@ -94,6 +94,14 @@ class DDM(object):                  # Data Driven Modelling
         self.lod_low = [15, 1000]       # [lod, mtow]
         self.lod_high = [20, 200000]    # [lod, mtow]
 
+        self.cl_max_to_low = [2.0, 1000]       # [lc_max_to, mtow]
+        self.cl_max_to_high = [2.5, 200000]    # [lc_max_to, mtow]
+        self.kvs1g_to = 1.13
+
+        self.cl_max_ld_low = [2.3, 1000]       # [cl_max_ld, mtow]
+        self.cl_max_ld_high = [2.9, 200000]    # [cl_max_ld, mtow]
+        self.kvs1g_ld = 1.23
+
         self.psfc_low = [unit.convert_from("lb/shp/h",0.6), unit.convert_from("kW",50)]     # here power is shaft power
         self.psfc_high = [unit.convert_from("lb/shp/h",0.4), unit.convert_from("kW",1000)]
 
@@ -123,6 +131,24 @@ class DDM(object):                  # Data Driven Modelling
         lod_list =  [lod_min, lod_min , lod_max , lod_max]
         lod = utils.lin_interp_1d(mtow, mtow_list, lod_list)
         return lod
+
+
+    def get_cl_max_to(self,mtow):
+        clm_min, mtow_min = self.cl_max_to_low
+        clm_max, mtow_max = self.cl_max_to_high
+        mtow_list = [0.     , mtow_min, mtow_max, np.inf]
+        clm_list =  [clm_min, clm_min , clm_max , clm_max]
+        clm = utils.lin_interp_1d(mtow, mtow_list, clm_list)
+        return clm
+
+
+    def get_cl_max_ld(self,mtow):
+        clm_min, mtow_min = self.cl_max_ld_low
+        clm_max, mtow_max = self.cl_max_ld_high
+        mtow_list = [0.     , mtow_min, mtow_max, np.inf]
+        clm_list =  [clm_min, clm_min , clm_max , clm_max]
+        clm = utils.lin_interp_1d(mtow, mtow_list, clm_list)
+        return clm
 
 
     def get_psfc(self,max_power, fuel_type):
@@ -534,6 +560,27 @@ class DDM(object):                  # Data Driven Modelling
 
         dict = self.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, power_system, target_power_system=target_power_system)
         return dict
+
+
+    def get_app_speed(self, dict, wing_area, disa, altp):
+        pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
+        rho = self.phd.gas_density(pamb,tamb)
+        mlw = dict['mlw']
+        cl = self.get_cl_max_ld(mlw) / self.kvs1g_ld**2
+        app_speed = np.sqrt((2*mlw*g)/(rho*wing_area*cl))
+        return app_speed
+
+
+    def get_tofl(self, dict, wing_area, disa, altp):
+        pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
+        rho = self.phd.gas_density(pamb,tamb)
+        mtow = dict['mtow']
+        cl = self.get_cl_max_to(mtow) / self.kvs1g_to**2
+        vtas = np.sqrt((2*mtow*g)/(rho*wing_area*cl))
+
+
+
+
 
 
     def print_design(self, dict, content="all"):
