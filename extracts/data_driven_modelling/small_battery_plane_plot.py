@@ -17,11 +17,6 @@ from matplotlib import rc
 font = {'size':12}
 rc('font',**font)
 
-
-
-
-
-
 #-------------------------------------------------------------------------------------------------------------------
 # MAP display : minimal working example
 
