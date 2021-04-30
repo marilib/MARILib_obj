@@ -208,6 +208,10 @@ UNIT["kg/N"] = 1.
 UNIT["g/N"] = 0.001
 UNIT["g/kN"] = 0.000001
 
+# dim = "SeatKilometer"
+UNIT["seat.m"] = 1.
+UNIT["seat.km"] = 1000.
+
 # dim = "MassperSeat"
 UNIT["kg/seat"] = 1.
 UNIT["g/seat"] = 0.001

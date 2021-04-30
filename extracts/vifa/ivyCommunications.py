@@ -171,27 +171,27 @@ def onStartComputing(agent, *args):
 
     # # TO BE ADDED
     # # sending rRaf
-    # IvySendMsg("Force name=rEaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.RotRapp, *geo.rRafVec, "violet"))
+    IvySendMsg("Force name=rRaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.RotRapp, *geo.rRafVec, "violet"))
     # # sending lRaf
-    # IvySendMsg("Force name=lEaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.RotLapp, *geo.lRafVec, "violet"))
-    # # sending rRaf
-    # IvySendMsg("Force name=rEaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.HtpRapp, *geo.rHtpRafVec, "violet"))
-    # # sending lRaf
-    # IvySendMsg("Force name=lEaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.HtpLapp, *geo.lHtpRafVec, "violet"))
-    # # sending Raf
-    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.VtpApp, *geo.rotVafVec, "violet"))
+    IvySendMsg("Force name=lRaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.RotLapp, *geo.lRafVec, "violet"))
+    # # sending rHtpRaf
+    IvySendMsg("Force name=rHtpRaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.HtpRapp, *geo.rHtpRafVec, "violet"))
+    # # sending lHtpRaf
+    IvySendMsg("Force name=lHtpRaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.HtpLapp, *geo.lHtpRafVec, "violet"))
+    # # sending rotVaf
+    IvySendMsg("Force name=rotVaf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.VtpApp, *geo.rotVafVec, "violet"))
+    #
+    # TO BE ADDED
+    # sending rNtf
+    IvySendMsg("Force name=rNtf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.NacRapp, *geo.rNtfVec, "grey"))
+    # sending lNtf
+    IvySendMsg("Force name=lNtf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.NacLapp, *geo.lNtfVec, "grey"))
     #
     # # TO BE ADDED
     # # sending mg
-    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.NacRapp, *geo.rNtfVec, "grey"))
+    IvySendMsg("Force name=mg applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.mgApp, *geo.mg, "brown"))
     # # sending lift
-    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.NacLapp, *geo.lNtfVec, "grey"))
-    #
-    # # TO BE ADDED
-    # # sending mg
-    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.mgApp, *geo.mg, "brown"))
-    # # sending lift
-    # IvySendMsg("Force name=Raf applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.LiftApp, *geo.LiftTotal, "blue"))
+    IvySendMsg("Force name=LiftTotal applicationX={0} applicationY={1} applicationZ={2} normeX={3} normeY={4} normeZ={5} color={6}".format(*geo.LiftApp, *geo.LiftTotal, "blue"))
 
 
 def on_cnx(a,b):

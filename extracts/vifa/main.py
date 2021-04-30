@@ -24,33 +24,51 @@ import matplotlib.pyplot as plt
 g = 9.80665
 
 # xcg = 0.2555
-xcg = 0.3
-mass = 70000
+# xcg = 0.3
+# mass = 70000
+#
+# vair = 150
+#
+# psi = rad_deg(0)
+# theta = rad_deg(0)
+# phi = rad_deg(0)
+#
+# alpha = rad_deg(0)
+# betha = rad_deg(0)
+#
+# dl = rad_deg(0)
+# dm = rad_deg(0)
+# dn = rad_deg(0)
+# dx = 0
+#
+# trim = rad_deg(0)
+#
+# a0 = rad_deg(3.031)
+# f0 = mass*g/5
+#
+# p = rad_deg(0)
+# q = rad_deg(0)
+# r = rad_deg(0)
 
-vair = 150
 
-psi = rad_deg(0)
-theta = rad_deg(0)
-phi = rad_deg(0)
-
-alpha = rad_deg(0)
-betha = rad_deg(0)
-
-dl = rad_deg(0)
-dm = rad_deg(0)
-dn = rad_deg(0)
+a0 = 0.0
+f0 = 137293.1
+mass = 80000.0
+xcg = 0.2
+vair = 150.0
+psi = 0.0
+theta = 0.0
+phi = 0.0
+alpha = 0.0
+betha = 0.0
+trim = 0.0
+dl = 0.0
+dm = 0.0
+dn = 0.0
 dx = 0
-
-trim = rad_deg(0)
-
-a0 = rad_deg(3.031)
-f0 = mass*g/5
-
-p = rad_deg(0)
-q = rad_deg(0)
-r = rad_deg(0)
-
-
+p = 0.0
+q = 0.0
+r = 0.0
 
 
 geometry()

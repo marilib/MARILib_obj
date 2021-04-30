@@ -89,24 +89,22 @@ class DDM(object):                  # Data Driven Modelling
 
         self.mpax_allowance_low = [90, unit.m_km(1000)]
         self.mpax_allowance_med = [110, unit.m_km(8000)]
-        self.mpax_allowance_high = [150, unit.m_km(np.inf)]
+        self.mpax_allowance_high = [130, unit.m_km(np.inf)]
 
-        self.lod_low = [15, 1000]       # [lod, mtow]
-        self.lod_high = [20, 200000]    # [lod, mtow]
-
-        self.cl_max_to_low = [2.0, 1000]       # [lc_max_to, mtow]
-        self.cl_max_to_high = [2.5, 200000]    # [lc_max_to, mtow]
+        self.cl_max_to = 2.0
         self.kvs1g_to = 1.13
 
-        self.cl_max_ld_low = [2.3, 1000]       # [cl_max_ld, mtow]
-        self.cl_max_ld_high = [2.9, 200000]    # [cl_max_ld, mtow]
+        self.cl_max_ld = 2.6
         self.kvs1g_ld = 1.23
 
-        self.psfc_low = [unit.convert_from("lb/shp/h",0.6), unit.convert_from("kW",50)]     # here power is shaft power
-        self.psfc_high = [unit.convert_from("lb/shp/h",0.4), unit.convert_from("kW",1000)]
+        self.lod_low = [14, 1000]       # [lod, mtow]
+        self.lod_high = [20, 125000]    # [lod, mtow]
 
-        self.tsfc_low = [unit.convert_from("kg/daN/h",0.60), unit.convert_from("MW",1)]     # Here, power is equivalent shaft power developped during take off as defined in the data base
-        self.tsfc_high = [unit.convert_from("kg/daN/h",0.54), unit.convert_from("MW",10)]
+        self.psfc_low = [unit.convert_from("lb/shp/h",0.65), unit.convert_from("kW",50)]     # here power is shaft power
+        self.psfc_high = [unit.convert_from("lb/shp/h",0.50), unit.convert_from("kW",500)]
+
+        self.tsfc_low = [unit.convert_from("kg/daN/h",0.65), unit.convert_from("MW",5)]     # Here, power is equivalent shaft power developped during take off as defined in the data base
+        self.tsfc_high = [unit.convert_from("kg/daN/h",0.52), unit.convert_from("MW",50)]
 
         self.fc_eff_low = [0.45, 1.0]     # Fuel cell efficiency at system level for design power (max power)
         self.fc_eff_high = [0.75, 0.1]    # Fuel cell efficiency at system level for low power (power close to zero)
@@ -133,22 +131,22 @@ class DDM(object):                  # Data Driven Modelling
         return lod
 
 
-    def get_cl_max_to(self,mtow):
-        clm_min, mtow_min = self.cl_max_to_low
-        clm_max, mtow_max = self.cl_max_to_high
-        mtow_list = [0.     , mtow_min, mtow_max, np.inf]
-        clm_list =  [clm_min, clm_min , clm_max , clm_max]
-        clm = utils.lin_interp_1d(mtow, mtow_list, clm_list)
-        return clm
+    def get_cl_max_to(self):
+        # clm_min, mtow_min = self.cl_max_to_low
+        # clm_max, mtow_max = self.cl_max_to_high
+        # mtow_list = [0.     , mtow_min, mtow_max, np.inf]
+        # clm_list =  [clm_min, clm_min , clm_max , clm_max]
+        # clm = utils.lin_interp_1d(mtow, mtow_list, clm_list)
+        return self.cl_max_to
 
 
-    def get_cl_max_ld(self,mtow):
-        clm_min, mtow_min = self.cl_max_ld_low
-        clm_max, mtow_max = self.cl_max_ld_high
-        mtow_list = [0.     , mtow_min, mtow_max, np.inf]
-        clm_list =  [clm_min, clm_min , clm_max , clm_max]
-        clm = utils.lin_interp_1d(mtow, mtow_list, clm_list)
-        return clm
+    def get_cl_max_ld(self):
+        # clm_min, mtow_min = self.cl_max_ld_low
+        # clm_max, mtow_max = self.cl_max_ld_high
+        # mtow_list = [0.     , mtow_min, mtow_max, np.inf]
+        # clm_list =  [clm_min, clm_min , clm_max , clm_max]
+        # clm = utils.lin_interp_1d(mtow, mtow_list, clm_list)
+        return self.cl_max_ld
 
 
     def get_psfc(self,max_power, fuel_type):
@@ -513,8 +511,8 @@ class DDM(object):                  # Data Driven Modelling
         dict_s = self.owe_structure(mtow, max_power, dict_p["energy_storage"], initial_power_system, target_power_system)
 
         payload_max = dict_p["payload"] * self.max_payload_factor
-        mzfw = dict_s["owe"] * self.max_fuel_payload_factor
-        mlw = mzfw * self.max_fuel_payload_factor
+        mzfw = dict_s["owe"] + payload_max
+        mlw = mzfw * self.mlw_factor
 
         pamb,tamb,g = self.phd.atmosphere(0)
 
@@ -562,25 +560,26 @@ class DDM(object):                  # Data Driven Modelling
         return dict
 
 
-    def get_app_speed(self, dict, wing_area, disa, altp):
-        pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
+    def get_app_speed(self, dict, wing_area, disa, altp, mass):
+        pamb,tamb,g = self.phd.atmosphere(altp, disa)
         rho = self.phd.gas_density(pamb,tamb)
-        mlw = dict['mlw']
-        cl = self.get_cl_max_ld(mlw) / self.kvs1g_ld**2
-        app_speed = np.sqrt((2*mlw*g)/(rho*wing_area*cl))
+        cl = self.get_cl_max_ld() / self.kvs1g_ld**2
+        vapp = np.sqrt((2*mass*g)/(rho*wing_area*cl))
+        app_speed = 1.15*vapp - 6.  # Tunning versus data base
         return app_speed
 
 
-    def get_tofl(self, dict, wing_area, disa, altp):
-        pamb,tamb,g = self.phd.atmosphere(altp, self.disa)
+    def get_tofl(self, dict, wing_area, disa, altp, mass):
+        pamb,tamb,g = self.phd.atmosphere(altp, disa)
         rho = self.phd.gas_density(pamb,tamb)
+        sigma = rho/1.225
         mtow = dict['mtow']
-        cl = self.get_cl_max_to(mtow) / self.kvs1g_to**2
-        vtas = np.sqrt((2*mtow*g)/(rho*wing_area*cl))
-
-
-
-
+        cl = self.get_cl_max_to() / self.kvs1g_to**2
+        vtas35ft = np.sqrt((2*mass*g)/(rho*wing_area*cl))
+        fn = (self.ref_power(mtow) / (1.0*vtas35ft)) * self.prop_eff
+        ml_factor = mass**2 / (cl*fn*wing_area*sigma**0.8 )  # Magic Line factor
+        tofl = 11.3*ml_factor + 300.    # Magic line
+        return tofl
 
 
     def print_design(self, dict, content="all"):
