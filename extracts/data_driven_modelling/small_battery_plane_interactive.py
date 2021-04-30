@@ -8,13 +8,12 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
-from scipy.optimize import fsolve
 import unit
 
 from small_battery_plane import SmallPlane
 
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, Button, RadioButtons
+from matplotlib.widgets import Slider, Button, RadioButtons, TextBox
 from matplotlib import rc
 font = {'size':12}
 rc('font',**font)
@@ -39,7 +38,7 @@ def plot_PKoM(X, Y, PKM, cax=None):
 
 # Set the grid distance and npax
 distances = np.linspace(50e3, 500e3, 10)
-npaxs = np.arange(1, 20, 2)
+npaxs = np.arange(2, 20, 2)
 X, Y = np.meshgrid(distances, npaxs)
 
 # Initialize Plot
@@ -138,6 +137,12 @@ mode_rbutton = RadioButtons(
 reset_ax = plt.axes([0.9, 0, 0.1, 0.05])
 reset_button = Button(reset_ax, 'Reset')
 
+# ------------------------------------------------------- SPAN SELECTOR
+xmax_ax = plt.axes([0.8, 0.4, 0.1, 0.05])
+xmax_box = TextBox(xmax_ax,'', initial=str(int(distances[-1]/1000)))
+ymax_ax = plt.axes([0.01, 0.95, 0.05, 0.05])
+ymax_box = TextBox(ymax_ax,'', initial=str(npaxs[-1]))
+
 # ------------------------------------------------------- CONNECT AND UPDATE (SLIDERS + BUTTONS)
 def update(val):
     """The function to be called anytime a slider's value changes"""
@@ -155,6 +160,9 @@ def update(val):
     bat = unit.J_Wh(bat_slider.val) # J/kg
     mod = mode_rbutton.value_selected
     # Recompute and plot data
+    xmax = int(xmax_box.text) # max distance (km)
+    ymax = int(ymax_box.text) # max number of passsenger
+    X,Y = np.meshgrid(np.linspace(1e3,xmax*1000,10),np.arange(2,ymax+2,2))
     pkm = sp.compute_PKoM_on_grid(X, Y, vtas=tas, alt=alt, lod=lod, motor_eff=mef, prop_eff=pef,
                   elec_motor_pw_density=mpd, power_elec_pw_density=epd, battery_enrg_density=bat, mode=mod)
     plot_PKoM(X,Y,pkm,cax=CB.ax)
@@ -165,6 +173,8 @@ sliders = [tas_slider, alt_slider,lod_slider,mef_slider,pef_slider,mpd_slider,ep
 for s in sliders:
     s.on_changed(update)
 mode_rbutton.on_clicked(update)
+xmax_box.on_submit(update)
+ymax_box.on_submit(update)
 
 # Connect reset button
 def reset(event):
