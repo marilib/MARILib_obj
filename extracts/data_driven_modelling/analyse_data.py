@@ -131,7 +131,7 @@ def draw_hist(rer,title):
     fig.canvas.set_window_title("Relative error distribution")
     fig.suptitle(title, fontsize=12)
 
-    plt.hist(rer, bins=10, range=(-1,1))
+    plt.hist(rer, bins=20, range=(-1,1))
 
     plt.ylabel('Count')
     plt.xlabel('Relative Error')

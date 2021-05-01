@@ -283,7 +283,9 @@ UNIT["lb/ft3/s"] = 16.018499
 UNIT["si"] = 1.
 UNIT["std"] = 1.
 UNIT["uc"] = 1.
+UNIT["u.c"] = 1.
 UNIT["cu"] = 1.
+UNIT["c.u"] = 1.
 
 # dim = "Angle"
 UNIT["rad"] = 1.

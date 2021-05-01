@@ -20,7 +20,7 @@ import utils
 from physical_data import PhysicalData
 from models import DDM
 
-from analyse_data import read_db, draw_reg, draw_hist, do_regression
+from analyse_data import coloration, read_db, draw_reg, draw_hist, do_regression
 
 
 def compare_owe_base_and_model(df, ddm, coloration):
@@ -220,27 +220,11 @@ if __name__ == '__main__':
 
     # perform regressions
     #-------------------------------------------------------------------------------------------------------------------
-    coloration = {"general":"gold", "commuter":"green", "business":"blue", "narrow_body":"darkorange", "wide_body":"red"}
-
     phd = PhysicalData()
     ddm = DDM(phd)
 
     df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
     un1 = un.copy()
-
-    # Analyse OWE model versus OWE data base
-    #-------------------------------------------------------------------------------------------------------------------
-    compare_tofl_base_and_model(df1, ddm, coloration)
-
-
-    # Analyse OWE model versus OWE data base
-    #-------------------------------------------------------------------------------------------------------------------
-    compare_vapp_base_and_model(df1, ddm, coloration)
-
-
-    # Analyse OWE model versus OWE data base
-    #-------------------------------------------------------------------------------------------------------------------
-    compare_mlw_base_and_model(df1, ddm, coloration)
 
 
     # Analyse OWE model versus OWE data base
@@ -251,4 +235,19 @@ if __name__ == '__main__':
     # Analyse OWE & MTOW model versus OWE & MTOW data base
     #-------------------------------------------------------------------------------------------------------------------
     compare_adaptation(df1, ddm, coloration)
+
+
+    # Analyse OWE model versus OWE data base
+    #-------------------------------------------------------------------------------------------------------------------
+    compare_mlw_base_and_model(df1, ddm, coloration)
+
+
+    # Analyse OWE model versus OWE data base
+    #-------------------------------------------------------------------------------------------------------------------
+    compare_tofl_base_and_model(df1, ddm, coloration)
+
+
+    # Analyse OWE model versus OWE data base
+    #-------------------------------------------------------------------------------------------------------------------
+    compare_vapp_base_and_model(df1, ddm, coloration)
 

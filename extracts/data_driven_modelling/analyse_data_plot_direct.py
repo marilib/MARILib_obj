@@ -41,16 +41,34 @@ df = df[df['name']!='A380-800'].reset_index(drop=True)
 
 
 #----------------------------------------------------------------------------------
-abs = "n_pax"
-ord = "fuselage_width"
+abs = "wing_area*wing_span"
+ord = "VTP_area*total_length"
 
-dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
+df1 = df[df['engine_y_arm']<0.1].reset_index(drop=True).copy()    # Remove
+un1 = un.copy()
+
+df1[abs] = df1['wing_area'] * df1['wing_span']   # Add the new column to the dataframe
+un1[abs] = "m3"
+
+df1[ord] = df1['VTP_area'] * df1['total_length']   # Add the new column to the dataframe
+un1[ord] = "m3"
+
+dict = draw_reg(df1, un1, abs, ord, [[],[]], coloration, leg_loc="upper left")
 
 #----------------------------------------------------------------------------------
-abs = "wing_span"
-ord = "VTP_area"
+abs = "engine_y_arm*max_power/approach_speed"
+ord = "VTP_area*total_length"
 
-dict = draw_reg(df, un, abs, ord, [[],[]], coloration, leg_loc="upper left")
+df1 = df[df['engine_y_arm']>0.1].reset_index(drop=True).copy()    # Remove
+un1 = un.copy()
+
+df1[abs] = df1['engine_y_arm'] * df1['max_power'] / df1['approach_speed']   # Add the new column to the dataframe
+un1[abs] = "c.u"
+
+df1[ord] = df1['VTP_area'] * df1['total_length']   # Add the new column to the dataframe
+un1[ord] = "m3"
+
+dict = draw_reg(df1, un1, abs, ord, [[],[]], coloration)
 
 #----------------------------------------------------------------------------------
 abs = "wing_span"
@@ -114,11 +132,11 @@ ord = "OWE"
 dict = draw_reg(df, un, abs, ord, [[],[]], coloration, leg_loc="upper left")
 
 #----------------------------------------------------------------------------------
-abs = "OWE"
-ord = "OWE+n_pax*100"
+abs = "(OWE+n_pax*150)*1.07"
+ord = "MLW"
 
-df[ord] = df['OWE'] + df['n_pax'].multiply(100.)   # Add the new column to the dataframe
-un[ord] = "m2"                                      # Add its unit
+df[abs] = (df['OWE'] + df['n_pax'].multiply(150.)).multiply(1.07)   # Add the new column to the dataframe
+un[abs] = "kg"                                      # Add its unit
 
 dict = draw_reg(df, un, abs, ord, [[],[]], coloration, leg_loc="upper left")
 
@@ -172,16 +190,19 @@ un[ord] = "kW"
 dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
 
 #----------------------------------------------------------------------------------
-abs = "approach_speed"
+abs = "MLW*approach_speed**2"
 ord = "lfl"
 
-dict = draw_reg(df, un, abs, ord, [[],[]], coloration, leg_loc="upper left")
+df[abs] = (df['MLW'] * df['approach_speed']**2)   # Add the new column to the dataframe
+un[abs] = "N.m"                              # Add its unit
+
+dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
 
 #----------------------------------------------------------------------------------
-abs = "MLW/wing_area"
+abs = "sqrt(MLW/wing_area)"
 ord = "approach_speed"
 
-df[abs] = (df['MLW'] / df['wing_area'])   # Add the new column to the dataframe
+df[abs] = (df['MLW'] / df['wing_area'])**0.5   # Add the new column to the dataframe
 un[abs] = "kg/m2"                                      # Add its unit
 
 dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
@@ -193,5 +214,5 @@ ord = "tofl"
 df[abs] = df['MTOW']**2 / (df['max_power'] * df['n_engine'] * df['wing_area'])   # Add the new column to the dataframe
 un[abs] = "std"                                      # Add its unit
 
-dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
+dict = draw_reg(df, un, abs, ord, [[],[]], coloration, leg_loc="upper left")
 

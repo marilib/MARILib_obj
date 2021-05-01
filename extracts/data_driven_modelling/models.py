@@ -93,9 +93,11 @@ class DDM(object):                  # Data Driven Modelling
 
         self.cl_max_to = 2.0
         self.kvs1g_to = 1.13
+        self.tuner_to = [11.3, 300]
 
         self.cl_max_ld = 2.6
         self.kvs1g_ld = 1.23
+        self.tuner_app = [1.15, -6]
 
         self.lod_low = [14, 1000]       # [lod, mtow]
         self.lod_high = [20, 125000]    # [lod, mtow]
@@ -108,6 +110,8 @@ class DDM(object):                  # Data Driven Modelling
 
         self.fc_eff_low = [0.45, 1.0]     # Fuel cell efficiency at system level for design power (max power)
         self.fc_eff_high = [0.75, 0.1]    # Fuel cell efficiency at system level for low power (power close to zero)
+
+        self.take_off_factor = []
 
 
     def get_pax_allowance(self,distance):
@@ -434,23 +438,25 @@ class DDM(object):                  # Data Driven Modelling
 
     def owe_structure(self, mtow, max_power, energy_storage, initial_power_system=None, target_power_system=None):
         owe = self.ref_owe(mtow)
+        delta_engine_mass = 0.
         delta_system_mass = 0.
         if initial_power_system is not None:
+
+            # Compute initial engine mass
+            if initial_power_system["engine_type"]==self.piston:
+                initial_engine_mass = max_power / self.piston_eng_pw_density
+                initial_engine_mass += max_power / self.propeller_pw_density
+            elif initial_power_system["engine_type"]==self.turboprop:
+                initial_engine_mass = max_power / self.turboprop_pw_density
+                initial_engine_mass += max_power / self.propeller_pw_density
+            elif initial_power_system["engine_type"]==self.turbofan:
+                initial_engine_mass = max_power / self.turbofan_pw_density
+            else:
+                raise Exception("initial power system - engine type is not allowed")
+
             if target_power_system is not None:
 
-                # remove initial engine mass
-                if initial_power_system["engine_type"]==self.piston:
-                    initial_engine_mass = max_power / self.piston_eng_pw_density
-                    initial_engine_mass += max_power / self.propeller_pw_density
-                elif initial_power_system["engine_type"]==self.turboprop:
-                    initial_engine_mass = max_power / self.turboprop_pw_density
-                    initial_engine_mass += max_power / self.propeller_pw_density
-                elif initial_power_system["engine_type"]==self.turbofan:
-                    initial_engine_mass = max_power / self.turbofan_pw_density
-                else:
-                    raise Exception("initial power system - engine type is not allowed")
-
-                # Add new engine mass
+                # Compute new engine mass
                 if target_power_system["engine_type"]==self.piston:
                     target_engine_mass = max_power / self.piston_eng_pw_density
                     target_engine_mass += max_power / self.propeller_pw_density
@@ -480,7 +486,12 @@ class DDM(object):                  # Data Driven Modelling
                 else:
                     raise Exception("target power system - engine type is unknown")
 
-        delta_engine_mass = target_engine_mass - initial_engine_mass
+                delta_engine_mass = target_engine_mass - initial_engine_mass
+            else:
+                target_engine_mass = np.nan
+        else:
+            initial_engine_mass = np.nan
+
         delta_system_mass += energy_storage
 
         return {"owe":owe+delta_engine_mass+delta_system_mass,
@@ -565,7 +576,8 @@ class DDM(object):                  # Data Driven Modelling
         rho = self.phd.gas_density(pamb,tamb)
         cl = self.get_cl_max_ld() / self.kvs1g_ld**2
         vapp = np.sqrt((2*mass*g)/(rho*wing_area*cl))
-        app_speed = 1.15*vapp - 6.  # Tunning versus data base
+        alpha, betha = self.tuner_app
+        app_speed = alpha*vapp + betha  # Tunning versus data base
         return app_speed
 
 
@@ -578,7 +590,8 @@ class DDM(object):                  # Data Driven Modelling
         vtas35ft = np.sqrt((2*mass*g)/(rho*wing_area*cl))
         fn = (self.ref_power(mtow) / (1.0*vtas35ft)) * self.prop_eff
         ml_factor = mass**2 / (cl*fn*wing_area*sigma**0.8 )  # Magic Line factor
-        tofl = 11.3*ml_factor + 300.    # Magic line
+        alpha, betha = self.tuner_to
+        tofl = alpha*ml_factor + betha    # Magic line
         return tofl
 
 
