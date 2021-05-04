@@ -29,6 +29,7 @@ def compare_owe_base_and_model(df, ddm, coloration):
     Results are drawn on graphs
     """
     owe = []
+    sqr_err = []
     rer = []
     power_system = ddm.default_power_system
     for i in df.index:
@@ -49,6 +50,9 @@ def compare_owe_base_and_model(df, ddm, coloration):
         rer.append((dict["owe"]-owe_ref)/owe_ref)   # Store relative error
         owe.append(dict["owe"])
 
+        if not np.isnan(dict["owe"]):
+            sqr_err.append((dict["owe"]-owe_ref)**2)    # Store square of the errors
+
     df['OWE_ref'] = df['OWE']
     un['OWE_ref'] = un['OWE']
 
@@ -57,6 +61,8 @@ def compare_owe_base_and_model(df, ddm, coloration):
 
     draw_reg(df, un, 'OWE_ref', 'OWE_mod', [[0,max(df['OWE_ref'])], [0,max(df['OWE_ref'])]], coloration)
     draw_hist(rer, 'OWE model - OWE reference')
+
+    print(np.sqrt(sum(sqr_err)))
 
 
 # factor = {'fuselage': 5,
@@ -71,6 +77,7 @@ def compare_owe_base_and_breakdown(df, ddm, coloration):
     Results are drawn on graphs
     """
     owe_brk = []
+    sqr_err = []
     rer = []
     power_system = ddm.default_power_system
     for i in df.index:
@@ -96,7 +103,6 @@ def compare_owe_base_and_breakdown(df, ddm, coloration):
         fuselage_mass = mfac * 5.80*(np.pi*fuselage_width*total_length)**1.2   # Statistical regression versus fuselage built surface
         furnishing_mass = 10.*n_pax                                     # Furnishings mass
         op_item_mass = 5.2*(n_pax*nominal_range*1e-6)                   # Operator items mass
-        m_container = 4.36 * fuselage_width * total_length              # Container and pallet mass
 
         wing_ar = wing_span**2/wing_area
         A = 32*wing_area**1.1
@@ -121,8 +127,11 @@ def compare_owe_base_and_breakdown(df, ddm, coloration):
              + engine_mass
 
         owe_ref = float(df['OWE'][i])
-        rer.append((owe-owe_ref)/owe_ref)   # Store relative error
+        rer.append((owe-owe_ref)/owe_ref)   # Store relative errors
         owe_brk.append(owe)
+
+        if not np.isnan(owe):
+            sqr_err.append((owe-owe_ref)**2)    # Store square of the errors
 
     df['OWE_ref'] = df['OWE']
     un['OWE_ref'] = un['OWE']
@@ -132,6 +141,8 @@ def compare_owe_base_and_breakdown(df, ddm, coloration):
 
     draw_reg(df, un, 'OWE_ref', 'OWE_brk', [[0,max(df['OWE_ref'])], [0,max(df['OWE_ref'])]], coloration)
     draw_hist(rer, 'OWE model - OWE reference')
+
+    print(np.sqrt(sum(sqr_err)))
 
 
 
