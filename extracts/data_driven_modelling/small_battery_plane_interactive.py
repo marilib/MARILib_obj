@@ -155,13 +155,13 @@ def update(val):
     lod = lod_slider.val
     mef = mef_slider.val
     pef = pef_slider.val
-    mpd = unit.W_kW(mpd_slider.val) # W/kg
-    epd = unit.W_kW(epd_slider.val) # W/kg
-    bat = unit.J_Wh(bat_slider.val) # J/kg
+    mpd = unit.W_kW(mpd_slider.val) # ->W/kg
+    epd = unit.W_kW(epd_slider.val) # ->W/kg
+    bat = unit.J_Wh(bat_slider.val) # ->J/kg
     mod = mode_rbutton.value_selected
     # Recompute and plot data
     xmax = int(xmax_box.text) # max distance (km)
-    ymax = int(ymax_box.text) # max number of passsenger
+    ymax = int(ymax_box.text) # max number of passenger
     X,Y = np.meshgrid(np.linspace(1e3,xmax*1000,10),np.arange(2,ymax+2,2))
     pkm = sp.compute_PKoM_on_grid(X, Y, vtas=tas, alt=alt, lod=lod, motor_eff=mef, prop_eff=pef,
                   elec_motor_pw_density=mpd, power_elec_pw_density=epd, battery_enrg_density=bat, mode=mod)
