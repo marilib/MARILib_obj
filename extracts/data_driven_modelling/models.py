@@ -91,9 +91,12 @@ class DDM(object):                  # Data Driven Modelling
         self.mpax_allowance_med = [110, unit.m_km(8000)]
         self.mpax_allowance_high = [130, unit.m_km(np.inf)]
 
+        self.mass_factor_low = [0.5, 5000]      # [lod, mtow]
+        self.mass_factor_high = [1., 25000]     # [lod, mtow]
+
         self.cl_max_to = 2.0
         self.kvs1g_to = 1.13
-        self.tuner_to = [11.3, 300]
+        self.tuner_to = [10., 350]
 
         self.cl_max_ld = 2.6
         self.kvs1g_ld = 1.23
@@ -109,9 +112,7 @@ class DDM(object):                  # Data Driven Modelling
         self.tsfc_high = [unit.convert_from("kg/daN/h",0.52), unit.convert_from("MW",50)]
 
         self.fc_eff_low = [0.45, 1.0]     # Fuel cell efficiency at system level for design power (max power)
-        self.fc_eff_high = [0.75, 0.1]    # Fuel cell efficiency at system level for low power (power close to zero)
-
-        self.take_off_factor = []
+        self.fc_eff_high = [0.55, 0.1]    # Fuel cell efficiency at system level for low power (power close to zero)
 
 
     def get_pax_allowance(self,distance):
@@ -124,6 +125,15 @@ class DDM(object):                  # Data Driven Modelling
             return mpax_med
         else:
             return mpax_max
+
+
+    def get_mass_factor(self,mtow):
+        fac_min, mtow_min = self.mass_factor_low
+        fac_max, mtow_max = self.mass_factor_high
+        mtow_list = [0.     , mtow_min, mtow_max, np.inf]
+        fac_list =  [fac_min, fac_min , fac_max , fac_max]
+        fac = utils.lin_interp_1d(mtow, mtow_list, fac_list)
+        return fac
 
 
     def get_lod(self,mtow):
