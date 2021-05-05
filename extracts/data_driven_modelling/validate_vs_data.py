@@ -12,6 +12,7 @@ from marilib.aircraft.aircraft_root import Arrangement, Aircraft
 from marilib.aircraft.requirement import Requirement
 from marilib.utils.read_write import MarilibIO
 from marilib.aircraft.design import process
+import pandas as pd
 
 
 def compute_one_ac(npax, rng, mach, sref, slst, wing_att, n_eng):
@@ -52,76 +53,63 @@ def compute_one_ac(npax, rng, mach, sref, slst, wing_att, n_eng):
     # ------------------------------------------------------------------------------------------------------
     process.mda(ac, mass_mission_matching=True)  # Run an MDA on the object, with mass - mission adaptation
 
-    #- surface empennage HTP et VTP
-    vtp_area = ac.airframe.vertical_stab.area
-    htp_area = ac.airframe.horizontal_stab.area
-    #- bras de levier moteur
-    y_ext = ac.airframe.nacelle.cg[1]
-    #- diamètre nacelle
-    nac_width = ac.airframe.nacelle.width
-    #- diamètre et longueur du fuselage
-    fuse_width = ac.airframe.body.width
-    #- envergure
-    wing_span = ac.airframe.wing.span
-    #- OWE
-    owe = ac.weight_cg.owe
-    #- MTOW
-    mtow = ac.weight_cg.mtow
-    #- MLW
-    mlw = ac.weight_cg.mlw
-    #- MFW
-    mfw = ac.weight_cg.mfw
-    #- longueur de piste déco TOFL
-    tofl = ac.performance.take_off.tofl_eff
-    #- vitesse d 'approche Approach_speed
-    app_speed = ac.performance.approach.app_speed_eff
+    VTP_area         = ac.airframe.vertical_stab.area        #- surface empennage HTP et VTP
+    HTP_area         = ac.airframe.horizontal_stab.area
+    engine_y_arm     = ac.airframe.nacelle.cg[1]             #- bras de levier moteur
+    rotor_diameter   = ac.airframe.nacelle.width             #- diamètre nacelle
+    fuselage_width   = ac.airframe.body.width                #- diamètre et longueur du fuselage
+    wing_span        = ac.airframe.wing.span                 #- envergure
+    owe              = ac.weight_cg.owe                      #- OWE
+    mtow             = ac.weight_cg.mtow                     #- MTOW
+    mlw              = ac.weight_cg.mlw                      #- MLW
+    mfw              = ac.weight_cg.mfw                      #- MFW
+    tofl             = ac.performance.take_off.tofl_eff      #- longueur de piste déco TOFL
+    app_speed        = ac.performance.approach.app_speed_eff #- vitesse d 'approche Approach_speed
 
-    print(vtp_area)
-    print(htp_area)
-    print(y_ext)
-    print(nac_width)
-    print(fuse_width)
-    print(wing_span)
-    print(owe)
-    print(mtow)
-    print(mlw)
-    print(mfw)
-    print(tofl)
-    print(app_speed)
+    #print(VTP_area)
+    #print(HTP_area)
+    #print(engine_y_arm)
+    #print(rotor_diameter)
+    #print(fuselage_width)
+    #print(wing_span)
+    #print(owe)
+    #print(mtow)
+    #print(mlw)
+    #print(mfw)
+    #print(tofl)
+    #print(app_speed)
 
-    return ac, vtp_area, htp_area, y_ext, nac_width, fuse_width, wing_span, owe, mtow, mlw, mfw, tofl, app_speed
+    return ac, VTP_area, HTP_area, engine_y_arm, rotor_diameter, fuselage_width, wing_span, owe, mtow, mlw, mfw, tofl, app_speed
 
 
-if __name__ == '__main__':
-
-    # Read data
-    #-------------------------------------------------------------------------------------------------------------------
-    path_to_data_base = "All_Data_v3.xlsx"
-    # path_to_data_base = "All_Data_v2.xlsx"
+def compute_all_aircrafts_and_save(path_to_data_base="All_Data_v3.xlsx"):
 
     df,un = anadata.read_db(path_to_data_base)
 
     # Remove A380-800 row and reset index
-    df = df[df['name']!='A380-800'].reset_index(drop=True)
+    # df = df[df['name']!='A380-800'].reset_index(drop=True)
     # keep turbofan only
     df = df[df['engine_type']=='turbofan'].reset_index(drop=True)
     df = df[df['airplane_type']!='business'].reset_index(drop=True)
 
 
-    list_vtp_area   = []
-    list_htp_area   = []
-    list_y_ext      = []
-    list_nac_width  = []
-    list_fuse_width = []
-    list_wing_span  = []
-    list_owe        = []
-    list_mtow       = []
-    list_mlw        = []
-    list_mfw        = []
-    list_tofl       = []
-    list_app_speed  = []
+    list_VTP_area       = []
+    list_HTP_area       = []
+    list_engine_y_arm   = []
+    list_rotor_diameter = []
+    list_fuselage_width = []
+    list_wing_span      = []
+    list_owe            = []
+    list_mtow           = []
+    list_mlw            = []
+    list_mfw            = []
+    list_tofl           = []
+    list_app_speed      = []
+    list_valid          = [] # is valid computation ?
 
+    errors = []
     for index, row in df.iterrows():
+        print(row['name'])
         try:
             myac, vtp_area, htp_area, y_ext, nac_width, fuse_width, \
             wing_span, owe, mtow, mlw, mfw, tofl, app_speed\
@@ -132,7 +120,10 @@ if __name__ == '__main__':
                                  slst    = row['max_thrust'   ],
                                  wing_att= row['wing_position'],
                                  n_eng   = row['n_engine'     ])
-        except:
+            valid = True
+
+        except Exception as e:
+            print(e)
             vtp_area  = None
             htp_area  = None
             y_ext     = None
@@ -145,30 +136,58 @@ if __name__ == '__main__':
             mfw       = None
             tofl      = None
             app_speed = None
+            valid     = False   # not valid computation, error was raised
+            errors.append(row['name'])
 
 
-        list_vtp_area  .append(vtp_area  )
-        list_htp_area  .append(htp_area  )
-        list_y_ext     .append(y_ext     )
-        list_nac_width .append(nac_width )
-        list_fuse_width.append(fuse_width)
-        list_wing_span .append(wing_span )
-        list_owe       .append(owe       )
-        list_mtow      .append(mtow      )
-        list_mlw       .append(mlw       )
-        list_mfw       .append(mfw       )
-        list_tofl      .append(tofl      )
-        list_app_speed .append(app_speed )
+        list_VTP_area      .append(vtp_area  )
+        list_HTP_area      .append(htp_area  )
+        list_engine_y_arm  .append(y_ext     )
+        list_rotor_diameter.append(nac_width )
+        list_fuselage_width.append(fuse_width)
+        list_wing_span     .append(wing_span )
+        list_owe           .append(owe       )
+        list_mtow          .append(mtow      )
+        list_mlw           .append(mlw       )
+        list_mfw           .append(mfw       )
+        list_tofl          .append(tofl      )
+        list_app_speed     .append(app_speed )
+        list_valid         .append(valid)
 
-    df["model_vtp_area"  ] = list_vtp_area
-    df["model_htp_area"  ] = list_htp_area
-    df["model_y_ext"     ] = list_y_ext
-    df["model_nac_width" ] = list_nac_width
-    df["model_fuse_width"] = list_fuse_width
-    df["model_wing_span "] = list_wing_span
-    df["model_owe"       ] = list_owe
-    df["model_mtow"      ] = list_mtow
-    df["model_mlw"       ] = list_mlw
-    df["model_mfw"       ] = list_mfw
-    df["model_tofl"      ] = list_tofl
-    df["model_app_speed" ] = list_app_speed
+    df["model_VTP_area"]       = list_VTP_area
+    df["model_HTP_area"]       = list_HTP_area
+    df["model_engine_y_arm"]   = list_engine_y_arm
+    df["model_rotor_diameter"] = list_rotor_diameter
+    df["model_fuselage_width"] = list_fuselage_width
+    df["model_wing_span"]      = list_wing_span
+    df["model_OWE"]            = list_owe
+    df["model_MTOW"]           = list_mtow
+    df["model_MLW"]            = list_mlw
+    df["model_MFW"]            = list_mfw
+    df["model_TOFL"]           = list_tofl
+    df["model_app_speed"]      = list_app_speed
+    df["model_valid"]          = list_valid
+
+    df.to_csv("data_and_model.csv",sep=";")
+
+    return errors
+
+if __name__=="__main__":
+
+    #errors = compute_all_aircrafts_and_save()
+    #with open("errors.txt","w") as f:
+    #    f.write(str(errors))
+
+    df0,un = anadata.read_db("All_Data_v3.xlsx")
+    df = pd.read_csv("data_and_model.csv",sep=";",index_col=0)
+
+    #print(df['model_OWE'])
+
+    un['model_MTOW'] = un['MTOW']
+
+    # print(df[df['model_OWE'] >150000])
+    # anomalie = df[(df['model_OWE'] > 152000) & (df['model_OWE'] < 154000)]
+
+    anadata.draw_reg(df,un,'MTOW','model_OWE',[[0,max(df['OWE'])], [0,max(df['OWE'])]],anadata.coloration)
+
+
