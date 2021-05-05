@@ -226,20 +226,20 @@ if __name__ == '__main__':
     df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
     un1 = un.copy()
 
-
-    # Analyse OWE model versus OWE data base
-    #-------------------------------------------------------------------------------------------------------------------
-    compare_owe_base_and_model(df1, ddm, coloration)
-
-
-    # Analyse OWE & MTOW model versus OWE & MTOW data base
-    #-------------------------------------------------------------------------------------------------------------------
-    compare_adaptation(df1, ddm, coloration)
-
-
-    # Analyse OWE model versus OWE data base
-    #-------------------------------------------------------------------------------------------------------------------
-    compare_mlw_base_and_model(df1, ddm, coloration)
+    #
+    # # Analyse OWE model versus OWE data base
+    # #-------------------------------------------------------------------------------------------------------------------
+    # compare_owe_base_and_model(df1, ddm, coloration)
+    #
+    #
+    # # Analyse OWE & MTOW model versus OWE & MTOW data base
+    # #-------------------------------------------------------------------------------------------------------------------
+    # compare_adaptation(df1, ddm, coloration)
+    #
+    #
+    # # Analyse OWE model versus OWE data base
+    # #-------------------------------------------------------------------------------------------------------------------
+    # compare_mlw_base_and_model(df1, ddm, coloration)
 
 
     # Analyse OWE model versus OWE data base
