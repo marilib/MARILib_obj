@@ -91,8 +91,8 @@ class DDM(object):                  # Data Driven Modelling
         self.mpax_allowance_med = [110, unit.m_km(8000)]
         self.mpax_allowance_high = [130, unit.m_km(np.inf)]
 
-        self.mass_factor_low = [0.5, 5000]      # [lod, mtow]
-        self.mass_factor_high = [1., 25000]     # [lod, mtow]
+        self.engine_mass_factor_low = [1.00, unit.W_MW(10)]      # [fac, max_power]
+        self.engine_mass_factor_high = [0.85, unit.W_MW(20)]     # [fac, max_power]
 
         self.cl_max_to = 2.0
         self.kvs1g_to = 1.13
@@ -127,12 +127,12 @@ class DDM(object):                  # Data Driven Modelling
             return mpax_max
 
 
-    def get_mass_factor(self,mtow):
-        fac_min, mtow_min = self.mass_factor_low
-        fac_max, mtow_max = self.mass_factor_high
-        mtow_list = [0.     , mtow_min, mtow_max, np.inf]
-        fac_list =  [fac_min, fac_min , fac_max , fac_max]
-        fac = utils.lin_interp_1d(mtow, mtow_list, fac_list)
+    def get_engine_mass_factor(self,max_power):
+        fac_min, pw_min = self.engine_mass_factor_low
+        fac_max, pw_max = self.engine_mass_factor_high
+        mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
+        fac_list = [fac_min, fac_min, fac_max, fac_max]
+        fac = utils.lin_interp_1d(max_power, mxpw_list, fac_list)
         return fac
 
 
@@ -204,8 +204,8 @@ class DDM(object):                  # Data Driven Modelling
             raise Exception("fuel type is unknown")
 
         mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
-        psfc_list = [tsfc_max, tsfc_max, tsfc_min, tsfc_min]
-        tsfc = utils.lin_interp_1d(max_power, mxpw_list, psfc_list)
+        tsfc_list = [tsfc_max, tsfc_max, tsfc_min, tsfc_min]
+        tsfc = utils.lin_interp_1d(max_power, mxpw_list, tsfc_list)
         return tsfc,fhv
 
 
