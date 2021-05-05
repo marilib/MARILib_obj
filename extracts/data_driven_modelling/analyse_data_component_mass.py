@@ -62,17 +62,10 @@ def compare_owe_base_and_model(df, ddm, coloration):
     draw_reg(df, un, 'OWE_ref', 'OWE_mod', [[0,max(df['OWE_ref'])], [0,max(df['OWE_ref'])]], coloration)
     draw_hist(rer, 'OWE model - OWE reference')
 
-    print(np.sqrt(sum(sqr_err)))
+    return sqr_err
 
 
-# factor = {'fuselage': 5,
-#           'wing': 32.,
-#           'htp': 22.,
-#           'vtp': 25,
-#           'ldg': 0.2}
-#
-
-def compare_owe_base_and_breakdown(df, ddm, coloration):
+def compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True):
     """Compare OWE from data base with OWE computed through nominal mission simulation
     Results are drawn on graphs
     """
@@ -100,9 +93,9 @@ def compare_owe_base_and_breakdown(df, ddm, coloration):
 
         mfac = {"general":0.5, "commuter":1., "narrow_body":1., "wide_body":1., "business":1.}.get(airplane_type)
 
-        fuselage_mass = mfac * 5.80*(np.pi*fuselage_width*total_length)**1.2   # Statistical regression versus fuselage built surface
-        furnishing_mass = 10.*n_pax                                     # Furnishings mass
-        op_item_mass = 5.2*(n_pax*nominal_range*1e-6)                   # Operator items mass
+        fuselage_mass = factor['fuselage'] * mfac * 5.80*(np.pi*fuselage_width*total_length)**1.20   # Statistical regression versus fuselage built surface
+        furnishing_mass = factor['furnishing'] * 10.*n_pax                                     # Furnishings mass
+        op_item_mass = factor['op_item'] * 5.2*(n_pax*nominal_range*1e-6)                   # Operator items mass
 
         wing_ar = wing_span**2/wing_area
         A = 32*wing_area**1.1
@@ -110,16 +103,19 @@ def compare_owe_base_and_breakdown(df, ddm, coloration):
         C = 1.1e-6*(1.+2.*wing_ar)/(1.+wing_ar)
         D = 0.127 * (wing_area/wing_span)
         E = np.cos(wing_sweep25)**2
-        wing_mass = mfac * (A + (B*C)/(D*E))   # Shevell formula + high lift device regression
+        wing_mass = factor['wing'] * mfac * (A + (B*C)/(D*E))   # Shevell formula + high lift device regression
 
-        htp_mass = mfac * 22.*htp_area
-        vtp_mass = mfac * 25.*vtp_area
-        ldg_mass = 0.015*mtow**1.03 + 0.012*mlw    # Landing gears
-        system_mass = 0.545*mtow**0.8
+        htp_mass = factor['htp'] * mfac * 22.*htp_area
+        vtp_mass = factor['vtp'] * mfac * 25.*vtp_area
+        ldg_mass = factor['ldg'] * 0.015*mtow**1.03 + 0.012*mlw    # Landing gears
+        system_mass = factor['system'] * 0.545*mtow**0.8
 
-        engine_mass = (max_power*n_engine) / {"piston":1000.,
-                                              "turboprop":3000.,
-                                              "turbofan":2000.}.get(engine_type)    # WARNING : INSTALLED POWER DENSITY
+        power_density = {"piston":1000.,
+                         "turboprop":3000.,
+                         "turbofan":2000./ddm.get_engine_mass_factor(max_power)
+                         }.get(engine_type)    # WARNING : INSTALLED POWER DENSITY
+        engine_mass = factor['engine'] * (max_power*n_engine) / power_density
+
         # print(airplane_name, engine_mass)
         owe =  fuselage_mass + furnishing_mass + op_item_mass \
              + wing_mass + htp_mass + vtp_mass \
@@ -139,10 +135,11 @@ def compare_owe_base_and_breakdown(df, ddm, coloration):
     df['OWE_brk'] = owe_brk
     un['OWE_brk'] = un['OWE']
 
-    draw_reg(df, un, 'OWE_ref', 'OWE_brk', [[0,max(df['OWE_ref'])], [0,max(df['OWE_ref'])]], coloration)
-    draw_hist(rer, 'OWE model - OWE reference')
+    if graph:
+        draw_reg(df, un, 'OWE_ref', 'OWE_brk', [[0,max(df['OWE_ref'])], [0,max(df['OWE_ref'])]], coloration)
+        draw_hist(rer, 'OWE model - OWE reference')
 
-    print(np.sqrt(sum(sqr_err)))
+    return sqr_err
 
 
 
@@ -170,16 +167,31 @@ un = un.copy()
 # order = [2, 1]
 # dict_owe = do_regression(df, un, abs, ord, coloration, order)
 #
+#
+# #-------------------------------------------------------------------------------------------------------------------
+# phd = PhysicalData()
+# ddm = DDM(phd)
+#
+# res = compare_owe_base_and_model(df, ddm, coloration)
+# print("global model : ", res)
+#
 
 #-------------------------------------------------------------------------------------------------------------------
 phd = PhysicalData()
 ddm = DDM(phd)
 
-compare_owe_base_and_model(df, ddm, coloration)
+factor = {'fuselage': 1.,
+          'furnishing': 1.,
+          'op_item': 1.,
+          'wing': 1.,
+          'htp': 1.,
+          'vtp': 1.,
+          'ldg': 1.,
+          'system': 1.,
+          'engine': 1.}
 
 
-#-------------------------------------------------------------------------------------------------------------------
-phd = PhysicalData()
-ddm = DDM(phd)
+res = compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True)
+print(int(np.sqrt(sum(res))))
 
-compare_owe_base_and_breakdown(df, ddm, coloration)
+
