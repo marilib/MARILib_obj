@@ -96,7 +96,7 @@ def draw_reg(df, un, abs, ord, reg, coloration, leg_loc="lower right"):
         axes.add_artist(cloud[-1])
 
     if len(reg[0])>0:
-        plt.plot(unit.convert_to(un.loc[0,abs],reg[0]), unit.convert_to(un.loc[0,ord],reg[1]), linewidth=1, color="grey")
+        plt.plot(unit.convert_to(un.loc[0,abs],reg[0]), unit.convert_to(un.loc[0,ord],reg[1]), linewidth=2, color="grey")
 
     axes.legend(handles=cloud, loc=leg_loc)
 
