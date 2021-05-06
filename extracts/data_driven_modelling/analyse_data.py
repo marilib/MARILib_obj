@@ -24,9 +24,9 @@ import unit
 coloration = {"general":"gold", "commuter":"green", "business":"blue", "narrow_body":"darkorange", "wide_body":"red"}
 
 # Set font size
-plt.rc('axes',labelsize=15,titlesize=15)
-plt.rc('xtick',labelsize=15)
-plt.rc('ytick',labelsize=15)
+plt.rc('axes',labelsize=12,titlesize=20)
+plt.rc('xtick',labelsize=12)
+plt.rc('ytick',labelsize=12)
 plt.rc('legend',fontsize=12)
 
 def read_db(file):
@@ -93,32 +93,39 @@ def draw_reg(df, un, abs, ord, reg, coloration, leg_loc="lower right"):
     plt.tight_layout()
     plt.show()
 
-def subplots_by_varname(df,un,var_names,figsize=(12,6)):
+def subplots_by_varname(df,un,var_names,figwidth=12,savefig=False):
     """create set of subplots for each variable in the list var_name"""
 
     if len(var_names)<1:                          # Check the length of var_names
         raise ValueError("var_names is empty")
 
+    figsize = (figwidth, figwidth*0.4*len(var_names) )
     fig,axes = plt.subplots(len(var_names),2,figsize=figsize)  # Create subplots and eventually refactor the axis list
     if len(var_names)==1:
         axes = [axes]
 
     first_line=True
-    for (line,var) in zip(axes,var_names):        # fill the subplots
-        if first_line:
+    for (line,var) in zip(axes,var_names):                     # fill the subplots
+        if first_line:                                                 # add title to first line
             first_line=False
-            line[0].set_title(r'$y=f(x)$')
-            line[1].set_title(r'Relative error $\frac{y-x}{x}$ (%)')
+            line[0].set_title(r'Bissectrice $x_{mod}=f(x)$')
+            line[1].set_title(r'Erreur relative $\frac{x_{mod}-x}{x}$ (%)')
+
+        var_range = [0, unit.convert_to(un.loc[0, var], max(df[var]))]
+
         # first cell  : bisectrice plot
-        line[0].plot([0, max(df[var])], [0, max(df[var])], '-k', lw=2)  # draw y=x
-        draw_colored_cloud_on_axis(line[0],df,un,var,'model_'+var)      # draw model versus database cloud
+        line[0].plot(var_range, var_range, '-k', lw=2)  # draw y=x line
+        draw_colored_cloud_on_axis(line[0],df,un,var,'model_'+var,xrange=var_range)      # draw x_model versus x_data
+
         # second cell : relative error
-        line[1].plot([0, max(df[var])], [0, 0], '-k', lw=2)
+        line[1].plot(var_range, [0, 0], '-k', lw=2)
         df['error_'+var] = (df['model_'+var]-df[var])/df[var]*100
         un['error_'+var] = 'no_dim'
-        draw_colored_cloud_on_axis(line[1],df,un,var,'error_'+var,yrange=[-100,100])
+        draw_colored_cloud_on_axis(line[1],df,un,var,'error_'+var,xrange=var_range,yrange=[-100,100])
 
-    #plt.tight_layout()
+    plt.tight_layout()
+    if savefig:
+        plt.savefig("multiplot.pdf")
     plt.show()
 
 
@@ -137,8 +144,9 @@ def draw_colored_cloud_on_axis(ax,df,un,abs,ord,xrange=None,yrange=None,colorati
     for typ in coloration.keys():
         abs_list = unit.convert_to(un.loc[0, abs], list(df.loc[df['airplane_type'] == typ][abs]))
         ord_list = unit.convert_to(un.loc[0, ord], list(df.loc[df['airplane_type'] == typ][ord]))
-        subcloud = ax.scatter(abs_list, ord_list, marker="o", c=coloration[typ], s=10, label=typ)
-        cloud.append(subcloud)
+        if len(abs_list)>0:
+            subcloud = ax.scatter(abs_list, ord_list, marker="o", c=coloration[typ], s=10, label=typ)
+            cloud.append(subcloud)
 
     ax.set_ylabel(ord + ' (' + un.loc[0, ord] + ')')
     ax.set_xlabel(abs + ' (' + un.loc[0, abs] + ')')

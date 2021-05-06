@@ -199,8 +199,22 @@ if __name__=="__main__":
 
     df = pd.read_csv("data_with_model.csv",sep=";",index_col=0)
     un = pd.read_csv("unit_with_model.csv",sep=";",index_col=0)
+
+    param_list = ["VTP_area",
+                  "HTP_area",
+                  "engine_y_arm",
+                  "rotor_diameter",
+                  "fuselage_width",
+                  "total_length",
+                  "wing_span",
+                  "OWE",
+                  "MTOW",
+                  "MLW",
+                  "max_fuel",
+                  "tofl",
+                  "approach_speed"]
     
-    anadata.subplots_by_varname(df,un,["VTP_area","HTP_area","total_length"])
+    anadata.subplots_by_varname(df,un,param_list,savefig=True)
 
     #for var in param_list:
     #    un['model_' + var] = un[var]
