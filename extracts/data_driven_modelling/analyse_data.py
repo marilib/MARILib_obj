@@ -9,16 +9,10 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 from scipy.interpolate import interp1d
-from scipy.optimize import fsolve, least_squares
-
 import pandas as pd
-from tabulate import tabulate
 import matplotlib.pyplot as plt
 
 import unit
-import utils
-from physical_data import PhysicalData
-from models import DDM
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -28,6 +22,12 @@ from models import DDM
 #-----------------------------------------------------------------------------------------------------------------------
 
 coloration = {"general":"gold", "commuter":"green", "business":"blue", "narrow_body":"darkorange", "wide_body":"red"}
+
+# Set font size
+plt.rc('axes',labelsize=15,titlesize=15)
+plt.rc('xtick',labelsize=15)
+plt.rc('ytick',labelsize=15)
+plt.rc('legend',fontsize=12)
 
 def read_db(file):
     """Read data base and convert to standard units
@@ -83,34 +83,75 @@ def draw_reg(df, un, abs, ord, reg, coloration, leg_loc="lower right"):
     title = ord + " - " + abs
     fig.suptitle(title, fontsize=12)
 
-    cloud = []
-    xmax = 0
-    ymax = 0
-    for typ in coloration.keys():
-        abs_list = unit.convert_to(un.loc[0,abs],list(df.loc[df['airplane_type']==typ][abs]))
-        ord_list = unit.convert_to(un.loc[0,ord],list(df.loc[df['airplane_type']==typ][ord]))
-        if len(abs_list)>0:
-            xmax = max(xmax, max(abs_list))
-            ymax = max(ymax, max(ord_list))
-        cloud.append(plt.scatter(abs_list, ord_list, marker="o", c=coloration[typ], s=10, label=typ))
-        axes.add_artist(cloud[-1])
+    xrange=[0, unit.convert_to(un.loc[0,abs],max(df[abs])*1.05)]
+    yrange=[0, unit.convert_to(un.loc[0,ord],max(df[ord])*1.05)]
+    draw_colored_cloud_on_axis(axes,df,un,abs,ord,xrange=xrange,yrange=yrange,coloration=coloration)
 
     if len(reg[0])>0:
         plt.plot(unit.convert_to(un.loc[0,abs],reg[0]), unit.convert_to(un.loc[0,ord],reg[1]), linewidth=2, color="grey")
 
-    axes.legend(handles=cloud, loc=leg_loc)
-
-    plt.ylabel(ord+' ('+un.loc[0,ord]+')')
-    plt.xlabel(abs+' ('+un.loc[0,abs]+')')
-    plt.xlim([0, xmax*1.05])
-    plt.ylim([0, ymax*1.05])
-    plt.grid(True)
+    plt.tight_layout()
     plt.show()
+
+def subplots_by_varname(df,un,var_names,figsize=(12,6)):
+    """create set of subplots for each variable in the list var_name"""
+
+    if len(var_names)<1:                          # Check the length of var_names
+        raise ValueError("var_names is empty")
+
+    fig,axes = plt.subplots(len(var_names),2,figsize=figsize)  # Create subplots and eventually refactor the axis list
+    if len(var_names)==1:
+        axes = [axes]
+
+    first_line=True
+    for (line,var) in zip(axes,var_names):        # fill the subplots
+        if first_line:
+            first_line=False
+            line[0].set_title(r'$y=f(x)$')
+            line[1].set_title(r'Relative error $\frac{y-x}{x}$ (%)')
+        # first cell  : bisectrice plot
+        line[0].plot([0, max(df[var])], [0, max(df[var])], '-k', lw=2)  # draw y=x
+        draw_colored_cloud_on_axis(line[0],df,un,var,'model_'+var)      # draw model versus database cloud
+        # second cell : relative error
+        line[1].plot([0, max(df[var])], [0, 0], '-k', lw=2)
+        df['error_'+var] = (df['model_'+var]-df[var])/df[var]*100
+        un['error_'+var] = 'no_dim'
+        draw_colored_cloud_on_axis(line[1],df,un,var,'error_'+var,yrange=[-100,100])
+
+    #plt.tight_layout()
+    plt.show()
+
+
+def draw_colored_cloud_on_axis(ax,df,un,abs,ord,xrange=None,yrange=None,coloration=coloration,leg_loc="lower right"):
+    """Build a colored scatter plot according to given coloration categories.
+    :param ax: a figure axis to plot on
+    :param df: a dataframe
+    :param un: the dict of units to use for the axis scale
+    :param abs: the label of the dataframe column to plot on x-axis
+    :param ord: the label of the dataframe column to plot on y-axis
+    :param xrange: list of 2 value for the x-axis range. Matplotlib default if not specified.
+    :param yrange: list of 2 value for the y-axis range. Matplotlib default if not specified.
+    :return:
+    """
+    cloud = []
+    for typ in coloration.keys():
+        abs_list = unit.convert_to(un.loc[0, abs], list(df.loc[df['airplane_type'] == typ][abs]))
+        ord_list = unit.convert_to(un.loc[0, ord], list(df.loc[df['airplane_type'] == typ][ord]))
+        subcloud = ax.scatter(abs_list, ord_list, marker="o", c=coloration[typ], s=10, label=typ)
+        cloud.append(subcloud)
+
+    ax.set_ylabel(ord + ' (' + un.loc[0, ord] + ')')
+    ax.set_xlabel(abs + ' (' + un.loc[0, abs] + ')')
+    if xrange is not None:
+        ax.set_xlim(xrange)
+    if yrange is not None:
+        ax.set_ylim(yrange)
+    ax.legend(handles=cloud, loc=leg_loc)
+    ax.grid(True) 
 
 
 def get_error(df, un, abs, ord, reg, abs_interval):
 
-    # Remove A380-800 row and reset index
     df1 = df[abs_interval[0]<=df[abs]].reset_index(drop=True).copy()
     df1 = df1[df1[abs]<=abs_interval[1]].reset_index(drop=True)
 
@@ -146,6 +187,8 @@ def do_regression(df, un, abs, ord, coloration, order):
     print("Res = ", dict["res"])
     draw_reg(df, un, abs, ord, dict["reg"], coloration)
     return dict
+
+
 
 
 

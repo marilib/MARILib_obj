@@ -85,9 +85,7 @@ def compute_one_ac(npax, rng, mach, sref, slst, wing_att, n_eng, n_pax_row):
     return ac, VTP_area, HTP_area, engine_y_arm, rotor_diameter, fuselage_length, fuselage_width, wing_span, owe, mtow, mlw, mfw, tofl, app_speed
 
 
-def compute_all_aircrafts_and_save(df):  # path_to_data_base="All_Data_v3.xlsx"):
-
-    # df,un = anadata.read_db(path_to_data_base)
+def compute_all_aircrafts_and_save(df,un):
 
     # Remove A380-800 row and reset index
     # df = df[df['name']!='A380-800'].reset_index(drop=True)
@@ -95,23 +93,27 @@ def compute_all_aircrafts_and_save(df):  # path_to_data_base="All_Data_v3.xlsx")
     df = df[df['engine_type']=='turbofan'].reset_index(drop=True)
     df = df[df['airplane_type']!='business'].reset_index(drop=True)
 
+    # initialize the computed params dict
+    computed_params = {}
+    param_list = ["VTP_area"      ,
+                  "HTP_area"      ,
+                  "engine_y_arm"  ,
+                  "rotor_diameter",
+                  "fuselage_width",
+                  "total_length"  ,
+                  "wing_span"     ,
+                  "OWE"           ,
+                  "MTOW"          ,
+                  "MLW"           ,
+                  "max_fuel"      ,
+                  "tofl"          ,
+                  "approach_speed"]
 
-    list_VTP_area        = []
-    list_HTP_area        = []
-    list_engine_y_arm    = []
-    list_rotor_diameter  = []
-    list_fuselage_length = []
-    list_fuselage_width  = []
-    list_wing_span       = []
-    list_owe             = []
-    list_mtow            = []
-    list_mlw             = []
-    list_mfw             = []
-    list_tofl            = []
-    list_app_speed       = []
-    list_valid           = [] # is valid computation ?
+    for k in param_list:
+        computed_params[k] = [] # intialize each entry with an empty list
+    computed_params['valid'] = []
 
-    errors = []
+    errors = {} # dict of error messages
     for index, row in df.iterrows():
         print("%s, npax_front = %d" %(row['name'], row['n_pax_front_estimate']) )
         try:
@@ -143,42 +145,34 @@ def compute_all_aircrafts_and_save(df):  # path_to_data_base="All_Data_v3.xlsx")
             tofl       = None
             app_speed  = None
             valid      = False   # not valid computation, error was raised
-            errors.append(row['name'])
+            errors[row['name']]=str(e) # save aircraft name and error message in a dict
 
+        computed_params['VTP_area']       .append(vtp_area   )
+        computed_params['HTP_area']       .append(htp_area   )
+        computed_params['engine_y_arm']   .append(y_ext      )
+        computed_params['rotor_diameter'] .append(nac_width  )
+        computed_params['fuselage_width'] .append(fuse_width )
+        computed_params['total_length']   .append(fuse_length)
+        computed_params['wing_span']      .append(wing_span  )
+        computed_params['OWE']            .append(owe        )
+        computed_params['MTOW']           .append(mtow       )
+        computed_params['MLW']            .append(mlw        )
+        computed_params['max_fuel']       .append(mfw        )
+        computed_params['tofl']           .append(tofl       )
+        computed_params['approach_speed'] .append(app_speed  )
+        computed_params['valid']          .append(valid      )
 
-        list_VTP_area       .append(vtp_area   )
-        list_HTP_area       .append(htp_area   )
-        list_engine_y_arm   .append(y_ext      )
-        list_rotor_diameter .append(nac_width  )
-        list_fuselage_length.append(fuse_length)
-        list_fuselage_width .append(fuse_width )
-        list_wing_span      .append(wing_span  )
-        list_owe            .append(owe        )
-        list_mtow           .append(mtow       )
-        list_mlw            .append(mlw        )
-        list_mfw            .append(mfw        )
-        list_tofl           .append(tofl       )
-        list_app_speed      .append(app_speed  )
-        list_valid          .append(valid)
+    for key,val in computed_params.items(): # add 'model_' columns in the dataframe
+        print(key,val[1:3])
+        df['model_'+key] = val
 
-    df["model_VTP_area"]       = list_VTP_area
-    df["model_HTP_area"]       = list_HTP_area
-    df["model_engine_y_arm"]   = list_engine_y_arm
-    df["model_rotor_diameter"] = list_rotor_diameter
-    df["model_total_length"]   = list_fuselage_length
-    df["model_fuselage_width"] = list_fuselage_width
-    df["model_wing_span"]      = list_wing_span
-    df["model_OWE"]            = list_owe
-    df["model_MTOW"]           = list_mtow
-    df["model_MLW"]            = list_mlw
-    df["model_max_fuel"]       = list_mfw
-    df["model_tofl"]           = list_tofl
-    df["model_approach_speed"] = list_app_speed
-    df["model_valid"]          = list_valid
+    for p in param_list:                      # add units for the new columns
+        un['model_'+p] = un[p]
+    un['valid'] = 'no_dim'
 
-    return errors, df
+    return errors, df, un
 
-def add_npax_front(df):
+def add_npax_front(df,un):
     """Estimate the number of front passenger and add it to the database"""
     list_n_pax_row = []
     for index, row in df.iterrows():
@@ -189,38 +183,30 @@ def add_npax_front(df):
         list_n_pax_row.append(n_pax_row)
 
     df["n_pax_front_estimate"] = list_n_pax_row
-    return df
+    un["n_pax_front_estimate"] = 'no_dim'
+    return df,un
 
 if __name__=="__main__":
 
-    df,un = anadata.read_db("All_Data_v3.xlsx")     # read database
-    df = add_npax_front(df)                         # add the column "n_pax_front_estimate"
-    errors, df = compute_all_aircrafts_and_save(df) # compute all aircraft with marilib
+    # df,un = anadata.read_db("All_Data_v3.xlsx")     # read database
+    # df,un = add_npax_front(df,un)                   # add the column "n_pax_front_estimate"
+    # errors, df, un = compute_all_aircrafts_and_save(df,un) # compute all aircraft with marilib
+    # # Save files
+    # df.to_csv("data_with_model.csv", sep=";")        # save database + model results
+    # un.to_csv("unit_with_model.csv", sep=";")        # save database + model results
+    # with open("errors.txt","w") as f:               # save error list
+    #     f.write(str(errors))
 
-    # Save files
-    df.to_csv("data_and_model.csv", sep=";") # save database + model results
-    with open("errors.txt","w") as f:        # save error list
-        f.write(str(errors))
+    df = pd.read_csv("data_with_model.csv",sep=";",index_col=0)
+    un = pd.read_csv("unit_with_model.csv",sep=";",index_col=0)
+    
+    anadata.subplots_by_varname(df,un,["VTP_area","HTP_area","total_length"])
 
-    # df = pd.read_csv("data_and_model.csv",sep=";",index_col=0)
+    #for var in param_list:
+    #    un['model_' + var] = un[var]
+    #    anadata.(df, un, var, 'model_' + var, [[0, max(df[var])], [0, max(df[var])]], anadata.coloration)
 
-    param_list = ["VTP_area"      ,
-                  "HTP_area"      ,
-                  "engine_y_arm"  ,
-                  "rotor_diameter",
-                  "total_length"  ,
-                  "fuselage_width",
-                  "wing_span"     ,
-                  "OWE"           ,
-                  "MTOW"          ,
-                  "MLW"           ,
-                  "max_fuel"      ,
-                  "tofl"          ,
-                  "approach_speed"]
 
-    for var in param_list:
-        un['model_' + var] = un[var]
-        anadata.draw_reg(df, un, var, 'model_' + var, [[0, max(df[var])], [0, max(df[var])]], anadata.coloration)
 
 
 
