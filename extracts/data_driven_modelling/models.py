@@ -91,6 +91,9 @@ class DDM(object):                  # Data Driven Modelling
         self.mpax_allowance_med = [110, unit.m_km(8000)]
         self.mpax_allowance_high = [130, unit.m_km(np.inf)]
 
+        self.structure_mass_factor_low = [0.40, unit.m_km(1000)]      # [fac, nominal_range]
+        self.structure_mass_factor_high = [1.00, unit.m_km(2000)]     # [fac, nominal_range]
+
         self.engine_mass_factor_low = [1.00, unit.W_MW(10)]      # [fac, max_power]
         self.engine_mass_factor_high = [0.85, unit.W_MW(20)]     # [fac, max_power]
 
@@ -125,6 +128,15 @@ class DDM(object):                  # Data Driven Modelling
             return mpax_med
         else:
             return mpax_max
+
+
+    def get_structure_mass_factor(self,nominal_range):
+        fac_min, dist_min = self.structure_mass_factor_low
+        fac_max, dist_max = self.structure_mass_factor_high
+        dist_list = [0.      , dist_min  , dist_max  , np.inf]
+        fac_list = [fac_min, fac_min, fac_max, fac_max]
+        fac = utils.lin_interp_1d(nominal_range, dist_list, fac_list)
+        return fac
 
 
     def get_engine_mass_factor(self,max_power):

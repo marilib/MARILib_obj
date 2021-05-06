@@ -91,7 +91,7 @@ def compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True):
         mtow = df['MTOW'][i]
         mlw = df['MLW'][i]
 
-        mfac = {"general":0.5, "commuter":1., "narrow_body":1., "wide_body":1., "business":1.}.get(airplane_type)
+        mfac = ddm.get_structure_mass_factor(nominal_range)
 
         fuselage_mass = factor['fuselage'] * mfac * 5.80*(np.pi*fuselage_width*total_length)**1.20   # Statistical regression versus fuselage built surface
         furnishing_mass = factor['furnishing'] * 10.*n_pax                                     # Furnishings mass
