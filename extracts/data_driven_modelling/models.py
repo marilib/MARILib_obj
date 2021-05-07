@@ -91,8 +91,8 @@ class DDM(object):                  # Data Driven Modelling
         self.mpax_allowance_med = [110, unit.m_km(8000)]
         self.mpax_allowance_high = [130, unit.m_km(np.inf)]
 
-        self.structure_mass_factor_low = [0.40, unit.m_km(1000)]      # [fac, nominal_range]
-        self.structure_mass_factor_high = [1.00, unit.m_km(2000)]     # [fac, nominal_range]
+        self.structure_mass_factor_low = [0.40, unit.m_km(4000)]      # [fac, PK]
+        self.structure_mass_factor_high = [1.00, unit.m_km(16000)]     # [fac, PK]
 
         self.engine_mass_factor_low = [1.00, unit.W_MW(10)]      # [fac, max_power]
         self.engine_mass_factor_high = [0.85, unit.W_MW(20)]     # [fac, max_power]

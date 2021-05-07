@@ -21,30 +21,51 @@ rc('font',**font)
 # MAP display : minimal working example
 
 sp = SmallPlane(alt=unit.m_ft(3000),
-                tas=unit.mps_kmph(130),
-                mode="electric")
+                tas=unit.mps_kmph(200),
+                mode="fuel_cell")
 
-sp.battery_enrg_density = unit.J_Wh(200)
+# Technological parameter for battery
+sp.battery_enrg_density = unit.J_Wh(600)
+
+# Technological parameter for fuel cell
+sp.cooling_pw_density = unit.W_kW(2)        # 2 to 5
+sp.fc_system_pw_density = unit.W_kW(2)      # é to 5
+sp.fuel_cell_efficiency = 0.50              # 0.5 to 0.7
 
 
-distances = np.linspace(50e3, 1000e3, 30)
+
+distances = np.linspace(50e3, 1200e3, 30)
 npaxs = np.arange(1, 19)
 X, Y = np.meshgrid(distances, npaxs)
 
 pkm = []
+mtow = []
 for x,y in zip(X.flatten(),Y.flatten()):
     sp.distance = x
     sp.n_pax = y
     sp.design_solver()
-    pkm.append(sp.design["pk_o_m"]/sp.design["pk_o_m_min"])
+    if sp.design!=None:
+        pkm.append(sp.design["pk_o_m"]/sp.design["pk_o_m_min"])
+        mtow.append(sp.design["mtow"])
+    else:
+        pkm.append(0.)
+        mtow.append(10000)
 
 # convert to numpy array with good shape
 pkm = np.array(pkm)
 pkm = pkm.reshape(np.shape(X))
 
+mtow = np.array(mtow)
+mtow = mtow.reshape(np.shape(X))
+
 print("")
 # Plot contour
 cs = plt.contourf(X / 1000, Y, pkm, levels=20)
+
+c3c = plt.contour(X / 1000, Y, mtow, levels=[5700], colors =['violet'], linewidths=2)
+c3h = plt.contourf(X / 1000, Y, mtow, levels=[5700,100000], linewidths=2, colors='none', hatches=['\\'])
+for c in c3h.collections:
+    c.set_edgecolor('violet')
 
 c2c = plt.contour(X / 1000, Y, Y/X*1e3, levels=[0.0146], colors =['lightgrey'], linewidths=2)
 c2h = plt.contourf(X / 1000, Y, Y/X*1e3, levels=[0.0146,1], linewidths=2, colors='none', hatches=['\\'])

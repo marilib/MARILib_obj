@@ -9,8 +9,9 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 from scipy.optimize import fsolve
-import unit
+import unit, utils
 
+import matplotlib.pyplot as plt
 
 
 class SmallPlane(object):
@@ -25,7 +26,7 @@ class SmallPlane(object):
         self.vtas = tas
         self.distance = dist
         self.n_pax = npax
-        self.mode = mode  # "classic" or "electric"
+        self.mode = mode  # "classic", "battery" or "fuel_cell"
 
         # Additionnal informations
         self.m_pax = 90
@@ -33,19 +34,33 @@ class SmallPlane(object):
         self.lod = 14  # Aerodynamic efficiency
 
         # Propulsion
-        self.prop_eff = 0.80
-        self.motor_eff = 0.95  # MAGNIX
+        self.prop_efficiency = 0.80
+
+        self.piston_eng_pw_density = unit.W_kW(1)  # W/kg
+        self.psfc = unit.convert_from("lb/shp/h", 0.6)
+        
+        self.elec_motor_pw_density = unit.W_kW(4.5) # W/kg   MAGNIX
+        self.elec_motor_efficiency = 0.95           # MAGNIX
+
+        # Energy systems
+        self.cooling_pw_density = unit.W_kW(2)      # W/kg
+
+        self.power_elec_pw_density = unit.W_kW(40)  # W/kg
+        self.power_elec_efficiency = 0.99
+
+        self.fc_system_pw_density = unit.W_kW(2)    # W/kg
+        self.fuel_cell_pw_density = unit.W_kW(5)    # W/kg
+        self.fuel_cell_efficiency = 0.50
 
         # Energy storage
-        self.psfc = unit.convert_from("lb/shp/h", 0.6)
-        self.fuel_hv = unit.J_MJ(43)  # gasoline
-        self.piston_eng_pw_density = unit.W_kW(1)  # W/kg
-        self.elec_motor_pw_density = unit.W_kW(4.5)  # W/kg   MAGNIX
-        self.power_elec_pw_density = unit.W_kW(10)  # W/kg
+        self.gasoline_lhv = unit.J_MJ(42)           # 42 MJ/kg
+        self.hydrogen_lhv = unit.J_MJ(121)          # 121 MJ/kg
+        self.lh2_tank_index = 0.2                   # Liquid H2 gravimetric index :     H2_mass / (H2_mass + Tank_mass)
         self.battery_enrg_density = unit.J_Wh(200)  # Wh/kg
 
         # design results
         self.design = None
+
 
     def __str__(self):
         """Print main figures
@@ -63,32 +78,66 @@ class SmallPlane(object):
 
         s.append("Max power = %.0f kW" %unit.kW_W(self.design["pw_max"]))
         if self.design["airplane_mode"]=="classic":
-            s.append("Mission fuel = %.0f kg" %self.design["mission_fuel"])
-            s.append("Reserve fuel = %.0f kg" %self.design["reserve_fuel"])
-            s.append("Total fuel = %.0f kg" %self.design["total_fuel"])
-        elif self.design["airplane_mode"]=="electric":
+            s.append("Total fuel = %.0f kg" %self.design["fuel_total"])
+        elif self.design["airplane_mode"]=="battery":
             s.append("Cruise power = %.0f kW" %unit.kW_W(self.design["pw_cruise"]))
             s.append("Battery mass = %.0f kg" %self.design["battery_mass"])
+            s.append("system energy density = %.2f Wh/kg" %unit.Wh_J(self.design["system_enrg_density"]))
+        elif self.design["airplane_mode"]=="fuel_cell":
+            s.append("Cruise power = %.0f kW" %unit.kW_W(self.design["pw_cruise"]))
+            s.append("System mass = %.0f kg" %self.design["system_mass"])
+            s.append("system energy density = %.2f Wh/kg" %unit.Wh_J(self.design["system_enrg_density"]))
+            s.append("Total fuel = %.0f kg" %self.design["fuel_total"])
         else:
             raise Exception("Aircraft mode is unknown")
-        s.append("Mission energy = %.0f kWh" %unit.kWh_J(self.design["mission_energy"]))
-        s.append("Reserve energy = %.0f kWh" %unit.kWh_J(self.design["reserve_energy"]))
         s.append("Total energy = %.0f kWh" %unit.kWh_J(self.design["total_energy"]))
         s.append("MTOW = %.0f kg"%self.design["mtow"])
         s.append("OWE = %.0f kg"%self.design["owe"])
         s.append("Payload = %.0f kg"%self.design["payload"])
         s.append("")
-        s.append("PK / MTOW minimum = %.2f pk/km" %self.design["pk_o_m_min"])
+        s.append("PK / MTOW minimum = %.2f pk/kg" %self.design["pk_o_m_min"])
         s.append("PK / MTOW = %.2f pk/kg" %self.design["pk_o_m"])
         s.append("PK / Energy = %.2f pk/kWh"%self.design["pk_o_e"])
         return "\n|\t".join(s)
 
+
+    def max_power(self, mtow):
+        """Estimate max installed power
+        """
+        pw_max = (0.0197*mtow + 100.6)*mtow
+        return pw_max
+
+
+    def basic_owe(self, mtow):
+        """Estimate classical airplane empty weight
+        """
+        # owe_basic = (-9.6325e-07 * mtow + 6.1041e-01) * mtow
+        owe_basic = 0.606 * mtow
+        return owe_basic
+
+
+    def aerodynamic(self, mass):
+        """Compute required thrust at cruise point
+        """
+        fn = mass * self.g / self.lod
+        return fn
+
+
+    def elec_propulsion(self, pw_max, fn):
+        """Copute required power at cruise point and engine mass
+        """
+        pw = fn * self.vtas / (self.prop_efficiency*self.elec_motor_efficiency)
+        m_engine = pw_max / self.elec_motor_pw_density
+        return pw, m_engine
+
+
     def breguet(self, tow):
         """Used for classical airplane burning gasoline
         """
-        fuel_mission = tow*(1.-np.exp(-(self.psfc*self.g*self.distance)/(self.prop_eff*self.lod)))   # piston engine
-        fuel_reserve = (tow-fuel_mission)*(1.-np.exp(-(self.psfc*self.g*self.vtas*self.diversion_time)/(self.prop_eff*self.lod)))
+        fuel_mission = tow*(1.-np.exp(-(self.psfc*self.g*self.distance)/(self.prop_efficiency*self.lod)))   # piston engine
+        fuel_reserve = (tow-fuel_mission)*(1.-np.exp(-(self.psfc*self.g*self.vtas*self.diversion_time)/(self.prop_efficiency*self.lod)))
         return fuel_mission, fuel_reserve
+
 
     def classic_design(self, mtow):
         """Aggregate all discipline to compute design point characteristics of a classicla airplane burning gasoline
@@ -98,14 +147,12 @@ class SmallPlane(object):
         fuel_mission, fuel_reserve = self.breguet(mtow)
         fuel_total = fuel_mission + fuel_reserve
         payload = self.n_pax * self.m_pax
-        total_energy = fuel_total * self.fuel_hv
+        total_energy = fuel_total * self.gasoline_lhv
         return {"airplane_mode":self.mode,
                 "pw_max":pw_max,
                 "mission_fuel":fuel_mission,
                 "reserve_fuel":fuel_reserve,
-                "total_fuel":fuel_total,
-                "mission_energy":fuel_mission * self.fuel_hv,
-                "reserve_energy":fuel_reserve*self.fuel_hv,
+                "fuel_total":fuel_total,
                 "total_energy":total_energy,
                 "mtow":mtow,
                 "owe":owe,
@@ -114,68 +161,39 @@ class SmallPlane(object):
                 "pk_o_m":self.n_pax*unit.km_m(self.distance)/mtow,
                 "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
 
-    def aerodynamic(self, mass):
-        """Compute required thrust at cruise point
-        """
-        fn = mass * self.g / self.lod
-        return fn
 
-    def propulsion(self, pw_max, fn):
-        """Copute required power at cruise point and engine mass
-        """
-        pw = fn * self.vtas / (self.prop_eff*self.motor_eff)
-        m_engine = pw_max / self.elec_motor_pw_density
-        return pw, m_engine
-
-    def energy_system(self, pw_max, pw, mass):
+    def battery_energy_system(self, pw_max, pw, mass):
         """Compute added system and battery masses
         """
-        m_system = pw_max / self.power_elec_pw_density
+        elec_pw_max = pw_max / (self.prop_efficiency*self.elec_motor_efficiency)
+        m_system = elec_pw_max / self.power_elec_pw_density
         m_battery = (  pw * (self.distance/self.vtas)
-                     + mass*self.g*self.alt/(self.motor_eff*self.prop_eff)
+                     + mass*self.g*self.alt/(self.elec_motor_efficiency*self.prop_efficiency)
                     ) / self.battery_enrg_density
+        m_battery += (pw * self.diversion_time) / self.battery_enrg_density
         return m_system, m_battery
 
-    def regulation(self, pw):
-        """Compute additional battery mass for reserve
-        """
-        m_reserve = (pw * self.diversion_time) / self.battery_enrg_density
-        return m_reserve
 
-    def max_power(self, mtow):
-        """Estimate max installed power
-        """
-        pw_max = (0.0197*mtow + 100.6)*mtow
-        return pw_max
-
-    def basic_owe(self, mtow):
-        """Estimate classical airplane empty weight
-        """
-        # owe_basic = (-9.6325e-07 * mtow + 6.1041e-01) * mtow
-        owe_basic = 0.606 * mtow
-        return owe_basic
-
-    def full_elec_design(self, mtow):
+    def battery_elec_design(self, mtow):
         """Aggregate all discipline outputs to compute design point characteristics of a full electric airplane
         """
         pw_max = self.max_power(mtow)
         owe_basic = self.basic_owe(mtow)
         fn = self.aerodynamic(mtow)
-        pw, m_engine = self.propulsion(pw_max,fn)
-        m_system, m_battery = self.energy_system(pw_max, pw, mtow)
-        m_reserve = self.regulation(pw)
+        pw, m_engine = self.elec_propulsion(pw_max,fn)
+        m_system, m_battery = self.battery_energy_system(pw_max, pw, mtow)
         owe =  owe_basic \
              - pw_max / self.piston_eng_pw_density \
-             + m_engine + m_system + m_battery + m_reserve
+             + m_engine + m_system + m_battery
         payload = self.n_pax * self.m_pax
-        total_energy = (m_battery + m_reserve) * self.battery_enrg_density
+        total_energy = m_battery * self.battery_enrg_density
         return {"airplane_mode":self.mode,
                 "pw_max":pw_max,
                 "pw_cruise":pw,
                 "fn_cruise":fn,
-                "battery_mass":m_battery+m_reserve,
-                "mission_energy":m_battery*self.battery_enrg_density,
-                "reserve_energy":m_reserve*self.battery_enrg_density,
+                "battery_mass":m_battery,
+                "system_enrg_density":total_energy/(m_system+m_battery),
+                "fuel_total":0.,
                 "total_energy":total_energy,
                 "mtow":mtow,
                 "owe":owe,
@@ -183,6 +201,57 @@ class SmallPlane(object):
                 "pk_o_m_min":unit.km_m(self.distance)/670,
                 "pk_o_m":self.n_pax*unit.km_m(self.distance)/mtow,
                 "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
+
+
+    def fuel_cell_energy_system(self, pw_max, mass):
+        """Compute added system and battery masses
+        """
+        elec_pw_max = pw_max / (self.prop_efficiency*self.elec_motor_efficiency)
+        m_system = elec_pw_max / self.power_elec_pw_density
+        m_system += elec_pw_max / self.fuel_cell_pw_density
+        m_system += elec_pw_max / self.fc_system_pw_density
+        thermal_pw = elec_pw_max * (1 - self.fuel_cell_efficiency) \
+                               / (self.fuel_cell_efficiency*self.elec_motor_efficiency*self.power_elec_efficiency)
+        m_system += thermal_pw / self.cooling_pw_density
+
+        fhv = self.hydrogen_lhv
+        eff = self.prop_efficiency * self.elec_motor_efficiency * self.fuel_cell_efficiency
+        fuel_mission = mass*(1.-np.exp(-(self.g*self.distance)/(eff*fhv*self.lod)))
+        fuel_reserve = (mass-fuel_mission)*(1-np.exp(-(self.g*self.vtas*self.diversion_time)/(eff*fhv*self.lod)))
+
+        m_fuel_total = fuel_mission + fuel_reserve
+        m_system += m_fuel_total * (1/self.lh2_tank_index - 1)
+        return m_system, m_fuel_total
+
+
+    def fuel_cell_elec_design(self, mtow):
+        """Aggregate all discipline outputs to compute design point characteristics of a full electric airplane
+        """
+        pw_max = self.max_power(mtow)
+        owe_basic = self.basic_owe(mtow)
+        fn = self.aerodynamic(mtow)
+        pw, m_engine = self.elec_propulsion(pw_max,fn)
+        m_system, fuel_total = self.fuel_cell_energy_system(pw_max, mtow)
+        owe =  owe_basic \
+             - pw_max / self.piston_eng_pw_density \
+             + m_engine + m_system + fuel_total
+        payload = self.n_pax * self.m_pax
+        total_energy = fuel_total * self.hydrogen_lhv
+        return {"airplane_mode":self.mode,
+                "pw_max":pw_max,
+                "pw_cruise":pw,
+                "fn_cruise":fn,
+                "system_mass":m_system,
+                "system_enrg_density":total_energy/m_system,
+                "total_energy":total_energy,
+                "fuel_total":fuel_total,
+                "mtow":mtow,
+                "owe":owe,
+                "payload":payload,
+                "pk_o_m_min":unit.km_m(self.distance)/670,
+                "pk_o_m":self.n_pax*unit.km_m(self.distance)/mtow,
+                "pk_o_e":self.n_pax*unit.km_m(self.distance)/unit.kWh_J(total_energy)}
+
 
     def design_solver(self):
         """Compute the design point
@@ -190,22 +259,45 @@ class SmallPlane(object):
         def fct(mtow):
             if self.mode=="classic":
                 dict = self.classic_design(mtow)
-                return mtow - dict["owe"] - dict["payload"] - dict["total_fuel"]
-            elif self.mode=="electric":
-                dict = self.full_elec_design(mtow)
-                return mtow - dict["owe"] - dict["payload"]
+            elif self.mode=="battery":
+                dict = self.battery_elec_design(mtow)
+            elif self.mode=="fuel_cell":
+                dict = self.fuel_cell_elec_design(mtow)
             else:
                 raise Exception("Aircraft mode is unknown")
+            return mtow - dict["owe"] - dict["payload"] - dict["fuel_total"]
 
-        mtow_ini = 100000   # Use very high init to avoid negative root
+        mtow_ini = 5000   # Use very high init to avoid negative root
         output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        if (output_dict[2]!=1):
+            xres, yres, rc = utils.maximize_1d(200, 200, [fct])
+            if yres<0: return
         mtow = output_dict[0][0]
 
         if self.mode=="classic":
             self.design = self.classic_design(mtow)
-        elif self.mode=="electric":
-            self.design = self.full_elec_design(mtow)
+        elif self.mode=="battery":
+            self.design = self.battery_elec_design(mtow)
+        elif self.mode=="fuel_cell":
+            self.design = self.fuel_cell_elec_design(mtow)
+
+
+    def test_convergence(self):
+        mtow = np.linspace(200, 10000, 50)
+        diff = []
+        for m in mtow:
+            if self.mode=="classic":
+                dict = self.classic_design(m)
+            elif self.mode=="battery":
+                dict = self.battery_elec_design(m)
+            elif self.mode=="fuel_cell":
+                dict = self.fuel_cell_elec_design(m)
+            else:
+                raise Exception("Aircraft mode is unknown")
+            diff.append(m - dict['owe'] - dict['payload'] - dict['fuel_total'])
+        plt.plot(mtow,diff)
+        plt.grid(True)
+        plt.show()
 
 
     def max_distance(self):
@@ -262,12 +354,25 @@ if __name__ == '__main__':
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
 
 
-    spe = SmallPlane(npax=2, dist=unit.m_km(130), tas=unit.mps_kmph(130),mode="electric")       # H55
+    spe = SmallPlane(npax=2, dist=unit.m_km(130), tas=unit.mps_kmph(130),mode="battery")       # H55
     spe.battery_enrg_density = unit.J_Wh(200)
     spe.design_solver()
     print(spe)
 
-    # spe.max_distance(mode="electric")
+    # spe.max_distance(mode="battery")
+    # print("")
+    # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
+
+
+    sph = SmallPlane(npax=4, dist=unit.m_km(800), tas=unit.mps_kmph(250),mode="fuel_cell")       # H55
+    sph.cooling_pw_density = unit.W_kW(2)      # W/kg
+    sph.fc_system_pw_density = unit.W_kW(2)
+    sph.fuel_cell_efficiency = 0.5
+    # sph.test_convergence()
+    sph.design_solver()
+    print(sph)
+
+    # spe.max_distance(mode="battery")
     # print("")
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
 
