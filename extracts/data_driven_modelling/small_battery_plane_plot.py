@@ -22,7 +22,8 @@ rc('font',**font)
 
 sp = SmallPlane(alt=unit.m_ft(3000),
                 tas=unit.mps_kmph(200),
-                mode="fuel_cell")
+                mode="fuel_cell",
+                fuel="gh2")
 
 # Technological parameter for battery
 sp.battery_enrg_density = unit.J_Wh(600)

@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 class SmallPlane(object):
 
-    def __init__(self, npax=4, alt=unit.m_ft(3000), dist=unit.m_km(500), tas=unit.mps_kmph(180), mode="classic"):
+    def __init__(self, npax=4, alt=unit.m_ft(3000), dist=unit.m_km(500), tas=unit.mps_kmph(180), mode="classic", fuel="gasoline"):
         # Earth and atmosphere
         self.g = 9.80665
         self.disa = 0.
@@ -27,6 +27,7 @@ class SmallPlane(object):
         self.distance = dist
         self.n_pax = npax
         self.mode = mode  # "classic", "battery" or "fuel_cell"
+        self.fuel = fuel  # "gasoline", "gh2" or "lh2"
 
         # Additionnal informations
         self.m_pax = 90
@@ -37,7 +38,7 @@ class SmallPlane(object):
         self.prop_efficiency = 0.80
 
         self.piston_eng_pw_density = unit.W_kW(1)  # W/kg
-        self.psfc = unit.convert_from("lb/shp/h", 0.6)
+        self.psfc_gasoline = unit.convert_from("lb/shp/h", 0.6)
         
         self.elec_motor_pw_density = unit.W_kW(4.5) # W/kg   MAGNIX
         self.elec_motor_efficiency = 0.95           # MAGNIX
@@ -55,7 +56,8 @@ class SmallPlane(object):
         # Energy storage
         self.gasoline_lhv = unit.J_MJ(42)           # 42 MJ/kg
         self.hydrogen_lhv = unit.J_MJ(121)          # 121 MJ/kg
-        self.lh2_tank_index = 0.2                   # Liquid H2 gravimetric index :     H2_mass / (H2_mass + Tank_mass)
+        self.lh2_tank_index = 0.2                   # Liquid H2 tank gravimetric index :     H2_mass / (H2_mass + Tank_mass)
+        self.gh2_tank_index = 0.1                   # 700 bar H2 tank gravimetric index :     H2_mass / (H2_mass + Tank_mass)
         self.battery_enrg_density = unit.J_Wh(200)  # Wh/kg
 
         # design results
@@ -78,6 +80,7 @@ class SmallPlane(object):
 
         s.append("Max power = %.0f kW" %unit.kW_W(self.design["pw_max"]))
         if self.design["airplane_mode"]=="classic":
+            s.append("Special tank mass = %.0f kg" %self.design["special_tank"])
             s.append("Total fuel = %.0f kg" %self.design["fuel_total"])
         elif self.design["airplane_mode"]=="battery":
             s.append("Cruise power = %.0f kW" %unit.kW_W(self.design["pw_cruise"]))
@@ -99,6 +102,27 @@ class SmallPlane(object):
         s.append("PK / MTOW = %.2f pk/kg" %self.design["pk_o_m"])
         s.append("PK / Energy = %.2f pk/kWh"%self.design["pk_o_e"])
         return "\n|\t".join(s)
+
+
+    def get_tank_index(self):
+        if self.fuel=="gasoline":
+            return 1.
+        elif self.fuel=="gh2":
+            return self.gh2_tank_index
+        elif self.fuel=="lh2":
+            return self.lh2_tank_index
+        else:
+            raise Exception("Fuel type is unknown")
+
+
+    def get_psfc(self):
+        if self.fuel=="gasoline":
+            psfc = self.psfc_gasoline
+        elif self.fuel in ["gh2", "lh2"]:
+            psfc = self.psfc_gasoline * self.gasoline_lhv / self.hydrogen_lhv
+        else:
+            raise Exception("Fuel type is unknown")
+        return psfc
 
 
     def max_power(self, mtow):
@@ -134,8 +158,9 @@ class SmallPlane(object):
     def breguet(self, tow):
         """Used for classical airplane burning gasoline
         """
-        fuel_mission = tow*(1.-np.exp(-(self.psfc*self.g*self.distance)/(self.prop_efficiency*self.lod)))   # piston engine
-        fuel_reserve = (tow-fuel_mission)*(1.-np.exp(-(self.psfc*self.g*self.vtas*self.diversion_time)/(self.prop_efficiency*self.lod)))
+        psfc = self.get_psfc()
+        fuel_mission = tow*(1.-np.exp(-(psfc*self.g*self.distance)/(self.prop_efficiency*self.lod)))   # piston engine
+        fuel_reserve = (tow-fuel_mission)*(1.-np.exp(-(psfc*self.g*self.vtas*self.diversion_time)/(self.prop_efficiency*self.lod)))
         return fuel_mission, fuel_reserve
 
 
@@ -143,15 +168,15 @@ class SmallPlane(object):
         """Aggregate all discipline to compute design point characteristics of a classicla airplane burning gasoline
         """
         pw_max = self.max_power(mtow)
-        owe = self.basic_owe(mtow)
         fuel_mission, fuel_reserve = self.breguet(mtow)
         fuel_total = fuel_mission + fuel_reserve
+        special_tank = fuel_total * (1/self.get_tank_index()-1)
+        owe =  self.basic_owe(mtow) + special_tank
         payload = self.n_pax * self.m_pax
         total_energy = fuel_total * self.gasoline_lhv
         return {"airplane_mode":self.mode,
                 "pw_max":pw_max,
-                "mission_fuel":fuel_mission,
-                "reserve_fuel":fuel_reserve,
+                "special_tank":special_tank,
                 "fuel_total":fuel_total,
                 "total_energy":total_energy,
                 "mtow":mtow,
@@ -211,7 +236,7 @@ class SmallPlane(object):
         m_system += elec_pw_max / self.fuel_cell_pw_density
         m_system += elec_pw_max / self.fc_system_pw_density
         thermal_pw = elec_pw_max * (1 - self.fuel_cell_efficiency) \
-                               / (self.fuel_cell_efficiency*self.elec_motor_efficiency*self.power_elec_efficiency)
+                                 / (self.fuel_cell_efficiency*self.elec_motor_efficiency*self.power_elec_efficiency)
         m_system += thermal_pw / self.cooling_pw_density
 
         fhv = self.hydrogen_lhv
@@ -220,7 +245,7 @@ class SmallPlane(object):
         fuel_reserve = (mass-fuel_mission)*(1-np.exp(-(self.g*self.vtas*self.diversion_time)/(eff*fhv*self.lod)))
 
         m_fuel_total = fuel_mission + fuel_reserve
-        m_system += m_fuel_total * (1/self.lh2_tank_index - 1)
+        m_system += m_fuel_total * (1/self.get_tank_index() - 1)
         return m_system, m_fuel_total
 
 
@@ -272,6 +297,8 @@ class SmallPlane(object):
         if (output_dict[2]!=1):
             xres, yres, rc = utils.maximize_1d(200, 200, [fct])
             if yres<0: return
+        elif output_dict[0][0]<0:
+            return
         mtow = output_dict[0][0]
 
         if self.mode=="classic":
@@ -345,7 +372,7 @@ if __name__ == '__main__':
     #-------------------------------------------------------------------------------------------------------------------
     # Validation examples
 
-    spc = SmallPlane(npax=4.5, dist=unit.m_km(1300), tas=unit.mps_kmph(280),mode="classic")     # TB20
+    spc = SmallPlane(npax=4.5, dist=unit.m_km(1300), tas=unit.mps_kmph(280), mode="classic", fuel="gasoline")     # TB20
     spc.design_solver()
     print(spc)
 
@@ -354,7 +381,7 @@ if __name__ == '__main__':
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
 
 
-    spe = SmallPlane(npax=2, dist=unit.m_km(130), tas=unit.mps_kmph(130),mode="battery")       # H55
+    spe = SmallPlane(npax=2, dist=unit.m_km(130), tas=unit.mps_kmph(130), mode="battery")       # H55
     spe.battery_enrg_density = unit.J_Wh(200)
     spe.design_solver()
     print(spe)
@@ -364,7 +391,7 @@ if __name__ == '__main__':
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
 
 
-    sph = SmallPlane(npax=4, dist=unit.m_km(800), tas=unit.mps_kmph(250),mode="fuel_cell")       # H55
+    sph = SmallPlane(npax=4, dist=unit.m_km(600), tas=unit.mps_kmph(250), mode="fuel_cell", fuel="gh2")       # H55
     sph.cooling_pw_density = unit.W_kW(2)      # W/kg
     sph.fc_system_pw_density = unit.W_kW(2)
     sph.fuel_cell_efficiency = 0.5
