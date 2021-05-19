@@ -246,6 +246,19 @@ if __name__ == '__main__':
 
 
     #----------------------------------------------------------------------------------
+    abs = "(MTOW/wing_area)**0.5"
+    ord = "approach_speed"
+
+    df[abs] = (df['MTOW'] / df['wing_area'])**0.5   # Add the new column to the dataframe
+    un[abs] = "kg/m2"                                      # Add its unit
+
+    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+
+    order = [1]
+    dict = do_regression(df, un, abs, ord, coloration, order)
+
+
+    #----------------------------------------------------------------------------------
     abs = "nominal_range"                           # Name of the new column
     ord = "n_pax"
 

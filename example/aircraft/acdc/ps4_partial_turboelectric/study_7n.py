@@ -115,8 +115,8 @@ result = np.array([["e-fan power               (kW)"],
                    ["CO2 metric  (10e-7kg/km/m0.48)"]])
 
 # for chain_power in (0.15e6, 0.20e6, 0.25e6, 0.30e6, 0.35e6, 0.40e6, 0.45e6, 0.50e6, 0.75e6, 1.0e6, 1.25e6, 1.50e6, 1.75e6, 2.00e6, 2.25e6, 2.50e6):
-# for chain_power in (0.15e6, 0.20e6, 0.25e6, 0.30e6, 0.35e6, 0.40e6, 0.45e6, 0.50e6, 0.75e6):
-for chain_power in (1.0e6, 1.25e6, 1.50e6, 1.75e6, 2.00e6, 2.25e6, 2.50e6):
+# for chain_power in (0.15e6, 0.20e6, 0.25e6, 0.30e6, 0.35e6, 0.40e6, 0.45e6, 0.50e6, 0.75e6, 1.0e6, 1.25e6):
+for chain_power in (1.50e6, 1.75e6, 2.00e6, 2.25e6, 2.50e6):
 
     print("Doing chain_power = ", "%8.0f"%(chain_power/1000), " kW")
 

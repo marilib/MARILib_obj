@@ -32,7 +32,8 @@ class SmallPlane(object):
         # Additionnal informations
         self.m_pax = 90
         self.diversion_time = unit.s_min(30)
-        self.lod = 14  # Aerodynamic efficiency
+        self.lod = 14           # Aerodynamic efficiency
+        self.owe_factor = 1.    # Factor on OWE
 
         # Propulsion
         self.prop_efficiency = 0.80
@@ -136,7 +137,7 @@ class SmallPlane(object):
         """Estimate classical airplane empty weight
         """
         # owe_basic = (-9.6325e-07 * mtow + 6.1041e-01) * mtow
-        owe_basic = 0.606 * mtow
+        owe_basic = 0.606 * mtow * self.owe_factor
         return owe_basic
 
 
@@ -372,32 +373,53 @@ if __name__ == '__main__':
     #-------------------------------------------------------------------------------------------------------------------
     # Validation examples
 
-    spc = SmallPlane(npax=4.5, dist=unit.m_km(1300), tas=unit.mps_kmph(280), mode="classic", fuel="gasoline")     # TB20
-    spc.design_solver()
-    print(spc)
+    # spc = SmallPlane(npax=4.5, dist=unit.m_km(1300), tas=unit.mps_kmph(280), mode="classic", fuel="gasoline")     # TB20
+    # spc.design_solver()
+    # print(spc)
 
     # spc.max_distance(mode="classic")
     # print("")
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
 
 
-    spe = SmallPlane(npax=2, dist=unit.m_km(130), tas=unit.mps_kmph(130), mode="battery")       # H55
-    spe.battery_enrg_density = unit.J_Wh(200)
+    #-------------------------------------------------------------------------------------------------------------------
+    # Trying to identify Alice characteristics
+    spe = SmallPlane(npax=11, alt=unit.m_ft(10000), dist=unit.m_km(800), tas=unit.mps_kmph(440), mode="battery")       # H55
+    spe.battery_enrg_density = unit.J_Wh(240)   # Outstanding capacity for state of the art Li-ion
+    spe.prop_efficiency = 0.82                  # Very good propeller efficiency
+    spe.owe_factor = 0.75                       # 25% airframe weight improvement
+    spe.lod = 29                                # Glider level aerodynamic efficiency
     spe.design_solver()
     print(spe)
+
+    # Most probable performances
+    spe = SmallPlane(npax=11, alt=unit.m_ft(10000), dist=unit.m_km(500), tas=unit.mps_kmph(440), mode="battery")       # H55
+    spe.battery_enrg_density = unit.J_Wh(200)   # Outstanding capacity for state of the art Li-ion
+    spe.prop_efficiency = 0.82                  # Very good propeller efficiency
+    spe.owe_factor = 0.75                       # 25% airframe weight improvement
+    spe.lod = 25                                # Glider level aerodynamic efficiency
+    spe.design_solver()
+    print(spe)
+
+
+    # spe = SmallPlane(npax=2, dist=unit.m_km(130), tas=unit.mps_kmph(130), mode="battery")       # H55
+    # spe.battery_enrg_density = unit.J_Wh(240)
+    # spe.design_solver()
+    # print(spe)
 
     # spe.max_distance(mode="battery")
     # print("")
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
 
 
-    sph = SmallPlane(npax=4, dist=unit.m_km(600), tas=unit.mps_kmph(250), mode="fuel_cell", fuel="gh2")       # H55
-    sph.cooling_pw_density = unit.W_kW(2)      # W/kg
-    sph.fc_system_pw_density = unit.W_kW(2)
-    sph.fuel_cell_efficiency = 0.5
-    # sph.test_convergence()
-    sph.design_solver()
-    print(sph)
+    #-------------------------------------------------------------------------------------------------------------------
+    # sph = SmallPlane(npax=4, dist=unit.m_km(600), tas=unit.mps_kmph(250), mode="fuel_cell", fuel="gh2")       # H55
+    # sph.cooling_pw_density = unit.W_kW(2)      # W/kg
+    # sph.fc_system_pw_density = unit.W_kW(2)
+    # sph.fuel_cell_efficiency = 0.5
+    # # sph.test_convergence()
+    # sph.design_solver()
+    # print(sph)
 
     # spe.max_distance(mode="battery")
     # print("")

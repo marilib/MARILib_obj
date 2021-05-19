@@ -199,7 +199,7 @@ un[abs] = "N.m"                              # Add its unit
 dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
 
 #----------------------------------------------------------------------------------
-abs = "sqrt(MLW/wing_area)"
+abs = "(MLW/wing_area)**0.5"
 ord = "approach_speed"
 
 df[abs] = (df['MLW'] / df['wing_area'])**0.5   # Add the new column to the dataframe

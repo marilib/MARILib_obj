@@ -50,7 +50,7 @@ ac.airframe.system.cruise_energy = unit.J_kWh(140)          # J, energy stored i
 ac.airframe.system.chain_power = unit.W_MW(1.)      # Shaft power of the electric motor
 
 if (ac.arrangement.power_architecture=="pte"):
-    ac.airframe.tail_nacelle.bli_effect = "yes"         # Include BLI effect in thrust computation
+    ac.airframe.tail_nacelle.bli_effect = "no"         # Include BLI effect in thrust computation
 
     ac.airframe.tail_nacelle.controller_efficiency = 0.99
     ac.airframe.tail_nacelle.motor_efficiency = 0.95
@@ -75,9 +75,6 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
-
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 
@@ -132,3 +129,7 @@ print("Cash Operating Cost = ","%.1f"%ac.economics.cash_op_cost," $/trip")
 print("Cost mission block fuel = ","%.1f"%(ac.performance.mission.cost.fuel_block)," kg/trip")
 print("Carbon dioxide emission = ","%.1f"%(ac.performance.mission.cost.fuel_block*3.14)," kg/trip")
 print("Fuel efficiency metric = ","%.4f"%(ac.environment.CO2_metric*1e7)," 10-7kg/km/m0.48")
+
+ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
+

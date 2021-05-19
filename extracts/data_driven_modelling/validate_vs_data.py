@@ -58,7 +58,7 @@ def compute_one_ac(npax, rng, mach, sref, slst, wing_att, n_eng, n_pax_row):
     VTP_area         = ac.airframe.vertical_stab.area        #- surface empennage HTP et VTP
     HTP_area         = ac.airframe.horizontal_stab.area
     engine_y_arm     = ac.airframe.nacelle.cg[1]             #- bras de levier moteur
-    rotor_diameter   = ac.airframe.nacelle.width             #- diamètre nacelle
+    rotor_diameter   = ac.airframe.nacelle.fan_width             #- diamètre nacelle
     fuselage_length  = ac.airframe.body.length                #- diamètre et longueur du fuselage
     fuselage_width   = ac.airframe.body.width                #- diamètre et longueur du fuselage
     wing_span        = ac.airframe.wing.span                 #- envergure
@@ -85,7 +85,7 @@ def compute_one_ac(npax, rng, mach, sref, slst, wing_att, n_eng, n_pax_row):
     return ac, VTP_area, HTP_area, engine_y_arm, rotor_diameter, fuselage_length, fuselage_width, wing_span, owe, mtow, mlw, mfw, tofl, app_speed
 
 
-def compute_all_aircrafts_and_save(df,un):
+def compute_all_aircraft(df,un):
 
     # Remove A380-800 row and reset index
     # df = df[df['name']!='A380-800'].reset_index(drop=True)
@@ -172,6 +172,7 @@ def compute_all_aircrafts_and_save(df,un):
 
     return errors, df, un
 
+
 def add_npax_front(df,un):
     """Estimate the number of front passenger and add it to the database"""
     list_n_pax_row = []
@@ -183,29 +184,30 @@ def add_npax_front(df,un):
         list_n_pax_row.append(n_pax_row)
 
     df["n_pax_front_estimate"] = list_n_pax_row
-    un["n_pax_front_estimate"] = 'no_dim'
+    un["n_pax_front_estimate"] = 'int'
     return df,un
+
 
 if __name__=="__main__":
 
-    # df,un = anadata.read_db("All_Data_v3.xlsx")     # read database
-    # df,un = add_npax_front(df,un)                   # add the column "n_pax_front_estimate"
-    # errors, df, un = compute_all_aircrafts_and_save(df,un) # compute all aircraft with marilib
-    # # Save files
-    # df.to_csv("data_with_model.csv", sep=";")        # save database + model results
-    # un.to_csv("unit_with_model.csv", sep=";")        # save database + model results
-    # with open("errors.txt","w") as f:               # save error list
-    #     f.write(str(errors))
+    df,un = anadata.read_db("All_Data_v4.xlsx")     # read database
+    df,un = add_npax_front(df,un)                   # add the column "n_pax_front_estimate"
+    errors, df, un = compute_all_aircraft(df,un) # compute all aircraft with marilib
+    # Save files
+    df.to_csv("data_with_model.csv", sep=";")        # save database + model results
+    un.to_csv("unit_with_model.csv", sep=";")        # save database + model results
+    with open("errors.txt","w") as f:               # save error list
+        f.write(str(errors))
 
-    df = pd.read_csv("data_with_model.csv",sep=";",index_col=0)
-    un = pd.read_csv("unit_with_model.csv",sep=";",index_col=0)
+    # df = pd.read_csv("data_with_model.csv",sep=";",index_col=0)
+    # un = pd.read_csv("unit_with_model.csv",sep=";",index_col=0)
 
-    param_list = ["VTP_area",
+    param_list = ["fuselage_width",
+                  "total_length",
+                  "VTP_area",
                   "HTP_area",
                   "engine_y_arm",
                   "rotor_diameter",
-                  "fuselage_width",
-                  "total_length",
                   "wing_span",
                   "OWE",
                   "MTOW",
@@ -213,8 +215,9 @@ if __name__=="__main__":
                   "max_fuel",
                   "tofl",
                   "approach_speed"]
-    
-    anadata.subplots_by_varname(df,un,param_list,savefig=True)
+
+    for i,j in zip([0,3,6,9,11],[3,6,9,11,13]):
+        anadata.subplots_by_varname(df,un,param_list[i:j],savefig=True)
 
     #for var in param_list:
     #    un['model_' + var] = un[var]

@@ -136,23 +136,11 @@ def compare_vapp_base_and_model(df, ddm, coloration):
     rer = []
     power_system = ddm.default_power_system
     for i in df.index:
-        npax = float(df['n_pax'][i])
-        distance = float(df['nominal_range'][i])
-        cruise_speed = float(df['cruise_speed'][i])
-        airplane_type = df['airplane_type'][i]
-        power_system["engine_type"] = df['engine_type'][i]
-
-        altitude_data = ddm.cruise_altp(airplane_type)
-        reserve_data = ddm.reserve_data(airplane_type)
-        dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, power_system)
-
         wing_area = float(df['wing_area'][i])
         vapp_ref = float(df['approach_speed'][i])
-        disa = 0
-        altp = unit.m_ft(0)
         mlw = float(df['MLW'][i])
 
-        vapp = ddm.get_app_speed(dict, wing_area, disa, altp, mlw)
+        vapp = ddm.get_app_speed(wing_area, mlw)
 
         rer.append((vapp-vapp_ref)/vapp_ref)   # Store relative error
         app_speed.append(vapp)
@@ -172,23 +160,12 @@ def compare_tofl_base_and_model(df, ddm, coloration):
     rer = []
     power_system = ddm.default_power_system
     for i in df.index:
-        npax = float(df['n_pax'][i])
-        distance = float(df['nominal_range'][i])
-        cruise_speed = float(df['cruise_speed'][i])
-        airplane_type = df['airplane_type'][i]
-        power_system["engine_type"] = df['engine_type'][i]
-
-        altitude_data = ddm.cruise_altp(airplane_type)
-        reserve_data = ddm.reserve_data(airplane_type)
-        dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, power_system)
-
+        total_power = float(df['max_power'][i]) * float(df['n_engine'][i])
         wing_area = float(df['wing_area'][i])
         tofl_ref = float(df['tofl'][i])
-        disa = 0
-        altp = unit.m_ft(0)
         mtow = float(df['MTOW'][i])
 
-        tofl = ddm.get_tofl(dict, wing_area, disa, altp, mtow)
+        tofl = ddm.get_tofl(total_power, wing_area, mtow)
 
         rer.append((tofl-tofl_ref)/tofl_ref)   # Store relative error
         field_length.append(tofl)

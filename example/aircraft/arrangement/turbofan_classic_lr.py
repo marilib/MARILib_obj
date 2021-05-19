@@ -31,9 +31,9 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 275.,
-                   design_range = unit.m_NM(7000.),
-                   cruise_mach = 0.85,
+reqs = Requirement(n_pax_ref = 295.,
+                   design_range = unit.m_km(12000.),
+                   cruise_mach = 0.82,
                    cruise_altp = unit.m_ft(35000.))
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
@@ -41,8 +41,8 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_thrust = unit.N_kN(330.)
-ac.airframe.wing.area = 400.
+ac.power_system.reference_thrust = unit.N_kN(320.)
+ac.airframe.wing.area = 360.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)

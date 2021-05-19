@@ -500,15 +500,15 @@ class SemiEmpiricTfNacelle(object):
 
         PtotJet = Ptot * self.engine_fpr
         TtotJet = Ttot*((self.engine_fpr**((gam-1.)/gam) - 1.)/self.fan_efficiency + 1.)
-        m_dot_design = shaft_power/(Cp*(TtotJet - Ttot))
         MachJet = np.sqrt(((PtotJet/Pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
+        m_dot_design = shaft_power/(Cp*(TtotJet - Ttot))
 
         self.nozzle_area = m_dot_design / self.corrected_air_flow(PtotJet,TtotJet,MachJet)
-
-        MachFan = min(0.5, self.aircraft.requirement.cruise_mach)     # required Mach number at fan position
-        fan_area = m_dot_design / self.corrected_air_flow(Ptot,Ttot,MachFan)        # Corrected air flow per area at fan position
-        self.fan_width = np.sqrt(self.hub_width**2 + 4.*fan_area/np.pi)        # Fan diameter
         self.nozzle_width = np.sqrt(self.hub_width**2 + 4.*self.nozzle_area/np.pi)        # Nozzle diameter
+
+        MachFan = min(0.55, self.aircraft.requirement.cruise_mach)     # required Mach number at fan position
+        fan_area = m_dot_design / self.corrected_air_flow(Ptot,Ttot,MachFan)        # Corrected air flow per area at fan position
+        self.fan_width = 2.*np.sqrt(fan_area/np.pi)        # Fan diameter
 
         self.width = self.fan_width + 0.30      # Surrounding structure
         self.length = 1.50*self.width
@@ -573,8 +573,9 @@ class SemiEmpiricTfNacelle(object):
         fan_thrust = qf*(Vjet - Vair)
 
         total_thrust = fan_thrust + core_thrust
+        sfc = fuel_flow / total_thrust
 
-        return {"fn":total_thrust, "ff":fuel_flow, "t4":None}
+        return {"fn":total_thrust, "ff":fuel_flow, "sfc":sfc, "t4":None}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         return self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
@@ -607,7 +608,7 @@ class SemiEmpiricTfNacelle(object):
         CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
         q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
 
-        x_init = [q0init,0.5]
+        x_init = [q0init,0.75]
 
         # Computation of both air flow and shaft power
         output_dict = fsolve(fct, x0=x_init, args=fct_arg, full_output=True)
@@ -679,8 +680,11 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
         """
         r,gam,Cp,Cv = earth.gas_data()
 
-        def fct(y,pw_shaft,pamb,rho,Ptot,Ttot,Vair,r1,d1):
+        def fct(y,pw_shaft,pamb,tamb,rho,Vair,r1,d1):
             q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y)
+            mach_inlet = Vinlet / earth.sound_speed(tamb)
+            Ttot = earth.total_temperature(tamb,mach_inlet)     # Total temperature at inlet position
+            Ptot = earth.total_pressure(pamb,mach_inlet)        # Total pressure at inlet position
             TtotJet = Ttot + pw_shaft/(q1*Cp)
             PtotJet = Ptot * (1. + self.fan_efficiency*(TtotJet/Ttot-1.))**(gam/(gam-1.))
             MachJet = np.sqrt(((PtotJet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
@@ -693,14 +697,12 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
         Re = earth.reynolds_number(pamb,tamb,mach)
         rho,sig = earth.air_density(pamb,tamb)
         Vair = mach * earth.sound_speed(tamb)
-        Ptot = earth.total_pressure(pamb,mach)        # Total pressure at inlet position
-        Ttot = earth.total_temperature(tamb,mach)     # Total temperature at inlet position
 
         d0 = self.boundary_layer(Re,self.body_length)      # theorical thickness of the boundary layer without taking account of fuselage tapering
         r1 = 0.5*self.hub_width      # Radius of the hub of the eFan nacelle
         d1 = math.lin_interp_1d(d0,self.bnd_layer[:,0],self.bnd_layer[:,1])     # Using the precomputed relation
 
-        fct_arg = (pw_shaft,pamb,rho,Ptot,Ttot,Vair,r1,d1)
+        fct_arg = (pw_shaft,pamb,tamb,rho,Vair,r1,d1)
 
         # Computation of y1 : thikness of the vein swallowed by the inlet
         output_dict = fsolve(fct, x0=0.5, args=fct_arg, full_output=True)
@@ -710,17 +712,21 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
 
         q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y1)
 
-        TtotJet = Ttot + pw_shaft/(q0*Cp)
+        mach_inlet = Vinlet / earth.sound_speed(tamb)
+        Ttot = earth.total_temperature(tamb,mach_inlet)     # Total temperature at inlet position
+        Ptot = earth.total_pressure(pamb,mach_inlet)        # Total pressure at inlet position
+        TtotJet = Ttot + pw_shaft/(q1*Cp)
         PtotJet = Ptot * (1. + self.fan_efficiency*(TtotJet/Ttot-1.))**(gam/(gam-1.))
         MachJet = np.sqrt(((PtotJet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
         TstaJet = TtotJet / (1.+0.5*(gam-1.)*MachJet**2)
         Vjet = MachJet * np.sqrt(gam*r*TstaJet)
         qf = self.nozzle_area * self.corrected_air_flow(PtotJet,TtotJet,MachJet)
-        fan_thrust = qf*(Vjet - Vair)
+        fan_thrust = qf*(Vjet - Vinlet)
 
         total_thrust = fan_thrust + core_thrust
+        sfc = fuel_flow / total_thrust
 
-        return {"fn":total_thrust, "ff":fuel_flow, "t4":None}
+        return {"fn":total_thrust, "ff":fuel_flow, "sfc":sfc, "t4":None}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         if self.bli_effect=="yes":
@@ -736,32 +742,33 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
         """
         r,gam,Cp,Cv = earth.gas_data()
 
-        def fct(x_in,thrust,pamb,rho,Ptot,Ttot,Vair,r1,d1):
+        def fct(x_in,thrust,pamb,tamb,rho,Vair,r1,d1):
             y = x_in[0]
             throttle = x_in[1]
             q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y)
-            pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+            mach_inlet = Vinlet / earth.sound_speed(tamb)
+            pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach_inlet,rating,throttle=throttle,pw_offtake=pw_offtake)
+            Ttot = earth.total_temperature(tamb,mach_inlet)     # Total temperature at inlet position
+            Ptot = earth.total_pressure(pamb,mach_inlet)        # Total pressure at inlet position
             TtotJet = Ttot + pw_shaft/(q1*Cp)
             PtotJet = Ptot * (1. + self.fan_efficiency*(TtotJet/Ttot-1.))**(gam/(gam-1.))
             MachJet = np.sqrt(((PtotJet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
             TstaJet = TtotJet / (1.+0.5*(gam-1.)*MachJet**2)
             Vjet = MachJet * np.sqrt(gam*r*TstaJet)
             qf = self.nozzle_area * self.corrected_air_flow(PtotJet,TtotJet,MachJet)
-            fan_thrust = qf*(Vjet - Vair)
+            fan_thrust = qf*(Vjet - Vinlet)
             qc = qf / self.engine_bpr
             return [qf+qc-q1, thrust-(fan_thrust+core_thrust)]
 
         Re = earth.reynolds_number(pamb,tamb,mach)
         rho,sig = earth.air_density(pamb,tamb)
         Vair = mach * earth.sound_speed(tamb)
-        Ptot = earth.total_pressure(pamb,mach)        # Total pressure at inlet position
-        Ttot = earth.total_temperature(tamb,mach)     # Total temperature at inlet position
 
         d0 = self.boundary_layer(Re,self.body_length)      # theorical thickness of the boundary layer without taking account of fuselage tapering
         r1 = 0.5*self.hub_width      # Radius of the hub of the eFan nacelle
         d1 = math.lin_interp_1d(d0,self.bnd_layer[:,0],self.bnd_layer[:,1])     # Using the precomputed relation
 
-        fct_arg = (thrust,pamb,rho,Ptot,Ttot,Vair,r1,d1)
+        fct_arg = (thrust,pamb,tamb,rho,Vair,r1,d1)
 
         x_init = [0.75,0.75]
 
@@ -769,9 +776,12 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
         output_dict = fsolve(fct, x0=x_init, args=fct_arg, full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
+        y1 = output_dict[0][0]
         throttle = output_dict[0][1]
 
-        pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+        q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y1)
+        mach_inlet = Vinlet / earth.sound_speed(tamb)
+        pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach_inlet,rating,throttle=throttle,pw_offtake=pw_offtake)
 
         sfc = fuel_flow / thrust
 
@@ -880,9 +890,9 @@ class SemiEmpiricEfNacelle(object):
 
         self.nozzle_area = m_dot_design / self.corrected_air_flow(PtotJet,TtotJet,MachJet)
 
-        MachFan = min(0.5, self.aircraft.requirement.cruise_mach)     # required Mach number at fan position
+        MachFan = min(0.55, self.aircraft.requirement.cruise_mach)     # required Mach number at fan position
         fan_area = m_dot_design / self.corrected_air_flow(Ptot,Ttot,MachFan)        # Corrected air flow per area at fan position
-        self.fan_width = np.sqrt(self.hub_width**2 + 4.*fan_area/np.pi)        # Fan diameter
+        self.fan_width = 2.*np.sqrt(fan_area/np.pi)        # Fan diameter
         self.nozzle_width = np.sqrt(self.hub_width**2 + 4.*self.nozzle_area/np.pi)        # Nozzle diameter
 
         self.width = self.fan_width + 0.30      # Surrounding structure
@@ -940,10 +950,10 @@ class SemiEmpiricEfNacelle(object):
         MachJet = np.sqrt(((PtotJet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
         TstaJet = TtotJet / (1.+0.5*(gam-1.)*MachJet**2)
         Vjet = MachJet * np.sqrt(gam*r*TstaJet)
-        qf = self.nozzle_area * self.corrected_air_flow(PtotJet,TtotJet,MachJet)
-        fan_thrust = qf*(Vjet - Vair)
+        fan_thrust = q0*(Vjet - Vair)
+        sec = pw_elec/fan_thrust
 
-        return {"fn":fan_thrust, "pw":pw_elec, "sec":pw_elec/fan_thrust}
+        return {"fn":fan_thrust, "pw":pw_elec, "sec":sec}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         return self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
@@ -983,15 +993,17 @@ class SemiEmpiricEfNacelle(object):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
         q0 = output_dict[0][0]
-        Pw = output_dict[0][1]
+        pw_shaft = output_dict[0][1]
 
-        Vinlet = Vair
-        pw_input = self.fan_efficiency*Pw
-        Vjet = np.sqrt(2.*pw_input/q0 + Vinlet**2)
-        eFn = q0*(Vjet - Vinlet)
+        TtotJet = Ttot + pw_shaft/(q0*Cp)
+        PtotJet = Ptot * (1. + self.fan_efficiency*(TtotJet/Ttot-1.))**(gam/(gam-1.))
+        MachJet = np.sqrt(((PtotJet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
+        TstaJet = TtotJet / (1.+0.5*(gam-1.)*MachJet**2)
+        Vjet = MachJet * np.sqrt(gam*r*TstaJet)
+        eFn = q0*(Vjet - Vair)
 
-        throttle = (Pw+pw_offtake)/(reference_power*getattr(self.rating_factor,rating))
-        pw_elec = Pw / (self.controller_efficiency*self.motor_efficiency)
+        throttle = (pw_shaft+pw_offtake)/(reference_power*getattr(self.rating_factor,rating))
+        pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
         sec = pw_elec/eFn
 
         return {"sec":sec, "thtl":throttle}
@@ -1052,8 +1064,11 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
         """
         r,gam,Cp,Cv = earth.gas_data()
 
-        def fct(y,pw_shaft,pamb,rho,Ptot,Ttot,Vair,r1,d1):
+        def fct(y,pw_shaft,pamb,tamb,rho,Vair,r1,d1):
             q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y)
+            mach_inlet = Vinlet / earth.sound_speed(tamb)
+            Ttot = earth.total_temperature(tamb,mach_inlet)     # Total temperature at inlet position
+            Ptot = earth.total_pressure(pamb, mach_inlet)        # Total pressure at inlet position
             TtotJet = Ttot + pw_shaft/(q1*Cp)
             PtotJet = Ptot * (1. + self.fan_efficiency*(TtotJet/Ttot-1.))**(gam/(gam-1.))
             MachJet = np.sqrt(((PtotJet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
@@ -1067,14 +1082,12 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
         Re = earth.reynolds_number(pamb,tamb,mach)
         rho,sig = earth.air_density(pamb,tamb)
         Vair = mach * earth.sound_speed(tamb)
-        Ttot = earth.total_temperature(tamb,mach)     # Total temperature at inlet position
-        Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
 
         d0 = self.boundary_layer(Re,self.body_length)      # theorical thickness of the boundary layer without taking account of fuselage tapering
         r1 = 0.5*self.hub_width      # Radius of the hub of the eFan nacelle
         d1 = math.lin_interp_1d(d0,self.bnd_layer[:,0],self.bnd_layer[:,1])     # Using the precomputed relation
 
-        fct_arg = (pw_shaft,pamb,rho,Ptot,Ttot,Vair,r1,d1)
+        fct_arg = (pw_shaft,pamb,tamb,rho,Vair,r1,d1)
 
         # Computation of y1 : thikness of the vein swallowed by the inlet
         output_dict = fsolve(fct, x0=0.5, args=fct_arg, full_output=True)
@@ -1083,14 +1096,18 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
         y1 = output_dict[0][0]
 
         q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y1)
+        mach_inlet = Vinlet / earth.sound_speed(tamb)
+        Ttot = earth.total_temperature(tamb,mach_inlet)     # Total temperature at inlet position
+        Ptot = earth.total_pressure(pamb, mach_inlet)        # Total pressure at inlet position
         TtotJet = Ttot + pw_shaft/(q1*Cp)
         PtotJet = Ptot * (1. + self.fan_efficiency*(TtotJet/Ttot-1.))**(gam/(gam-1.))
         MachJet = np.sqrt(((PtotJet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
         TstaJet = TtotJet / (1.+0.5*(gam-1.)*MachJet**2)
         Vjet = MachJet * np.sqrt(gam*r*TstaJet)
-        fan_thrust = q1*(Vjet - Vair)
+        fan_thrust = q1*(Vjet - Vinlet)
+        sec = pw_elec/fan_thrust
 
-        return {"fn":fan_thrust, "pw":pw_elec, "sec":pw_elec/fan_thrust, "dv_bli":dVbli}
+        return {"fn":fan_thrust, "pw":pw_elec, "sec":sec, "dv_bli":dVbli}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         if self.bli_effect=="yes":
@@ -1103,17 +1120,20 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
         """
         r,gam,Cp,Cv = earth.gas_data()
 
-        def fct(x_in,thrust,pamb,rho,Ptot,Ttot,Vair,r1,d1):
+        def fct(x_in,thrust,pamb,tamb,rho,Vair,r1,d1):
             y = x_in[0]
             pw_shaft = x_in[1]
             q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y)
+            mach_inlet = Vinlet / earth.sound_speed(tamb)
+            Ttot = earth.total_temperature(tamb,mach_inlet)     # Total temperature at inlet position
+            Ptot = earth.total_pressure(pamb, mach_inlet)        # Total pressure at inlet position
             TtotJet = Ttot + pw_shaft/(q1*Cp)
             PtotJet = Ptot * (1. + self.fan_efficiency*(TtotJet/Ttot-1.))**(gam/(gam-1.))
             MachJet = np.sqrt(((PtotJet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
             TstaJet = TtotJet / (1.+0.5*(gam-1.)*MachJet**2)
             Vjet = MachJet * np.sqrt(gam*r*TstaJet)
             qf = self.nozzle_area * self.corrected_air_flow(PtotJet,TtotJet,MachJet)
-            fan_thrust = qf*(Vjet - Vair)
+            fan_thrust = qf*(Vjet - Vinlet)
             return [q1-qf, thrust-fan_thrust]
 
         reference_power = self.aircraft.power_system.get_reference_power()
@@ -1121,36 +1141,36 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
         Re = earth.reynolds_number(pamb,tamb,mach)
         rho,sig = earth.air_density(pamb,tamb)
         Vair = mach * earth.sound_speed(tamb)
-        Ttot = earth.total_temperature(tamb, mach)     # Total temperature at inlet position
-        Ptot = earth.total_pressure(pamb, mach)        # Total pressure at inlet position
 
         d0 = self.boundary_layer(Re,self.body_length)   # theorical thickness of the boundary layer without taking account of fuselage tapering
         r1 = 0.5*self.hub_width                         # Radius of the hub of the eFan nacelle
         d1 = math.lin_interp_1d(d0,self.bnd_layer[:,0],self.bnd_layer[:,1])     # Using the precomputed relation
 
-        fct_arg = (thrust,pamb,rho,Ptot,Ttot,Vair,r1,d1)
+        fct_arg = (thrust,pamb,tamb,rho,Vair,r1,d1)
 
-        CQoA0 = self.corrected_air_flow(Ptot,Ttot,mach)       # Corrected air flow per area at fan position
-        q0init = CQoA0*(0.25*np.pi*self.fan_width**2)
         PWinit = reference_power*getattr(self.rating_factor,rating) - pw_offtake
-        x_init = [q0init,PWinit]
+        x_init = [0.5, PWinit]
 
         # Computation of both air flow and shaft power
         output_dict = fsolve(fct, x0=x_init, args=fct_arg, full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
-        q1 = output_dict[0][0]
-        Pw = output_dict[0][1]
+        y1 = output_dict[0][0]
+        pw_shaft = output_dict[0][1]
 
-        TtotJet = Ttot + Pw/(q1*Cp)
+        q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y1)
+        mach_inlet = Vinlet / earth.sound_speed(tamb)
+        Ttot = earth.total_temperature(tamb,mach_inlet)     # Total temperature at inlet position
+        Ptot = earth.total_pressure(pamb, mach_inlet)        # Total pressure at inlet position
+        TtotJet = Ttot + pw_shaft/(q1*Cp)
         PtotJet = Ptot * (1. + self.fan_efficiency*(TtotJet/Ttot-1.))**(gam/(gam-1.))
         MachJet = np.sqrt(((PtotJet/pamb)**((gam-1.)/gam) - 1.) * (2./(gam-1.)))
         TstaJet = TtotJet / (1.+0.5*(gam-1.)*MachJet**2)
         Vjet = MachJet * np.sqrt(gam*r*TstaJet)
-        fan_thrust = q1*(Vjet - Vair)
+        fan_thrust = q1*(Vjet - Vinlet)
 
-        throttle = (Pw + pw_offtake)/(self.reference_power*getattr(self.rating_factor,rating))
-        pw_elec = Pw / (self.controller_efficiency*self.motor_efficiency)
+        throttle = (pw_shaft + pw_offtake)/(self.reference_power*getattr(self.rating_factor,rating))
+        pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
         sec = pw_elec/fan_thrust
 
         return {"sec":sec, "thtl":throttle}

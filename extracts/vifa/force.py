@@ -226,7 +226,7 @@ def force(a0,f0,mass,xcg,vair,psi,theta,phi,alpha,betha,trim,dl,dm,dn,dx,p,q,r):
                       + pv(geo.HtpRapp,(geo.rHafVec+geo.rEafVec+geo.rHtpRafVec)) + pv(geo.HtpLapp,(geo.lHafVec+geo.lEafVec+geo.lHtpRafVec)) \
                       + pv(geo.FusApp,geo.VafVec) + pv(geo.VtpApp,geo.RafVec) + pv(geo.VtpApp,geo.rotVafVec)
 
-    if norm(geo.LiftTotal)>0.:
+    if abs(geo.LiftTotal[2])>0.:
         geo.LiftApp = numpy.array([-geo.MliftTotal[1] / geo.LiftTotal[2],
                                    geo.MliftTotal[0] / geo.LiftTotal[2],
                                    -geo.WingZmac])

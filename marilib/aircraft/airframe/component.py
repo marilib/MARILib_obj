@@ -504,8 +504,10 @@ class Cabin(Component):
         return "cabin"
 
     def eval_geometry(self):
-        self.width =  self.seat_width*self.n_pax_front + self.aisle_width*self.n_aisle + 0.08   # Statistical regression
-        self.length = 2.*self.width + self.seat_pitch*self.n_pax_ref/self.n_pax_front           # Statistical regression
+        design_range = self.aircraft.requirement.design_range
+        self.width =  self.seat_width*self.n_pax_front + self.aisle_width*self.n_aisle + 0.10   # Statistical regression
+        self.length =  2.0*self.width + self.seat_pitch*self.n_pax_ref/self.n_pax_front \
+                     + 2.0e-9*self.n_pax_ref*design_range    # Statistical regression
         self.projected_area = 0.95*self.length*self.width       # Factor 0.95 accounts for tapered parts
 
     def eval_mass(self):
@@ -617,7 +619,7 @@ class Fuselage(Component):
     def __init__(self, aircraft):
         super(Fuselage, self).__init__(aircraft)
 
-        self.forward_limit = aircraft.get_init(self,"forward_limit")
+        self.forward_ratio = aircraft.get_init(self,"forward_ratio")
         self.wall_thickness = aircraft.get_init(self,"wall_thickness")
         self.rear_bulkhead_ratio = aircraft.get_init(self,"rear_bulkhead_ratio")
         self.nose_cone_ratio = aircraft.get_init(self,"nose_cone_ratio")
@@ -641,15 +643,16 @@ class Fuselage(Component):
         cabin_width = self.aircraft.airframe.cabin.width
         cabin_length = self.aircraft.airframe.cabin.length
 
-        self.aircraft.airframe.cabin.frame_origin = [self.forward_limit, 0., 0.]     # cabin position inside the fuselage
-        self.aircraft.airframe.cargo.frame_origin = [self.forward_limit, 0., 0.]     # cabin position inside the fuselage
-
         self.width = cabin_width + self.wall_thickness      # fuselage walls are supposed 0.2m thick
-        self.height = 1.25*(cabin_width - 0.15)
+        self.height = 1.05 * self.width
+
+        self.aircraft.airframe.cabin.frame_origin = [self.forward_ratio*self.width, 0., 0.]     # cabin position inside the fuselage
+        self.aircraft.airframe.cargo.frame_origin = [self.forward_ratio*self.width, 0., 0.]     # cabin position inside the fuselage
+
         if self.aircraft.arrangement.tank_architecture=="rear":
-            self.length = self.forward_limit + cabin_length + self.aircraft.airframe.tank.length + self.rear_bulkhead_ratio*self.width
+            self.length = cabin_length + self.aircraft.airframe.tank.length + (self.forward_ratio + self.rear_bulkhead_ratio)*self.width
         else:
-            self.length = self.forward_limit + cabin_length + self.rear_bulkhead_ratio*self.width
+            self.length = cabin_length + (self.forward_ratio + self.rear_bulkhead_ratio)*self.width
 
         self.nose_cone_length = self.nose_cone_ratio*self.width
         self.tail_cone_length = self.tail_cone_ratio*self.width
@@ -662,7 +665,7 @@ class Fuselage(Component):
 
     def eval_mass(self):
         kfus = np.pi*self.length*np.sqrt(self.width*self.height)
-        self.mass = self.mass_correction_factor * 5.80*kfus**1.2      # Statistical regression versus fuselage built surface
+        self.mass = self.mass_correction_factor * 5.40*kfus**1.19      # Statistical regression versus fuselage built surface
         self.cg = np.array([0.50*self.length, 0., 0.40*self.height])     # Middle of the fuselage
 
     def sketch_3view(self):
@@ -1902,10 +1905,10 @@ class TankFuselageFloor(Tank):
         body_width = self.aircraft.airframe.body.width
         body_height = self.aircraft.airframe.body.height
         body_length = self.aircraft.airframe.body.length
-        forward_limit = self.aircraft.airframe.body.forward_limit
+        forward_ratio = self.aircraft.airframe.body.forward_ratio
         body_wall_thickness = self.aircraft.airframe.body.wall_thickness
 
-        x_axe = body_loc[0] + forward_limit
+        x_axe = body_loc[0] + forward_ratio*body_width
         y_axe = 0.
         z_axe = body_loc[2] + 0.05*body_height
 
