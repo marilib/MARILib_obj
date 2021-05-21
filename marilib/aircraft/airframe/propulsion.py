@@ -259,8 +259,8 @@ class SemiEmpiricTf0Nacelle(object):
         return opr
 
     def y_wise_margin(self, n):
-        if n==1: return 1.5 * self.lateral_margin * self.width
-        elif n==2:  return 3.0 * self.lateral_margin * self.width
+        if n==1: return 2 * self.lateral_margin * self.width
+        elif n==2:  return 7.5 * self.lateral_margin * self.width
         elif n==3:  return 4.5 * self.lateral_margin * self.width
 
     def z_wise_margin(self):
@@ -429,8 +429,8 @@ class SemiEmpiricTfNacelle(object):
         return fpr
 
     def y_wise_margin(self, n):
-        if n==1: return 1.5 * self.lateral_margin * self.width
-        elif n==2:  return 3.0 * self.lateral_margin * self.width
+        if n==1: return 2 * self.lateral_margin * self.width
+        elif n==2:  return 7.5 * self.lateral_margin * self.width
         elif n==3:  return 4.5 * self.lateral_margin * self.width
 
     def z_wise_margin(self):
