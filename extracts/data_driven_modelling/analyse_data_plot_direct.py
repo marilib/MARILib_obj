@@ -150,10 +150,10 @@ un[abs] = "seat.km"                                      # Add its unit
 dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
 
 #----------------------------------------------------------------------------------
-abs = "rotor_diameter+fuselage_width"
+abs = "rotor_diameter+0.6*fuselage_width"
 ord = "engine_y_arm"
 
-df[abs] = df['rotor_diameter'] + df['fuselage_width']   # Add the new column to the dataframe
+df[abs] = df['rotor_diameter'] + df['fuselage_width'].multiply(0.6)   # Add the new column to the dataframe
 un[abs] = "m"                                      # Add its unit
 
 dict = draw_reg(df, un, abs, ord, [[],[]], coloration, leg_loc="upper left")

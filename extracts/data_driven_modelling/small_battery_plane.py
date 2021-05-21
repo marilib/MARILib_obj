@@ -11,18 +11,23 @@ import numpy as np
 from scipy.optimize import fsolve
 import unit, utils
 
+
+from physical_data import PhysicalData
+
 import matplotlib.pyplot as plt
 
 
 class SmallPlane(object):
 
-    def __init__(self, npax=4, alt=unit.m_ft(3000), dist=unit.m_km(500), tas=unit.mps_kmph(180), mode="classic", fuel="gasoline"):
+    def __init__(self, phd, npax=4, altp=unit.m_ft(3000), dist=unit.m_km(500), tas=unit.mps_kmph(180), mode="classic", fuel="gasoline"):
         # Earth and atmosphere
-        self.g = 9.80665
+        self.phd = phd
+        _,_,g = self.phd.atmosphere(0.,0.)
+        self.g = g
         self.disa = 0.
 
         # Top level requirements
-        self.alt = alt
+        self.altp = altp
         self.vtas = tas
         self.distance = dist
         self.n_pax = npax
@@ -68,27 +73,32 @@ class SmallPlane(object):
     def __str__(self):
         """Print main figures
         """
-        s = ["\nAirplane : %s" %self.mode,
+        s = ["Airplane : %s" %self.mode,
              "Npax     %.1f" % self.n_pax,
              "Distance %d km" % unit.km_m(self.distance),
              "TAS      %d km/h" % unit.kmph_mps(self.vtas),
-             "Altitude %d ft" % unit.ft_m(self.alt),
+             "Altitude %d ft" % unit.ft_m(self.altp),
              "---------------------------------"]
 
         if self.design==None:
             s.append(">>  NO DESIGN  <<")
             return "\n".join(s) # print only recquirements
 
+        if self.design["wing_area"] is not None:
+            s.append("Wing area = %.2f m2" %self.design["wing_area"])
+            s.append("Wing span = %.2f m" %self.design["wing_span"])
         s.append("Max power = %.0f kW" %unit.kW_W(self.design["pw_max"]))
         if self.design["airplane_mode"]=="classic":
             s.append("Special tank mass = %.0f kg" %self.design["special_tank"])
             s.append("Total fuel = %.0f kg" %self.design["fuel_total"])
         elif self.design["airplane_mode"]=="battery":
             s.append("Cruise power = %.0f kW" %unit.kW_W(self.design["pw_cruise"]))
+            s.append("Cruise thrust = %.0f N" %self.design["fn_cruise"])
             s.append("Battery mass = %.0f kg" %self.design["battery_mass"])
             s.append("system energy density = %.2f Wh/kg" %unit.Wh_J(self.design["system_enrg_density"]))
         elif self.design["airplane_mode"]=="fuel_cell":
             s.append("Cruise power = %.0f kW" %unit.kW_W(self.design["pw_cruise"]))
+            s.append("Cruise thrust = %.0f N" %self.design["fn_cruise"])
             s.append("System mass = %.0f kg" %self.design["system_mass"])
             s.append("system energy density = %.2f Wh/kg" %unit.Wh_J(self.design["system_enrg_density"]))
             s.append("Total fuel = %.0f kg" %self.design["fuel_total"])
@@ -102,7 +112,56 @@ class SmallPlane(object):
         s.append("PK / MTOW minimum = %.2f pk/kg" %self.design["pk_o_m_min"])
         s.append("PK / MTOW = %.2f pk/kg" %self.design["pk_o_m"])
         s.append("PK / Energy = %.2f pk/kWh"%self.design["pk_o_e"])
+        s.append("")
         return "\n|\t".join(s)
+
+
+    def set_aero_data(self, area, span, stall_speed):
+        if self.design==None:
+            raise Exception("No design available, Wing data cannot be loaded")
+        self.design["wing_area"] = area
+        self.design["wing_span"] = span
+        self.design["stall_speed"] = stall_speed
+
+
+    def get_aero_model(self, full_output=False):
+        if self.design==None:
+            raise Exception("No design available, Polar cannot be assessed")
+
+        if self.design["wing_area"]==None:
+            raise Exception("No wing area available, set wing area before asking for polar")
+
+        if self.mode in ["classic", "fuel_cell"]:
+            mass = self.design["mtow"] - 0.5*self.design["fuel_mission"]
+        elif self.mode=="battery":
+            mass = self.design["mtow"]
+        else:
+            raise Exception("Aircraft mode is unknown")
+
+        pamb,tamb,g = self.phd.atmosphere(self.altp, self.disa)
+        rho = self.phd.gas_density(pamb,tamb)
+        vtas = self.vtas
+        ar = self.design["wing_span"]**2 / self.design["wing_area"]
+        cz = (mass*g) / (0.5*rho*self.design["wing_area"]*vtas**2)
+        k = 1.1 / (np.pi*ar)
+        cx0 = cz/self.lod - k*cz**2
+        cza = (np.pi*ar) / (1+np.sqrt(1+(ar/2)**2))
+        rho0 = 1.225
+        czmax = (self.design["mtow"]*g) / (0.5*rho0*self.design["wing_area"]*self.design["stall_speed"]**2)
+        self.design["polar"] = {"cx0":cx0, "k":k, "cza":cza, "czmax":czmax}
+
+        if full_output:
+            print("Aerodynamic data")
+            print("|   cx0   ", "%.4f"%cx0)
+            print("|   k     ", "%.3f"%k)
+            print("|   cza   ", "%.2f"%cza)
+            print("|   czmax ", "%.2f"%czmax)
+            cz_list = np.linspace(0., 1.5, 50)
+            lod_list = [cz/(cx0+k*cz**2) for cz in cz_list]
+            plt.plot(cz_list, lod_list)
+            plt.scatter(cz, cz/(cx0+k*cz**2), marker="o",c="green",s=50)
+            plt.grid(True)
+            plt.show()
 
 
     def get_tank_index(self):
@@ -176,8 +235,11 @@ class SmallPlane(object):
         payload = self.n_pax * self.m_pax
         total_energy = fuel_total * self.gasoline_lhv
         return {"airplane_mode":self.mode,
+                "wing_area":None,
+                "wing_span":None,
                 "pw_max":pw_max,
                 "special_tank":special_tank,
+                "fuel_mission":fuel_mission,
                 "fuel_total":fuel_total,
                 "total_energy":total_energy,
                 "mtow":mtow,
@@ -194,7 +256,7 @@ class SmallPlane(object):
         elec_pw_max = pw_max / (self.prop_efficiency*self.elec_motor_efficiency)
         m_system = elec_pw_max / self.power_elec_pw_density
         m_battery = (  pw * (self.distance/self.vtas)
-                     + mass*self.g*self.alt/(self.elec_motor_efficiency*self.prop_efficiency)
+                     + mass*self.g*self.altp/(self.elec_motor_efficiency*self.prop_efficiency)
                     ) / self.battery_enrg_density
         m_battery += (pw * self.diversion_time) / self.battery_enrg_density
         return m_system, m_battery
@@ -214,11 +276,14 @@ class SmallPlane(object):
         payload = self.n_pax * self.m_pax
         total_energy = m_battery * self.battery_enrg_density
         return {"airplane_mode":self.mode,
+                "wing_area":None,
+                "wing_span":None,
                 "pw_max":pw_max,
                 "pw_cruise":pw,
                 "fn_cruise":fn,
                 "battery_mass":m_battery,
                 "system_enrg_density":total_energy/(m_system+m_battery),
+                "fuel_mission":0.,
                 "fuel_total":0.,
                 "total_energy":total_energy,
                 "mtow":mtow,
@@ -245,9 +310,8 @@ class SmallPlane(object):
         fuel_mission = mass*(1.-np.exp(-(self.g*self.distance)/(eff*fhv*self.lod)))
         fuel_reserve = (mass-fuel_mission)*(1-np.exp(-(self.g*self.vtas*self.diversion_time)/(eff*fhv*self.lod)))
 
-        m_fuel_total = fuel_mission + fuel_reserve
-        m_system += m_fuel_total * (1/self.get_tank_index() - 1)
-        return m_system, m_fuel_total
+        m_system += (fuel_mission + fuel_reserve) * (1/self.get_tank_index() - 1)
+        return m_system, fuel_mission, fuel_reserve
 
 
     def fuel_cell_elec_design(self, mtow):
@@ -257,19 +321,23 @@ class SmallPlane(object):
         owe_basic = self.basic_owe(mtow)
         fn = self.aerodynamic(mtow)
         pw, m_engine = self.elec_propulsion(pw_max,fn)
-        m_system, fuel_total = self.fuel_cell_energy_system(pw_max, mtow)
+        m_system, fuel_mission, fuel_reserve = self.fuel_cell_energy_system(pw_max, mtow)
+        fuel_total = fuel_mission + fuel_reserve
         owe =  owe_basic \
              - pw_max / self.piston_eng_pw_density \
              + m_engine + m_system + fuel_total
         payload = self.n_pax * self.m_pax
         total_energy = fuel_total * self.hydrogen_lhv
         return {"airplane_mode":self.mode,
+                "wing_area":None,
+                "wing_span":None,
                 "pw_max":pw_max,
                 "pw_cruise":pw,
                 "fn_cruise":fn,
                 "system_mass":m_system,
                 "system_enrg_density":total_energy/m_system,
                 "total_energy":total_energy,
+                "fuel_mission":fuel_mission,
                 "fuel_total":fuel_total,
                 "mtow":mtow,
                 "owe":owe,
@@ -370,10 +438,15 @@ class SmallPlane(object):
 
 if __name__ == '__main__':
 
+    phd = PhysicalData()
+
     #-------------------------------------------------------------------------------------------------------------------
     # Validation examples
 
-    # spc = SmallPlane(npax=4.5, dist=unit.m_km(1300), tas=unit.mps_kmph(280), mode="classic", fuel="gasoline")     # TB20
+    # print("---------------------------------------------------")
+    # print("SOCATA TB20 TRINIDAD")
+    # print("---------------------------------------------------")
+    # spc = SmallPlane(phd, npax=4.5, dist=unit.m_km(1300), tas=unit.mps_kmph(280), mode="classic", fuel="gasoline")     # TB20
     # spc.design_solver()
     # print(spc)
 
@@ -382,38 +455,51 @@ if __name__ == '__main__':
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
 
 
-    #-------------------------------------------------------------------------------------------------------------------
-    # Trying to identify Alice characteristics
-    spe = SmallPlane(npax=11, alt=unit.m_ft(10000), dist=unit.m_km(800), tas=unit.mps_kmph(440), mode="battery")       # H55
-    spe.battery_enrg_density = unit.J_Wh(240)   # Outstanding capacity for state of the art Li-ion
-    spe.prop_efficiency = 0.82                  # Very good propeller efficiency
-    spe.owe_factor = 0.75                       # 25% airframe weight improvement
-    spe.lod = 29                                # Glider level aerodynamic efficiency
+    print("---------------------------------------------------")
+    print("BRISTEL H55 ENERGIC")
+    print("---------------------------------------------------")
+    spe = SmallPlane(phd, npax=2, dist=unit.m_km(130), altp=unit.m_ft(1000), tas=unit.mps_kmph(130), mode="battery")       # H55
+    spe.battery_enrg_density = unit.J_Wh(200)
+    spe.lod = 13.2
     spe.design_solver()
     print(spe)
 
-    # Most probable performances
-    spe = SmallPlane(npax=11, alt=unit.m_ft(10000), dist=unit.m_km(500), tas=unit.mps_kmph(440), mode="battery")       # H55
-    spe.battery_enrg_density = unit.J_Wh(200)   # Outstanding capacity for state of the art Li-ion
-    spe.prop_efficiency = 0.82                  # Very good propeller efficiency
-    spe.owe_factor = 0.75                       # 25% airframe weight improvement
-    spe.lod = 25                                # Glider level aerodynamic efficiency
-    spe.design_solver()
-    print(spe)
-
-
-    # spe = SmallPlane(npax=2, dist=unit.m_km(130), tas=unit.mps_kmph(130), mode="battery")       # H55
-    # spe.battery_enrg_density = unit.J_Wh(240)
-    # spe.design_solver()
-    # print(spe)
+    wing_area = 11.75
+    wing_span = 9.27
+    spe.set_aero_data(wing_area, wing_span, unit.mps_kmph(87))
+    spe.get_aero_model(full_output=True)
 
     # spe.max_distance(mode="battery")
     # print("")
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")
 
 
+    # print("---------------------------------------------------")
+    # print("EVIATION ALICE (constructeur)")
+    # print("---------------------------------------------------")
+    # spe = SmallPlane(phd, npax=11, altp=unit.m_ft(10000), dist=unit.m_km(800), tas=unit.mps_kmph(440), mode="battery")       # H55
+    # spe.battery_enrg_density = unit.J_Wh(240)   # Outstanding capacity for state of the art Li-ion
+    # spe.prop_efficiency = 0.82                  # Very good propeller efficiency
+    # spe.owe_factor = 0.75                       # 25% airframe weight improvement
+    # spe.lod = 29                                # Glider level aerodynamic efficiency
+    # spe.design_solver()
+    # print(spe)
+    #
+    #
+    # print("---------------------------------------------------")
+    # print("EVIATION ALICE (most probable)")
+    # print("---------------------------------------------------")
+    # spe = SmallPlane(phd, npax=11, altp=unit.m_ft(10000), dist=unit.m_km(500), tas=unit.mps_kmph(440), mode="battery")       # H55
+    # spe.battery_enrg_density = unit.J_Wh(200)   # Outstanding capacity for state of the art Li-ion
+    # spe.prop_efficiency = 0.82                  # Very good propeller efficiency
+    # spe.owe_factor = 0.75                       # 25% airframe weight improvement
+    # spe.lod = 25                                # Glider level aerodynamic efficiency
+    # spe.design_solver()
+    # print(spe)
+
+
     #-------------------------------------------------------------------------------------------------------------------
-    # sph = SmallPlane(npax=4, dist=unit.m_km(600), tas=unit.mps_kmph(250), mode="fuel_cell", fuel="gh2")       # H55
+    # sph = SmallPlane(phd, npax=4, dist=unit.m_km(600), tas=unit.mps_kmph(250), mode="fuel_cell", fuel="gh2")       # H55
     # sph.cooling_pw_density = unit.W_kW(2)      # W/kg
     # sph.fc_system_pw_density = unit.W_kW(2)
     # sph.fuel_cell_efficiency = 0.5

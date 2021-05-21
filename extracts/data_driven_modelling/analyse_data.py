@@ -90,7 +90,8 @@ def draw_reg(df, un, abs, ord, reg, coloration, leg_loc="lower right"):
     if len(reg[0])>0:
         plt.plot(unit.convert_to(un.loc[0,abs],reg[0]), unit.convert_to(un.loc[0,ord],reg[1]), linewidth=2, color="grey")
 
-    plt.tight_layout()
+    plt.legend(loc=leg_loc)
+    # plt.tight_layout()
     plt.show()
 
 def subplots_by_varname(df,un,var_names,figwidth=12,savefig=False):

@@ -382,7 +382,8 @@ class SemiEmpiricTfNacelle(object):
         class_name = "SemiEmpiricTfNacelle"
 
         self.eis_date = aircraft.get_init(class_name,"eis_date")
-        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.05)
+        # self.rating_factor = RatingFactor(MTO=1.00, MCN=0.86, MCL=0.78, MCR=0.70, FID=0.05)
+        self.rating_factor = RatingFactor(MTO=1.00, MCN=0.90, MCL=0.85, MCR=0.57, FID=0.05)
         self.reference_offtake = 0.
 
         self.engine_bpr = aircraft.get_init(class_name,"engine_bpr", val=self.__turbofan_bpr())
