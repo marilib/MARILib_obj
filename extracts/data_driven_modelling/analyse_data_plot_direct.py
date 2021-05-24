@@ -40,6 +40,37 @@ df,un = read_db(path_to_data_base)
 df = df[df['name']!='A380-800'].reset_index(drop=True)
 
 
+
+#----------------------------------------------------------------------------------
+abs = "wing_area"
+ord = "HTP_area"
+
+dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
+
+#----------------------------------------------------------------------------------
+abs = "wing_area"
+ord = "VTP_area"
+
+dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
+
+#----------------------------------------------------------------------------------
+abs = "wing_area/wing_span"
+ord = "total_length"
+
+df[abs] = df['wing_area'] / df['wing_span']   # Add the new column to the dataframe
+un[abs] = "m"
+
+dict = draw_reg(df, un, abs, ord, [[],[]], coloration)
+
+#----------------------------------------------------------------------------------
+abs = "wing_area"
+ord = "fuselage_width*total_length"
+
+df[ord] = df['fuselage_width'] * df['total_length']   # Add the new column to the dataframe
+un[ord] = "m2"
+
+dict = draw_reg(df, un, abs, ord, [[],[]], coloration, leg_loc="upper left")
+
 #----------------------------------------------------------------------------------
 abs = "wing_area*wing_span"
 ord = "VTP_area*total_length"

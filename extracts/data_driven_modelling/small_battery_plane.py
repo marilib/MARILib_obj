@@ -143,26 +143,51 @@ class SmallPlane(object):
         vtas = self.vtas
         ar = self.design["wing_span"]**2 / self.design["wing_area"]
         cz = (mass*g) / (0.5*rho*self.design["wing_area"]*vtas**2)
-        k = 1.1 / (np.pi*ar)
-        cx0 = cz/self.lod - k*cz**2
+        ki = 1.1 / (np.pi*ar)
+        cx0 = cz/self.lod - ki*cz**2
         cza = (np.pi*ar) / (1+np.sqrt(1+(ar/2)**2))
         rho0 = 1.225
         czmax = (self.design["mtow"]*g) / (0.5*rho0*self.design["wing_area"]*self.design["stall_speed"]**2)
-        self.design["polar"] = {"cx0":cx0, "k":k, "cza":cza, "czmax":czmax}
+        self.design["aero"] = {"cx0":cx0, "ki":ki, "cza":cza, "czmax":czmax}
 
         if full_output:
             print("Aerodynamic data")
             print("|   cx0   ", "%.4f"%cx0)
-            print("|   k     ", "%.3f"%k)
+            print("|   ki     ", "%.3f"%ki)
             print("|   cza   ", "%.2f"%cza)
             print("|   czmax ", "%.2f"%czmax)
             cz_list = np.linspace(0., 1.5, 50)
-            lod_list = [cz/(cx0+k*cz**2) for cz in cz_list]
+            lod_list = [cz/(cx0+ki*cz**2) for cz in cz_list]
             plt.plot(cz_list, lod_list)
-            plt.scatter(cz, cz/(cx0+k*cz**2), marker="o",c="green",s=50)
+            plt.scatter(cz, cz/(cx0+ki*cz**2), marker="o",c="green",s=50)
             plt.grid(True)
             plt.show()
 
+    def get_thrust(self, mass, altp, disa, vtas):
+        pamb,tamb,g = self.phd.atmosphere(altp, disa)
+        rho = self.phd.gas_density(pamb,tamb)
+        area = self.design["wing_area"]
+        czmax = self.design["aero"]["czmax"]
+        cx0 = self.design["aero"]["cx0"]
+        ki = self.design["aero"]["ki"]
+        q = 0.5*rho*vtas**2
+        vs1g = np.sqrt((2*mass*g) / (rho*area*czmax))
+        kvs1g = vtas / vs1g
+        fn = q*area*cx0 + ki*(mass*g)**2 / (q*area)
+
+        fnmax = 0.8 * self.design["pw_max"] * self.prop_efficiency / (0.7*1.13*vs1g)
+        cz = czmax / 1.13**2
+        mlfac = mass**2 / (fnmax*cz*area*(rho/1.225)**0.8)
+        tofl = 12*mlfac + 300
+
+        return fn, kvs1g, tofl
+
+    def get_criteria(self, pod_mass_init, pod_mass, vtas, pw):
+        mtow = self.design["mtow"]
+        ft =  (self.design["battery_mass"] + pod_mass_init - pod_mass) \
+            * self.battery_enrg_density \
+            / pw
+        fd = ft * vtas
 
     def get_tank_index(self):
         if self.fuel=="gasoline":
@@ -468,6 +493,18 @@ if __name__ == '__main__':
     wing_span = 9.27
     spe.set_aero_data(wing_area, wing_span, unit.mps_kmph(87))
     spe.get_aero_model(full_output=True)
+
+    mass = spe.design["mtow"]
+    altp = 0
+    disa = 0
+    vtas = unit.mps_kmph(130)
+
+    fn,kvs1g,tofl = spe.get_thrust(mass, altp, disa, vtas)
+
+    print("--------------------------------")
+    print("fn = ", fn)
+    print("kvs1g = ", kvs1g)
+    print("tofl = ", tofl)
 
     # spe.max_distance(mode="battery")
     # print("")
