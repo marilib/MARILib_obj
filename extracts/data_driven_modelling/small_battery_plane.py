@@ -148,14 +148,26 @@ class SmallPlane(object):
         cza = (np.pi*ar) / (1+np.sqrt(1+(ar/2)**2))
         rho0 = 1.225
         czmax = (self.design["mtow"]*g) / (0.5*rho0*self.design["wing_area"]*self.design["stall_speed"]**2)
-        self.design["aero"] = {"cx0":cx0, "ki":ki, "cza":cza, "czmax":czmax}
+
+        area, span = [self.design["wing_area"], self.design["wing_span"]]
+        wa,ha,va,fa = [area, 0.253*area-0.79, 0.213*area-1.34, 1.248*area-8.33]
+        wrc,hrc,vrc,frl = [area/span, np.sqrt(ha/5), np.sqrt(va/1.7), 1.296*span -5.36]
+        wwa,hwa,vwa,fwa = [1.7*wa, 1.9*ha, 2.0*va, 2.7*fa]
+        lref = (wrc*wwa+hrc*hwa+vrc*vwa+frl*fwa) / (wwa+hwa+vwa+fwa)
+
+        re = self.phd.reynolds_number(pamb,tamb,vtas)
+        kre = (1/np.log(re*lref))**2.58
+
+        self.design["aero"] = {"cx0":cx0, "ki":ki, "cza":cza, "czmax":czmax, "kre":kre, "lref":lref}
 
         if full_output:
             print("Aerodynamic data")
             print("|   cx0   ", "%.4f"%cx0)
-            print("|   ki     ", "%.3f"%ki)
+            print("|   ki    ", "%.3f"%ki)
             print("|   cza   ", "%.2f"%cza)
             print("|   czmax ", "%.2f"%czmax)
+            print("|     kre ", "%.6f"%(kre*1000), " kre*1e3")
+            print("|    lref ", "%.1f"%lref, " m")
             cz_list = np.linspace(0., 1.5, 50)
             lod_list = [cz/(cx0+ki*cz**2) for cz in cz_list]
             plt.plot(cz_list, lod_list)

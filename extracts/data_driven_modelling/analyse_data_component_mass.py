@@ -124,7 +124,7 @@ def compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True):
         owe_brk.append(owe)
 
         if not np.isnan(owe):
-            sqr_err.append((owe/owe_ref-1)**2)    # Store square of the errors
+            sqr_err.append((owe - owe_ref)**2)    # Store square of the errors
 
     df['OWE_ref'] = df['OWE']
     un['OWE_ref'] = un['OWE']
@@ -138,30 +138,30 @@ def compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True):
 
     return sqr_err
 
-
-def compare_owe_base_and_mission(df, ddm, factor, coloration, graph=True):
-    """Compare OWE from data base with OWE computed through nominal mission simulation
-    Results are drawn on graphs
-    """
-    owe_brk = []
-    sqr_err = []
-    rer = []
-    for i in df.index:
-        airplane_type = df['airplane_type'][i]
-        engine_type = df['engine_type'][i]
-        n_engine = float(df['n_engine'][i])
-        max_power = float(df['max_power'][i])
-        n_pax = float(df['n_pax'][i])
-        nominal_range = float(df['nominal_range'][i])
-        fuselage_width = float(df['fuselage_width'][i])
-        total_length = float(df['total_length'][i])
-        wing_area = float(df['wing_area'][i])
-        wing_span = float(df['wing_span'][i])
-        wing_sweep25 = float(df['wing_sweep25'][i])
-        htp_area = float(df['HTP_area'][i])
-        vtp_area = float(df['VTP_area'][i])
-        mtow = df['MTOW'][i]
-        mlw = df['MLW'][i]
+#
+# def compare_owe_base_and_mission(df, ddm, factor, coloration, graph=True):
+#     """Compare OWE from data base with OWE computed through nominal mission simulation
+#     Results are drawn on graphs
+#     """
+#     owe_brk = []
+#     sqr_err = []
+#     rer = []
+#     for i in df.index:
+#         airplane_type = df['airplane_type'][i]
+#         engine_type = df['engine_type'][i]
+#         n_engine = float(df['n_engine'][i])
+#         max_power = float(df['max_power'][i])
+#         n_pax = float(df['n_pax'][i])
+#         nominal_range = float(df['nominal_range'][i])
+#         fuselage_width = float(df['fuselage_width'][i])
+#         total_length = float(df['total_length'][i])
+#         wing_area = float(df['wing_area'][i])
+#         wing_span = float(df['wing_span'][i])
+#         wing_sweep25 = float(df['wing_sweep25'][i])
+#         htp_area = float(df['HTP_area'][i])
+#         vtp_area = float(df['VTP_area'][i])
+#         mtow = df['MTOW'][i]
+#         mlw = df['MLW'][i]
 
 
         # cruise_altp = altitude_data["mission"]
@@ -231,26 +231,26 @@ def compare_owe_base_and_mission(df, ddm, factor, coloration, graph=True):
 
 
 
-
-
-        owe_ref = float(df['OWE'][i])
-        rer.append((owe-owe_ref)/owe_ref)   # Store relative errors
-        owe_brk.append(owe)
-
-        if not np.isnan(owe):
-            sqr_err.append((owe/owe_ref-1)**2)    # Store square of the errors
-
-    df['OWE_ref'] = df['OWE']
-    un['OWE_ref'] = un['OWE']
-
-    df['OWE_brk'] = owe_brk
-    un['OWE_brk'] = un['OWE']
-
-    if graph:
-        draw_reg(df, un, 'OWE_ref', 'OWE_brk', [[0,max(df['OWE_ref'])], [0,max(df['OWE_ref'])]], coloration)
-        draw_hist(rer, 'OWE model - OWE reference')
-
-    return sqr_err
+    #
+    #
+    #     owe_ref = float(df['OWE'][i])
+    #     rer.append((owe-owe_ref)/owe_ref)   # Store relative errors
+    #     owe_brk.append(owe)
+    #
+    #     if not np.isnan(owe):
+    #         sqr_err.append((owe/owe_ref-1)**2)    # Store square of the errors
+    #
+    # df['OWE_ref'] = df['OWE']
+    # un['OWE_ref'] = un['OWE']
+    #
+    # df['OWE_brk'] = owe_brk
+    # un['OWE_brk'] = un['OWE']
+    #
+    # if graph:
+    #     draw_reg(df, un, 'OWE_ref', 'OWE_brk', [[0,max(df['OWE_ref'])], [0,max(df['OWE_ref'])]], coloration)
+    #     draw_hist(rer, 'OWE model - OWE reference')
+    #
+    # return sqr_err
 
 
 
@@ -279,14 +279,14 @@ un = un.copy()
 # dict_owe = do_regression(df, un, abs, ord, coloration, order)
 #
 #
-# #-------------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------------------------------------------
 # phd = PhysicalData()
 # ddm = DDM(phd)
 #
 # res = compare_owe_base_and_model(df, ddm, coloration)
 # print("global model : ", res)
 #
-
+#
 #-------------------------------------------------------------------------------------------------------------------
 phd = PhysicalData()
 ddm = DDM(phd)
@@ -306,34 +306,34 @@ res = compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True)
 print(int(np.sqrt(sum(res))))
 
 
-#
-# def residual(x):
-#     factor = {'fuselage': x[0],
-#               'furnishing': x[1],
-#               'op_item': x[2],
-#               'wing': x[3],
-#               'htp': x[4],
-#               'vtp': x[5],
-#               'ldg': x[6],
-#               'system': x[7],
-#               'engine': x[8]}
-#     return compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=False)
-#
-# x0 = [1., 1., 1., 1., 1., 1., 1., 1., 1.]
-#
-# out = least_squares(residual, x0, bounds=(0.9, 1.1))
-#
-# print(out.x)
-#
-# factor = {'fuselage': out.x[0],
-#           'furnishing': out.x[1],
-#           'op_item': out.x[2],
-#           'wing': out.x[3],
-#           'htp': out.x[4],
-#           'vtp': out.x[5],
-#           'ldg': out.x[6],
-#           'system': out.x[7],
-#           'engine': out.x[8]}
-#
-# res = compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True)
-# print(int(np.sqrt(sum(res))))
+
+def residual(x):
+    factor = {'fuselage': x[0],
+              'furnishing': x[1],
+              'op_item': x[2],
+              'wing': x[3],
+              'htp': x[4],
+              'vtp': x[5],
+              'ldg': x[6],
+              'system': x[7],
+              'engine': x[8]}
+    return compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=False)
+
+x0 = [1., 1., 1., 1., 1., 1., 1., 1., 1.]
+
+out = least_squares(residual, x0, bounds=(0.7, 1.3))
+
+print(out.x)
+
+factor = {'fuselage': out.x[0],
+          'furnishing': out.x[1],
+          'op_item': out.x[2],
+          'wing': out.x[3],
+          'htp': out.x[4],
+          'vtp': out.x[5],
+          'ldg': out.x[6],
+          'system': out.x[7],
+          'engine': out.x[8]}
+
+res = compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True)
+print(int(np.sqrt(sum(res))))

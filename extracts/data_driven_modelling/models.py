@@ -578,6 +578,7 @@ class DDM(object):                  # Data Driven Modelling
                 "total_fuel":dict_p["total_fuel"],
                 "total_energy":dict_p["total_energy"],
 
+                "pk_o_mass_mini":distance/670,
                 "pk_o_mass":npax*distance/mtow,
                 "pk_o_enrg":npax*distance/dict_p["total_energy"]}
 
@@ -685,6 +686,9 @@ class DDM(object):                  # Data Driven Modelling
             print("")
             print(" Mass efficiency factor, P.K/M = ", "%.2f"%unit.km_m(dict["pk_o_mass"]), " pax.km/kg")
             print(" Energy efficiency factor, P.K/E = ", "%.2f"%(unit.km_m(dict["pk_o_enrg"])/unit.kWh_J(1)), " pax.km/kWh")
+            print("")
+            print(" Commercial ratio (P/K maxi) / (P/K) = ", "%.2f"%(0.0146 / (dict["npax"]/unit.km_m(dict["design_range"]))))
+            print(" Mass efficiency ratio, (P.K/M) / (P.K/M mini) = ", "%.2f"%(dict["pk_o_mass"]/dict["pk_o_mass_mini"]))
 
         elif content=="criteria":
             print("")
@@ -799,7 +803,7 @@ if __name__ == '__main__':
     #-------------------------------------------------------------------------------------------------------------------
     npax = 6
     n_engine = 1
-    distance = unit.convert_from("km", 400)
+    distance = unit.convert_from("km", 500)
     cruise_speed = unit.convert_from("km/h", 180)
 
     airplane_type = "general"
@@ -817,6 +821,7 @@ if __name__ == '__main__':
 
     target_power_system = tpws[3]
 
-    ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
-    ddm.print_design(ac_dict)
+    for target_power_system in tpws:
+        ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+        ddm.print_design(ac_dict)
 

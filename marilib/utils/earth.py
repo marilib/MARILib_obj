@@ -128,7 +128,7 @@ def reynolds_number(pamb,tamb,mach):
 
 
 def atmosphere(altp,disa):
-    """Pressure from pressure altitude from ground to 50 km
+    """Pressure and temperature from pressure altitude from ground to 50 km
     """
     g = gravity()
     R,gam,Cp,Cv = gas_data()
