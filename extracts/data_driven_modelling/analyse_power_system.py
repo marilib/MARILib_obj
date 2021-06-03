@@ -18,6 +18,7 @@ import unit
 from physical_data import PhysicalData
 from models import DDM
 
+import matplotlib.colors as colors
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -33,12 +34,14 @@ if __name__ == '__main__':
 
     # Airplane design analysis
     #-------------------------------------------------------------------------------------------------------------------
-    npax = 6
+    npax = 6                                        # To vary from 2 to 9, pax_list = [2, 3, 4,  5, 6, 7, 8, 9]
     n_engine = 1
-    distance = unit.convert_from("km", 400)
-    cruise_speed = unit.convert_from("km/h", 180)
+    distance = unit.convert_from("km", 400)         # To vary between 100 km and 1000km by step of 50, dist_list = np.linspace(100, 1000, 19)
+    cruise_speed = unit.convert_from("km/h", 180)   # Fixed
 
-    airplane_type = "general"
+    ddm.battery_enrg_density = unit.J_Wh(400)  # Wh/kg  # To varry : 200, 400 and 600
+
+    airplane_type = "general"   # Fixed
     initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.kerosene}
 
     altitude_data = ddm.cruise_altp(airplane_type)
@@ -51,15 +54,72 @@ if __name__ == '__main__':
             {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.gh2},
             {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.lh2}]
 
-    for target_power_system in tpws:
-        ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
-        ddm.print_design(ac_dict)
+    table = np.zeros((8, 19))
+    for target_power_system,num in zip(tpws, [1, 2, 3, 4, 5, 6]):
+        prop = []
+        for npax in [2, 3, 4,  5, 6, 7, 8, 9]:
+            ind = []
+            for dist in np.linspace(100, 1000, 19):
+                dict = ddm.design_airplane(npax, unit.m_km(dist), cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+                # ddm.print_design(ac_dict)
+                if 0.0146 / (dict["npax"]/unit.km_m(dict["design_range"])) > 1 and \
+                   (dict["pk_o_mass"]/dict["pk_o_mass_mini"]) > 1 and \
+                    dict["mtow"] < 5700 :
+                    ind.append(1)
+                else:
+                    ind.append(0)
+            prop.append(ind)
+        table += np.array(prop)
 
-        ac_dict = ddm.get_best_range(distance, unit.m_km(20), "pk_o_mass", npax, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
-        ddm.print_design(ac_dict, content="criteria")
+    data_matrix = {"matrix":table, "range_step":50, "npax_step":1}
 
-        ac_dict = ddm.get_best_range(distance, unit.m_km(20), "pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
-        ddm.print_design(ac_dict, content="criteria")
+    range_interval = data_matrix["range_step"]
+    capacity_interval = data_matrix["npax_step"]
+
+    nc,nr = data_matrix["matrix"].shape
+    range_list = [int(50+range_interval*j) for j in range(nr+1)]
+    capa_list = [int(1+capacity_interval*j) for j in range(nc+1)]
+
+    fig, ax = plt.subplots(figsize=(14, 7))
+
+    im = ax.pcolormesh(data_matrix["matrix"],
+                       edgecolors='b',
+                       linewidth=0.01,
+                       cmap="rainbow",
+                       norm=colors.LogNorm(vmin=data_matrix["matrix"].min()+0.1, vmax=data_matrix["matrix"].max()))
+    ax = plt.gca()
+    ax.set_aspect('equal')
+    ax.set_xlabel('Ranges (km)',
+                  fontsize=16)
+    ax.set_ylabel('Seat capacity',
+                  fontsize=16)
+    ax.xaxis.set_ticks(range(len(range_list)))
+    ax.xaxis.set_ticklabels(range_list,
+                            fontsize=8,
+                            rotation = 'vertical')
+    ax.yaxis.set_ticks(range(len(capa_list)))
+    ax.yaxis.set_ticklabels(capa_list,
+                            fontsize=8)
+    plt.title('Number of flights per seat capacity and range',
+              fontsize=16)
+    cbar = fig.colorbar(im, ax=ax,
+                        orientation='horizontal',
+                        aspect=40.)
+    plt.savefig("heat_map", dpi=500, bbox_inches='tight')
+    # plt.show()
+
+
+
+
+
+
+
+
+        # ac_dict = ddm.get_best_range(distance, unit.m_km(20), "pk_o_mass", npax, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+        # ddm.print_design(ac_dict, content="criteria")
+        #
+        # ac_dict = ddm.get_best_range(distance, unit.m_km(20), "pk_o_enrg", npax, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+        # ddm.print_design(ac_dict, content="criteria")
 
 
 

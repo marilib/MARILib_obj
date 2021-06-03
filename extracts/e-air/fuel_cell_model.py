@@ -17,7 +17,7 @@ from physical_data import PhysicalData
 
 
 
-class FuelCell_PEMBT(object):
+class FuelCell_PEMLT(object):
 
     def __init__(self, phd):
         self.phd = phd
@@ -38,7 +38,6 @@ class FuelCell_PEMBT(object):
         self.nominal_h2_flow = None
         self.nominal_air_flow = None
 
-        self.h2_heat_value = unit.convert_from("MJ", 121)    # MJ/kg
         self.h2_molar_mass = unit.convert_from("g", 2.01588)    # kg/mol
         self.air_molar_mass = unit.convert_from("g", 28.965)    # kg/mol
         self.air_o2_ratio = 0.20946                             # Mole ratio of dioxygen in the air
@@ -50,7 +49,7 @@ class FuelCell_PEMBT(object):
         return 8.3144621   # J/K/mol
 
 
-    def enernst(self, temp, p_h2, p_o2):
+    def e_nernst(self, temp, p_h2, p_o2):
         """Determination de l'enthalpis de Gibbs : DeltaG_0
         Hypothèse: l'eau produite est liquide
         """
@@ -156,7 +155,7 @@ class FuelCell_PEMBT(object):
         p_h2 = self.cell_entry_pressure
 
         temp = self.working_temperature
-        e_rev, e_std, e_tn, dg0, dg, delta_h = self.enernst(temp, p_h2, p_o2)
+        e_rev, e_std, e_tn, dg0, dg, delta_h = self.e_nernst(temp, p_h2, p_o2)
         voltage, current, n_act, n_diff, n_ohm = self.fuel_cell_polar(jj, e_rev, temp)
 
         pw_elec =  voltage * current            # Puissance electrique d'une cellule
@@ -166,7 +165,8 @@ class FuelCell_PEMBT(object):
         h2_flow = gas_molar_flow * self.h2_molar_mass   # kg/s, Hydrogen mass flow
         air_flow =  (gas_molar_flow / self.air_o2_ratio) * self.air_molar_mass * self.air_over_feeding  # kg/s, Air mass flow
 
-        pw_chemical = h2_flow * self.h2_heat_value
+        h2_heat = -delta_h / self.h2_molar_mass
+        pw_chemical = h2_flow * h2_heat
         efficiency = pw_elec / pw_chemical
 
         return {"pwe":pw_elec * nc,
@@ -178,7 +178,7 @@ class FuelCell_PEMBT(object):
                 "efficiency":efficiency}
 
 
-    def run_fuel_cell(self, pw):
+    def operate_fuel_cell(self, pw):
         """Compute working point of a stack of fuell cells
         Input quantity is required output electrical power pw
         """
@@ -196,18 +196,17 @@ class FuelCell_PEMBT(object):
         """Compute the number of cell to ensure the required nominal output power
         A margin of self.power_margin is taken from versus the effective maximum power
         """
-
         def fct_jj(jj):
-            return self.run_fuel_cell_jj(jj, 1)["pwe"]
+            return self.run_fuel_cell_jj(jj, nc=1)["pwe"]
 
         xini, dx = 1000, 500
         xres,yres,rc = utils.maximize_1d(xini, dx, [fct_jj])    # Compute the maximum power of the cell
 
-        cell_pw_max = self.run_fuel_cell_jj(xres, 1)["pwe"] * self.power_margin     # Nominal power for one single cell
-        self.n_cell = np.ceil( power_max / cell_pw_max )                            # Number of cells
+        cell_pw_max = yres * self.power_margin              # Nominal power for one single cell
+        self.n_cell = np.ceil( power_max / cell_pw_max )    # Number of cells
 
-        dict = self.run_fuel_cell(power_max)            # Run the stack for maximum power
-        self.power_max = cell_pw_max * self.n_cell      # Get effective max power"
+        dict = self.operate_fuel_cell(power_max)            # Run the stack for maximum power
+        self.power_max = cell_pw_max * self.n_cell          # Get effective max power"
         self.nominal_thermal_power = dict["pwth"]
         self.nominal_voltage = dict["voltage"]
         self.nominal_current = dict["current"]
@@ -220,8 +219,10 @@ class FuelCell_PEMBT(object):
         print("")
         print("----------------------------------------------------------")
         print("Number of cells = ", self.n_cell)
-        print("Maximum output power = ", "%.2f"%unit.kW_W(self.power_max), " kW")
-        print("Nominal thermal power = ", "%.2f"%unit.kW_W(self.nominal_thermal_power), " kW")
+        print("Cell area = ", "%.2f"%unit.convert_to("cm2",self.cell_area), " cm2")
+        print("Maximum output power = ", "%.2f"%unit.convert_to("kW", self.power_max), " kW")
+        print("Nominal thermal power = ", "%.2f"%unit.convert_to("kW", self.nominal_thermal_power), " kW")
+        print("Nominal current density = ", "%.2f"%(self.nominal_current/unit.convert_to("cm2",self.cell_area)), " A/cm2")
         print("Nominal current = ", "%.1f"%self.nominal_current, " A")
         print("Nominal voltage = ", "%.1f"%self.nominal_voltage, " V")
         print("Nominal air flow = ", "%.1f"%(self.nominal_air_flow*1000), " g/s")
@@ -252,9 +253,9 @@ if __name__ == '__main__':
 
     phd = PhysicalData()
 
-    fc = FuelCell_PEMBT(phd)
+    fc = FuelCell_PEMLT(phd)
 
-    fc.design_fuel_cell_stack(unit.W_kW(50))
+    fc.design_fuel_cell_stack(unit.convert_from("kW", 50))
 
     fc.print()
 

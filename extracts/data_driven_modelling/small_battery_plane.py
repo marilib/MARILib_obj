@@ -492,32 +492,32 @@ if __name__ == '__main__':
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
 
 
-    print("---------------------------------------------------")
-    print("BRISTEL H55 ENERGIC")
-    print("---------------------------------------------------")
-    spe = SmallPlane(phd, npax=2, dist=unit.m_km(130), altp=unit.m_ft(1000), tas=unit.mps_kmph(130), mode="battery")       # H55
-    spe.battery_enrg_density = unit.J_Wh(200)
-    spe.lod = 13.2
-    spe.design_solver()
-    print(spe)
-
-    wing_area = 11.75
-    wing_span = 9.27
-    spe.set_aero_data(wing_area, wing_span, unit.mps_kmph(87))
-    spe.get_aero_model(full_output=True)
-
-    mass = spe.design["mtow"]
-    altp = 0
-    disa = 0
-    vtas = unit.mps_kmph(130)
-
-    fn,kvs1g,tofl = spe.get_thrust(mass, altp, disa, vtas)
-
-    print("--------------------------------")
-    print("fn = ", fn)
-    print("kvs1g = ", kvs1g)
-    print("tofl = ", tofl)
-
+    # print("---------------------------------------------------")
+    # print("BRISTEL H55 ENERGIC")
+    # print("---------------------------------------------------")
+    # spe = SmallPlane(phd, npax=2, dist=unit.m_km(130), altp=unit.m_ft(1000), tas=unit.mps_kmph(130), mode="battery")       # H55
+    # spe.battery_enrg_density = unit.J_Wh(200)
+    # spe.lod = 13.2
+    # spe.design_solver()
+    # print(spe)
+    #
+    # wing_area = 11.75
+    # wing_span = 9.27
+    # spe.set_aero_data(wing_area, wing_span, unit.mps_kmph(87))
+    # spe.get_aero_model(full_output=True)
+    #
+    # mass = spe.design["mtow"]
+    # altp = 0
+    # disa = 0
+    # vtas = unit.mps_kmph(130)
+    #
+    # fn,kvs1g,tofl = spe.get_thrust(mass, altp, disa, vtas)
+    #
+    # print("--------------------------------")
+    # print("fn = ", fn)
+    # print("kvs1g = ", kvs1g)
+    # print("tofl = ", tofl)
+    #
     # spe.max_distance(mode="battery")
     # print("")
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spe.distance), " km")

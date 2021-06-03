@@ -61,8 +61,26 @@ def air_viscosity(tamb):
     return mu
 
 
-def get_pod_thrust(mass, altp, disa, vtas):
-    """Compute required total thrust and stall margin
+def get_pod_climb_thrust(mass, altp, disa):
+    """Compute required speed, total thrust and stall margin in initial climb conditions
+    stall margin must be higher or equal to 1.13 (check for CS23)
+    REMARK : Aero model includes Reynolds effect
+    """
+    area,czmax,kvs1g,kv,a,b,tofl = 11.75,1.99,1.13,0.7,12,300,460
+    pamb,tamb,g = atmosphere(altp, disa)
+    rho = gas_density(pamb,tamb)
+    mu = air_viscosity(tamb)
+    vs1g = np.sqrt((2*mass*g) / (rho*area*czmax))
+    sigma = rho/1.225
+    cz = czmax / kvs1g**2
+    ml_factor = (tofl - b) / a
+    fn_clb = kv * mass**2 / (cz*ml_factor*area*sigma**0.8)  # Magic Line factor
+    vtas = kvs1g * vs1g
+    return fn_clb, vtas, kvs1g
+
+
+def get_pod_cruise_thrust(mass, altp, disa, vtas):
+    """Compute required total thrust and stall margin in cruise conditions
     stall margin must be higher or equal to 1.13 (check for CS23)
     REMARK : Aero model includes Reynolds effect
     """
@@ -103,16 +121,31 @@ if __name__ == '__main__':
 
     print("")
     print("Mass = ", mass, " kg")
+    print("")
     print("Pressure altitude = ", altp, " m")
     print("Temperature shift = ", disa, " °C")
-    print("")
     print("Air speed = ", "%.2f"%(vtas/0.2777), " km/h")
 
-    fn, kvs1g = get_pod_thrust(mass, altp, disa, vtas)
+    fn, kvs1g = get_pod_cruise_thrust(mass, altp, disa, vtas)
 
     print("")
-    print("===> Total thrust = ", "%.1f"%fn, " N")
+    print("===> Total cruise thrust = ", "%.1f"%fn, " N")
     print("===> Kvs1g = ", "%.3f"%kvs1g)
+
+    altp = 0    # m, flight altitude
+    disa = 15   # deg K
+
+    print("")
+    print("Pressure altitude = ", altp, " m")
+    print("Temperature shift = ", disa, " °C")
+
+    fn_clb, vtas, kvs1g = get_pod_climb_thrust(mass, altp, disa)
+
+    print("")
+    print("===> Total climb thrust = ", "%.1f"%fn_clb, " N")
+    print("===> Climb speed = ", "%.2f"%(vtas/0.2777), " km/h")
+    print("===> Kvs1g = ", "%.3f"%kvs1g)
+
 
     pod_mass_init = 30
     pod_mass = 30
