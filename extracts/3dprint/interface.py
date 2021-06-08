@@ -14,6 +14,16 @@ comp = from_binary_file('aircraft_curves.pkl')
 
 print(comp["name"])
 
+
+print("-----------------------------------------")
+print("Example of section call")
+ch = 2.5
+er = 0.12
+print("Chord = ", ch, "  er = ", er)
+sec = get_section(ch, er)
+print("    X              Zu             Zd")
+print(sec)
+
 print("-----------------------------------------")
 print("number of surfaces = ", len(comp["surface"]))
 for surf in comp["surface"]:
@@ -50,10 +60,4 @@ for nac in comp["nacelle"]:
     print(nac["te"])
     print("Thickness over chord")
     print(nac["toc"])
-
-print("-----------------------------------------")
-print("Example of section call")
-sec = get_section(2.5, 0.12)
-print("    X              Y              Z")
-print(sec)
 

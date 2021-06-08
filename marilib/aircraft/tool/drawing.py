@@ -69,6 +69,11 @@ class Drawing(object):
                     component["surface"].append({"le":data["le"], "te":data["te"], "toc":data["toc"]})
                 elif typ in ["body","wing_pod_tank","piggyback_tank"]:
                     component["body"].append({"xz":data["body_xz"], "xy":data["body_xy"]})
+                if typ == "piggyback_tank":                                                 # Treat Piggy Back exception
+                    pyl_data = comp.pylon_sketch()
+                    component["surface"].append({"le":pyl_data["fle"], "te":pyl_data["fte"], "toc":pyl_data["toc"]})
+                    component["surface"].append({"le":pyl_data["ble"], "te":pyl_data["bte"], "toc":pyl_data["toc"]})
+
 
         for comp in self.aircraft.airframe:
             if issubclass(type(comp),Nacelle):

@@ -25,7 +25,7 @@ agmt = Arrangement(body_type = "fuselage",            # "fuselage" or "blended"
                    tank_architecture = "piggy_back",# "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",         # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",       # "wing", "rear", "pods", "body_cones"
-                   power_architecture = "tf",         # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_architecture = "pte_piggy",         # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
                    power_source = "fuel",             # "fuel", "battery", "fuel_cell"
                    fuel_type = "liquid_h2")         # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
@@ -42,6 +42,8 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 ac.power_system.reference_thrust = unit.N_kN(160.)
 ac.airframe.wing.area = 180.
 
+ac.airframe.system.chain_power_body = unit.W_MW(1)
+ac.airframe.system.chain_power_piggyback = unit.W_MW(1)
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 

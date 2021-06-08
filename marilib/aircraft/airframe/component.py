@@ -2244,6 +2244,23 @@ class TankPiggyBack(Pod):
         self.fuel_max_bwd_cg = self.cg    # Fuel max Backward CG
         self.fuel_max_bwd_mass = self.max_volume*self.fuel_density
 
+    def pylon_sketch(self):
+        pyl_fle = np.array([[self.frame_origin[0] + 0.25*self.length, 0 , self.frame_origin[2] - 0.45*self.width],
+                            [self.frame_origin[0] + 0.25*self.length, 0 , 0.90*self.aircraft.airframe.body.width]])
+
+        pyl_fte = np.array([[self.frame_origin[0] + 0.30*self.length, 0 , self.frame_origin[2] - 0.45*self.width],
+                            [self.frame_origin[0] + 0.30*self.length, 0 , 0.90*self.aircraft.airframe.body.width]])
+
+        pyl_ble = np.array([[self.frame_origin[0] + 0.75*self.length, 0 , self.frame_origin[2] - 0.45*self.width],
+                            [self.frame_origin[0] + 0.75*self.length, 0 , 0.90*self.aircraft.airframe.body.width]])
+
+        pyl_bte = np.array([[self.frame_origin[0] + 0.80*self.length, 0 , self.frame_origin[2] - 0.45*self.width],
+                            [self.frame_origin[0] + 0.80*self.length, 0 , 0.90*self.aircraft.airframe.body.width]])
+
+        pyl_toc = np.array([0.15, 0.15])
+
+        return {"fle":pyl_fle, "fte":pyl_fte, "ble":pyl_ble, "bte":pyl_bte, "toc":pyl_toc}
+
 
 class RetractableLandingGear(Component):
 
