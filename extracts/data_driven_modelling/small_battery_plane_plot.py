@@ -10,6 +10,7 @@ Created on Thu Jan 20 20:20:20 2020
 import numpy as np
 import unit
 
+from physical_data import PhysicalData
 from small_battery_plane import SmallPlane
 
 import matplotlib.pyplot as plt
@@ -20,13 +21,16 @@ rc('font',**font)
 #-------------------------------------------------------------------------------------------------------------------
 # MAP display : minimal working example
 
-sp = SmallPlane(alt=unit.m_ft(3000),
-                tas=unit.mps_kmph(200),
-                mode="fuel_cell",
+phd = PhysicalData()
+
+sp = SmallPlane(phd,
+                altp=unit.m_ft(1000),
+                tas=unit.mps_kmph(130),
+                mode="battery",
                 fuel="gh2")
 
 # Technological parameter for battery
-sp.battery_enrg_density = unit.J_Wh(600)
+sp.battery_enrg_density = unit.J_Wh(400)
 
 # Technological parameter for fuel cell
 sp.cooling_pw_density = unit.W_kW(2)        # 2 to 5

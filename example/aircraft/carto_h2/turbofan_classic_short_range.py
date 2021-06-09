@@ -18,7 +18,7 @@ from marilib.aircraft.design import process
 
 from marilib.aircraft.step_mission import StepMission
 
-# Configure airplane arrangement
+# Architecture parameters
 # ---------------------------------------------------------------------------------------------------------------------
 agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
@@ -27,48 +27,67 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    tank_architecture = "wing_box",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
-                   power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 150.,
-                   design_range = unit.m_NM(3000.),
-                   cruise_mach = 0.78,
-                   cruise_altp = unit.m_ft(35000.))
+# Design parameters
+#-----------------------------------------------------------------------------------------------------------------------
+airplane_type = "short_range"
+n_pax_ref = 150
+design_range = unit.m_NM(3000.)
+cruise_mach = 0.78
+cruise_altp = unit.m_ft(35000.)
 
-ac = Aircraft("This_plane")     # Instantiate an Aircraft object
+
+# Build airplane object
+#-----------------------------------------------------------------------------------------------------------------------
+reqs = Requirement(n_pax_ref = n_pax_ref,
+                   design_range = design_range,
+                   cruise_mach = cruise_mach,
+                   cruise_altp = cruise_altp)
+
+ac = Aircraft(airplane_type)     # Instantiate an Aircraft object
 
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
-# overwrite eventually default values for operational requirements
-print("------------------------------------------------------")
-# Take off
-print("tofl_req = ", "%.0f"%ac.requirement.take_off.tofl_req)
-print("")
-# Approach
-print("app_speed_req = ", "%.2f"%(unit.convert_to("kt",ac.requirement.approach.app_speed_req)))
-print("")
-# Climb
-print("mcl_vz_altp = ", "%.2f"%(unit.convert_to("ft",ac.requirement.mcl_ceiling.altp)))
-print("mcl_vz_mach = ", "%.2f"%(ac.requirement.mcl_ceiling.mach))
-print("mcl_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcl_ceiling.vz_req)))
-print("")
-print("mcr_vz_altp = ", "%.2f"%(unit.convert_to("ft",ac.requirement.mcr_ceiling.altp)))
-print("mcr_vz_mach = ", "%.2f"%(ac.requirement.mcr_ceiling.mach))
-print("mcr_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcr_ceiling.vz_req)))
-print("")
-print("oei_altp_req = ", "%.2f"%(unit.convert_to("ft",ac.requirement.oei_ceiling.altp)))
-print("")
-print("time_to_climb_altp1 = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp1)))
-print("time_to_climb_cas1 = ", "%.1f"%(unit.convert_to("kt",ac.requirement.time_to_climb.cas1)))
-print("time_to_climb_altp2 = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp2)))
-print("time_to_climb_cas2 = ", "%.1f"%(unit.convert_to("kt",ac.requirement.time_to_climb.cas2)))
-print("time_to_climb_toc = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp)))
-print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_climb.ttc_req)))
 
-# overwrite default values for design space graph centering (see below)
-ac.power_system.reference_thrust = unit.N_kN(170.)
-ac.airframe.wing.area = 130.
+# Operational requirements
+#-----------------------------------------------------------------------------------------------------------------------
+# Take off
+ac.requirement.take_off.tofl_req = 2300
+
+# Approach
+ac.requirement.approach.app_speed_req = unit.mps_kt(137)
+
+# Climb
+ac.requirement.mcl_ceiling.altp = cruise_altp
+ac.requirement.mcl_ceiling.mach = cruise_mach
+ac.requirement.mcl_ceiling.vz_req = unit.mps_ftpmin(300)
+
+ac.requirement.mcr_ceiling.altp = cruise_altp
+ac.requirement.mcr_ceiling.mach = cruise_mach
+ac.requirement.mcr_ceiling.vz_req = unit.mps_ftpmin(0)
+
+ac.requirement.oei_ceiling.altp = unit.m_ft(14000)
+
+ac.requirement.time_to_climb.altp1 = unit.m_ft(1500)
+ac.requirement.time_to_climb.cas1 = unit.mps_kt(180)
+ac.requirement.time_to_climb.altp2 = unit.m_ft(10000)
+ac.requirement.time_to_climb.cas2 = unit.mps_kt(250)
+ac.requirement.time_to_climb.altp = cruise_altp
+ac.requirement.time_to_climb.ttc_req = unit.s_min(25)
+
+# Technological parameters
+#-----------------------------------------------------------------------------------------------------------------------
+ac.airframe.horizontal_stab.volume_factor = 0.94
+ac.airframe.vertical_stab.wing_volume_factor = 0.07
+ac.airframe.vertical_stab.thrust_volume_factor = 0.4
+
+# Design variables
+#-----------------------------------------------------------------------------------------------------------------------
+ac.power_system.reference_thrust = unit.N_kN(120.)
+ac.airframe.wing.area = 122.5
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -113,15 +132,15 @@ opt = process.Optimizer()
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
-ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
-
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 # dico = io.from_string(json)
 
 io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
 # ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
+
+ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 
 # Configure design space exploration
@@ -157,6 +176,7 @@ file = "aircraft_explore_design.txt"
 res = process.explore_design_space(ac, var, step, data, file)      # Build a set of experiments using above config data and store it in a file
 
 field = 'MTOW'                                                                  # Optimization criteria, keys are from data
+other = ['MLW']                                                                 # Additional useful data to show
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC', 'FUEL']    # Constrained performances, keys are from data
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub", "lb"])                    # ub: upper bound, lb: lower bound
 color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow', 'black']         # Constraint color in the graph
@@ -168,7 +188,6 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
          ac.performance.mission.nominal.fuel_total]              # Limit values
 
-# process.draw_design_space(file, res, field, const, color, limit, bound, optim_points=algo_points) # Used stored result to build a graph of the design space
-process.draw_design_space(file, res, field, const, color, limit, bound) # Used stored result to build a graph of the design space
+process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
 
 

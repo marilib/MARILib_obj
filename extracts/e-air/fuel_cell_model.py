@@ -17,10 +17,75 @@ from physical_data import PhysicalData
 
 
 
-class FuelCell_PEMLT(object):
+class FuelCellSystem(object):
 
     def __init__(self, phd):
         self.phd = phd
+
+        self.n_stack = 1
+        self.stack = FuelCellPEMLT(self)
+        self.compressor = AirCompressor(self)
+
+
+
+class PitotScoop(object):
+
+    def __init__(self, fc_system):
+        self.fc_system = fc_system
+
+        self.diameter = 0.05
+
+    def operate(self, tamb, pamb, vair, air_flow):
+
+
+
+
+
+
+        return {"p_out":press, "t_out":temp, "speed":speed, "drag":force}
+
+
+
+
+class AirCompressor(object):
+
+    def __init__(self, fc_system):
+        self.fc_system = fc_system
+
+        self.output_pressure   = unit.convert_from("bar", 1.5)
+
+        self.adiabatic_efficiency  = 0.8
+        self.mechanical_efficiency = 0.9
+        self.electrical_efficiency = 0.85
+
+
+    def operate(self, p_in, t_in, air_flow):
+        r,gam,cp,cv = self.fc_system.phd.gas_data()
+
+        pressure_ratio = self.fc_system.stack.cell_entry_pressure / p_in
+        adiabatic_power = air_flow * cp * t_in * (pressure_ratio^((gam-1)/gam)-1)
+
+        real_power = adiabatic_power / self.adiabatic_efficiency
+        t_out = (real_power / cp) + t_in
+
+        shaft_power = real_power / self.mechanical_efficiency
+        elec_power = shaft_power / self.electrical_efficiency
+
+        return {"pwe":elec_power, "temp":t_out}
+
+
+    def design(self, disa, altp, vtas, air_flow):
+
+
+
+
+
+
+
+class FuelCellPEMLT(object):
+
+    def __init__(self, fc_system):
+        self.fc_system = fc_system
 
         self.cell_area = unit.convert_from("cm2", 400)              # m2
         self.max_current_density = 5./unit.convert_from("cm2",1)    # A/m2
@@ -29,7 +94,6 @@ class FuelCell_PEMLT(object):
         self.air_over_feeding = 3                                   # air flow ratio over stoechiometry
         self.power_margin = 0.8                                     # Ratio allowed power over max power
 
-        self.n_stack = None
         self.n_cell = None
         self.power_max = None
         self.nominal_thermal_power = None
@@ -37,6 +101,11 @@ class FuelCell_PEMLT(object):
         self.nominal_current = None
         self.nominal_h2_flow = None
         self.nominal_air_flow = None
+
+        self.plate_thickness = None
+
+
+        self.mass = None
 
         self.h2_molar_mass = unit.convert_from("g", 2.01588)    # kg/mol
         self.air_molar_mass = unit.convert_from("g", 28.965)    # kg/mol
@@ -205,14 +274,21 @@ class FuelCell_PEMLT(object):
         cell_pw_max = yres * self.power_margin              # Nominal power for one single cell
         self.n_cell = np.ceil( power_max / cell_pw_max )    # Number of cells
 
-        dict = self.operate_fuel_cell(power_max)            # Run the stack for maximum power
         self.power_max = cell_pw_max * self.n_cell          # Get effective max power"
+        dict = self.operate_fuel_cell(self.power_max)       # Run the stack for maximum power
+
         self.nominal_thermal_power = dict["pwth"]
         self.nominal_voltage = dict["voltage"]
         self.nominal_current = dict["current"]
         self.nominal_h2_flow = dict["h2_flow"]
         self.nominal_air_flow = dict["air_flow"]
         self.nominal_efficiency = dict["efficiency"]
+
+
+
+
+
+        self.mass = None
 
 
     def print(self):
@@ -253,10 +329,14 @@ if __name__ == '__main__':
 
     phd = PhysicalData()
 
-    fc = FuelCell_PEMLT(phd)
+    fcs = FuelCellPEMLT()
 
-    fc.design_fuel_cell_stack(unit.convert_from("kW", 50))
+    comp = None
 
-    fc.print()
+    fc_syst = FuelCellSystem(phd, 1, fcs, comp)
+
+    fc_syst.stack.design_fuel_cell_stack(unit.convert_from("kW", 50))
+
+    fc_syst.stack.print()
 
 
