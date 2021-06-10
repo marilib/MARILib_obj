@@ -34,12 +34,12 @@ if __name__ == '__main__':
 
     # Airplane design analysis
     #-------------------------------------------------------------------------------------------------------------------
-    npax = 6                                        # To vary from 2 to 9, pax_list = [2, 3, 4,  5, 6, 7, 8, 9]
+    npax = 2                                        # To vary from 2 to 9, pax_list = [2, 3, 4,  5, 6, 7, 8, 9]
     n_engine = 1
-    distance = unit.convert_from("km", 400)         # To vary between 100 km and 1000km by step of 50, dist_list = np.linspace(100, 1000, 19)
-    cruise_speed = unit.convert_from("km/h", 180)   # Fixed
+    distance = unit.convert_from("km", 130)         # To vary between 100 km and 1000km by step of 50, dist_list = np.linspace(100, 1000, 19)
+    cruise_speed = unit.convert_from("km/h", 130)   # Fixed
 
-    ddm.battery_enrg_density = unit.J_Wh(400)  # Wh/kg  # To varry : 200, 400 and 600
+    ddm.battery_enrg_density = unit.J_Wh(200)  # Wh/kg  # To varry : 200, 400 and 600
 
     airplane_type = "general"   # Fixed
     initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.kerosene}
@@ -54,22 +54,35 @@ if __name__ == '__main__':
             {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.gh2},
             {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.lh2}]
 
-    for target_power_system in tpws:
-        dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
-        ddm.print_design(dict)
+    target_power_system = {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.battery}
+    dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+    ddm.print_design(dict)
 
 
+    # for target_power_system in tpws:
+    #     dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+    #     ddm.print_design(dict)
 
-    # table = np.zeros((8, 19))
-    # for target_power_system,num in zip(tpws, [1, 2, 3, 4, 5, 6]):
+
+    # npax_max = 19
+    # dist_max = 1500
+    # dist_step = 20
+    # table = np.zeros((npax_max-1, int(dist_max/dist_step)))
+    # # for target_power_system,num in zip(tpws, [1, 2, 3, 4, 5, 6]):
+    # target_power_system = {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.battery}
+    # for pw_density in [200, 300, 400, 500, 600]:
+    #     ddm.battery_enrg_density = unit.J_Wh(pw_density)  # Wh/kg  # To varry : 200, 400 and 600
     #     prop = []
-    #     for npax in [2, 3, 4,  5, 6, 7, 8, 9]:
+    #     for npax in range(2,npax_max+1):
     #         ind = []
-    #         for dist in np.linspace(100, 1000, 19):
+    #         for dist in np.linspace(dist_step, dist_max, np.ceil(dist_max/dist_step)):
     #             dict = ddm.design_airplane(npax, unit.m_km(dist), cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
     #             # ddm.print_design(ac_dict)
-    #             if 0.0146 / (dict["npax"]/unit.km_m(dict["design_range"])) > 1 and \
-    #                (dict["pk_o_mass"]/dict["pk_o_mass_mini"]) > 1 and \
+    #             # if 0.0146 / (dict["npax"]/unit.km_m(dict["design_range"])) > 1 and \
+    #             #    (dict["pk_o_mass"]/dict["pk_o_mass_mini"]) > 1 and \
+    #             #     dict["mtow"] < 5700 :
+    #
+    #             if (dict["pk_o_mass"]/dict["pk_o_mass_mini"]) > 1 and \
     #                 dict["mtow"] < 5700 :
     #                 ind.append(1)
     #             else:
@@ -77,13 +90,13 @@ if __name__ == '__main__':
     #         prop.append(ind)
     #     table += np.array(prop)
     #
-    # data_matrix = {"matrix":table, "range_step":50, "npax_step":1}
+    # data_matrix = {"matrix":table, "range_step":dist_step, "npax_step":1}
     #
     # range_interval = data_matrix["range_step"]
     # capacity_interval = data_matrix["npax_step"]
     #
     # nc,nr = data_matrix["matrix"].shape
-    # range_list = [int(50+range_interval*j) for j in range(nr+1)]
+    # range_list = [int(dist_step+range_interval*j) for j in range(nr+1)]
     # capa_list = [int(1+capacity_interval*j) for j in range(nc+1)]
     #
     # fig, ax = plt.subplots(figsize=(14, 7))
@@ -113,8 +126,8 @@ if __name__ == '__main__':
     #                     aspect=40.)
     # plt.savefig("heat_map", dpi=500, bbox_inches='tight')
     # # plt.show()
-    #
-    #
+
+
 
 
 

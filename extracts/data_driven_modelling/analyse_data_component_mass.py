@@ -267,26 +267,26 @@ df = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
 un = un.copy()
 
 
-# #-------------------------------------------------------------------------------------------------------------------
-# abs = "MTOW"
-# ord = "OWE"
-#
-# # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
-# # df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
-#
-# # order = [1]
-# order = [2, 1]
-# dict_owe = do_regression(df, un, abs, ord, coloration, order)
-#
-#
 #-------------------------------------------------------------------------------------------------------------------
-# phd = PhysicalData()
-# ddm = DDM(phd)
-#
-# res = compare_owe_base_and_model(df, ddm, coloration)
-# print("global model : ", res)
-#
-#
+abs = "MTOW"
+ord = "OWE"
+
+# print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+# df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
+
+# order = [1]
+order = [2, 1]
+dict_owe = do_regression(df, un, abs, ord, coloration, order)
+
+
+#-------------------------------------------------------------------------------------------------------------------
+phd = PhysicalData()
+ddm = DDM(phd)
+
+res = compare_owe_base_and_model(df, ddm, coloration)
+print("global model : ", res)
+
+
 #-------------------------------------------------------------------------------------------------------------------
 phd = PhysicalData()
 ddm = DDM(phd)
@@ -306,34 +306,34 @@ res = compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True)
 print(int(np.sqrt(sum(res))))
 
 
-
-def residual(x):
-    factor = {'fuselage': x[0],
-              'furnishing': x[1],
-              'op_item': x[2],
-              'wing': x[3],
-              'htp': x[4],
-              'vtp': x[5],
-              'ldg': x[6],
-              'system': x[7],
-              'engine': x[8]}
-    return compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=False)
-
-x0 = [1., 1., 1., 1., 1., 1., 1., 1., 1.]
-
-out = least_squares(residual, x0, bounds=(0.7, 1.3))
-
-print(out.x)
-
-factor = {'fuselage': out.x[0],
-          'furnishing': out.x[1],
-          'op_item': out.x[2],
-          'wing': out.x[3],
-          'htp': out.x[4],
-          'vtp': out.x[5],
-          'ldg': out.x[6],
-          'system': out.x[7],
-          'engine': out.x[8]}
-
-res = compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True)
-print(int(np.sqrt(sum(res))))
+#
+# def residual(x):
+#     factor = {'fuselage': x[0],
+#               'furnishing': x[1],
+#               'op_item': x[2],
+#               'wing': x[3],
+#               'htp': x[4],
+#               'vtp': x[5],
+#               'ldg': x[6],
+#               'system': x[7],
+#               'engine': x[8]}
+#     return compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=False)
+#
+# x0 = [1., 1., 1., 1., 1., 1., 1., 1., 1.]
+#
+# out = least_squares(residual, x0, bounds=(0.7, 1.3))
+#
+# print(out.x)
+#
+# factor = {'fuselage': out.x[0],
+#           'furnishing': out.x[1],
+#           'op_item': out.x[2],
+#           'wing': out.x[3],
+#           'htp': out.x[4],
+#           'vtp': out.x[5],
+#           'ldg': out.x[6],
+#           'system': out.x[7],
+#           'engine': out.x[8]}
+#
+# res = compare_owe_base_and_breakdown(df, ddm, factor, coloration, graph=True)
+# print(int(np.sqrt(sum(res))))

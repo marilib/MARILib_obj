@@ -225,16 +225,16 @@ class SmallPlane(object):
     def max_power(self, mtow):
         """Estimate max installed power
         """
-        pw_max = (0.0197*mtow + 100.6)*mtow
-        return pw_max
+        power = (0.0197*mtow + 100.6)*mtow
+        return power
 
 
     def basic_owe(self, mtow):
         """Estimate classical airplane empty weight
         """
         # owe_basic = (-9.6325e-07 * mtow + 6.1041e-01) * mtow
-        owe_basic = 0.606 * mtow * self.owe_factor
-        return owe_basic
+        owe = 0.606 * mtow * self.owe_factor
+        return owe
 
 
     def aerodynamic(self, mass):
@@ -292,10 +292,8 @@ class SmallPlane(object):
         """
         elec_pw_max = pw_max / (self.prop_efficiency*self.elec_motor_efficiency)
         m_system = elec_pw_max / self.power_elec_pw_density
-        m_battery = (  pw * (self.distance/self.vtas)
-                     + mass*self.g*self.altp/(self.elec_motor_efficiency*self.prop_efficiency)
-                    ) / self.battery_enrg_density
-        m_battery += (pw * self.diversion_time) / self.battery_enrg_density
+        m_battery = pw * (self.distance/self.vtas) / self.battery_enrg_density
+        m_battery += pw * self.diversion_time / self.battery_enrg_density
         return m_system, m_battery
 
 
@@ -492,14 +490,14 @@ if __name__ == '__main__':
     # print("Max distance vs PK/M = ", "%.0f"%unit.km_m(spc.distance), " km")
 
 
-    # print("---------------------------------------------------")
-    # print("BRISTEL H55 ENERGIC")
-    # print("---------------------------------------------------")
-    # spe = SmallPlane(phd, npax=2, dist=unit.m_km(130), altp=unit.m_ft(1000), tas=unit.mps_kmph(130), mode="battery")       # H55
-    # spe.battery_enrg_density = unit.J_Wh(200)
-    # spe.lod = 13.2
-    # spe.design_solver()
-    # print(spe)
+    print("---------------------------------------------------")
+    print("BRISTEL H55 ENERGIC")
+    print("---------------------------------------------------")
+    spe = SmallPlane(phd, npax=2, dist=unit.m_km(130), altp=unit.m_ft(2000), tas=unit.mps_kmph(130), mode="battery")       # H55
+    spe.battery_enrg_density = unit.J_Wh(200)
+    spe.lod = 13
+    spe.design_solver()
+    print(spe)
     #
     # wing_area = 11.75
     # wing_span = 9.27
