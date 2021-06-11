@@ -94,6 +94,20 @@ class PhysicalData(object):
         vsnd = np.sqrt( gam * r * tamb )
         return vsnd
 
+    def total_temperature(self, tamb,mach):
+        """Stagnation temperature
+        """
+        r,gam,Cp,Cv = self.gas_data()
+        ttot = tamb*(1.+((gam-1.)/2.)*mach**2)
+        return ttot
+
+    def total_pressure(self, pamb,mach):
+        """Stagnation pressure
+        """
+        r,gam,Cp,Cv = self.gas_data()
+        ptot = pamb*(1+((gam-1.)/2.)*mach**2)**(gam/(gam-1.))
+        return ptot
+
     def air_viscosity(self, tamb):
         """Mixed gas dynamic viscosity, Sutherland's formula
         WARNING : result will not be accurate if gas is mixing components of too different molecular weights

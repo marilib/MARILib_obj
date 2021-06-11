@@ -22,9 +22,47 @@ class FuelCellSystem(object):
     def __init__(self, phd):
         self.phd = phd
 
-        self.n_stack = 1
+        self.n_stack = None
+
         self.stack = FuelCellPEMLT(self)
         self.compressor = AirCompressor(self)
+        self.air_scoop = PitotScoop(self)
+
+    def run_fc_system(self, tamb, pamb, vair, jj):
+        fc_dict = self.stack.run_fuel_cell_jj(jj)
+        air_flow = fc_dict["air_flow"]
+        sc_dict = self.air_scoop.operate(tamb, pamb, vair, air_flow)
+        p_in = sc_dict["p_out"]
+        t_in = sc_dict["t_out"]
+        cp_dict = self.compressor.operate(p_in, t_in, air_flow)
+        return {"stack":fc_dict, "scoop":sc_dict, "comp":cp_dict}
+
+    def operate(self, tamb, pamb, vair, pw_req):
+        def fct(jj):
+            dict = self.run_fc_system(tamb, pamb, vair, jj)
+            return pw_req - (dict["stack"]["pwe"] - dict["comp"]["pwe"])
+
+        jj_ini = 1000
+        output_dict = fsolve(fct, x0=jj_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        fc_power = output_dict[0][0]
+
+        return self.run_fc_system(tamb, pamb, vair, fc_power)
+
+
+    def design(self, req_power):
+
+
+
+
+
+        fc_syst.stack.eval_cell_max_power()
+
+
+        fc_syst.stack.design(total_power)
+
+
+
 
 
 
@@ -35,14 +73,40 @@ class PitotScoop(object):
 
         self.diameter = 0.05
 
+    def corrected_air_flow(self,Ptot,Ttot,Mach):
+        """Computes the corrected air flow per square meter
+        """
+        r,gam,Cp,Cv = self.fc_system.phd.gas_data()
+        f_m = Mach*(1. + 0.5*(gam-1)*Mach**2)**(-(gam+1.)/(2.*(gam-1.)))
+        cqoa = (np.sqrt(gam/r)*Ptot/np.sqrt(Ttot))*f_m
+        return cqoa
+
     def operate(self, tamb, pamb, vair, air_flow):
+        r,gam,Cp,Cv = self.fc_system.phd.gas_data()
+        mach = vair / self.fc_system.phd.sound_speed(tamb)
+        ptot = self.fc_system.phd.total_pressure(pamb,mach)
+        ttot = self.fc_system.phd.total_temperature(tamb,mach)
 
+        def fct(mach_pitot):
+            cqoa = self.corrected_air_flow(ptot,ttot,mach_pitot)
+            sec = 0.25*np.pi*self.diameter**2
+            return cqoa - air_flow/sec
 
+        mach_ini = 0.2
+        output_dict = fsolve(fct, x0=mach_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        mach_pitot = output_dict[0][0]
 
+        tsta_pitot = ttot / (1.+0.5*(gam-1.)*mach_pitot**2)
+        psta_pitot = ptot / (1+((gam-1.)/2.)*mach_pitot**2)**(gam/(gam-1.))
+        vair_pitot = mach_pitot * self.fc_system.phd.sound_speed(tsta_pitot)
 
+        total_force = air_flow * vair
 
-
-        return {"p_out":press, "t_out":temp, "speed":speed, "drag":force}
+        return {"p_out":psta_pitot,
+                "t_out":tsta_pitot,
+                "speed":vair_pitot,
+                "drag":total_force}
 
 
 
@@ -63,7 +127,7 @@ class AirCompressor(object):
         r,gam,cp,cv = self.fc_system.phd.gas_data()
 
         pressure_ratio = self.fc_system.stack.cell_entry_pressure / p_in
-        adiabatic_power = air_flow * cp * t_in * (pressure_ratio^((gam-1)/gam)-1)
+        adiabatic_power = air_flow * cp * t_in * (pressure_ratio**((gam-1)/gam)-1)
 
         real_power = adiabatic_power / self.adiabatic_efficiency
         t_out = (real_power / cp) + t_in
@@ -75,7 +139,7 @@ class AirCompressor(object):
 
 
     def design(self, disa, altp, vtas, air_flow):
-
+        pass
 
 
 
@@ -93,7 +157,10 @@ class FuelCellPEMLT(object):
         self.working_temperature = 273.15 + 65                      # Cell working temperature
         self.air_over_feeding = 3                                   # air flow ratio over stoechiometry
         self.power_margin = 0.8                                     # Ratio allowed power over max power
+        self.bip_thickness = unit.convert_from("cm",0.65)           # Thickness of one bipolar plate
+        self.end_plate_thickness = unit.convert_from("cm",1.15)     # Thickness of one stack end plate
 
+        self.cell_max_power = None          # Nominal power for one single cell
         self.n_cell = None
         self.power_max = None
         self.nominal_thermal_power = None
@@ -101,10 +168,6 @@ class FuelCellPEMLT(object):
         self.nominal_current = None
         self.nominal_h2_flow = None
         self.nominal_air_flow = None
-
-        self.plate_thickness = None
-
-
         self.mass = None
 
         self.h2_molar_mass = unit.convert_from("g", 2.01588)    # kg/mol
@@ -242,12 +305,13 @@ class FuelCellPEMLT(object):
                 "pwth":pw_thermal * nc,
                 "voltage":voltage * nc,
                 "current":current,
+                "jj":jj,
                 "air_flow":air_flow * nc,
                 "h2_flow":h2_flow * nc,
                 "efficiency":efficiency}
 
 
-    def operate_fuel_cell(self, pw):
+    def operate(self, pw):
         """Compute working point of a stack of fuell cells
         Input quantity is required output electrical power pw
         """
@@ -261,21 +325,37 @@ class FuelCellPEMLT(object):
         return self.run_fuel_cell_jj(jj)
 
 
-    def design_fuel_cell_stack(self, power_max):
-        """Compute the number of cell to ensure the required nominal output power
-        A margin of self.power_margin is taken from versus the effective maximum power
-        """
+    def eval_cell_max_power(self):
         def fct_jj(jj):
             return self.run_fuel_cell_jj(jj, nc=1)["pwe"]
 
         xini, dx = 1000, 500
         xres,yres,rc = utils.maximize_1d(xini, dx, [fct_jj])    # Compute the maximum power of the cell
 
-        cell_pw_max = yres * self.power_margin              # Nominal power for one single cell
-        self.n_cell = np.ceil( power_max / cell_pw_max )    # Number of cells
+        self.cell_max_power = yres * self.power_margin          # Nominal power for one single cell
 
-        self.power_max = cell_pw_max * self.n_cell          # Get effective max power"
-        dict = self.operate_fuel_cell(self.power_max)       # Run the stack for maximum power
+
+    def design(self, power_max):
+        """Compute the number of cell to ensure the required nominal output power
+        A margin of self.power_margin is taken from versus the effective maximum power
+        """
+        self.n_cell = np.ceil( power_max / self.cell_max_power )    # Number of cells
+
+        self.power_max = self.cell_max_power * self.n_cell          # Get effective max power"
+        dict = self.operate(self.power_max)                         # Run the stack for maximum power
+
+        # tightening fuel cell mass calculation
+        end_plate_area = 2 * self.cell_area
+        end_plate_volume = 2 * end_plate_area * self.end_plate_thickness
+        end_plate_mass = 2.7e-9 * end_plate_volume
+
+        # bipolar fuel cell mass calculation
+        n_bip = self.n_cell + 1                             # Number of bipolar plate
+        bip_area = 1.7e-4 * self.cell_area
+        bip_volume = self.bip_thickness * bip_area * n_bip
+        bip_effective_volume = 0.666 * bip_volume
+        bip_mass = bip_effective_volume * 1.89e-9
+        self.mass = bip_mass + end_plate_mass               # To be confirmed
 
         self.nominal_thermal_power = dict["pwth"]
         self.nominal_voltage = dict["voltage"]
@@ -284,11 +364,6 @@ class FuelCellPEMLT(object):
         self.nominal_air_flow = dict["air_flow"]
         self.nominal_efficiency = dict["efficiency"]
 
-
-
-
-
-        self.mass = None
 
 
     def print(self):
@@ -329,14 +404,38 @@ if __name__ == '__main__':
 
     phd = PhysicalData()
 
-    fcs = FuelCellPEMLT()
+    fc_syst = FuelCellSystem(phd)
 
-    comp = None
+    fc_syst.stack.eval_cell_max_power()
 
-    fc_syst = FuelCellSystem(phd, 1, fcs, comp)
+    fc_syst.stack.design(unit.convert_from("kW", 50))
 
-    fc_syst.stack.design_fuel_cell_stack(unit.convert_from("kW", 50))
+    # fc_syst.stack.print()
 
-    fc_syst.stack.print()
+
+    altp = unit.m_ft(3000)
+    disa = 15
+    vair = unit.mps_kmph(200)
+
+    fc_syst.air_scoop.diameter = 0.05
+
+    pw_req = unit.W_kW(20)
+
+    pamb, tamb, g = phd.atmosphere(altp, disa)
+
+    altp_list = [0, 1000, 2000, 3000]
+    pw_stack = []
+    for zp in altp_list:
+        altp = unit.m_ft(zp)
+        pamb, tamb, g = phd.atmosphere(altp, disa)
+        dict = fc_syst.operate(tamb, pamb, vair, pw_req)
+        pw_stack.append(dict["stack"]["pwe"]/pw_req)
+
+    plt.plot(altp_list, pw_stack)
+    plt.grid(True)
+    plt.show()
+
+    # print("")
+    # print("Stack effective power = ", dict["stack"]["pwe"])
 
 
