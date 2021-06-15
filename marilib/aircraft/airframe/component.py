@@ -1429,7 +1429,7 @@ class Hstab(Component):
                            [htp_x_axe+htp_c_axe ,  0            , htp_z_axe],
                            [htp_x_tip+htp_c_tip ,  0.5*htp_span , htp_z_tip]])
 
-        htp_toc = np.array([htp_t_o_c, htp_t_o_c])
+        htp_toc = np.array([htp_t_o_c, htp_t_o_c, htp_t_o_c])
 
         htp_xy = np.array([[htp_x_axe           ,  0            ],
                            [htp_x_tip           ,  0.5*htp_span ],

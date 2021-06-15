@@ -8,7 +8,7 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 from tools import from_binary_file, get_section
-
+import matplotlib.pyplot as plt
 
 comp = from_binary_file('aircraft_curves.pkl')
 
@@ -23,6 +23,10 @@ print("Chord = ", ch, "  er = ", er)
 sec = get_section(ch, er)
 print("    X              Zu             Zd")
 print(sec)
+plt.plot(sec[:,0],sec[:,1],label="up")
+plt.plot(sec[:,0],sec[:,2],label="down")
+plt.legend()
+plt.show()
 
 print("-----------------------------------------")
 print("number of surfaces = ", len(comp["surface"]))
