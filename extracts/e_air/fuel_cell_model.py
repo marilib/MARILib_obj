@@ -17,6 +17,35 @@ from physical_data import PhysicalData
 
 
 
+def (pamb,tamb,vair,re,ecl, wt,ht,et,lt, t_in, fluid_flow):
+    """
+
+    :param pamb: Ambiant pressure
+    :param tamb: Ambiant temperature
+    :param vair: Free air velocity
+    :param re: Local Reynolds number
+    :param ecl: Boundary layer thickness
+    :param wt: Tube internal width (m)
+    :param ht: Tube internal height (m)
+    :param et: Tube wall thickness
+    :param lt: Tube length (m)
+    :param t_in: Fluid entry temperature (K)
+    :param fluid_flow: Fuild mass flow in the tube (kg/s)
+    :return:
+    """
+
+
+
+
+
+    return t_out, pwth_dissipated
+
+
+
+
+
+
+
 class FuelCellSystem(object):
 
     def __init__(self, phd):
@@ -28,19 +57,19 @@ class FuelCellSystem(object):
         self.compressor = AirCompressor(self)
         self.stack = FuelCellPEMLT(self)
 
-    def run_fc_system_old(self, tamb, pamb, vair, jj):
+    def run_fc_system_old(self, pamb, tamb, vair, jj):
         fc_dict = self.stack.run_fuel_cell_jj(jj)
         air_flow = fc_dict["air_flow"]
-        sc_dict = self.air_scoop.operate(tamb, pamb, vair, air_flow)
+        sc_dict = self.air_scoop.operate(pamb, tamb, vair, air_flow)
         p_in = sc_dict["p_out"]
         t_in = sc_dict["t_out"]
         cp_dict = self.compressor.operate(p_in, t_in, air_flow)
         return {"stack":fc_dict, "scoop":sc_dict, "compressor":cp_dict}
 
-    def run_fc_system(self, tamb, pamb, vair, jj):
+    def run_fc_system(self, pamb, tamb, vair, jj):
         fc_dict = self.stack.run_fuel_cell_jj(jj)
         air_flow = fc_dict["air_flow"]
-        sc_dict = self.air_scoop.operate(tamb, pamb, vair, air_flow)
+        sc_dict = self.air_scoop.operate(pamb, tamb, vair, air_flow)
         pt_in = sc_dict["pt_out"]
         tt_in = sc_dict["tt_out"]
         cp_dict = self.compressor.operate(pt_in, tt_in, air_flow)
@@ -48,9 +77,9 @@ class FuelCellSystem(object):
         fc_system = {"efficiency":pw_util/fc_dict["pw_chemical"]}
         return {"system":fc_system, "stack":fc_dict, "scoop":sc_dict, "compressor":cp_dict}
 
-    def operate(self, tamb, pamb, vair, pw_req):
+    def operate(self, pamb, tamb, vair, pw_req):
         def fct(jj):
-            dict = self.run_fc_system(tamb, pamb, vair, jj)
+            dict = self.run_fc_system(pamb, tamb,vair, jj)
             return pw_req - (dict["stack"]["pwe"] - dict["compressor"]["pwe"])
 
         jj_ini = 1000
@@ -58,22 +87,24 @@ class FuelCellSystem(object):
         if (output_dict[2]!=1): raise Exception("Convergence problem")
         fc_power = output_dict[0][0]
 
-        return self.run_fc_system(tamb, pamb, vair, fc_power)
+        return self.run_fc_system(pamb, tamb, vair, fc_power)
 
 
-    def design(self, req_power):
+    def design(self, pamb, tamb, vair, req_power):
 
+        self.stack.eval_cell_max_power()
 
+        nc_ini = req_power / self.stack.cell_max_power
 
+        eff_power = req_power
 
-
-        fc_syst.stack.eval_cell_max_power()
-
-
-        fc_syst.stack.design(total_power)
-
-
-
+        for i in range(12):
+            self.stack.design(eff_power)
+            jj = self.stack.nominal_current_density
+            dict = self.run_fc_system(pamb, tamb, vair, jj)
+            delta_power = req_power - (dict["stack"]["pwe"] - dict["compressor"]["pwe"])
+            eff_power += delta_power
+            print(delta_power)
 
 
 
@@ -82,7 +113,7 @@ class PitotScoop(object):
     def __init__(self, fc_system):
         self.fc_system = fc_system
 
-        self.diameter = 0.05
+        self.diameter = None
 
     def corrected_air_flow(self,Ptot,Ttot,Mach):
         """Computes the corrected air flow per square meter
@@ -92,7 +123,7 @@ class PitotScoop(object):
         cqoa = (np.sqrt(gam/r)*Ptot/np.sqrt(Ttot))*f_m
         return cqoa
 
-    def operate(self, tamb, pamb, vair, air_flow):
+    def operate(self, pamb, tamb, vair, air_flow):
         r,gam,Cp,Cv = self.fc_system.phd.gas_data()
         mach = vair / self.fc_system.phd.sound_speed(tamb)
         ptot = self.fc_system.phd.total_pressure(pamb,mach)
@@ -124,7 +155,12 @@ class PitotScoop(object):
                 "speed":vair_pitot,
                 "drag":total_force}
 
-
+    def design(self, pamb, tamb, vair, air_flow):
+        """Compute the diameter of the scoop according to flight conditions
+        """
+        rho = self.fc_system.phd.gas_density(pamb,tamb)
+        sec = air_flow / (rho*vair)
+        self.diameter = np.sqrt(4*sec/np.pi)
 
 
 class AirCompressor(object):
@@ -208,6 +244,7 @@ class FuelCellPEMLT(object):
         self.nominal_thermal_power = None
         self.nominal_voltage = None
         self.nominal_current = None
+        self.nominal_current_density = None
         self.nominal_h2_flow = None
         self.nominal_air_flow = None
         self.mass = None
@@ -403,6 +440,7 @@ class FuelCellPEMLT(object):
         self.nominal_thermal_power = dict["pwth"]
         self.nominal_voltage = dict["voltage"]
         self.nominal_current = dict["current"]
+        self.nominal_current_density = dict["jj"]
         self.nominal_h2_flow = dict["h2_flow"]
         self.nominal_air_flow = dict["air_flow"]
         self.nominal_efficiency = dict["efficiency"]
@@ -449,6 +487,7 @@ if __name__ == '__main__':
 
     fc_syst = FuelCellSystem(phd)
 
+
     fc_syst.stack.eval_cell_max_power()
 
     fc_syst.stack.design(unit.convert_from("kW", 50))
@@ -457,7 +496,7 @@ if __name__ == '__main__':
 
 
     altp = unit.m_ft(10000)
-    disa = 15
+    disa = 35
     vair = unit.mps_kmph(500)
 
     fc_syst.air_scoop.diameter = 0.10
@@ -466,15 +505,21 @@ if __name__ == '__main__':
 
     pamb, tamb, g = phd.atmosphere(altp, disa)
 
-    dict = fc_syst.operate(tamb, pamb, vair, pw_req)
+    # fc_syst.design(pamb, tamb, vair, pw_req)
 
-    print("")
+    dict = fc_syst.operate(pamb, tamb, vair, pw_req)
+
+    print("--------------------------------------------------")
     print("Stack effective power = ", "%.2f"%unit.kW_W(dict["stack"]["pwe"]), " kW")
+    print("Stack thermal power = ", "%.2f"%unit.kW_W(dict["stack"]["pwth"]), " kW")
     print("Compressor effective power = ", "%.2f"%unit.kW_W(dict["compressor"]["pwe"]), " kW")
+    print("")
+    print("Stack current density = ", "%.3f"%(dict["stack"]["jj"]/1e4), " A/cm2")
     print("Stack effective efficiency = ", "%.2f"%(dict["stack"]["efficiency"]))
     print("Overall efficiency = ", "%.2f"%(dict["system"]["efficiency"]))
+    print("")
     print("Peripheral power ratio = ", "%.3f"%(dict["compressor"]["pwe"]/dict["stack"]["pwe"]))
-    print("Compressor ratio = ", "%.2f"%(dict["compressor"]["pt_out"]/dict["compressor"]["pt_in"]))
+    print("Compression ratio = ", "%.2f"%(dict["compressor"]["pt_out"]/dict["compressor"]["pt_in"]))
     print("Compressor output temperature = ", "%.2f"%(dict["compressor"]["tt_out"]-273.15), " C°")
 
 
@@ -484,7 +529,7 @@ if __name__ == '__main__':
     # for zp in altp_list:
     #     altp = unit.m_ft(zp)
     #     pamb, tamb, g = phd.atmosphere(altp, disa)
-    #     dict = fc_syst.operate(tamb, pamb, vair, pw_req)
+    #     dict = fc_syst.operate(pamb, tamb,vair, pw_req)
     #     pw_stack.append(dict["stack"]["pwe"]/pw_req)
     #
     # plt.plot(altp_list, pw_stack)

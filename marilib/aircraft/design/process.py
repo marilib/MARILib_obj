@@ -68,7 +68,7 @@ def mda(aircraft, mass_mission_matching=True):
 
     aircraft.environment.fuel_efficiency_metric()
 
-    aircraft.power_system.thrust_analysis()
+    # aircraft.power_system.thrust_analysis()
 
 
 def mda_hq(aircraft):

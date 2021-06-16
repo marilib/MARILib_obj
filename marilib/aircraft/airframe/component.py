@@ -920,7 +920,7 @@ class Wing(Component):
                     6 : 2.45 ,  # Slat + Flap rotation without slot
                     7 : 2.70 ,  # Slat + Flap rotation single slot
                     8 : 2.90 ,  # Slat + Flap rotation double slot
-                    9 : 3.00 ,  # Slat + Fowler                      (A320)
+                    9 : 2.90 ,  # Slat + Fowler                      (A320)
                     10 : 3.20,  # Slat + Fowler + Fowler double slot (A321)
                     }.get(self.hld_type, "Erreur - high_lift_, HLDtype out of range")    # 9 is default if x not found
 
