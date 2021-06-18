@@ -92,7 +92,7 @@ ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 #-----------------------------------------------------------------------------------------------------------------------
 ac.power_system.reference_thrust = unit.N_kN(104)
 ac.airframe.wing.aspect_ratio = 11
-ac.airframe.wing.area = 112
+ac.airframe.wing.area = 113.25
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -132,7 +132,7 @@ opt = process.Optimizer()
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
-# algo_points = None
+algo_points = None
 
 
 # Main output

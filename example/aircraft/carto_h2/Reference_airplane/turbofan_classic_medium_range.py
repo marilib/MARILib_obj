@@ -86,8 +86,8 @@ ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-ac.power_system.reference_thrust = unit.N_kN(120.)
-ac.airframe.wing.area = 122.5
+ac.power_system.reference_thrust = unit.N_kN(120.33)
+ac.airframe.wing.area = 124.5
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -127,7 +127,7 @@ opt = process.Optimizer()
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
-# algo_points = None
+algo_points = None
 
 
 # Main output
@@ -188,6 +188,7 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
          ac.performance.mission.nominal.fuel_total]              # Limit values
 
-process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
+process.draw_design_space(file, res, other, field, const, color, limit, bound,
+                          optim_points=algo_points) # Used stored result to build a graph of the design space
 
 

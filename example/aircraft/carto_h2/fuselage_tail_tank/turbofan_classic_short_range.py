@@ -24,7 +24,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",   # "wing_box", "rear", "piggy_back" or "pods"
+                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
@@ -33,10 +33,10 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
-airplane_type = "A330-800"
-n_pax_ref = 320
-design_range = unit.m_NM(6000.)
-cruise_mach = 0.82
+airplane_type = "A220-100_rear_tank"
+n_pax_ref = 135
+design_range = unit.m_NM(2100.)
+cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
 
@@ -57,12 +57,12 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 # Take off
 ac.requirement.take_off.altp = 0
 ac.requirement.take_off.disa = 15
-ac.requirement.take_off.tofl_req = 3200
+ac.requirement.take_off.tofl_req = 2000
 
 # Approach
 ac.requirement.approach.altp = 0
 ac.requirement.approach.disa = 0
-ac.requirement.approach.app_speed_req = unit.mps_kt(140)
+ac.requirement.approach.app_speed_req = unit.mps_kt(135)
 
 # Climb
 ac.requirement.mcl_ceiling.altp = cruise_altp
@@ -80,7 +80,7 @@ ac.requirement.time_to_climb.cas1 = unit.mps_kt(180)
 ac.requirement.time_to_climb.altp2 = unit.m_ft(10000)
 ac.requirement.time_to_climb.cas2 = unit.mps_kt(250)
 ac.requirement.time_to_climb.altp = cruise_altp
-ac.requirement.time_to_climb.ttc_req = unit.s_min(25)
+ac.requirement.time_to_climb.ttc_req = unit.s_min(20)
 
 # Technological parameters
 #-----------------------------------------------------------------------------------------------------------------------
@@ -90,10 +90,11 @@ ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-ac.power_system.reference_thrust = unit.N_kN(320.5)
-ac.airframe.wing.sweep25 = unit.rad_deg(30)
-ac.airframe.wing.aspect_ratio = 10
-ac.airframe.wing.area = 360.82
+ac.power_system.reference_thrust = unit.N_kN(104)
+ac.airframe.wing.aspect_ratio = 11
+ac.airframe.wing.area = 112
+
+ac.airframe.tank.length = 3.5
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
@@ -133,7 +134,7 @@ opt = process.Optimizer()
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
-algo_points = None
+# algo_points = None
 
 
 # Main output

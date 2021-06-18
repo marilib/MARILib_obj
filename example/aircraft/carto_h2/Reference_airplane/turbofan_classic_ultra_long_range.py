@@ -90,10 +90,10 @@ ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-ac.power_system.reference_thrust = unit.N_kN(380)
+ac.power_system.reference_thrust = unit.N_kN(379.6)
 ac.airframe.wing.sweep25 = unit.rad_deg(32)
 ac.airframe.wing.aspect_ratio = 9.5
-ac.airframe.wing.area = 432
+ac.airframe.wing.area = 423.7
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)

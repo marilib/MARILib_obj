@@ -175,6 +175,9 @@ class Optimizer(object):
         start_value = np.zeros(len(var))
         for k, key in enumerate(var):  # put optimization variables in aircraft object
             exec("start_value[k] = eval(key)")
+        print("--------------------------------------------------------------")
+        print("start_value = ", start_value)
+        print("--------------------------------------------------------------")
 
         crt_mag, unused = self.eval_optim_data(start_value, aircraft, var, cst, cst_mag, crt, 1.)
 
