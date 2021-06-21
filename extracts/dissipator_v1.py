@@ -72,10 +72,10 @@ def fluid_prandtl_number(tamb, fluid="water"):
     """
     if fluid!="water":
         raise Exception("fluide type is not permitted")
-    Cp_water = 4200.
+    cp_water = 4200.
     mu = fluid_viscosity(tamb, fluid="water")
     lbd = fluid_thermal_conductivity(tamb, fluid="water")
-    pr = mu * Cp_water / lbd
+    pr = mu * cp_water / lbd
     return pr
 
 
@@ -123,6 +123,7 @@ def air_thermal_transfert_factor(pamb,tamb,vair,length):
     h = lbd * nux / length
     return h
 
+
 def air_nusselt_number(pamb,tamb,vair,x):
     """Nusselt number for turbulent air flow
     """
@@ -140,10 +141,10 @@ def air_nusselt_number(pamb,tamb,vair,x):
 def air_prandtl_number(pamb,tamb):
     """Prandtl number
     """
-    r,gam,Cp,Cv = gas_data()
+    r,gam,cp,cv = gas_data()
     mu = gas_viscosity(tamb, gas="air")
     lbd = air_thermal_conductivity(pamb,tamb)
-    pr = mu * Cp / lbd
+    pr = mu * cp / lbd
     return pr
 
 
@@ -157,10 +158,10 @@ def air_thermal_diffusivity():
 def air_thermal_conductivity(pamb,tamb):
     """Thermal conductivity of the air
     """
-    r,gam,Cp,Cv = gas_data()
+    r,gam,cp,cv = gas_data()
     th_diff = air_thermal_diffusivity()
     rho,sig = air_density(pamb,tamb)
-    thermal_condictivity = th_diff * rho * Cp
+    thermal_condictivity = th_diff * rho * cp
     return thermal_condictivity
 
 
@@ -175,7 +176,7 @@ def air_reynolds_number_v(tamb,rho,vair):
 def air_density(pamb,tamb):
     """Ideal gas density
     """
-    r,gam,Cp,Cv = gas_data()
+    r,gam,cp,cv = gas_data()
     rho0 = sea_level_density()
     rho = pamb / ( r * tamb )
     sig = rho / rho0
@@ -192,7 +193,7 @@ def sea_level_density():
 def sound_speed(tamb):
     """Sound speed for ideal gas
     """
-    r,gam,Cp,Cv = gas_data()
+    r,gam,cp,cv = gas_data()
     vsnd = np.sqrt( gam * r * tamb )
     return vsnd
 
@@ -283,7 +284,7 @@ def atmosphere(altp,disa=0.):
     """Pressure from pressure altitude from ground to 50 km
     """
     g = 9.80665
-    R,gam,Cp,Cv = gas_data()
+    r,gam,cp,cv = gas_data()
 
     Z = np.array([0., 11000., 20000.,32000., 47000., 50000.])
     dtodz = np.array([-0.0065, 0., 0.0010, 0.0028, 0.])
@@ -299,15 +300,15 @@ def atmosphere(altp,disa=0.):
     while (Z[1+j]<=altp):
         T[j+1] = T[j] + dtodz[j]*(Z[j+1]-Z[j])
         if (0.<np.abs(dtodz[j])):
-            P[j+1] = P[j]*(1. + (dtodz[j]/T[j])*(Z[j+1]-Z[j]))**(-g/(R*dtodz[j]))
+            P[j+1] = P[j]*(1. + (dtodz[j]/T[j])*(Z[j+1]-Z[j]))**(-g/(r*dtodz[j]))
         else:
-            P[j+1] = P[j]*np.exp(-(g/R)*((Z[j+1]-Z[j])/T[j]))
+            P[j+1] = P[j]*np.exp(-(g/r)*((Z[j+1]-Z[j])/T[j]))
         j = j + 1
 
     if (0.<np.abs(dtodz[j])):
-        pamb = P[j]*(1 + (dtodz[j]/T[j])*(altp-Z[j]))**(-g/(R*dtodz[j]))
+        pamb = P[j]*(1 + (dtodz[j]/T[j])*(altp-Z[j]))**(-g/(r*dtodz[j]))
     else:
-        pamb = P[j]*np.exp(-(g/R)*((altp-Z[j])/T[j]))
+        pamb = P[j]*np.exp(-(g/r)*((altp-Z[j])/T[j]))
     tstd = T[j] + dtodz[j]*(altp-Z[j])
     tamb = tstd + disa
 

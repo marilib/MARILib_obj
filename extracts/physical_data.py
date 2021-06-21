@@ -9,6 +9,7 @@ Created on November 20 20:20:20 2020
 """
 
 import numpy as np
+from scipy import interpolate
 
 from marilib.utils import unit
 
@@ -30,9 +31,8 @@ class PhysicalData(object):
     def atmosphere(self, altp, disa=0.):
         """Ambiant data from pressure altitude from ground to 50 km according to Standard Atmosphere
         """
+        r,gam,cp,cv = self.gas_data()
         g = 9.80665
-        r = 287.053
-        gam = 1.4
 
         Z = np.array([0., 11000., 20000., 32000., 47000., 50000.])
         dtodz = np.array([-0.0065, 0., 0.0010, 0.0028, 0.])
@@ -83,14 +83,14 @@ class PhysicalData(object):
     def gas_density(self, pamb,tamb, gas="air"):
         """Ideal gas density
         """
-        r,gam,Cp,Cv = self.gas_data(gas)
+        r,gam,cp,cv = self.gas_data(gas)
         rho = pamb / ( r * tamb )
         return rho
 
     def sound_speed(self, tamb):
         """Sound speed for ideal gas
         """
-        r,gam,Cp,Cv = self.gas_data()
+        r,gam,cp,cv = self.gas_data()
         vsnd = np.sqrt( gam * r * tamb )
         return vsnd
 
