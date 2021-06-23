@@ -126,6 +126,7 @@ UNIT["1e12.km/year"] = 1.e-12
 
 # dim = "Area"
 UNIT["m2"] = 1.
+UNIT["dm2"] = 0.01
 UNIT["cm2"] = 0.0001
 UNIT["ft2"] = 0.0929030
 UNIT["inch2"] = 0.00064516

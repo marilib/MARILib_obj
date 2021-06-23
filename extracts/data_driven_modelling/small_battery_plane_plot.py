@@ -72,10 +72,10 @@ c3h = plt.contourf(X / 1000, Y, mtow, levels=[5700,100000], linewidths=2, colors
 for c in c3h.collections:
     c.set_edgecolor('violet')
 
-c2c = plt.contour(X / 1000, Y, Y/X*1e3, levels=[0.0146], colors =['lightgrey'], linewidths=2)
-c2h = plt.contourf(X / 1000, Y, Y/X*1e3, levels=[0.0146,1], linewidths=2, colors='none', hatches=['\\'])
-for c in c2h.collections:
-    c.set_edgecolor('lightgrey')
+# c2c = plt.contour(X / 1000, Y, Y/X*1e3, levels=[0.0146], colors =['lightgrey'], linewidths=2)
+# c2h = plt.contourf(X / 1000, Y, Y/X*1e3, levels=[0.0146,1], linewidths=2, colors='none', hatches=['\\'])
+# for c in c2h.collections:
+#     c.set_edgecolor('lightgrey')
 
 # # plt.clabel(c1, inline=True, fmt="%d",fontsize=15)
 

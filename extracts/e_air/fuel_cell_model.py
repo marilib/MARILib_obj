@@ -134,6 +134,30 @@ class FuelCellSystem(object):
 
 
 
+
+
+
+class LeadingEdge(object):
+
+    def __init__(self):
+
+        # Curved abscissa of lower and upper airfoil from leading edge to front spar
+        le_curve = {"abs":[0.000000, 0.000124, 0.000500, 0.000624, 0.001750, 0.001874, 0.004124, 0.004374, 0.007624,
+                           0.008872, 0.013872, 0.015122, 0.021370, 0.023244, 0.027868, 0.032616, 0.035366, 0.044488,
+                           0.048112, 0.058610, 0.064858, 0.080980, 0.099100, 0.119096, 0.484754],
+                    "low":[0.0000, 0.0012, 0.0044, 0.0054, 0.0109, 0.0114, 0.0181, 0.0188, 0.0255,
+                           0.0279, 0.0361, 0.0379, 0.0460, 0.0483, 0.0539, 0.0594, 0.0626, 0.0728,
+                           0.0768, 0.0884, 0.0951, 0.1123, 0.1313, 0.1522, 0.5217],
+                     "up":[0.0000, 0.0002, 0.0108, 0.0123, 0.0200, 0.0205, 0.0274, 0.0280, 0.0354,
+                           0.0379, 0.0466, 0.0486, 0.0576, 0.0602, 0.0664, 0.0725, 0.0759, 0.0869,
+                           0.0910, 0.1028, 0.1097, 0.1272, 0.1465, 0.1674, 0.5369]}
+
+
+
+
+
+
+
 class LeadingEdgeDissipator(object):
 
     def __init__(self, fc_system):
@@ -145,8 +169,9 @@ class LeadingEdgeDissipator(object):
 
         self.tube_width = unit.convert_from("mm",10)
         self.tube_height = unit.convert_from("mm",8)
-        self.tube_foot_width = unit.convert_from("mm",4)
         self.tube_thickness = unit.convert_from("mm",0.8)
+        self.tube_foot_width = unit.convert_from("mm",4)
+        self.tube_footprint_width = None
 
         self.tube_length = None
         self.tube_section = None
@@ -159,15 +184,16 @@ class LeadingEdgeDissipator(object):
 
         if self.tube_height<0.5*self.tube_width:
             raise Exception("Tube height 'ht' cannot be lower than half tube width 'wt'")
-        self.tube_section = 0.125*np.pi*self.tube_width + (self.tube_height-0.5*self.tube_width)*self.tube_width      # Tube section
+        self.tube_section = 0.125*np.pi*self.tube_width**2 + (self.tube_height-0.5*self.tube_width)*self.tube_width      # Tube section
         tube_prm = 0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + self.tube_width    # Tube perimeter
 
+        self.tube_footprint_width = self.tube_width + 2*(self.tube_thickness + self.tube_foot_width)
         self.tube_hydro_width = 4 * self.tube_section / tube_prm             # Hydrolic section
         self.tube_interal_area = tube_prm * self.tube_length        # Internal area
         self.tube_exchange_area = (self.tube_width + 2*self.tube_thickness) * self.tube_length
         self.skin_exchange_area = (self.tube_exchange_area + 2*self.tube_foot_width) * self.tube_length
 
-    def operate_1_tube(self, pamb, tamb, air_speed, le_pos, fluid_speed, fluid_temp_in, fluid_temp_out):
+    def operate_1_tube(self, pamb, tamb, air_speed, le_pos, fluid_speed, n_tube, fluid_temp_in, fluid_temp_out):
         ha,rhoa,cpa,mua,pra,rea,nua = self.fc_system.phd.air_thermal_transfer_factor(pamb,tamb,air_speed, le_pos)
         hf,rhof,cpf,muf,prf,ref,nuf = self.fc_system.phd.fluid_thermal_transfer_factor(tamb, fluid_speed, self.tube_hydro_width)
 
@@ -177,20 +203,20 @@ class LeadingEdgeDissipator(object):
                   + (1/hf) * (self.skin_exchange_area/self.tube_interal_area)
                  )
 
-        fluid_flow = rhof * self.tube_section * fluid_speed
+        fluid_flow = rhof * self.tube_section * n_tube * fluid_speed
 
-        # def fct (temp_out):
-        #     q_fluid = fluid_flow * cpf * (fluid_temp_in - temp_out)
-        #     q_out = - ks * self.skin_exchange_area * (fluid_temp_in - temp_out) / np.log((temp_out-tamb)/(fluid_temp_in-tamb))
-        #     return q_fluid-q_out
-        #
-        # temp_ini = fluid_temp_in - 5
-        # output_dict = fsolve(fct, x0=temp_ini, args=(), full_output=True)
-        # if (output_dict[2]!=1): raise Exception("Convergence problem")
-        # fluid_temp_out = output_dict[0][0]
+        def fct(temp_out):
+            q_fluid = fluid_flow * cpf * (fluid_temp_in - temp_out)
+            q_out = - ks * n_tube * self.skin_exchange_area * (fluid_temp_in - temp_out) / np.log((temp_out-tamb)/(fluid_temp_in-tamb))
+            return q_fluid-q_out
+
+        temp_ini = fluid_temp_out
+        output_dict = fsolve(fct, x0=temp_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        fluid_temp_out = output_dict[0][0]
 
         q_fluid = fluid_flow * cpf * (fluid_temp_in - fluid_temp_out)
-        q_out = - ks * self.skin_exchange_area * (fluid_temp_in - fluid_temp_out) / np.log((fluid_temp_out-tamb)/(fluid_temp_in-tamb))
+        q_out = - ks * n_tube * self.skin_exchange_area * (fluid_temp_in - fluid_temp_out) / np.log((fluid_temp_out-tamb)/(fluid_temp_in-tamb))
 
         pw_heat = fluid_flow * cpf * (fluid_temp_in - fluid_temp_out)
 
@@ -213,11 +239,24 @@ class LeadingEdgeDissipator(object):
                 "ref":ref,
                 "nuf":nuf}
 
-        # return {"temp_in":fluid_temp_in,
-        #         "temp_out":fluid_temp_out,
-        #         "pw_heat":pw_heat,
-        #         "flow":fluid_flow,
-        #         "ks":ks}
+    def print(self):
+        print("")
+        print("Dissipator characteristics")
+        print("----------------------------------------------------------")
+        print("Skin thickness = ", "%.2f"%unit.convert_to("mm",self.skin_thickness), " mm")
+        print("Skin thermal conductivity = ", "%.2f"%(self.skin_conduct), "W/m/K")
+        print("Skin exchange area with air = ", "%.2f"%unit.convert_to("dm2",self.skin_exchange_area), " dm2")
+        print("")
+        print("Tube width = ", "%.2f"%unit.convert_to("mm",self.tube_width), " mm")
+        print("Tube height = ", "%.2f"%unit.convert_to("mm",self.tube_height), " mm")
+        print("Tube foot width = ", "%.2f"%unit.convert_to("mm",self.tube_foot_width), " mm")
+        print("Tube footprint width = ", "%.2f"%unit.convert_to("mm",self.tube_footprint_width), " mm")
+        print("Tube wall thickness = ", "%.2f"%unit.convert_to("mm",self.tube_thickness), " mm")
+        print("Tube length = ", "%.2f"%(self.tube_length), " m")
+        print("Tube internal section = ", "%.2f"%unit.convert_to("cm2",self.tube_section), " cm2")
+        print("Tube hydraulic diameter = ", "%.2f"%unit.convert_to("mm",self.tube_hydro_width), " mm")
+        print("Tube internal area = ", "%.2f"%unit.convert_to("dm2",self.tube_interal_area), " dm2")
+        print("Tube exchange area with skin = ", "%.2f"%unit.convert_to("dm2",self.tube_exchange_area), " dm2")
 
 
 class PitotScoop(object):
@@ -637,8 +676,8 @@ if __name__ == '__main__':
 
 
     altp = unit.m_ft(10000)
-    disa = 35
-    vair = unit.mps_kmph(100)
+    disa = 25
+    vair = unit.mps_kmph(500)
 
     design_power = unit.convert_from("kW", 50)
 
@@ -654,17 +693,18 @@ if __name__ == '__main__':
     dict = fc_syst.operate(pamb, tamb, vair, req_power)
 
 
-    le_pos = 0.1
-    fluid_speed = 0.1 # m/s
+    le_pos = 0.2
+    fluid_speed = 1. # m/s
     fluid_temp_in = 273.15 + 70
     fluid_temp_out = 273.15 + 65
 
-    tube_length = 1
+    tube_length = 8
+    n_tube = 50
 
     fc_syst.dissipator.design(tube_length)
-    dict_rad = fc_syst.dissipator.operate_1_tube(pamb, tamb, vair, le_pos, fluid_speed, fluid_temp_in, fluid_temp_out)
+    dict_rad = fc_syst.dissipator.operate_1_tube(pamb, tamb, vair, le_pos, fluid_speed, n_tube, fluid_temp_in, fluid_temp_out)
 
-
+    fc_syst.dissipator.print()
 
     print("")
     print("===============================================================================")

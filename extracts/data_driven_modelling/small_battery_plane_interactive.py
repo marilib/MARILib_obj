@@ -9,6 +9,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 import unit
+from physical_data import PhysicalData
 
 from small_battery_plane import SmallPlane
 
@@ -35,6 +36,7 @@ def plot_PKoM(X, Y, PKM, cax=None):
 
 
 #----------------------------------------------- PLOT NPAX vs DISTANCE
+phd = PhysicalData()
 
 # Set the grid distance and npax
 distances = np.linspace(50e3, 500e3, 10)
@@ -43,7 +45,7 @@ X, Y = np.meshgrid(distances, npaxs)
 
 # Initialize Plot
 fig,ax = plt.subplots(figsize=(10,7))
-sp = SmallPlane()
+sp = SmallPlane(phd)
 pkm = sp.compute_PKoM_on_grid(X,Y)
 CB = plot_PKoM(X,Y,pkm)
 plt.subplots_adjust(left=0.1,bottom=0.5,right=1.,top=0.98) # adjust position
@@ -163,7 +165,7 @@ def update(val):
     xmax = int(xmax_box.text) # max distance (km)
     ymax = int(ymax_box.text) # max number of passenger
     X,Y = np.meshgrid(np.linspace(1e3,xmax*1000,10),np.arange(2,ymax+2,2))
-    pkm = sp.compute_PKoM_on_grid(X, Y, vtas=tas, alt=alt, lod=lod, motor_eff=mef, prop_eff=pef,
+    pkm = sp.compute_PKoM_on_grid(X, Y, vtas=tas, altp=alt, lod=lod, elec_motor_efficiency=mef, prop_efficiency=pef,
                   elec_motor_pw_density=mpd, power_elec_pw_density=epd, battery_enrg_density=bat, mode=mod)
     plot_PKoM(X,Y,pkm,cax=CB.ax)
 

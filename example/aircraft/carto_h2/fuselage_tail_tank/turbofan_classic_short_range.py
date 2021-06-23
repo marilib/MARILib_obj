@@ -29,7 +29,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
-                   fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
+                   fuel_type = "liquid_h2")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
@@ -88,13 +88,15 @@ ac.airframe.horizontal_stab.volume_factor = 0.94
 ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
+ac.airframe.tank.gravimetric_index = 0.3
+
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-ac.power_system.reference_thrust = unit.N_kN(104)
+ac.power_system.reference_thrust = unit.N_kN(146.3)
 ac.airframe.wing.aspect_ratio = 11
-ac.airframe.wing.area = 112
+ac.airframe.wing.area = 193
 
-ac.airframe.tank.length = 3.5
+ac.airframe.tank.length = 15
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)

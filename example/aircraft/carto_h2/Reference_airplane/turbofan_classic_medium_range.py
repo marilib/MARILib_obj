@@ -33,7 +33,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
-airplane_type = "short_range"
+airplane_type = "A320-200neo"
 n_pax_ref = 150
 design_range = unit.m_NM(3000.)
 cruise_mach = 0.78
