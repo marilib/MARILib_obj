@@ -149,7 +149,7 @@ class PhysicalData(object):
         thermal_diffusivity = 20.e-6   # m2/s
         return thermal_diffusivity
 
-    def fluid_thermal_transfer_factor(self, tamb,fluid_speed,hydro_width, fluid="water"):
+    def fluid_thermal_transfer_factor(self, tamb,fluid_speed,tube_length, fluid="water"):
         """Thermal transfert factor for turbulent flow : W/m2/K
         """
         if fluid!="water":
@@ -165,16 +165,16 @@ class PhysicalData(object):
         # Nusselt number
         rho, cp, mu = self.fluid_data(tamb, fluid=fluid)
         pr = mu * cp / lbd                                # Prandtl number
-        re = rho * fluid_speed / mu                       # Reynolds number
-        if (re*hydro_width)<1.e8 and 0.6<pr and pr<60.:
-            nu = 0.0296 * (re*hydro_width)**(4/5) * pr**(1/3)   # Nusselt number
+        re = (rho * fluid_speed / mu) * tube_length       # Reynolds number
+        if 1.e5<re and re<1.e8 and 0.6<pr and pr<60.:
+            nu = 0.0296 * re**(4/5) * pr**(1/3)   # Nusselt number
         else:
-            print("fluid_speed = ", fluid_speed, "Re = ", re*hydro_width, "  Pr = ", pr)
+            print("fluid_speed = ", fluid_speed, "Re = ", re, "  Pr = ", pr)
             raise Exception("Re or Pr are not in the valid domain")
 
         # Thermal transfert factor
-        h = lbd * nu / hydro_width
-        return h, rho, cp, mu, pr, re*hydro_width, nu
+        h = lbd * nu / tube_length
+        return h, rho, cp, mu, pr, re, nu
 
     def fluid_data(self, tamb, fluid="water"):
         if fluid!="water":

@@ -134,30 +134,6 @@ class FuelCellSystem(object):
 
 
 
-
-
-
-class LeadingEdge(object):
-
-    def __init__(self):
-
-        # Curved abscissa of lower and upper airfoil from leading edge to front spar
-        le_curve = {"abs":[0.000000, 0.000124, 0.000500, 0.000624, 0.001750, 0.001874, 0.004124, 0.004374, 0.007624,
-                           0.008872, 0.013872, 0.015122, 0.021370, 0.023244, 0.027868, 0.032616, 0.035366, 0.044488,
-                           0.048112, 0.058610, 0.064858, 0.080980, 0.099100, 0.119096, 0.484754],
-                    "low":[0.0000, 0.0012, 0.0044, 0.0054, 0.0109, 0.0114, 0.0181, 0.0188, 0.0255,
-                           0.0279, 0.0361, 0.0379, 0.0460, 0.0483, 0.0539, 0.0594, 0.0626, 0.0728,
-                           0.0768, 0.0884, 0.0951, 0.1123, 0.1313, 0.1522, 0.5217],
-                     "up":[0.0000, 0.0002, 0.0108, 0.0123, 0.0200, 0.0205, 0.0274, 0.0280, 0.0354,
-                           0.0379, 0.0466, 0.0486, 0.0576, 0.0602, 0.0664, 0.0725, 0.0759, 0.0869,
-                           0.0910, 0.1028, 0.1097, 0.1272, 0.1465, 0.1674, 0.5369]}
-
-
-
-
-
-
-
 class LeadingEdgeDissipator(object):
 
     def __init__(self, fc_system):
@@ -165,49 +141,69 @@ class LeadingEdgeDissipator(object):
 
         self.skin_thickness = unit.convert_from("mm",1.5)
         self.skin_conduct = 237.        # W/m/K, Aluminium thermal conductivity
-        self.skin_exchange_area = None      # Exchange area with one tube
+        self.skin_exchange_area = None  # Exchange area with one tube
 
+        self.tube_density = 2700        # Aluminium density
         self.tube_width = unit.convert_from("mm",10)
         self.tube_height = unit.convert_from("mm",8)
         self.tube_thickness = unit.convert_from("mm",0.8)
         self.tube_foot_width = unit.convert_from("mm",4)
         self.tube_footprint_width = None
 
+        self.tube_count = None
         self.tube_length = None
         self.tube_section = None
         self.tube_hydro_width = None
-        self.tube_interal_area = None
+        self.tube_internal_area = None
         self.tube_exchange_area = None
 
-    def design(self, tube_length):
+        self.tube_mass = None
+        self.tube_fluid_mass = None
+
+    def pressure_drop(self,temp,speed,hydro_width,tube_length):
+        """Pressure drop along a cylindrical tube
+        """
+        rho, cp, mu = self.fc_system.phd.fluid_data(temp, fluid="water")
+        rex = (rho * speed / mu) * tube_length                       # Reynolds number
+        cf = 0.5
+        for j in range(6):
+            cf = (1./(2.*np.log(rex*np.sqrt(cf))-0.8))**2
+        dp = 0.5 * cf * (tube_length/hydro_width) * rho * fluid_speed**2
+        return dp
+
+    def design(self, tube_length, tube_count):
         self.tube_length = tube_length
+        self.tube_count = tube_count
 
         if self.tube_height<0.5*self.tube_width:
             raise Exception("Tube height 'ht' cannot be lower than half tube width 'wt'")
         self.tube_section = 0.125*np.pi*self.tube_width**2 + (self.tube_height-0.5*self.tube_width)*self.tube_width      # Tube section
-        tube_prm = 0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + self.tube_width    # Tube perimeter
+        rho_f, cp_f, mu_f = self.fc_system.phd.fluid_data(tamb, fluid="water")
+        self.tube_fluid_mass = self.tube_section * self.tube_length * self.tube_count * rho_f
+        self.tube_mass = (0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + 2*self.tube_foot_width) * self.tube_density
 
+        tube_prm = 0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + self.tube_width    # Tube perimeter
         self.tube_footprint_width = self.tube_width + 2*(self.tube_thickness + self.tube_foot_width)
         self.tube_hydro_width = 4 * self.tube_section / tube_prm             # Hydrolic section
-        self.tube_interal_area = tube_prm * self.tube_length        # Internal area
+        self.tube_internal_area = tube_prm * self.tube_length        # Internal area
         self.tube_exchange_area = (self.tube_width + 2*self.tube_thickness) * self.tube_length
+
         self.skin_exchange_area = (self.tube_exchange_area + 2*self.tube_foot_width) * self.tube_length
 
-    def operate_1_tube(self, pamb, tamb, air_speed, le_pos, fluid_speed, n_tube, fluid_temp_in, fluid_temp_out):
+    def operate_1_tube(self, pamb, tamb, air_speed, le_pos, fluid_speed, fluid_temp_in, fluid_temp_out):
         ha,rhoa,cpa,mua,pra,rea,nua = self.fc_system.phd.air_thermal_transfer_factor(pamb,tamb,air_speed, le_pos)
-        hf,rhof,cpf,muf,prf,ref,nuf = self.fc_system.phd.fluid_thermal_transfer_factor(tamb, fluid_speed, self.tube_hydro_width)
+        hf,rhof,cpf,muf,prf,ref,nuf = self.fc_system.phd.fluid_thermal_transfer_factor(tamb, fluid_speed, self.tube_length)
 
         # self.skin_exchange_area is taken as reference area
         ks = 1 / (  1/ha
                   + (self.skin_thickness/self.skin_conduct) * (self.skin_exchange_area/self.tube_exchange_area)
-                  + (1/hf) * (self.skin_exchange_area/self.tube_interal_area)
-                 )
+                  + (1/hf) * (self.skin_exchange_area/self.tube_internal_area))
 
-        fluid_flow = rhof * self.tube_section * n_tube * fluid_speed
+        fluid_flow = rhof * self.tube_section * self.tube_count * fluid_speed
 
         def fct(temp_out):
             q_fluid = fluid_flow * cpf * (fluid_temp_in - temp_out)
-            q_out = - ks * n_tube * self.skin_exchange_area * (fluid_temp_in - temp_out) / np.log((temp_out-tamb)/(fluid_temp_in-tamb))
+            q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - temp_out) / np.log((temp_out-tamb)/(fluid_temp_in-tamb))
             return q_fluid-q_out
 
         temp_ini = fluid_temp_out
@@ -216,15 +212,19 @@ class LeadingEdgeDissipator(object):
         fluid_temp_out = output_dict[0][0]
 
         q_fluid = fluid_flow * cpf * (fluid_temp_in - fluid_temp_out)
-        q_out = - ks * n_tube * self.skin_exchange_area * (fluid_temp_in - fluid_temp_out) / np.log((fluid_temp_out-tamb)/(fluid_temp_in-tamb))
+        q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - fluid_temp_out) / np.log((fluid_temp_out-tamb)/(fluid_temp_in-tamb))
 
-        pw_heat = fluid_flow * cpf * (fluid_temp_in - fluid_temp_out)
+        temp = 0.5*(fluid_temp_in + fluid_temp_out)
+        pd = self.pressure_drop(temp, fluid_speed, self.tube_hydro_width, self.tube_length)
+        pwd = fluid_flow * pd
 
         return {"temp_in":fluid_temp_in,
                 "temp_out":fluid_temp_out,
                 "q_fluid":q_fluid,
                 "q_out":q_out,
                 "flow":fluid_flow,
+                "p_drop":pd,
+                "pw_drop":pwd,
                 "ks":ks,
                 "rhoa":rhoa,
                 "cpa":cpa,
@@ -255,8 +255,11 @@ class LeadingEdgeDissipator(object):
         print("Tube length = ", "%.2f"%(self.tube_length), " m")
         print("Tube internal section = ", "%.2f"%unit.convert_to("cm2",self.tube_section), " cm2")
         print("Tube hydraulic diameter = ", "%.2f"%unit.convert_to("mm",self.tube_hydro_width), " mm")
-        print("Tube internal area = ", "%.2f"%unit.convert_to("dm2",self.tube_interal_area), " dm2")
+        print("Tube internal area = ", "%.2f"%unit.convert_to("dm2",self.tube_internal_area), " dm2")
         print("Tube exchange area with skin = ", "%.2f"%unit.convert_to("dm2",self.tube_exchange_area), " dm2")
+        print("")
+        print("Tube mass = ", "%.2f"%(self.tube_mass), " kg")
+        print("Tube fluid mass = ", "%.2f"%(self.tube_fluid_mass), " kg")
 
 
 class PitotScoop(object):
@@ -388,7 +391,7 @@ class FuelCellPEMLT(object):
     def __init__(self, fc_system):
         self.fc_system = fc_system
 
-        self.cell_area = unit.convert_from("cm2", 600)              # m2
+        self.cell_area = unit.convert_from("cm2", 625)              # m2
         self.max_current_density = 5./unit.convert_from("cm2",1)    # A/m2
         self.cell_entry_total_pressure = unit.convert_from("bar", 1.5)    # Gas pressure at electrode entry
         self.working_temperature = 273.15 + 65                      # Cell working temperature
@@ -675,9 +678,9 @@ if __name__ == '__main__':
     fc_syst = FuelCellSystem(phd)
 
 
-    altp = unit.m_ft(10000)
+    altp = unit.m_ft(5000)
     disa = 25
-    vair = unit.mps_kmph(500)
+    vair = unit.mps_kmph(250)
 
     design_power = unit.convert_from("kW", 50)
 
@@ -688,49 +691,9 @@ if __name__ == '__main__':
     fc_syst.print(graph=False)
 
 
-    req_power = unit.W_kW(20)
+    req_power = unit.W_kW(30)
 
     dict = fc_syst.operate(pamb, tamb, vair, req_power)
-
-
-    le_pos = 0.2
-    fluid_speed = 1. # m/s
-    fluid_temp_in = 273.15 + 70
-    fluid_temp_out = 273.15 + 65
-
-    tube_length = 8
-    n_tube = 50
-
-    fc_syst.dissipator.design(tube_length)
-    dict_rad = fc_syst.dissipator.operate_1_tube(pamb, tamb, vair, le_pos, fluid_speed, n_tube, fluid_temp_in, fluid_temp_out)
-
-    fc_syst.dissipator.print()
-
-    print("")
-    print("===============================================================================")
-    print("Fluid input temperature = ", "%.2f"%dict_rad["temp_in"], " °K")
-    print("Fluid output temperature = ", "%.2f"%dict_rad["temp_out"], " °K")
-    print("q_fluid = ", "%.2f"%dict_rad["q_fluid"], " W")
-    print("q_out = ", "%.2f"%(dict_rad["q_out"]), " W")
-    print("Fluid mass flow = ", "%.2f"%(dict_rad["flow"]), " kg/s")
-    print("Global exchange factor = ", "%.2f"%(dict_rad["ks"]), " W/m2/K")
-    print("")
-    print("rho air = ", "%.2f"%dict_rad["rhoa"], " kg/m3")
-    print("Cp air = ", "%.2f"%dict_rad["cpa"], " J/kg")
-    print("mu air = ", "%.2f"%(dict_rad["mua"]*1e6), " 10-6Pa.s")
-    print("Pr air = ", "%.2f"%dict_rad["pra"])
-    print("Re air = ", "%.2f"%dict_rad["rea"])
-    print("Nu air = ", "%.2f"%dict_rad["nua"])
-    print("")
-    print("rho fluide = ", "%.2f"%dict_rad["rhof"], " kg/m3")
-    print("Cp fluide = ", "%.2f"%dict_rad["cpf"], " J/kg")
-    print("mu fluide = ", "%.2f"%(dict_rad["muf"]*1e6), " 10-6Pa.s")
-    print("Pr fluide = ", "%.2f"%dict_rad["prf"])
-    print("Re fluide = ", "%.2f"%dict_rad["ref"])
-    print("Nu fluide = ", "%.2f"%dict_rad["nuf"])
-
-
-
 
     print("")
     print("===============================================================================")
@@ -738,7 +701,8 @@ if __name__ == '__main__':
     print("Stack thermal power = ", "%.2f"%unit.kW_W(dict["stack"]["pwth"]), " kW")
     print("Compressor effective power = ", "%.2f"%unit.kW_W(dict["compressor"]["pwe"]), " kW")
     print("")
-    print("Voltage = ", "%.4f"%(dict["stack"]["voltage"]), " V")
+    print("Voltage = ", "%.1f"%(dict["stack"]["voltage"]), " V")
+    print("Current = ", "%.1f"%(dict["stack"]["current"]), " A")
     print("Stack current density = ", "%.4f"%(dict["stack"]["jj"]/1e4), " A/cm2")
     print("Stack effective efficiency = ", "%.4f"%(dict["stack"]["efficiency"]))
     print("Overall efficiency = ", "%.4f"%(dict["system"]["efficiency"]))
@@ -748,17 +712,43 @@ if __name__ == '__main__':
     print("Compressor output temperature = ", "%.2f"%(dict["compressor"]["tt_out"]-273.15), " C°")
 
 
-    # altp_list = [0, 1000, 2000, 3000]
-    # pw_stack = []
-    # for zp in altp_list:
-    #     altp = unit.m_ft(zp)
-    #     pamb, tamb, g = phd.atmosphere(altp, disa)
-    #     dict = fc_syst.operate(pamb, tamb,vair, pw_req)
-    #     pw_stack.append(dict["stack"]["pwe"]/pw_req)
-    #
-    # plt.plot(altp_list, pw_stack)
-    # plt.grid(True)
-    # plt.show()
+    le_pos = 0.25
+    fluid_speed = 2. # m/s
+    fluid_temp_in = 273.15 + 70
+    fluid_temp_out = 273.15 + 65    # Initial value
 
+    tube_length = 21
+    n_tube = 25
+
+    fc_syst.dissipator.design(tube_length, n_tube)
+    dict_rad = fc_syst.dissipator.operate_1_tube(pamb, tamb, vair, le_pos, fluid_speed, fluid_temp_in, fluid_temp_out)
+
+    fc_syst.dissipator.print()
+
+    print("")
+    print("===============================================================================")
+    print("Fluid input temperature = ", "%.2f"%dict_rad["temp_in"], " °K")
+    print("Fluid output temperature = ", "%.2f"%dict_rad["temp_out"], " °K")
+    print("q_fluid = ", "%.2f"%unit.convert_to("kW",dict_rad["q_fluid"]), " kW")
+    print("q_out = ", "%.2f"%unit.convert_to("kW",dict_rad["q_out"]), " kW")
+    print("Global exchange factor = ", "%.2f"%(dict_rad["ks"]), " W/m2/K")
+    print("")
+    print("Fluid mass flow = ", "%.2f"%(dict_rad["flow"]), " kg/s")
+    print("Fluid pressure drop = ", "%.3f"%unit.convert_to("bar",dict_rad["p_drop"]), " bar")
+    print("Fluid flow power = ", "%.2f"%unit.convert_to("kW",dict_rad["pw_drop"]), " kW")
+    print("")
+    print("rho air = ", "%.1f"%dict_rad["rhoa"], " kg/m3")
+    print("Cp air = ", "%.1f"%dict_rad["cpa"], " J/kg")
+    print("mu air = ", "%.1f"%(dict_rad["mua"]*1e6), " 10-6Pa.s")
+    print("Pr air = ", "%.4f"%dict_rad["pra"])
+    print("Re air = ", "%.0f"%dict_rad["rea"])
+    print("Nu air = ", "%.0f"%dict_rad["nua"])
+    print("")
+    print("rho fluide = ", "%.1f"%dict_rad["rhof"], " kg/m3")
+    print("Cp fluide = ", "%.1f"%dict_rad["cpf"], " J/kg")
+    print("mu fluide = ", "%.1f"%(dict_rad["muf"]*1e6), " 10-6Pa.s")
+    print("Pr fluide = ", "%.4f"%dict_rad["prf"])
+    print("Re fluide = ", "%.0f"%dict_rad["ref"])
+    print("Nu fluide = ", "%.0f"%dict_rad["nuf"])
 
 

@@ -26,7 +26,7 @@ class ModelConfiguration(object):
             "aisle_width": [20., "inch", "Aisle width"]
         },
         "Fuselage":{
-            "forward_limit": [3., "m", "Distance between fuselage nose and forward cabin wall"],
+            "forward_ratio": [1.1, "no_dim", "Distance between fuselage nose and forward cabin wall over fuselage diameter"],
             "wall_thickness": [0.06, "m", "Fuselage wall total tchickness"],
             "nose_cone_ratio": [2., "no_dim", "Fuselage nose cone length (evolutive part) over fuselage diameter"],
             "tail_cone_ratio": [4., "no_dim", "Fuselage tail cone length (evolutive part) over fuselage diameter"],

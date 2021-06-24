@@ -34,7 +34,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 reqs = Requirement(n_pax_ref = 19.,
                    design_range = unit.m_NM(100.),
                    cruise_mach = 0.30,
-                   cruise_altp = unit.m_ft(25000.),
+                   cruise_altp = unit.m_ft(10000.),
                    model_config = ModelConfiguration)
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
@@ -92,6 +92,7 @@ ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",10.)
 
 # overwrite default values for design space graph centering (see below)
 ac.power_system.reference_power = unit.W_kW(560.)
+ac.airframe.wing.aspect_ratio = 10.
 ac.airframe.wing.area = 39.
 
 
