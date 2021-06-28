@@ -607,7 +607,7 @@ class LeadingEdgeDissipator(object):
 
     def operate_tubes(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
         ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,air_speed, self.mean_chord)
-        hf,rhof,cpf,muf,prf,ref,nuf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(tamb, fluid_speed, self.tube_length)
+        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(tamb, fluid_speed, self.tube_hydro_width)
         kail = np.sqrt(hf * 2*self.tube_length * self.skin_conduct * 2*self.tube_thickness*self.tube_length)
 
         # self.skin_exchange_area is taken as reference area
@@ -654,8 +654,8 @@ class LeadingEdgeDissipator(object):
                 "cpf":cpf,
                 "muf":muf,
                 "prf":prf,
-                "ref":ref,
-                "nuf":nuf,
+                "redf":redf,
+                "nudf":nudf,
                 "lbdf":lbdf}
 
     def print(self):
@@ -753,7 +753,7 @@ if __name__ == '__main__':
     print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict_rad["p_drop"]), " bar")
     print("Fluid flow power = ", "%.0f"%(dict_rad["pw_drop"]), " W")
     print("")
-    print("rho air = ", "%.1f"%dict_rad["rhoa"], " kg/m3")
+    print("rho air = ", "%.3f"%dict_rad["rhoa"], " kg/m3")
     print("Cp air = ", "%.1f"%dict_rad["cpa"], " J/kg")
     print("mu air = ", "%.1f"%(dict_rad["mua"]*1e6), " 10-6Pa.s")
     print("Pr air = ", "%.4f"%dict_rad["pra"])
@@ -765,8 +765,8 @@ if __name__ == '__main__':
     print("Cp fluide = ", "%.1f"%dict_rad["cpf"], " J/kg")
     print("mu fluide = ", "%.1f"%(dict_rad["muf"]*1e6), " 10-6Pa.s")
     print("Pr fluide = ", "%.4f"%dict_rad["prf"])
-    print("Re fluide = ", "%.0f"%dict_rad["ref"])
-    print("Nu fluide = ", "%.0f"%dict_rad["nuf"])
+    print("ReD fluide = ", "%.0f"%dict_rad["redf"])
+    print("NuD fluide = ", "%.2f"%dict_rad["nudf"])
     print("Lambda fluide = ", "%.4f"%dict_rad["lbdf"])
 
 

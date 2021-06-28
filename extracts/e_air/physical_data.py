@@ -149,8 +149,8 @@ class PhysicalData(object):
         thermal_diffusivity = 20.e-6   # m2/s
         return thermal_diffusivity
 
-    def fluid_thermal_transfer_data(self, temp,fluid_speed,tube_length, fluid="water"):
-        """Thermal transfert factor for turbulent flow : W/m2/K
+    def fluid_thermal_transfer_data(self, temp, fluid_speed, tube_hydro_width, fluid="water"):
+        """Thermal transfert factor for turbulent flow in a tube : W/m2/K
         """
         if fluid!="water":
             raise Exception("fluide type is not permitted")
@@ -164,17 +164,13 @@ class PhysicalData(object):
 
         # Nusselt number
         rho, cp, mu = self.fluid_data(temp, fluid=fluid)
-        pr = mu * cp / lbd                                # Prandtl number
-        re = (rho * fluid_speed / mu) * tube_length       # Reynolds number
-        if 1.e5<re and re<1.e8 and 0.6<pr and pr<60.:
-            nu = 0.0296 * re**(4/5) * pr**(1/3)   # Nusselt number
-        else:
-            print("fluid_speed = ", fluid_speed, "Re = ", re, "  Pr = ", pr)
-            raise Exception("Re or Pr are not in the valid domain")
+        pr = mu * cp / lbd                                  # Prandtl number
+        red = (rho * fluid_speed / mu) * tube_hydro_width   # Reynolds number
+        nu = 4.36   # Nusselt number in fully established stream with constant wall thermal flow
 
         # Thermal transfert factor
-        h = lbd * nu / tube_length
-        return h, rho, cp, mu, pr, re, nu, lbd
+        h = lbd * nu / tube_hydro_width
+        return h, rho, cp, mu, pr, red, nu, lbd
 
     def fluid_data(self, temp, fluid="water"):
         if fluid!="water":
