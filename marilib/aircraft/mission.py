@@ -165,6 +165,31 @@ class AllMissionVarMass(AllMissions):
         self.aircraft.weight_cg.mtow = output_dict[0][0]
         self.aircraft.weight_cg.mass_pre_design()
 
+    def mass_mission_adaptation_plus(self):
+        """Solves coupling between MTOW and OWE
+        """
+        range = self.aircraft.requirement.design_range
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
+        disa = self.aircraft.requirement.cruise_disa
+
+        payload = self.aircraft.airframe.cabin.nominal_payload
+
+        def fct(mtow):
+            self.aircraft.weight_cg.mtow = mtow[0]
+            self.aircraft.weight_cg.mass_pre_design()
+            owe = self.aircraft.weight_cg.owe
+            self.nominal.eval(owe,altp,mach,disa, range=range, tow=mtow)
+            fuel_total = self.nominal.fuel_total
+            return mtow - (owe + payload + fuel_total)
+
+        mtow_ini = [self.aircraft.weight_cg.mtow * 0.65]
+        output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        self.aircraft.weight_cg.mtow = output_dict[0][0]
+        self.aircraft.weight_cg.mass_pre_design()
+
 class MissionVarMassGeneric(Flight):
     """Define common features for all mission types.
     """

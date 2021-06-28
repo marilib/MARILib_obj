@@ -302,7 +302,8 @@ class Tank(Component):
 
     def __init__(self, aircraft):
         super(Tank, self).__init__(aircraft)
-        super(Tank, self).__init__(aircraft)
+
+        self.mfw_factor = 1.    # Controls max fuel volume, from 0 to 1
 
     def get_mfw(self):
         return self.mfw_volume_limited
@@ -323,6 +324,8 @@ class Pod(Component):
         super(Pod, self).__init__(aircraft)
 
         class_name = "Pod"
+
+        self.mfw_factor = 1.    # Controls max fuel volume, from 0 to 1
 
         self.structure_shell_thickness = aircraft.get_init(class_name,"structure_shell_thickness")
         self.structure_shell_surface_mass = aircraft.get_init(class_name,"structure_shell_surface_mass")
@@ -1801,7 +1804,6 @@ class TankWingBox(Tank):
         wing_rsr = self.aircraft.airframe.wing.rear_spar_ratio
         fuel_type = self.aircraft.arrangement.fuel_type
 
-
         root_sec = (wing_rsr - wing_fsr)*wing_root_toc*wing_root_c**2
         kink_sec = (wing_rsr - wing_fsr)*wing_kink_toc*wing_kink_c**2
         tip_sec = (wing_rsr - wing_fsr)*wing_tip_toc*wing_tip_c**2
@@ -1809,22 +1811,32 @@ class TankWingBox(Tank):
         self.cantilever_gross_volume = (2./3.)*(
             0.9*(wing_kink_loc[1]-wing_root_loc[1])*(root_sec+kink_sec+np.sqrt(root_sec*kink_sec))
           + 0.7*(wing_tip_loc[1]-wing_kink_loc[1])*(kink_sec+tip_sec+np.sqrt(kink_sec*tip_sec)))
-        self.cantilever_volume = self.cantilever_gross_volume*(1.-self.volumetric_index)
-
         self.central_gross_volume = 0.8*(wing_rsr - wing_fsr) * body_width * wing_root_toc * wing_root_c**2
-        self.central_volume = self.central_gross_volume*(1.-self.volumetric_index)
-
         self.gross_volume = self.central_gross_volume + self.cantilever_gross_volume
 
+        cav = self.cantilever_gross_volume / self.gross_volume
+        cev = self.central_gross_volume / self.gross_volume
+
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+
+            # self.mfw_factor controls the fuel volumes giving priority to cantilever
+            self.central_volume = max(0, (self.mfw_factor-cav)/cev) * self.central_gross_volume * self.volumetric_index
+            self.cantilever_volume = min(1, self.mfw_factor/cav) * self.cantilever_gross_volume * self.volumetric_index
+
             # Volume of the tank structure
             self.shell_specific_volume = self.gross_volume*(1.-self.volumetric_index)
+
             # Volume of the fuel
-            self.max_volume = self.gross_volume*self.volumetric_index
+            self.max_volume = self.central_volume + self.cantilever_volume
 
         else:
+
+            # self.mfw_factor controls the fuel volumes giving priority to cantilever
+            self.central_volume = max(0, (self.mfw_factor-cav)/cev) * self.central_gross_volume
+            self.cantilever_volume = min(1, self.mfw_factor/cav) * self.cantilever_gross_volume
+
             self.shell_specific_volume = 0.
-            self.max_volume = self.gross_volume
+            self.max_volume = self.central_volume + self.cantilever_volume
 
         self.frame_origin = [wing_root_loc[0], 0., wing_root_loc[2]]
 
@@ -1922,13 +1934,13 @@ class TankFuselageFloor(Tank):
 
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
             # Volume of the tank structure
-            self.shell_specific_volume = self.gross_volume*(1.-self.volumetric_index)
+            self.shell_specific_volume = self.gross_volume*(1.-self.volumetric_index) * self.mfw_factor      # mfw_factorr controls tank height
             # Volume of the fuel
-            self.max_volume = self.gross_volume*self.volumetric_index
+            self.max_volume = self.gross_volume * self.volumetric_index * self.mfw_factor      # mfw_factorr controls tank height
 
         else:
             self.shell_specific_volume = 0.
-            self.max_volume = self.gross_volume
+            self.max_volume = self.gross_volume * self.mfw_factor      # mfw_factorr controls tank height
 
     def sketch_3view(self):
         return None

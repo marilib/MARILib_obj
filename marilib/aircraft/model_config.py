@@ -103,22 +103,22 @@ class ModelConfiguration(object):
             "mass_correction_factor": [1., "no_dim", "Correction factor on mass estimation"]
         },
         "TankWingBox":{
-            "gravimetric_index": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
-            "volumetric_index": [0.85, "no_dim", "Tank system energy density over fuel energy density"],
+            "gravimetric_index": [0.30, "no_dim", "Ratio Hydrogen_mass / (Hydrogen_mass + Tank_mass)"],
+            "volumetric_index": [0.85, "no_dim", "Ratio Hydrogen_volume / Total_tank_volume"],
             "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
         },
         "TankRearFuselage":{
             "length": [10., "m", "Length of the tank"],
             "width_rear_factor": [0.75, "m", "Diameter of the rear pressure bulkhead over fuselage diameter"],
-            "gravimetric_index": [0.30, "no_dim", "Tank system energy density over fuel energy density"],
-            "volumetric_index": [0.85, "no_dim", "Tank system energy density over fuel energy density"],
+            "gravimetric_index": [0.30, "no_dim", "Ratio Hydrogen_mass / (Hydrogen_mass + Tank_mass)"],
+            "volumetric_index": [0.85, "no_dim", "Ratio Hydrogen_volume / Total_tank_volume"],
             "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
         },
         "Pod":{
             "structure_shell_surface_mass": [15., "kg/m2", "Surface mass of the surrounding support structure"],
             "structure_shell_thickness": [0.08, "m", "Thickness of the support structure"],
-            "gravimetric_index": [0.30, "no_dim", "Tank gravimetric index, kg-LH2 / kg-LH2+Tank"],
-            "volumetric_index": [0.85, "no_dim", "Tank volumetric index, m3-LH2 / m3-LH2+Tank"]
+            "gravimetric_index": [0.30, "no_dim", "Ratio Hydrogen_mass / (Hydrogen_mass + Tank_mass)"],
+            "volumetric_index": [0.85, "no_dim", "Ratio Hydrogen_volume / Total_tank_volume"],
         },
         "TankWingPod":{
             "span_ratio": [0.65, "no_dim", "Relative span wise position of the tank"],

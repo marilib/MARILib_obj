@@ -125,7 +125,7 @@ class PhysicalData(object):
         re = rho*tas/mu
         return re
 
-    def air_thermal_transfer_factor(self, pamb,tamb,air_speed, x):
+    def air_thermal_transfer_data(self, pamb,tamb,air_speed, x):
         """Thermal transfert factor for turbulent air flow
         """
         r,gam,cp,cv = self.gas_data()
@@ -139,9 +139,9 @@ class PhysicalData(object):
         else:
             print("Re = ", re*x, "  Pr = ", pr)
             raise Exception("Re or Pr are not in the valid domain")
-        lbd = alpha * rho * cp
+        lbd = alpha * rho * cp      # Thermal conductivity
         h = lbd * nu / x
-        return h, rho, cp, mu, pr, re*x, nu
+        return h, rho, cp, mu, pr, re*x, nu, lbd
 
     def air_thermal_diffusivity(self):
         """Thermal diffusivity of the air at 300 K
@@ -149,21 +149,21 @@ class PhysicalData(object):
         thermal_diffusivity = 20.e-6   # m2/s
         return thermal_diffusivity
 
-    def fluid_thermal_transfer_factor(self, tamb,fluid_speed,tube_length, fluid="water"):
+    def fluid_thermal_transfer_data(self, temp,fluid_speed,tube_length, fluid="water"):
         """Thermal transfert factor for turbulent flow : W/m2/K
         """
         if fluid!="water":
             raise Exception("fluide type is not permitted")
 
         # Fluid thermal conductivity
-        if tamb<274. or 370.<tamb:
+        if temp<274. or 370.<temp:
             raise Exception("fluid temperature is out of range")
         t0 = 298.15
         c0 = 0.6065
-        lbd = c0*(-1.48445 + 4.12292*(tamb/t0) - 1.63866*(tamb/t0)**2)
+        lbd = c0*(-1.48445 + 4.12292*(temp/t0) - 1.63866*(temp/t0)**2)      # Thermal conductivity
 
         # Nusselt number
-        rho, cp, mu = self.fluid_data(tamb, fluid=fluid)
+        rho, cp, mu = self.fluid_data(temp, fluid=fluid)
         pr = mu * cp / lbd                                # Prandtl number
         re = (rho * fluid_speed / mu) * tube_length       # Reynolds number
         if 1.e5<re and re<1.e8 and 0.6<pr and pr<60.:
@@ -174,9 +174,9 @@ class PhysicalData(object):
 
         # Thermal transfert factor
         h = lbd * nu / tube_length
-        return h, rho, cp, mu, pr, re, nu
+        return h, rho, cp, mu, pr, re, nu, lbd
 
-    def fluid_data(self, tamb, fluid="water"):
+    def fluid_data(self, temp, fluid="water"):
         if fluid!="water":
             raise Exception("fluide type is not permitted")
         t0 = 273.15
@@ -191,7 +191,7 @@ class PhysicalData(object):
         mu_f = interpolate.interp1d(temp_list,mu_list,kind="cubic")
         rho_f = 1000.   # Water
         cp_f = 4200.    # Water
-        return rho_f, cp_f, mu_f(tamb)*1.e-3
+        return rho_f, cp_f, mu_f(temp)*1.e-3
 
     def fuel_density(self, fuel_type, press=101325.):
         """Reference fuel density
