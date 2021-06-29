@@ -585,7 +585,7 @@ class LeadingEdgeDissipator(object):
         return dp
 
     def design_tubes(self):
-        # The fluid makes a circuit along the span
+        # The fluid makes a loop along the span from and to the nacelle
         self.tube_length = 2 * self.available_span
         self.tube_exchange_area = self.tube_width * self.tube_length
         self.skin_exchange_area = (self.tube_width + 2*self.tube_foot_width) * self.tube_length

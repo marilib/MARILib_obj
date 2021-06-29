@@ -108,7 +108,7 @@ class ModelConfiguration(object):
             "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"]
         },
         "TankRearFuselage":{
-            "length": [10., "m", "Length of the tank"],
+            "ref_length": [10., "m", "Initial length of the tank"],
             "width_rear_factor": [0.75, "m", "Diameter of the rear pressure bulkhead over fuselage diameter"],
             "gravimetric_index": [0.30, "no_dim", "Ratio Hydrogen_mass / (Hydrogen_mass + Tank_mass)"],
             "volumetric_index": [0.85, "no_dim", "Ratio Hydrogen_volume / Total_tank_volume"],
@@ -125,7 +125,7 @@ class ModelConfiguration(object):
             "x_loc_ratio": [0.45, "no_dim", "Fraction of the tank length before the wing"],
             "z_loc_ratio": [0., "no_dim", "Fraction of the tank diameter between the wing and the tank"],
             "dry_bay_length": [0., "m", "Length of an eventual dry bay"],
-            "length": ["function", "m", "Length of the tank"],
+            "ref_length": ["function", "m", "Initial length of the tank"],
             "width": ["function", "m", "Diameter of the tank"],
             "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         },
@@ -133,7 +133,7 @@ class ModelConfiguration(object):
             "x_loc_ratio": [0.4, "no_dim", "Fraction of the tank length behind the wing"],
             "z_loc_ratio": [0.85, "no_dim", "Fraction of the tank diameter between the fuselage and the tank axis"],
             "dry_bay_length": [2., "m", "Length of an eventual dry bay"],
-            "length": ["function", "m", "Length of the tank"],
+            "ref_length": ["function", "m", "Initial length of the tank"],
             "width": ["function", "m", "Diameter of the tank"],
             "fuel_pressure": ["function", "bar", "Maximum over pressure of the fuel in the tank (function)"],
         },
@@ -294,7 +294,8 @@ class ModelConfiguration(object):
             "diversion_range": ["function", "NM", "Range of diversion mission for reserve fuel evaluation (function)"]
         },
         "Requirement":{
-            "cost_range": ["function", "NM", "Reference range for cost evaluation (function)"]
+            "cost_range": ["function", "NM", "Reference range for cost evaluation (function)"],
+            "max_fuel_range_factor": [1.25, "no_dim", "Ratio max_fuel_mission_range / nominal_mission_range, used only with mda_plus"]
         },
         "Aerodynamics":{
             "cx_correction": [0., "no_dim", "Drag correction on cx coefficient"],

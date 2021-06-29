@@ -15,6 +15,9 @@ Allow you to draw design space charts.
 """
 
 import numpy as np
+
+from scipy.optimize import fsolve
+
 from copy import deepcopy
 
 from scipy import interpolate
@@ -57,7 +60,7 @@ def mda(aircraft, mass_mission_matching=True):
     aircraft.handling_quality.analysis()
     # aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
 
-    if mass_mission_matching:
+    if mass_mission_matching==True:
         aircraft.performance.mission.mass_mission_adaptation()
 
     aircraft.performance.mission.payload_range()
@@ -69,6 +72,26 @@ def mda(aircraft, mass_mission_matching=True):
     aircraft.environment.fuel_efficiency_metric()
 
     # aircraft.power_system.thrust_analysis()
+
+
+def mda_plus(aircraft):
+    """Solves coupling between MTOW and OWE
+    """
+    dist = aircraft.requirement.design_range
+    kdist = aircraft.requirement.max_fuel_range_factor
+
+    def fct(x):
+        aircraft.airframe.tank.mfw_factor = x[0]
+        mda(aircraft)
+        max_fuel_range = aircraft.performance.mission.max_fuel.range
+        return dist*kdist - max_fuel_range
+
+    x_ini = aircraft.airframe.tank.mfw_factor
+    output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
+    if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+    aircraft.airframe.tank.mfw_factor = output_dict[0][0]
+    mda(aircraft)
 
 
 def mda_hq(aircraft):

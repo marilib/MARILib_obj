@@ -653,7 +653,8 @@ class Fuselage(Component):
         self.aircraft.airframe.cargo.frame_origin = [self.forward_ratio*self.width, 0., 0.]     # cabin position inside the fuselage
 
         if self.aircraft.arrangement.tank_architecture=="rear":
-            self.length = cabin_length + self.aircraft.airframe.tank.length + (self.forward_ratio + self.rear_bulkhead_ratio)*self.width
+            tank_length = self.aircraft.airframe.tank.ref_length * self.aircraft.airframe.tank.mfw_factor
+            self.length = cabin_length + tank_length + (self.forward_ratio + self.rear_bulkhead_ratio)*self.width
         else:
             self.length = cabin_length + (self.forward_ratio + self.rear_bulkhead_ratio)*self.width
 
@@ -1979,7 +1980,8 @@ class TankRearFuselage(Tank):
         self.gravimetric_index = aircraft.get_init(self,"gravimetric_index")
         self.volumetric_index = aircraft.get_init(self,"volumetric_index")
 
-        self.length = aircraft.get_init(self,"length")
+        self.ref_length = aircraft.get_init(self,"ref_length")
+        self.length = None
         self.width_rear_factor = aircraft.get_init(self,"width_rear_factor")
 
         self.width_rear = None
@@ -1988,7 +1990,13 @@ class TankRearFuselage(Tank):
         self.fuel_pressure = aircraft.get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
         self.fuel_density = None
 
+        self.cylindric_gross_volume = None
+        self.cone_gross_volume = None
         self.gross_volume = None
+
+        self.cylindric_volume = None
+        self.cone_volume = None
+
         self.shell_specific_volume = None
         self.shell_specific_mass = None
 
@@ -2012,31 +2020,44 @@ class TankRearFuselage(Tank):
         body_tail_cone_ratio = self.aircraft.airframe.body.tail_cone_ratio
         body_rear_bulkhead_ratio = self.aircraft.airframe.body.rear_bulkhead_ratio
 
+        # Tank is supposed to be composed of an eventual cylindrical part of length lcyl and a cone trunc
+        # self.mfw_factor controls the tank length
+        self.length = self.ref_length * self.mfw_factor
+
+        # ref_length is used only to compute cyv and cov
+        lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
+
+        # x is the fraction of tank length which is in the fuselage cone
+        x = self.length/((body_tail_cone_ratio-body_rear_bulkhead_ratio)*body_width)
+        self.width_front = min(1.,self.width_rear_factor+(1.-self.width_rear_factor)*x)*(body_width-2.*body_wall_thickness)
+        self.width_rear = self.width_rear_factor*(body_width-2.*body_wall_thickness)
+
+        self.gross_cylindric_volume = 0.9 * (1/4)*np.pi*lcyl*self.width_front**2
+        self.gross_cone_volume = 0.9 * (1/12)*np.pi*(self.length-lcyl)*(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2)
+        self.gross_volume = self.gross_cylindric_volume + self.gross_cone_volume
+
         x_axe = body_loc[0] + body_length - body_tail_cone_ratio*body_width - self.length
         y_axe = 0.
         z_axe = body_loc[2] + 0.6*body_width
 
         self.frame_origin = [x_axe, y_axe, z_axe]
 
-        x = self.length/((body_tail_cone_ratio-body_rear_bulkhead_ratio)*body_width)
-        self.width_front = min(1.,self.width_rear_factor+(1.-self.width_rear_factor)*x)*(body_width-2.*body_wall_thickness)
-        self.width_rear = self.width_rear_factor*(body_width-2.*body_wall_thickness)
-
-        # Tank is supposed to be composed of an eventual cylindrical part of length lcyl and a cone trunc
-        lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
-
-        self.gross_volume = 0.9 * (  0.25*np.pi*lcyl*self.width_front**2
-                                   + (1./12.)*np.pi*self.length*(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2))
-
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
+
+            self.cylindric_volume = self.gross_cylindric_volume * self.volumetric_index
+            self.cone_volume = self.gross_cone_volume * self.volumetric_index
+
             # Volume of the tank structure
             self.shell_specific_volume = self.gross_volume*(1.-self.volumetric_index)
             # Volume of the fuel
-            self.max_volume = self.gross_volume*self.volumetric_index
+            self.max_volume = self.cylindric_volume + self.cone_volume
 
         else:
+            self.cylindric_volume = self.gross_cylindric_volume
+            self.cone_volume = self.gross_cone_volume
+
             self.shell_specific_volume = 0.
-            self.max_volume = self.gross_volume
+            self.max_volume = self.cylindric_volume + self.cone_volume
 
     def sketch_3view(self):
         return None
@@ -2089,7 +2110,9 @@ class TankWingPod(Pod):
         width = 0.80*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
         self.dry_bay_length = aircraft.get_init(self,"dry_bay_length")
-        self.length = aircraft.get_init(self,"length", val=length)
+        self.ref_length = aircraft.get_init(self,"ref_length", val=length)
+        self.length = None
+
         self.width = aircraft.get_init(self,"width", val=width)
         self.x_loc_ratio = aircraft.get_init(self,"x_loc_ratio")
         self.z_loc_ratio = aircraft.get_init(self,"z_loc_ratio")
@@ -2124,6 +2147,8 @@ class TankWingPod(Pod):
         wing_tip_c = self.aircraft.airframe.wing.tip_c
         wing_tip_loc = self.aircraft.airframe.wing.tip_loc
 
+        self.length = self.ref_length * self.mfw_factor
+
         lateral_margin = self.aircraft.airframe.nacelle.lateral_margin
 
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
@@ -2147,6 +2172,7 @@ class TankWingPod(Pod):
         self.aero_length = self.length
         self.form_factor = 1.05
 
+        # Compute fuel volume
         self.size_fuel_tank("external")
 
         self.max_volume = self.fuel_volume
@@ -2193,7 +2219,8 @@ class TankPiggyBack(Pod):
         width = 0.80*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
 
         self.dry_bay_length = aircraft.get_init(self,"dry_bay_length")
-        self.length = aircraft.get_init(self,"length", val=length)
+        self.ref_length = aircraft.get_init(self,"ref_length", val=length)
+        self.length = None
         self.width = aircraft.get_init(self,"width", val=width)
         self.x_loc_ratio = aircraft.get_init(self,"x_loc_ratio")
         self.z_loc_ratio = aircraft.get_init(self,"z_loc_ratio")
@@ -2219,6 +2246,8 @@ class TankPiggyBack(Pod):
         wing_root_c = self.aircraft.airframe.wing.root_c
         wing_root_loc = self.aircraft.airframe.wing.root_loc
 
+        self.length = self.ref_length * self.mfw_factor
+
         x_axe = wing_mac_loc[0] - self.x_loc_ratio*self.length
         y_axe = 0.
         z_axe = 1.07*body_width + self.z_loc_ratio*self.width
@@ -2234,6 +2263,7 @@ class TankPiggyBack(Pod):
         self.aero_length = self.length
         self.form_factor = 1.05
 
+        # Compute fuel volume
         self.size_fuel_tank("external")
 
         self.max_volume = self.fuel_volume

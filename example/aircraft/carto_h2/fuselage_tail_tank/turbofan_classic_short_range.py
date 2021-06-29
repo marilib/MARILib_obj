@@ -54,6 +54,9 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 
 # Operational requirements
 #-----------------------------------------------------------------------------------------------------------------------
+# Max fuel mission
+ac.requirement.max_fuel_range_factor = 1.25
+
 # Take off
 ac.requirement.take_off.altp = 0
 ac.requirement.take_off.disa = 15
@@ -92,15 +95,20 @@ ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-ac.power_system.reference_thrust = unit.N_kN(146.3)
+ac.power_system.reference_thrust = unit.N_kN(133.5)
 ac.airframe.wing.aspect_ratio = 11
-ac.airframe.wing.area = 193
+ac.airframe.wing.area = 167.3
 
-ac.airframe.tank.length = 15
+ac.airframe.tank.ref_length = 15
+ac.airframe.tank.mfw_factor = 1
 
 
-process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+# process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 
+process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
+
+print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
+print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
