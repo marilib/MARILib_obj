@@ -33,10 +33,9 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
-airplane_type = "A220-100_rear_tank"
-n_pax_ref = 135
-# design_range = unit.m_NM(2100.)
-design_range = unit.m_NM(750.)
+airplane_type = "A320-200neo"
+n_pax_ref = 150
+design_range = unit.m_NM(3000.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
@@ -55,18 +54,11 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 
 # Operational requirements
 #-----------------------------------------------------------------------------------------------------------------------
-# Max fuel mission
-ac.requirement.max_fuel_range_factor = 1.25
-
 # Take off
-ac.requirement.take_off.altp = 0
-ac.requirement.take_off.disa = 15
-ac.requirement.take_off.tofl_req = 2000
+ac.requirement.take_off.tofl_req = 2300
 
 # Approach
-ac.requirement.approach.altp = 0
-ac.requirement.approach.disa = 0
-ac.requirement.approach.app_speed_req = unit.mps_kt(135)
+ac.requirement.approach.app_speed_req = unit.mps_kt(137)
 
 # Climb
 ac.requirement.mcl_ceiling.altp = cruise_altp
@@ -97,11 +89,8 @@ ac.airframe.tank.gravimetric_index = 0.1
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-# ac.power_system.reference_thrust = unit.N_kN(133.5)
-ac.power_system.reference_thrust = unit.N_kN(165)
-ac.airframe.wing.aspect_ratio = 11
-# ac.airframe.wing.area = 167.3
-ac.airframe.wing.area = 210
+ac.power_system.reference_thrust = unit.N_kN(120.33)
+ac.airframe.wing.area = 124.5
 
 ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
@@ -117,6 +106,7 @@ elif proc=="mda_plus":
 
 print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
 print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
+
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -152,7 +142,7 @@ opt = process.Optimizer()
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
-# algo_points = None
+algo_points = None
 
 
 # Main output
@@ -213,6 +203,7 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
          ac.performance.mission.nominal.fuel_total]              # Limit values
 
-process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
+process.draw_design_space(file, res, other, field, const, color, limit, bound,
+                          optim_points=algo_points) # Used stored result to build a graph of the design space
 
 

@@ -454,7 +454,7 @@ class TakeOff(Flight):
             dkvs1g = 0.005
             kvs1g_ = np.array([0.,0.])
             kvs1g_[0] = kvs1g
-            kvs1g_[1] = kvs1g_[0] + dkvs1g
+            kvs1g_[1] = kvs1g + dkvs1g
 
             s2_path_ = np.array([0.,0.])
             s2_path_[0] = s2_path
@@ -471,10 +471,8 @@ class TakeOff(Flight):
                 s2_path = s2_min_path
                 limitation = "s2"   # second segment
             else:
-                tofl = np.nan
-                kvs1g = np.nan
-                s2_path = 0.
-                limitation = None
+                tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf,rating,kfn)
+                limitation = "s2 not reached"
 
         to_dict = {"tofl":tofl, "kvs1g":kvs1g, "path":s2_path, "v2":cas, "mach2":mach, "limit":limitation}
 

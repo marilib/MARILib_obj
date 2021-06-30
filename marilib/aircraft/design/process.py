@@ -374,7 +374,7 @@ class Optimizer(object):
 
 # -------------------- PLOT OPTIM RESULTS
 
-def explore_design_space(ac, var, step, data, file):
+def explore_design_space(ac, var, step, data, file, proc="mda"):
 
     aircraft = deepcopy(ac)
 
@@ -405,7 +405,7 @@ def explore_design_space(ac, var, step, data, file):
             print("-----------------------------------------------------------------------")
             print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
             try:
-                mda(aircraft)   # Perform MDA
+                eval(proc+"(aircraft)")   # Perform MDA
             except Exception:
                 print("WARNING: unable to perform MDA at : thrust = ",thrust/10.," daN    area = ",area, " m")
             #print("Done")

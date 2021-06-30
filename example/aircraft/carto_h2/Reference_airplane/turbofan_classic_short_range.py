@@ -80,7 +80,7 @@ ac.requirement.time_to_climb.cas1 = unit.mps_kt(180)
 ac.requirement.time_to_climb.altp2 = unit.m_ft(10000)
 ac.requirement.time_to_climb.cas2 = unit.mps_kt(250)
 ac.requirement.time_to_climb.altp = cruise_altp
-ac.requirement.time_to_climb.ttc_req = unit.s_min(20)
+ac.requirement.time_to_climb.ttc_req = unit.s_min(25)
 
 # Technological parameters
 #-----------------------------------------------------------------------------------------------------------------------

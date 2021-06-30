@@ -60,7 +60,7 @@ class FuelCellSystem(object):
         self.air_scoop = PitotScoop(self)
         self.compressor = AirCompressor(self)
         self.stack = FuelCellPEMLT(self)
-        self.dissipator = LeadingEdgeDissipator(self)
+        self.dissipator = WingSkinDissipator(self)
 
 
     def run_fc_system(self, pamb, tamb, vair, jj, nc=None):
@@ -543,14 +543,14 @@ class FuelCellPEMLT(object):
 
 
 
-class LeadingEdgeDissipator(object):
+class WingSkinCircuit(object):
 
     def __init__(self, fc_system):
         self.fc_system = fc_system
 
-        self.available_span = 9                 # One side
-        self.available_curved_length = 2.07     # 2 webs
-        self.mean_chord = 0.35
+        self.available_span = None
+        self.available_curved_length = None
+        self.mean_chord = None
 
         self.skin_thickness = unit.convert_from("mm",1.5)
         self.skin_conduct = 237.        # W/m/K, Aluminium thermal conductivity
@@ -580,11 +580,14 @@ class LeadingEdgeDissipator(object):
         cf = 0.5
         for j in range(6):
             cf = (1./(2.*np.log(rex*np.sqrt(cf))/np.log(10)-0.8))**2
-            print(cf)
         dp = 0.5 * cf * (tube_length/hydro_width) * rho * speed**2
         return dp
 
-    def design_tubes(self):
+    def design(self, span, web_width, mean_chord):
+        self.available_span = span
+        self.available_curved_length = web_width
+        self.mean_chord = mean_chord
+
         # The fluid makes a loop along the span from and to the nacelle
         self.tube_length = 2 * self.available_span
         self.tube_exchange_area = self.tube_width * self.tube_length
@@ -605,7 +608,7 @@ class LeadingEdgeDissipator(object):
         self.tube_mass =  (0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + 2*self.tube_foot_width) \
                         * self.tube_thickness * self.tube_length * (2*self.tube_count) * self.tube_density
 
-    def operate_tubes(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
+    def operate(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
         ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,air_speed, self.mean_chord)
         hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(tamb, fluid_speed, self.tube_hydro_width)
         kail = np.sqrt(hf * 2*self.tube_length * self.skin_conduct * 2*self.tube_thickness*self.tube_length)
@@ -658,9 +661,9 @@ class LeadingEdgeDissipator(object):
                 "nudf":nudf,
                 "lbdf":lbdf}
 
-    def print(self):
+    def print_design(self):
         print("")
-        print("Dissipator characteristics")
+        print("Wing skin dissipator characteristics")
         print("----------------------------------------------------------")
         print("Tube width = ", "%.2f"%unit.convert_to("mm",self.tube_width), " mm")
         print("Tube height = ", "%.2f"%unit.convert_to("mm",self.tube_height), " mm")
@@ -681,6 +684,120 @@ class LeadingEdgeDissipator(object):
         print("Tube mass = ", "%.1f"%(self.tube_mass), " kg")
         print("Tube fluid mass = ", "%.1f"%(self.tube_fluid_mass), " kg")
 
+    def print_operate(self, dict):
+        print("")
+        print("Wing skin dissipator working data")
+        print("----------------------------------------------------------")
+        print("Fluid input temperature = ", "%.2f"%dict["temp_in"], " °K")
+        print("Fluid output temperature = ", "%.2f"%dict["temp_out"], " °K")
+        print("Fluid delta temperature = ", "%.2f"%(dict["temp_in"]-dict["temp_out"]), " °K")
+        print("q_fluid = ", "%.2f"%unit.convert_to("kW",dict["q_fluid"]), " kW")
+        print("q_out = ", "%.2f"%unit.convert_to("kW",dict["q_out"]), " kW")
+        print("Global exchange factor = ", "%.2f"%(dict["ks"]), " W/m2/K")
+        print("")
+        print("Fluid mass flow = ", "%.2f"%(dict["flow"]), " kg/s")
+        print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict["p_drop"]), " bar")
+        print("Fluid flow power = ", "%.0f"%(dict["pw_drop"]), " W")
+        print("")
+        print("rho air = ", "%.3f"%dict["rhoa"], " kg/m3")
+        print("Cp air = ", "%.1f"%dict["cpa"], " J/kg")
+        print("mu air = ", "%.1f"%(dict["mua"]*1e6), " 10-6Pa.s")
+        print("Pr air = ", "%.4f"%dict["pra"])
+        print("Re air = ", "%.0f"%dict["rea"])
+        print("Nu air = ", "%.0f"%dict["nua"])
+        print("Lambda air = ", "%.4f"%dict["lbda"])
+        print("")
+        print("rho fluide = ", "%.1f"%dict["rhof"], " kg/m3")
+        print("Cp fluide = ", "%.1f"%dict["cpf"], " J/kg")
+        print("mu fluide = ", "%.1f"%(dict["muf"]*1e6), " 10-6Pa.s")
+        print("Pr fluide = ", "%.4f"%dict["prf"])
+        print("ReD fluide = ", "%.0f"%dict["redf"])
+        print("NuD fluide = ", "%.2f"%dict["nudf"])
+        print("Lambda fluide = ", "%.4f"%dict["lbdf"])
+
+
+class WingSkinDissipator(object):
+
+    def __init__(self, fc_system):
+        self.fc_system = fc_system
+
+        self.circuit_le = WingSkinCircuit(fc_system)
+        self.circuit_te = WingSkinCircuit(fc_system)
+
+    def design(self, available_span, wing_chord):
+        ref_wing_chord = 2
+
+        le_web_width = 1.04 * (wing_chord/ref_wing_chord)
+        te_web_width = 1.04 * (wing_chord/ref_wing_chord)
+
+        le_mean_chord = 0.15 * (wing_chord/ref_wing_chord)
+        te_mean_chord = 1.15 * (wing_chord/ref_wing_chord)
+
+        self.circuit_le.design(available_span, le_web_width, le_mean_chord)
+        self.circuit_te.design(available_span, te_web_width, te_mean_chord)
+
+    def operate(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
+        # Both circuits are working in parallel, flows are blended at the end
+        dict_le = self.circuit_le.operate(pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out)
+        dict_te = self.circuit_te.operate(pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out)
+        temp_out =   (dict_le["flow"]*dict_le["temp_out"] + dict_te["flow"]*dict_te["temp_out"]) / (dict_le["flow"] + dict_te["flow"])
+        pressure_drop = dict_le["p_drop"]
+        fluid_flow =  dict_le["flow"] + dict_te["flow"]
+
+        # # Both circuits are working in series, leading edge first
+        # fluid_temp_in1 = fluid_temp_in
+        # dict_le = self.circuit_le.operate(pamb, tamb, air_speed, fluid_speed, fluid_temp_in1, fluid_temp_out)
+        # fluid_temp_in2 = dict_le["temp_out"]
+        # dict_te = self.circuit_te.operate(pamb, tamb, air_speed, fluid_speed, fluid_temp_in2, fluid_temp_out)
+        # temp_out =   dict_te["temp_out"]
+        # pressure_drop = dict_le["p_drop"] + dict_te["p_drop"]
+        # fluid_flow =  dict_le["flow"]
+
+        return {"le_data": dict_le,
+                "te_data": dict_te,
+                "temp_in": fluid_temp_in,
+                "temp_out": temp_out,
+                "pw_heat": dict_le["q_fluid"] + dict_te["q_fluid"],
+                "flow": fluid_flow,
+                "p_drop": pressure_drop,
+                "pw_drop": dict_le["pw_drop"] + dict_te["pw_drop"]}
+
+    def print_design(self):
+        print("")
+        print("Wing skin system dissipator Leading edge design data")
+        print("=========================================================================")
+        self.circuit_le.print_design()
+        print("")
+        print("Wing skin system dissipator Trailing edge design data")
+        print("=========================================================================")
+        self.circuit_te.print_design()
+        print("")
+        print("")
+        print("Wing skin system dissipator design data")
+        print("=========================================================================")
+        print("Tube mass = ", "%.1f"%(self.circuit_le.tube_mass + self.circuit_te.tube_mass), " kg")
+        print("Tube fluid mass = ", "%.1f"%(self.circuit_le.tube_fluid_mass + self.circuit_te.tube_fluid_mass), " kg")
+
+    def print_operate(self, dict):
+        print("")
+        print("Wing skin system dissipator Leading edge working data")
+        print("=========================================================================")
+        self.circuit_le.print_operate(dict["le_data"])
+        print("")
+        print("Wing skin system dissipator Trailing edge working data")
+        print("=========================================================================")
+        self.circuit_te.print_operate(dict["te_data"])
+        print("")
+        print("")
+        print("Wing skin system dissipator working data")
+        print("=========================================================================")
+        print("Fluid output temperature = ", "%.2f"%dict["temp_out"], " °K")
+        print("Fluid delta temperature = ", "%.2f"%(dict["temp_in"]-dict["temp_out"]), " °K")
+        print("pw_heat = ", "%.2f"%unit.convert_to("kW",dict["pw_heat"]), " kW")
+        print("")
+        print("Fluid mass flow = ", "%.2f"%(dict["flow"]), " kg/s")
+        print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict["p_drop"]), " bar")
+        print("Fluid flow power = ", "%.0f"%(dict["pw_drop"]), " W")
 
 
 if __name__ == '__main__':
@@ -724,9 +841,9 @@ if __name__ == '__main__':
     # print("Compressor output temperature = ", "%.2f"%(dict["compressor"]["tt_out"]-273.15), " C°")
 
 
-    altp = unit.m_ft(10000)
-    disa = 15
-    vair = unit.mps_kmph(250)
+    altp = unit.m_ft(0)
+    disa = 25
+    vair = unit.mps_kmph(150)
 
     pamb, tamb, g = phd.atmosphere(altp, disa)
 
@@ -734,39 +851,15 @@ if __name__ == '__main__':
     fluid_temp_in = 273.15 + 75
     fluid_temp_out = 273.15 + 70    # Initial value
 
-    fc_syst.dissipator.design_tubes()
+    available_span = 9
+    wing_chord = 2
 
-    dict_rad = fc_syst.dissipator.operate_tubes(pamb, tamb, vair, fluid_speed, fluid_temp_in, fluid_temp_out)
+    fc_syst.dissipator.design(available_span, wing_chord)
 
-    fc_syst.dissipator.print()
+    fc_syst.dissipator.print_design()
 
-    print("")
-    print("===============================================================================")
-    print("Fluid input temperature = ", "%.2f"%dict_rad["temp_in"], " °K")
-    print("Fluid output temperature = ", "%.2f"%dict_rad["temp_out"], " °K")
-    print("Fluid delta temperature = ", "%.2f"%(dict_rad["temp_in"]-dict_rad["temp_out"]), " °K")
-    print("q_fluid = ", "%.2f"%unit.convert_to("kW",dict_rad["q_fluid"]), " kW")
-    print("q_out = ", "%.2f"%unit.convert_to("kW",dict_rad["q_out"]), " kW")
-    print("Global exchange factor = ", "%.2f"%(dict_rad["ks"]), " W/m2/K")
-    print("")
-    print("Fluid mass flow = ", "%.2f"%(dict_rad["flow"]), " kg/s")
-    print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict_rad["p_drop"]), " bar")
-    print("Fluid flow power = ", "%.0f"%(dict_rad["pw_drop"]), " W")
-    print("")
-    print("rho air = ", "%.3f"%dict_rad["rhoa"], " kg/m3")
-    print("Cp air = ", "%.1f"%dict_rad["cpa"], " J/kg")
-    print("mu air = ", "%.1f"%(dict_rad["mua"]*1e6), " 10-6Pa.s")
-    print("Pr air = ", "%.4f"%dict_rad["pra"])
-    print("Re air = ", "%.0f"%dict_rad["rea"])
-    print("Nu air = ", "%.0f"%dict_rad["nua"])
-    print("Lambda air = ", "%.4f"%dict_rad["lbda"])
-    print("")
-    print("rho fluide = ", "%.1f"%dict_rad["rhof"], " kg/m3")
-    print("Cp fluide = ", "%.1f"%dict_rad["cpf"], " J/kg")
-    print("mu fluide = ", "%.1f"%(dict_rad["muf"]*1e6), " 10-6Pa.s")
-    print("Pr fluide = ", "%.4f"%dict_rad["prf"])
-    print("ReD fluide = ", "%.0f"%dict_rad["redf"])
-    print("NuD fluide = ", "%.2f"%dict_rad["nudf"])
-    print("Lambda fluide = ", "%.4f"%dict_rad["lbdf"])
+    dict_rad = fc_syst.dissipator.operate(pamb, tamb, vair, fluid_speed, fluid_temp_in, fluid_temp_out)
+
+    fc_syst.dissipator.print_operate(dict_rad)
 
 

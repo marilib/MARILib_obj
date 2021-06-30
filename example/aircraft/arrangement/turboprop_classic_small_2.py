@@ -34,7 +34,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 reqs = Requirement(n_pax_ref = 9.,
                    design_range = unit.m_NM(400.),
                    cruise_mach = 0.30,
-                   cruise_altp = unit.m_ft(15000.),
+                   cruise_altp = unit.m_ft(10000.),
                    model_config = ModelConfiguration)
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
@@ -86,19 +86,19 @@ ac.requirement.mcr_ceiling.altp = unit.convert_from("ft",10000.)
 ac.requirement.mcr_ceiling.mach = 0.2
 ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",400.)
 
-ac.requirement.oei_ceiling.altp = unit.convert_from("ft",10000.)
+ac.requirement.oei_ceiling.altp = unit.convert_from("ft",6000.)
 
 ac.requirement.time_to_climb.cas1 = unit.convert_from("kt",80.)
 ac.requirement.time_to_climb.altp1 = unit.convert_from("ft",1500.)
 ac.requirement.time_to_climb.cas2 = unit.convert_from("kt",80.)
-ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",10000.)
-ac.requirement.time_to_climb.altp = unit.convert_from("ft",15000.)
+ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",6000.)
+ac.requirement.time_to_climb.altp = unit.convert_from("ft",10000.)
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",15.)
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(280.)
+ac.power_system.reference_power = unit.W_kW(300.)
 ac.airframe.wing.aspect_ratio = 7.55
-ac.airframe.wing.area = 26.
+ac.airframe.wing.area = 27.
 # ac.airframe.horizontal_stab.height_ratio = 1.
 
 
