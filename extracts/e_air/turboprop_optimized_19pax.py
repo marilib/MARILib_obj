@@ -23,7 +23,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",      # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "floor",      # "wing_box", "piggy_back" or "pods"
                    gear_architecture = "bare_fixed",    # "retractable", "bare_fixed"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
@@ -69,14 +69,14 @@ ac.requirement.time_to_climb.cas1 = unit.convert_from("km/h",150.)
 ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",6000.)
 ac.requirement.time_to_climb.cas2 = unit.convert_from("km/h",180.)
 ac.requirement.time_to_climb.altp = unit.convert_from("ft",10000.)
-ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",13.)
+ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",14.)
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(255.)
+ac.power_system.reference_power = unit.W_kW(250.)
 
 ac.airframe.wing.hld_type = 4
 ac.airframe.wing.aspect_ratio = 13
-ac.airframe.wing.area = 40
+ac.airframe.wing.area = 42
 
 ac.weight_cg.mtow = 3500.
 

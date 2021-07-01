@@ -60,19 +60,36 @@ class FuelCellSystem(object):
         self.air_scoop = PitotScoop(self)
         self.compressor = AirCompressor(self)
         self.stack = FuelCellPEMLT(self)
+        self.h2_heater = HydrogenHeater(self)
         self.dissipator = WingSkinDissipator(self)
 
 
     def run_fc_system(self, pamb, tamb, vair, jj, nc=None):
+        # Fuel cell stack
         fc_dict = self.stack.run_fuel_cell(jj, nc=nc)
+
+        # Air scoop
         air_flow = fc_dict["air_flow"]
         sc_dict = self.air_scoop.operate(pamb, tamb, vair, air_flow)
+
+        # Compressor
         pt_in = sc_dict["pt_out"]
         tt_in = sc_dict["tt_out"]
         cp_dict = self.compressor.operate(pt_in, tt_in, air_flow)
+
+        # Heater
+        h2_flow = fc_dict["h2_flow"]
+        temp_out = self.stack.working_temperature
+        ht_dict = self.h2_heater.operate(h2_flow, temp_out)
+
+        # System level data
         pw_util = fc_dict["pwe"] - cp_dict["pwe"]
-        fc_system = {"efficiency":pw_util/fc_dict["pw_chemical"]}
-        return {"system":fc_system, "stack":fc_dict, "scoop":sc_dict, "compressor":cp_dict}
+        fc_system = {"efficiency": pw_util/fc_dict["pw_chemical"]}
+
+        total_heat_power = fc_dict["pwth"] - ht_dict["pw_absorbed"]
+        fc_system["total_heat_power"] = total_heat_power
+
+        return {"system":fc_system, "stack":fc_dict, "scoop":sc_dict, "compressor":cp_dict, "h2_heater":ht_dict}
 
 
     def operate(self, pamb, tamb, vair, pw_req):
@@ -122,6 +139,9 @@ class FuelCellSystem(object):
         tt_in = dict["compressor"]["tt_in"]
         p_ratio = dict["compressor"]["p_ratio"]
         self.compressor.design(tt_in, p_ratio, air_flow)
+
+        # Fix hydrogen heater design
+        self.h2_heater.design()
 
 
     def print(self, graph=False):
@@ -179,6 +199,39 @@ class PitotScoop(object):
         print("Design drag = ", "%.2f"%unit.convert_to("daN",self.design_drag), " daN")
         print("Volume allocation = ", "%.3f"%self.volume)
         print("Mass = ", "%.3f"%self.mass)
+
+
+class HydrogenHeater(object):
+
+    def __init__(self, fc_system):
+        self.fc_system = fc_system
+
+        self.h2_molar_mass = unit.convert_from("g", 2.01588)    # kg/mol
+        self.h2_ortho_ratio = 0.75                              # Proportion of ortho allotropic form in gazeous hydrogen
+        self.h2_orth_para_heat = unit.convert_from("kJ",527)    # J/kg, Heat extracted to transform ortho into para allotropic form
+        self.h2_boiling_temp = 20.28                            # Boiling temperature of liquid hydrogen
+        self.h2_vap_latent_heat = 449.36/self.h2_molar_mass     # J/kg, Vaporisation latent heat
+        self.h2_specific_heat = unit.convert_from("kJ",14.3)    # J/kg, H2 specific heat, supposed constant above 273 kelvin
+        self.h2_intergral_heat = unit.convert_from("kJ",3100)   # J/kg, heat to warm 1 kg of gazeous hydrogen from 20.3 K to 273.15 K
+
+        self.volume = None
+        self.mass = None
+
+    def design(self):
+        self.volume = np.nan
+        self.mass = np.nan
+
+    def operate(self, h2_flow, temp_out):
+        if temp_out<273.15:
+            raise Exception("Hydrogen heater output temperature must be higher or equal to 273.15")
+        pw_ortho_para_heat = self.h2_ortho_ratio * self.h2_orth_para_heat * h2_flow
+        pw_vapor_heat = self.h2_vap_latent_heat * h2_flow
+        pw_warming_heat = (self.h2_intergral_heat + self.h2_specific_heat * (temp_out - 273.15)) * h2_flow
+        pw_absorbed = pw_ortho_para_heat + pw_vapor_heat + pw_warming_heat
+        return {"pw_ortho_para_heat":pw_ortho_para_heat,
+                "pw_vapor_heat":pw_vapor_heat,
+                "pw_warming_heat":pw_warming_heat,
+                "pw_absorbed":pw_absorbed}
 
 
 
@@ -266,9 +319,11 @@ class FuelCellPEMLT(object):
         self.cell_area = unit.convert_from("cm2", 625)              # m2
         self.max_current_density = 5./unit.convert_from("cm2",1)    # A/m2
         self.cell_entry_total_pressure = unit.convert_from("bar", 1.5)    # Gas pressure at electrode entry
-        self.working_temperature = 273.15 + 65                      # Cell working temperature
+        self.working_temperature = 273.15 + 75                      # Cell working temperature
         self.air_over_feeding = 2                                   # air flow ratio over stoechiometry
         self.power_margin = 0.8                                     # Ratio allowed power over max power
+        self.heat_washout_factor = 0.12                             # Fraction of heat washed out by the air flow across the stack
+
         self.bip_thickness = unit.convert_from("cm",0.65)           # Thickness of one bipolar plate
         self.end_plate_thickness = unit.convert_from("cm",1.15)     # Thickness of one stack end plate
 
@@ -305,6 +360,7 @@ class FuelCellPEMLT(object):
         Hypothèse: l'eau produite est liquide
         """
         temp_ref = 298          # Température de référence
+        press_ref = 101325      # Pression de référence
 
         dh_std_h2o = -285.83e3  # Enthalpie standard de l'eau liquide
         dh_std_h2 = 0           # Enthalpie standard de l'hydrogène gazeux
@@ -356,12 +412,12 @@ class FuelCellPEMLT(object):
         
         # Calcul de la variation d'enthalpie libre standard
         dg0 = abs(delta_h - temp*delta_s)
-        dg = dg0 + self.ideal_gas_constant() * temp * np.log((p_h2*1e-5)*np.sqrt(p_o2*1e-5))
+        dg = dg0 + self.ideal_gas_constant() * temp * (np.log(p_h2/press_ref) + (1/2)*np.log(p_o2/press_ref))
 
         # Calcul des potentiels de Nernst
         e_std = dg0 / (2*self.faraday_constant())      # [V] - potentiel reversible
         e_rev = dg / (2*self.faraday_constant())       # [V] - potentiel reversible + effet de la de la temp곡teure et de la pression
-        e_tn = -delta_h / (2*self.faraday_constant())   # [V] - potentiel thermoneutre
+        e_tn = -delta_h / (2*self.faraday_constant())  # [V] - potentiel thermoneutre
 
         return e_rev, e_std, e_tn, dg0, dg, delta_h
 
@@ -409,13 +465,14 @@ class FuelCellPEMLT(object):
         voltage, current, n_act, n_diff, n_ohm = self.fuel_cell_polar(jj, e_rev, temp)
 
         pw_elec =  voltage * current            # Puissance electrique d'une cellule
-        pw_thermal = (e_tn - voltage) * current # puissance thermique
+        pw_th_total = (e_tn - voltage) * current # puissance thermique
+        pw_thermal = pw_th_total * (1 - self.heat_washout_factor)
 
         gas_molar_flow = current / (2 * self.faraday_constant())
         h2_flow = gas_molar_flow * self.h2_molar_mass   # kg/s, Hydrogen mass flow
         air_flow =  (gas_molar_flow / self.air_o2_ratio) * self.air_molar_mass * self.air_over_feeding  # kg/s, Air mass flow
 
-        h2_heat = -delta_h / self.h2_molar_mass
+        h2_heat = -delta_h / self.h2_molar_mass     # H2 internal combustion energy
         pw_chemical = h2_flow * h2_heat
         efficiency = pw_elec / pw_chemical
 
@@ -816,38 +873,39 @@ if __name__ == '__main__':
     fc_syst = FuelCellSystem(phd)
 
 
-    # altp = unit.m_ft(5000)
-    # disa = 25
-    # vair = unit.mps_kmph(250)
-    #
-    # pamb, tamb, g = phd.atmosphere(altp, disa)
-    #
-    # design_power = unit.convert_from("kW", 50)
-    #
-    # fc_syst.design(pamb, tamb, vair, design_power)
-    #
-    # fc_syst.print(graph=False)
-    #
-    #
-    # req_power = unit.W_kW(30)
-    #
-    # dict = fc_syst.operate(pamb, tamb, vair, req_power)
-    #
-    # print("")
-    # print("===============================================================================")
-    # print("Stack effective power = ", "%.2f"%unit.kW_W(dict["stack"]["pwe"]), " kW")
-    # print("Stack thermal power = ", "%.2f"%unit.kW_W(dict["stack"]["pwth"]), " kW")
-    # print("Compressor effective power = ", "%.2f"%unit.kW_W(dict["compressor"]["pwe"]), " kW")
-    # print("")
-    # print("Voltage = ", "%.1f"%(dict["stack"]["voltage"]), " V")
-    # print("Current = ", "%.1f"%(dict["stack"]["current"]), " A")
-    # print("Stack current density = ", "%.4f"%(dict["stack"]["jj"]/1e4), " A/cm2")
-    # print("Stack effective efficiency = ", "%.4f"%(dict["stack"]["efficiency"]))
-    # print("Overall efficiency = ", "%.4f"%(dict["system"]["efficiency"]))
-    # print("")
-    # print("Peripheral power ratio = ", "%.3f"%(dict["compressor"]["pwe"]/dict["stack"]["pwe"]))
-    # print("Compression ratio = ", "%.2f"%(dict["compressor"]["pt_out"]/dict["compressor"]["pt_in"]))
-    # print("Compressor output temperature = ", "%.2f"%(dict["compressor"]["tt_out"]-273.15), " C°")
+    altp = unit.m_ft(5000)
+    disa = 25
+    vair = unit.mps_kmph(250)
+
+    pamb, tamb, g = phd.atmosphere(altp, disa)
+
+    design_power = unit.convert_from("kW", 50)
+
+    fc_syst.design(pamb, tamb, vair, design_power)
+
+    fc_syst.print(graph=False)
+
+
+    req_power = unit.W_kW(36)
+
+    dict = fc_syst.operate(pamb, tamb, vair, req_power)
+
+    print("")
+    print("===============================================================================")
+    print("Stack effective power = ", "%.2f"%unit.kW_W(dict["stack"]["pwe"]), " kW")
+    print("Stack thermal power = ", "%.2f"%unit.kW_W(dict["stack"]["pwth"]), " kW")
+    print("Syetem thermal power = ", "%.2f"%unit.kW_W(dict["system"]["total_heat_power"]), " kW")
+    print("Compressor effective power = ", "%.2f"%unit.kW_W(dict["compressor"]["pwe"]), " kW")
+    print("")
+    print("Voltage = ", "%.1f"%(dict["stack"]["voltage"]), " V")
+    print("Current = ", "%.1f"%(dict["stack"]["current"]), " A")
+    print("Stack current density = ", "%.4f"%(dict["stack"]["jj"]/1e4), " A/cm2")
+    print("Stack effective efficiency = ", "%.4f"%(dict["stack"]["efficiency"]))
+    print("Overall efficiency = ", "%.4f"%(dict["system"]["efficiency"]))
+    print("")
+    print("Peripheral power ratio = ", "%.3f"%(dict["compressor"]["pwe"]/dict["stack"]["pwe"]))
+    print("Compression ratio = ", "%.2f"%(dict["compressor"]["pt_out"]/dict["compressor"]["pt_in"]))
+    print("Compressor output temperature = ", "%.2f"%(dict["compressor"]["tt_out"]-273.15), " C°")
 
 
     altp = unit.m_ft(10000)
