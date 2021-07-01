@@ -23,7 +23,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "floor",      # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "wing_box",      # "wing_box", "piggy_back" or "pods"
                    gear_architecture = "bare_fixed",    # "retractable", "bare_fixed"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
@@ -31,9 +31,11 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-reqs = Requirement(n_pax_ref = 9.,
-                   design_range = unit.m_NM(100.),
-                   cruise_mach = 0.22,
+cruise_mach = 0.17
+
+reqs = Requirement(n_pax_ref = 19.,
+                   design_range = unit.m_km(200.),
+                   cruise_mach = cruise_mach,
                    cruise_altp = unit.m_ft(10000.),
                    model_config = ModelConfiguration)
 
@@ -46,35 +48,37 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 print("------------------------------------------------------")
 # Take off
 # ac.requirement.take_off.tofl_req = 340.
-ac.requirement.take_off.tofl_req = 570.
+ac.requirement.take_off.tofl_req = 500.
 
 # Approach
 # ac.requirement.approach.app_speed_req = unit.convert_from("kt",72.)
-ac.requirement.approach.app_speed_req = unit.convert_from("kt",72.)
+ac.requirement.approach.app_speed_req = unit.convert_from("kt",69.)
 # Climb
 ac.requirement.mcl_ceiling.altp = unit.convert_from("ft",10000.)
-ac.requirement.mcl_ceiling.mach = 0.2
-ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",400.)
+ac.requirement.mcl_ceiling.mach = cruise_mach
+ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",500.)
 
 ac.requirement.mcr_ceiling.altp = unit.convert_from("ft",10000.)
-ac.requirement.mcr_ceiling.mach = 0.2
-ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",150.)
+ac.requirement.mcr_ceiling.mach = cruise_mach
+ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",250.)
 
 ac.requirement.oei_ceiling.altp = unit.convert_from("ft",5000.)
 
-ac.requirement.time_to_climb.cas1 = unit.convert_from("kt",75.)
 ac.requirement.time_to_climb.altp1 = unit.convert_from("ft",1500.)
-ac.requirement.time_to_climb.cas2 = unit.convert_from("kt",75.)
+ac.requirement.time_to_climb.cas1 = unit.convert_from("km/h",150.)
 ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",6000.)
+ac.requirement.time_to_climb.cas2 = unit.convert_from("km/h",180.)
 ac.requirement.time_to_climb.altp = unit.convert_from("ft",10000.)
-ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",12.)
+ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",13.)
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(250.)
+ac.power_system.reference_power = unit.W_kW(255.)
 
 ac.airframe.wing.hld_type = 4
 ac.airframe.wing.aspect_ratio = 13
-ac.airframe.wing.area = 35.
+ac.airframe.wing.area = 40
+
+ac.weight_cg.mtow = 3500.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)

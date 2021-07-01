@@ -150,7 +150,10 @@ class ClimbReq(object):
 
     def trajectory_speed(self, arrangement, requirement):
         if (arrangement.power_architecture in ["tp","ep"]):
-            mach = requirement.cruise_mach - 0.10
+            if 0.3<requirement.cruise_mach:
+                mach = requirement.cruise_mach - 0.10
+            else:
+                mach = requirement.cruise_mach
         else:
             mach = requirement.cruise_mach
         return mach

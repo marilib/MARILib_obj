@@ -81,6 +81,7 @@ class AllMissionVarMass(AllMissions):
         self.crz_lod = None
         self.crz_thrust = None
         self.crz_throttle = None
+        self.crz_propulsive_power = None
         if self.aircraft.power_system.sfc_type=="thrust":
             self.crz_tsfc = None
         elif self.aircraft.power_system.sfc_type=="power":
@@ -114,6 +115,7 @@ class AllMissionVarMass(AllMissions):
         self.crz_cz = lf_dict["cz"]
         self.crz_lod = lf_dict["lod"]
         self.crz_thrust = lf_dict["fn"]
+        self.crz_propulsive_power = lf_dict["fn"]*self.crz_tas
         self.crz_throttle = lf_dict["thtl"]
         if self.aircraft.power_system.sfc_type=="thrust":
             self.crz_tsfc = lf_dict["sfc"]
@@ -161,7 +163,7 @@ class AllMissionVarMass(AllMissions):
 
             return self.aircraft.weight_cg.mtow - (owe + payload + fuel_total)
 
-        mtow_ini = [self.aircraft.weight_cg.mtow * 0.65]
+        mtow_ini = [self.aircraft.weight_cg.mtow]
         output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 

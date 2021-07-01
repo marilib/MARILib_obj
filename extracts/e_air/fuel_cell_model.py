@@ -559,8 +559,8 @@ class WingSkinCircuit(object):
         self.tube_density = 2700        # Aluminium density
         self.tube_width = unit.convert_from("mm",10)
         self.tube_height = unit.convert_from("mm",6)
-        self.tube_thickness = unit.convert_from("mm",0.6)
-        self.tube_foot_width = unit.convert_from("mm",3)
+        self.tube_thickness = unit.convert_from("mm",0.5)
+        self.tube_foot_width = unit.convert_from("mm",0.25)
         self.tube_footprint_width = None
 
         self.tube_count = None
@@ -575,7 +575,7 @@ class WingSkinCircuit(object):
     def pressure_drop(self,temp,speed,hydro_width,tube_length):
         """Pressure drop along a cylindrical tube
         """
-        rho, cp, mu = self.fc_system.phd.fluid_data(temp, fluid="water")
+        rho, cp, mu, lbd = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
         rex = (rho * speed / mu) * hydro_width                       # Reynolds number
         cf = 0.5
         for j in range(6):
@@ -599,7 +599,7 @@ class WingSkinCircuit(object):
         if self.tube_height<0.5*self.tube_width:
             raise Exception("Tube height 'ht' cannot be lower than half tube width 'wt'")
         self.tube_section = 0.125*np.pi*self.tube_width**2 + (self.tube_height-0.5*self.tube_width)*self.tube_width      # Tube section
-        rho_f, cp_f, mu_f = self.fc_system.phd.fluid_data(tamb, fluid="water")
+        rho_f, cp_f, mu_f, lbd_f = self.fc_system.phd.fluid_data(tamb, fluid="water_mp30")
 
         tube_prm = 0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + self.tube_width    # Tube perimeter
         self.tube_hydro_width = 4 * self.tube_section / tube_prm             # Hydrolic section
@@ -646,6 +646,7 @@ class WingSkinCircuit(object):
                 "p_drop":pd,
                 "pw_drop":pwd,
                 "ks":ks,
+                "ha":ha,
                 "rhoa":rhoa,
                 "cpa":cpa,
                 "mua":mua,
@@ -654,6 +655,7 @@ class WingSkinCircuit(object):
                 "nua":nua,
                 "lbda":lbda,
                 "rhof":rhof,
+                "hf":hf,
                 "cpf":cpf,
                 "muf":muf,
                 "prf":prf,
@@ -699,6 +701,7 @@ class WingSkinCircuit(object):
         print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict["p_drop"]), " bar")
         print("Fluid flow power = ", "%.0f"%(dict["pw_drop"]), " W")
         print("")
+        print("air heat transfer factor = ", "%.3f"%dict["ha"], " W/m2/K")
         print("rho air = ", "%.3f"%dict["rhoa"], " kg/m3")
         print("Cp air = ", "%.1f"%dict["cpa"], " J/kg")
         print("mu air = ", "%.1f"%(dict["mua"]*1e6), " 10-6Pa.s")
@@ -707,6 +710,7 @@ class WingSkinCircuit(object):
         print("Nu air = ", "%.0f"%dict["nua"])
         print("Lambda air = ", "%.4f"%dict["lbda"])
         print("")
+        print("fluid heat transfer factor = ", "%.3f"%dict["hf"], " W/m2/K")
         print("rho fluide = ", "%.1f"%dict["rhof"], " kg/m3")
         print("Cp fluide = ", "%.1f"%dict["cpf"], " J/kg")
         print("mu fluide = ", "%.1f"%(dict["muf"]*1e6), " 10-6Pa.s")
@@ -724,14 +728,19 @@ class WingSkinDissipator(object):
         self.circuit_le = WingSkinCircuit(fc_system)
         self.circuit_te = WingSkinCircuit(fc_system)
 
-    def design(self, available_span, wing_chord):
+    def design(self, wing_aspect_ratio, wing_area):
         ref_wing_chord = 2
+
+        wing_span = np.sqrt(wing_area*wing_aspect_ratio)
+
+        available_span = (wing_span - 2) / 2
+        wing_chord = wing_area / wing_span
 
         le_web_width = 1.04 * (wing_chord/ref_wing_chord)
         te_web_width = 1.04 * (wing_chord/ref_wing_chord)
 
         le_mean_chord = 0.15 * (wing_chord/ref_wing_chord)
-        te_mean_chord = 1.15 * (wing_chord/ref_wing_chord)
+        te_mean_chord = 0.85 * (wing_chord/ref_wing_chord)
 
         self.circuit_le.design(available_span, le_web_width, le_mean_chord)
         self.circuit_te.design(available_span, te_web_width, te_mean_chord)
@@ -841,9 +850,9 @@ if __name__ == '__main__':
     # print("Compressor output temperature = ", "%.2f"%(dict["compressor"]["tt_out"]-273.15), " C°")
 
 
-    altp = unit.m_ft(0)
-    disa = 25
-    vair = unit.mps_kmph(150)
+    altp = unit.m_ft(10000)
+    disa = 15
+    vair = unit.mps_kmph(200)
 
     pamb, tamb, g = phd.atmosphere(altp, disa)
 
@@ -851,10 +860,10 @@ if __name__ == '__main__':
     fluid_temp_in = 273.15 + 75
     fluid_temp_out = 273.15 + 70    # Initial value
 
-    available_span = 9
-    wing_chord = 2
+    wing_aspect_ratio = 13
+    wing_area = 40
 
-    fc_syst.dissipator.design(available_span, wing_chord)
+    fc_syst.dissipator.design(wing_aspect_ratio, wing_area)
 
     fc_syst.dissipator.print_design()
 

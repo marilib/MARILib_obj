@@ -149,21 +149,18 @@ class PhysicalData(object):
         thermal_diffusivity = 20.e-6   # m2/s
         return thermal_diffusivity
 
-    def fluid_thermal_transfer_data(self, temp, fluid_speed, tube_hydro_width, fluid="water"):
+    def fluid_thermal_transfer_data(self, temp, fluid_speed, tube_hydro_width, fluid="water_mp30"):
         """Thermal transfert factor for turbulent flow in a tube : W/m2/K
         """
-        if fluid!="water":
+        if fluid!="water_mp30":
             raise Exception("fluide type is not permitted")
 
         # Fluid thermal conductivity
-        if temp<274. or 370.<temp:
+        if temp<263.15 or 373.15<temp:
             raise Exception("fluid temperature is out of range")
-        t0 = 298.15
-        c0 = 0.6065
-        lbd = c0*(-1.48445 + 4.12292*(temp/t0) - 1.63866*(temp/t0)**2)      # Thermal conductivity
 
         # Nusselt number
-        rho, cp, mu = self.fluid_data(temp, fluid=fluid)
+        rho, cp, mu, lbd = self.fluid_data(temp, fluid=fluid)
         pr = mu * cp / lbd                                  # Prandtl number
         red = (rho * fluid_speed / mu) * tube_hydro_width   # Reynolds number
         nu = 4.36   # Nusselt number in fully established stream with constant wall thermal flow
@@ -172,22 +169,25 @@ class PhysicalData(object):
         h = lbd * nu / tube_hydro_width
         return h, rho, cp, mu, pr, red, nu, lbd
 
-    def fluid_data(self, temp, fluid="water"):
-        if fluid!="water":
+    def fluid_data(self, temp, fluid="water_mp30"):
+        """Data from water + monopropylen 30%"""
+        if fluid!="water_mp30":
             raise Exception("fluide type is not permitted")
-        t0 = 273.15
-        temp_list = [275.15, 276.15, 277.15, 278.15, 279.15, 280.15, 281.15, 282.15, 283.15, 284.15, 285.15, 286.15, 287.15,
-                     288.15, 289.15, 290.15, 291.15, 292.15, 293.15, 294.15, 295.15, 296.15, 297.15, 298.15, 299.15, 300.15,
-                     301.15, 302.15, 303.15, 304.15, 305.15, 306.15, 307.15, 308.15, 309.15, 310.15, 311.15, 312.15, 313.15,
-                     318.15, 323.15, 328.15, 333.15, 338.15, 343.15, 348.15, 353.15]
-        mu_list =   [1.6735, 1.6190, 1.5673, 1.5182, 1.4715, 1.4271, 1.3847, 1.3444, 1.3059, 1.2692, 1.2340, 1.2005, 1.1683,
-                     1.1375, 1.1081, 1.0798, 1.0526, 1.0266, 1.0016, 0.9775, 0.9544, 0.9321, 0.9107, 0.8900, 0.8701, 0.8509,
-                     0.8324, 0.8145, 0.7972, 0.7805, 0.7644, 0.7488, 0.7337, 0.7191, 0.7050, 0.6913, 0.6780, 0.6652, 0.6527,
-                     0.5958, 0.5465, 0.5036, 0.4660, 0.4329, 0.4035, 0.3774, 0.3540]
+        temp_list = [263.15, 268.15, 273.15, 278.15, 283.15, 288.15, 293.15, 298.15, 303.15, 308.15, 313.15, 318.15,
+                     323.15, 328.15, 333.15, 338.15, 343.15, 348.15, 353.15, 358.15, 363.15, 368.15, 373.15]
+        rho_list = [1035, 1033, 1031, 1029, 1027, 1025, 1022, 1019, 1016, 1013, 1010, 1007,
+                    1004, 1000, 997, 994, 990, 987, 983, 980, 976, 973, 969]
+        cp_list = [3829, 3835, 3841, 3847, 3854, 3860, 3867, 3873, 3879, 3886, 3892, 3899,
+                   3905, 3911, 3918, 3924, 3930, 3936, 3943, 3949, 3955, 3961, 3966]
+        mu_list = [0.003849, 0.003210, 0.002703, 0.002297, 0.001968, 0.001701, 0.001480, 0.001298, 0.001146, 0.001018, 0.000910, 0.000818,
+                   0.000740, 0.000672, 0.000614, 0.000563, 0.000519, 0.000480, 0.000446, 0.000416, 0.000389, 0.000365, 0.000344]
+        lbd_list = [0.445, 0.449, 0.453, 0.457, 0.461, 0.465, 0.468, 0.472, 0.476, 0.479, 0.482, 0.486,
+                    0.489, 0.492, 0.495, 0.498, 0.501, 0.504, 0.507, 0.509, 0.512, 0.515, 0.517]
+        rho_f = interpolate.interp1d(temp_list,rho_list,kind="cubic")
+        cp_f = interpolate.interp1d(temp_list,cp_list,kind="cubic")
         mu_f = interpolate.interp1d(temp_list,mu_list,kind="cubic")
-        rho_f = 1000.   # Water
-        cp_f = 4200.    # Water
-        return rho_f, cp_f, mu_f(temp)*1.e-3
+        lbd_f = interpolate.interp1d(temp_list,lbd_list,kind="cubic")
+        return rho_f(temp), cp_f(temp), mu_f(temp)*1.e-3, lbd_f(temp)
 
     def fuel_density(self, fuel_type, press=101325.):
         """Reference fuel density
