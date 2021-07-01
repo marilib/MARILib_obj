@@ -35,8 +35,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A220-100_rear_tank"
 n_pax_ref = 135
-# design_range = unit.m_NM(2100.)
-design_range = unit.m_NM(750.)
+design_range = unit.m_NM(2100.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
@@ -92,21 +91,38 @@ ac.airframe.horizontal_stab.volume_factor = 0.94
 ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
-ac.airframe.tank.volumetric_index = 0.85
-ac.airframe.tank.gravimetric_index = 0.1
+ac.airframe.tank.volumetric_index = 0.845
+ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# design_range = unit.m_NM(700.)
+# ac.power_system.reference_thrust = unit.N_kN(155)
+# ac.airframe.wing.area = 202
+# fuselage ratio = 11.7  (limite à 13.4)
+
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# design_range = unit.m_NM(2100.)
 # ac.power_system.reference_thrust = unit.N_kN(133.5)
-ac.power_system.reference_thrust = unit.N_kN(165)
+# ac.airframe.wing.area = 167.4
+# fuselage ratio = 12.9  (limite à 13.4)
+
+# gravimetric index = 0.63
+# volumetric_index = 0.845
+# design_range = unit.m_NM(2100.)
+# ac.power_system.reference_thrust = unit.N_kN(97.3)
+# ac.airframe.wing.area = 122.6
+# fuselage ratio = 12.2  (limite à 13.4)
+
+ac.power_system.reference_thrust = unit.N_kN(133.5)
 ac.airframe.wing.aspect_ratio = 11
-# ac.airframe.wing.area = 167.3
-ac.airframe.wing.area = 210
+ac.airframe.wing.area = 167.4
 
 ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
-
-
 
 proc = "mda_plus"
 
@@ -115,8 +131,6 @@ if proc=="mda":
 elif proc=="mda_plus":
     process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
 
-print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
-print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -133,7 +147,8 @@ cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.t
        "aircraft.performance.mcr_ceiling.vz_eff - aircraft.performance.mcr_ceiling.vz_req",
        "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
        "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff",
-       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total"]
+       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total",
+       "aircraft.requirement.max_body_aspect_ratio - aircraft.airframe.body.aspect_ratio"]
 
 # Magnitude used to scale constraints
 cst_mag = ["aircraft.performance.take_off.tofl_req",
@@ -142,7 +157,8 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
            "unit.mps_ftpmin(100.)",
            "aircraft.performance.oei_ceiling.path_req",
            "aircraft.performance.time_to_climb.ttc_req",
-           "aircraft.weight_cg.mfw"]
+           "aircraft.weight_cg.mfw",
+           "aircraft.requirement.max_body_aspect_ratio"]
 
 # Optimization criteria
 crt = "aircraft.weight_cg.mtow"
@@ -189,6 +205,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.performance.mcr_ceiling.vz_eff)"],
         ["TTC", "min", "%8.1f", "unit.min_s(aircraft.performance.time_to_climb.ttc_eff)"],
         ["FUEL", "kg", "%8.1f", "aircraft.weight_cg.mfw"],
+        ["Body_AR", "no_dim", "%8.3f", "aircraft.airframe.body.aspect_ratio"],
         ["Cost_Block_fuel", "kg", "%8.1f", "aircraft.performance.mission.cost.fuel_block"],
         ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
         ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],
@@ -202,16 +219,17 @@ res = process.explore_design_space(ac, var, step, data, file, proc=proc)      # 
 
 field = 'MTOW'                                                                  # Optimization criteria, keys are from data
 other = ['MLW']                                                                 # Additional useful data to show
-const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC', 'FUEL']    # Constrained performances, keys are from data
-bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub", "lb"])                    # ub: upper bound, lb: lower bound
-color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow', 'black']         # Constraint color in the graph
+const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC', 'FUEL', 'Body_AR']    # Constrained performances, keys are from data
+bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub", "lb", 'ub'])                    # ub: upper bound, lb: lower bound
+color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow', 'black', 'grey']         # Constraint color in the graph
 limit = [ac.requirement.take_off.tofl_req,
          unit.kt_mps(ac.requirement.approach.app_speed_req),
          unit.pc_no_dim(ac.requirement.oei_ceiling.path_req),
          unit.ftpmin_mps(ac.requirement.mcl_ceiling.vz_req),
          unit.ftpmin_mps(ac.requirement.mcr_ceiling.vz_req),
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
-         ac.performance.mission.nominal.fuel_total]              # Limit values
+         ac.performance.mission.nominal.fuel_total,
+         ac.requirement.max_body_aspect_ratio]              # Limit values
 
 process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
 

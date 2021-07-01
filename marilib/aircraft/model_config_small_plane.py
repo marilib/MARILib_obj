@@ -300,7 +300,8 @@ class ModelConfiguration(object):
         },
         "Requirement":{
             "cost_range": ["function", "NM", "Reference range for cost evaluation (function)"],
-            "max_fuel_range_factor": [1.25, "no_dim", "Ratio max_fuel_mission_range / nominal_mission_range, used only with mda_plus"]
+            "max_fuel_range_factor": [1.25, "no_dim", "Ratio max_fuel_mission_range / nominal_mission_range, used only with mda_plus"],
+            "max_body_aspect_ratio": [75.36/5.64, "no_dim", "Ratio body length / body height, maximum ratio comming from A340-600"]
         },
         "Aerodynamics":{
             "cx_correction": [0.0020, "no_dim", "Drag correction on cx coefficient"],

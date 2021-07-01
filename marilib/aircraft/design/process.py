@@ -416,7 +416,7 @@ def explore_design_space(ac, var, step, data, file, proc="mda"):
             res_array = np.array(res_list)
             txt = np.hstack([txt,res_array])
 
-    np.savetxt(file,txt,delimiter=";",fmt='%14s')
+    np.savetxt(file,txt,delimiter=";",fmt='%15s')
 
     return res
 

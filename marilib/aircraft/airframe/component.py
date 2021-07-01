@@ -632,6 +632,7 @@ class Fuselage(Component):
         self.width = None
         self.height = None
         self.length = None
+        self.aspect_ratio = None
         self.nose_cone_length = None
         self.tail_cone_length = None
 
@@ -658,6 +659,7 @@ class Fuselage(Component):
         else:
             self.length = cabin_length + (self.forward_ratio + self.rear_bulkhead_ratio)*self.width
 
+        self.aspect_ratio = self.length / self.height
         self.nose_cone_length = self.nose_cone_ratio*self.width
         self.tail_cone_length = self.tail_cone_ratio*self.width
 

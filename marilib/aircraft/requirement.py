@@ -51,6 +51,7 @@ class Requirement(object):
         self.cruise_disa = 0.
         self.cost_range = self.model_config.get__init(self, "cost_range", val=self.__cost_mission_range())
         self.max_fuel_range_factor = self.model_config.get__init(self, "max_fuel_range_factor")
+        self.max_body_aspect_ratio = self.model_config.get__init(self, "max_body_aspect_ratio")
         self.take_off = TakeOffReq(arrangement, self)
         self.approach = ApproachReq(arrangement, self)
         self.oei_ceiling = OeiCeilingReq(arrangement, self)
