@@ -331,6 +331,14 @@ def vtas_from_mach(altp,disa,mach):
     vtas = vsnd*mach
     return vtas
 
+def mach_from_vtas(altp,disa,vtas):
+    """True air speed from Mach number, subsonic only
+    """
+    pamb,tamb,tstd,dtodz = atmosphere(altp,disa)
+    vsnd = sound_speed(tamb)
+    mach = vtas/vsnd
+    return mach
+
 def mach_from_vcas(pamb,Vcas):
     """Mach number from calibrated air speed, subsonic only
     """

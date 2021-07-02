@@ -13,6 +13,7 @@ from marilib.utils import unit
 from marilib.aircraft.aircraft_root import Arrangement, Aircraft
 from marilib.aircraft.requirement import Requirement
 from marilib.utils.read_write import MarilibIO
+from marilib.utils import earth
 from marilib.aircraft.design import process
 
 from marilib.aircraft.model_config_small_plane import ModelConfiguration
@@ -23,7 +24,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "floor",      # "wing_box", "piggy_back" or "pods"
+                   tank_architecture = "wing_box",      # "wing_box", "floor", "piggy_back" or "pods"
                    gear_architecture = "bare_fixed",    # "retractable", "bare_fixed"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
@@ -31,12 +32,14 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
-cruise_mach = 0.17
+disa = 0
+cruise_altp = unit.m_ft(10000.)
+cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 210))
 
 reqs = Requirement(n_pax_ref = 19.,
                    design_range = unit.m_km(200.),
                    cruise_mach = cruise_mach,
-                   cruise_altp = unit.m_ft(10000.),
+                   cruise_altp = cruise_altp,
                    model_config = ModelConfiguration)
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
@@ -54,21 +57,21 @@ ac.requirement.take_off.tofl_req = 500.
 # ac.requirement.approach.app_speed_req = unit.convert_from("kt",72.)
 ac.requirement.approach.app_speed_req = unit.convert_from("kt",69.)
 # Climb
-ac.requirement.mcl_ceiling.altp = unit.convert_from("ft",10000.)
+ac.requirement.mcl_ceiling.altp = cruise_altp
 ac.requirement.mcl_ceiling.mach = cruise_mach
-ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",500.)
+ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",450.)
 
-ac.requirement.mcr_ceiling.altp = unit.convert_from("ft",10000.)
+ac.requirement.mcr_ceiling.altp = cruise_altp
 ac.requirement.mcr_ceiling.mach = cruise_mach
-ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",250.)
+ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",200.)
 
-ac.requirement.oei_ceiling.altp = unit.convert_from("ft",5000.)
+ac.requirement.oei_ceiling.altp = cruise_altp * 0.5
 
 ac.requirement.time_to_climb.altp1 = unit.convert_from("ft",1500.)
 ac.requirement.time_to_climb.cas1 = unit.convert_from("km/h",150.)
 ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",6000.)
 ac.requirement.time_to_climb.cas2 = unit.convert_from("km/h",180.)
-ac.requirement.time_to_climb.altp = unit.convert_from("ft",10000.)
+ac.requirement.time_to_climb.altp = cruise_altp
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",14.)
 
 # overwrite default values for design space graph centering (see below)

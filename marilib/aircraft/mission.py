@@ -76,6 +76,7 @@ class AllMissionVarMass(AllMissions):
 
         self.ktow = aircraft.get_init(self,"ktow")
 
+        self.crz_tas = None
         self.crz_sar = None
         self.crz_cz = None
         self.crz_lod = None

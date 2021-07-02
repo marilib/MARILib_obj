@@ -137,8 +137,8 @@ class FuelCellSystem(object):
         print("")
         print("Fuel cell system design characteristics")
         print("===============================================================================")
-        print("Number of stack = ", self.n_stack)
-
+        print("Number of stack = ", "%.0f"%self.n_stack)
+        print("Design power = ", "%.1f"%unit.convert_to("kW", self.total_max_power), " kW")
         self.air_scoop.print_design()
         self.compressor.print_design()
         self.precooler.print_design()
@@ -402,7 +402,7 @@ class FuelCellPEMLT(object):
         self.fc_system = fc_system
 
         self.cell_area = unit.convert_from("cm2", 625)              # m2
-        self.max_current_density = 5./unit.convert_from("cm2",1)    # A/m2
+        self.max_current_density = 4./unit.convert_from("cm2",1)    # A/m2
         self.cell_entry_total_pressure = unit.convert_from("bar", 1.5)    # Gas pressure at electrode entry
         self.working_temperature = 273.15 + 75                      # Cell working temperature
         self.air_over_feeding = 2                                   # air flow ratio over stoechiometry
@@ -628,7 +628,7 @@ class FuelCellPEMLT(object):
 
     def print_design(self, graph=False):
         print("")
-        print("Fuel Cell stack characteristics")
+        print("Fuel Cell stack design characteristics")
         print("----------------------------------------------------------")
         print("Cell area = ", "%.2f"%unit.convert_to("cm2",self.cell_area), " cm2")
         print("Cell effective maximum power = ", "%.2f"%(self.cell_max_power), " W")
@@ -763,7 +763,8 @@ class WingSkinCircuit(object):
 
     def operate(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
         ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,air_speed, self.mean_chord)
-        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(tamb, fluid_speed, self.tube_hydro_width)
+        temp = 0.5 * (fluid_temp_in + fluid_temp_out)
+        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(temp, fluid_speed, self.tube_hydro_width)
         kail = np.sqrt(hf * 2*self.tube_length * self.skin_conduct * 2*self.tube_thickness*self.tube_length)
 
         # self.skin_exchange_area is taken as reference area
@@ -975,26 +976,28 @@ if __name__ == '__main__':
 
     fc_syst = FuelCellSystem(phd)
 
-
-    altp = unit.m_ft(5000)
-    disa = 25
-    vair = unit.mps_kmph(250)
+    # Fuel cell test
+    #----------------------------------------------------------------------
+    altp = unit.m_ft(10000)
+    disa = 15
+    vair = unit.mps_kmph(200)
 
     pamb, tamb, g = phd.atmosphere(altp, disa)
 
     stack_power = unit.convert_from("kW", 50)
-    n_stack = 4
+    n_stack = 6
 
     fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
-    fc_syst.print_design(graph=False)
+    fc_syst.print_design(graph=True)
 
-    req_power = unit.W_kW(80)
+    req_power = unit.W_kW(100)
 
     dict = fc_syst.operate(pamb, tamb, vair, req_power)
     fc_syst.print_operate(dict)
 
 
-
+    # Dissipator test
+    #----------------------------------------------------------------------
     altp = unit.m_ft(10000)
     disa = 15
     vair = unit.mps_kmph(200)
@@ -1006,7 +1009,7 @@ if __name__ == '__main__':
     fluid_temp_out = 273.15 + 70    # Initial value
 
     wing_aspect_ratio = 13
-    wing_area = 40
+    wing_area = 42
 
     fc_syst.dissipator.design(wing_aspect_ratio, wing_area)
     fc_syst.dissipator.print_design()
