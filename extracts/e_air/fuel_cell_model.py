@@ -66,6 +66,7 @@ class FuelCellSystem(object):
 
         fc_system = {"pwe": pw_util,
                      "pwe_effective":fc_dict["pwe"] * self.n_stack,
+                     "pw_washout": fc_dict["pw_washout"] * self.n_stack,
                      "pw_extracted": total_heat_power,
                      "voltage": fc_dict["voltage"] * self.n_stack,
                      "current": fc_dict["current"],
@@ -150,7 +151,8 @@ class FuelCellSystem(object):
         print("Fuel cell system operation characteristics")
         print("===============================================================================")
         print("Total usable power = ", "%.2f"%unit.kW_W(dict["system"]["pwe"]), " kW")
-        print("Syetem thermal power = ", "%.2f"%unit.kW_W(dict["system"]["pw_extracted"]), " kW")
+        print("Total washed out heat power = ", "%.2f"%unit.kW_W(dict["system"]["pw_washout"]), " kW")
+        print("Total extracted heat power = ", "%.2f"%unit.kW_W(dict["system"]["pw_extracted"]), " kW")
         print("Overall efficiency = ", "%.4f"%(dict["system"]["efficiency"]))
         print("")
         print("Hydrogen mass flow = ", "%.2f"%(dict["system"]["h2_flow"]*1000), " g/s")
@@ -548,6 +550,7 @@ class FuelCellPEMLT(object):
 
         pw_elec =  voltage * current            # Puissance electrique d'une cellule
         pw_th_total = (e_tn - voltage) * current # puissance thermique
+        pw_washout = pw_th_total * self.heat_washout_factor
         pw_thermal = pw_th_total * (1 - self.heat_washout_factor)
 
         gas_molar_flow = current / (2 * self.faraday_constant())
@@ -559,6 +562,7 @@ class FuelCellPEMLT(object):
         efficiency = pw_elec / pw_chemical
 
         return {"pwe":pw_elec * nc,
+                "pw_washout":pw_washout * nc,
                 "pw_extracted":pw_thermal * nc,
                 "voltage":voltage * nc,
                 "current":current,
@@ -685,6 +689,7 @@ class FuelCellPEMLT(object):
         print("Fuel cell stack operation characteristics")
         print("----------------------------------------------------------")
         print("Stack effective power = ", "%.2f"%unit.kW_W(dict["pwe"]), " kW")
+        print("Washed out heat power = ", "%.2f"%unit.kW_W(dict["pw_washout"]), " kW")
         print("Extracted heat power = ", "%.2f"%unit.kW_W(dict["pw_extracted"]), " kW")
         print("")
         print("Hydrogen mass flow = ", "%.2f"%(dict["h2_flow"]*1000), " g/s")
@@ -988,7 +993,7 @@ if __name__ == '__main__':
     n_stack = 6
 
     fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
-    fc_syst.print_design(graph=True)
+    fc_syst.print_design(graph=False)
 
     req_power = unit.W_kW(100)
 
