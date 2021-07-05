@@ -287,20 +287,24 @@ UNIT["cm3"] = 0.000001
 UNIT["litres"] = 0.001
 UNIT["litre"] = 0.001
 UNIT["l"] = 0.001
+UNIT["L"] = 0.001
 UNIT["ft3"] = 0.0283168
 
 # dim = "VolumeFlow"
 UNIT["m3/s"] = 1.
 UNIT["litre/s"] = 0.001
 UNIT["l/s"] = 0.001
+UNIT["L/s"] = 0.001
 UNIT["ft3/s"] = 0.0283168
 UNIT["m3/min"] = 60.
 UNIT["litre/min"] = 0.06
 UNIT["l/min"] = 0.06
+UNIT["L/min"] = 0.06
 UNIT["ft3/min"] = 1.699008
 UNIT["m3/h"] = 3600.
 UNIT["litre/h"] = 3.6
 UNIT["l/h"] = 3.6
+UNIT["L/h"] = 3.6
 UNIT["ft3/h"] = 101.94048
 
 # dim = "VolumeCoefficient"

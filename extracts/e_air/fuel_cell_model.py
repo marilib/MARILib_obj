@@ -33,6 +33,7 @@ class FuelCellSystem(object):
         self.precooler = AirPreCooler(self)
         self.h2_heater = HydrogenHeater(self)
         self.stack = FuelCellPEMLT(self)
+        self.power_elec = PowerElectronics(self)
         self.dissipator = WingSkinDissipator(self)
 
     def run_fc_system(self, pamb, tamb, vair, total_jj, nc=None):
@@ -60,12 +61,16 @@ class FuelCellSystem(object):
         temp_out = self.stack.working_temperature
         pc_dict = self.precooler.operate(air_flow, temp_in, temp_out)
 
-        # System level data
-        total_heat_power = fc_dict["pw_extracted"] * self.n_stack + pc_dict["pw_extracted"] - ht_dict["pw_absorbed"]
-        pw_util = fc_dict["pwe"] * self.n_stack - cp_dict["pwe"]
+        # Power electronics
+        pw_input = fc_dict["pw_output"] * self.n_stack
+        pe_dict = self.power_elec.operate(pw_input)
 
-        fc_system = {"pwe": pw_util,
-                     "pwe_effective":fc_dict["pwe"] * self.n_stack,
+        # System level data
+        total_heat_power = fc_dict["pw_extracted"] * self.n_stack + pc_dict["pw_extracted"] + pe_dict["pw_extracted"] - ht_dict["pw_absorbed"]
+        pw_util = pe_dict["pw_output"] - cp_dict["pw_input"]
+
+        fc_system = {"pw_output": pw_util,
+                     "pwe_effective":fc_dict["pw_output"] * self.n_stack,
                      "pw_washout": fc_dict["pw_washout"] * self.n_stack,
                      "pw_extracted": total_heat_power,
                      "voltage": fc_dict["voltage"] * self.n_stack,
@@ -75,13 +80,19 @@ class FuelCellSystem(object):
                      "pw_chemical": fc_dict["pw_chemical"] * self.n_stack,
                      "efficiency": pw_util / (fc_dict["pw_chemical"] * self.n_stack)}
 
-        return {"system":fc_system, "stack":fc_dict, "h2_heater":ht_dict, "scoop":sc_dict, "compressor":cp_dict, "precooler":pc_dict}
+        return {"system":fc_system,
+                "power_elec":pe_dict,
+                "stack":fc_dict,
+                "h2_heater":ht_dict,
+                "scoop":sc_dict,
+                "compressor":cp_dict,
+                "precooler":pc_dict}
 
     def operate(self, pamb, tamb, vair, pw_req):
 
         def fct(jj):
             dict = self.run_fc_system(pamb, tamb,vair, jj)
-            return pw_req - dict["system"]["pwe"]
+            return pw_req - dict["system"]["pw_output"]
 
         jj_ini = 1000
         output_dict = fsolve(fct, x0=jj_ini, args=(), full_output=True)
@@ -97,6 +108,10 @@ class FuelCellSystem(object):
         self.n_stack = n_stack
         self.total_max_power = req_stack_power * n_stack
 
+        # Power electronics design
+        req_system_power = req_stack_power * n_stack
+        self.power_elec.design(req_system_power)
+
         # Precooler design
         self.precooler.design()
 
@@ -111,7 +126,7 @@ class FuelCellSystem(object):
             """WARNING : no preliminary design here because both scoop and compressor operation models are independent from design point
             """
             dict = self.run_fc_system(pamb, tamb, vair, jj, nc=n_cell)
-            pw_util = dict["stack"]["pwe"]*n_stack - dict["compressor"]["pwe"]
+            pw_util = dict["stack"]["pw_output"]*n_stack - dict["compressor"]["pw_input"]
             return req_stack_power*n_stack - pw_util
 
         nc_ini = req_stack_power / self.stack.cell_max_power
@@ -131,7 +146,7 @@ class FuelCellSystem(object):
         self.compressor.design(tt_in, p_ratio, air_flow)
 
         # Stack design
-        fc_req_power = dict["stack"]["pwe"]
+        fc_req_power = dict["stack"]["pw_output"]
         self.stack.design(fc_req_power)
 
     def print_design(self, graph=False):
@@ -145,12 +160,13 @@ class FuelCellSystem(object):
         self.precooler.print_design()
         self.h2_heater.print_design()
         self.stack.print_design(graph=graph)
+        self.power_elec.print_design()
 
     def print_operate(self, dict):
         print("")
         print("Fuel cell system operation characteristics")
         print("===============================================================================")
-        print("Total usable power = ", "%.2f"%unit.kW_W(dict["system"]["pwe"]), " kW")
+        print("Total usable power = ", "%.2f"%unit.kW_W(dict["system"]["pw_output"]), " kW")
         print("Total washed out heat power = ", "%.2f"%unit.kW_W(dict["system"]["pw_washout"]), " kW")
         print("Total extracted heat power = ", "%.2f"%unit.kW_W(dict["system"]["pw_extracted"]), " kW")
         print("Overall efficiency = ", "%.4f"%(dict["system"]["efficiency"]))
@@ -165,6 +181,8 @@ class FuelCellSystem(object):
         self.precooler.print_operate(dict["precooler"])
         self.h2_heater.print_operate(dict["h2_heater"])
         self.stack.print_operate(dict["stack"])
+        self.power_elec.print_operate(dict["power_elec"])
+
 
 
 class PitotScoop(object):
@@ -356,7 +374,7 @@ class AirCompressor(object):
                 "pt_out":pt_out,
                 "tt_out":tt_out,
                 "p_ratio":pt_out/pt_in,
-                "pwe":elec_power}
+                "pw_input":elec_power}
 
     def design(self, tt_in, p_ratio, air_flow):
         r,gam,cp,cv = self.fc_system.phd.gas_data()
@@ -394,7 +412,7 @@ class AirCompressor(object):
         print("Output total temperature = ", "%.2f"%dict["tt_out"], " K")
         print("Output total pressure = ", "%.3f"%unit.convert_to("bar", dict["pt_out"]), " bar")
         print("Compression pressure ratio = ", "%.2f"%dict["p_ratio"])
-        print("Required electrical power = ", "%.2f"%unit.convert_to("kW", dict["pwe"]), " kW")
+        print("Required electrical power = ", "%.2f"%unit.convert_to("kW", dict["pw_input"]), " kW")
 
 
 
@@ -561,7 +579,7 @@ class FuelCellPEMLT(object):
         pw_chemical = h2_flow * h2_heat
         efficiency = pw_elec / pw_chemical
 
-        return {"pwe":pw_elec * nc,
+        return {"pw_output":pw_elec * nc,
                 "pw_washout":pw_washout * nc,
                 "pw_extracted":pw_thermal * nc,
                 "voltage":voltage * nc,
@@ -577,7 +595,7 @@ class FuelCellPEMLT(object):
         Input quantity is required output electrical power pw
         """
         def fct(jj):
-            return pw - self.run_fuel_cell(jj)["pwe"]
+            return pw - self.run_fuel_cell(jj)["pw_output"]
 
         x_ini = 1000
         output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
@@ -587,14 +605,14 @@ class FuelCellPEMLT(object):
 
     def eval_cell_max_power(self):
         def fct_jj(jj):
-            return self.run_fuel_cell(jj, nc=1)["pwe"]
+            return self.run_fuel_cell(jj, nc=1)["pw_output"]
 
         xini, dx = 1000, 500
         xres,yres,rc = utils.maximize_1d(xini, dx, [fct_jj])    # Compute the maximum power of the cell
 
         dict = self.run_fuel_cell(xres, nc=1)
 
-        self.cell_max_power = dict["pwe"] * self.power_margin   # Nominal power for one single cell
+        self.cell_max_power = dict["pw_output"] * self.power_margin   # Nominal power for one single cell
         self.cell_max_current = dict["current"]
         self.cell_max_current_density = dict["jj"]
         self.cell_max_current_voltage = dict["voltage"]
@@ -664,7 +682,7 @@ class FuelCellPEMLT(object):
                 j_list.append(dict["jj"]/1e4)
                 v_list.append(dict["voltage"])
                 e_list.append(dict["efficiency"])
-                w_list.append(dict["pwe"])
+                w_list.append(dict["pw_output"])
 
             plt.plot(j_list,v_list)
             plt.grid(True)
@@ -688,7 +706,7 @@ class FuelCellPEMLT(object):
         print("")
         print("Fuel cell stack operation characteristics")
         print("----------------------------------------------------------")
-        print("Stack effective power = ", "%.2f"%unit.kW_W(dict["pwe"]), " kW")
+        print("Stack effective power = ", "%.2f"%unit.kW_W(dict["pw_output"]), " kW")
         print("Washed out heat power = ", "%.2f"%unit.kW_W(dict["pw_washout"]), " kW")
         print("Extracted heat power = ", "%.2f"%unit.kW_W(dict["pw_extracted"]), " kW")
         print("")
@@ -698,6 +716,50 @@ class FuelCellPEMLT(object):
         print("")
         print("Voltage = ", "%.1f"%(dict["voltage"]), " V")
         print("Current = ", "%.1f"%(dict["current"]), " A")
+
+
+
+class PowerElectronics(object):
+
+    def __init__(self, fc_system):
+        self.fc_system = fc_system
+
+        self.design_power  = None
+
+        self.power_efficiency = 0.99
+        self.gravimetric_index = unit.convert_from("kW", 20)     # kW/kg, defined as : design_power / system_mass
+        self.volumetric_index = unit.convert_from("kW", 20)/unit.convert_from("L", 1)      # kW/L, defined as : design_power / system_volume
+
+        self.volume_allocation = None
+        self.mass = None
+
+    def design(self, design_power):
+        self.design_power = design_power
+        self.volume_allocation = self.design_power / self.volumetric_index
+        self.mass = self.design_power / self.gravimetric_index
+
+    def operate(self, pw_input):
+        pw_output = pw_input * self.power_efficiency
+        pw_extracted = pw_input * (1 - self.power_efficiency)
+        return {"pw_input":pw_input,
+                "pw_output":pw_output,
+                "pw_extracted":pw_extracted}
+
+    def print_design(self):
+        print("")
+        print("Power electronics design data")
+        print("----------------------------------------------------------")
+        print("Power efficiency = ", "%.3f"%self.power_efficiency)
+        print("Volume allocation = ", "%.1f"%unit.convert_to("dm3",self.volume_allocation), " dm3")
+        print("Total mass = ", "%.1f"%(self.mass), " kg")
+
+    def print_operate(self, dict):
+        print("")
+        print("Power electronics operation data")
+        print("----------------------------------------------------------")
+        print("Input power = ", "%.1f"%unit.convert_to("kW",dict["pw_input"]), " kW")
+        print("Output power = ", "%.1f"%unit.convert_to("kW",dict["pw_output"]), " kW")
+        print("Extracted heat power = ", "%.1f"%unit.convert_to("kW",dict["pw_extracted"]), " kW")
 
 
 
@@ -824,7 +886,7 @@ class WingSkinCircuit(object):
 
     def print_design(self):
         print("")
-        print("Wing skin dissipator characteristics")
+        print("Wing skin dissipator design data")
         print("----------------------------------------------------------")
         print("Tube width = ", "%.2f"%unit.convert_to("mm",self.tube_width), " mm")
         print("Tube height = ", "%.2f"%unit.convert_to("mm",self.tube_height), " mm")
@@ -935,7 +997,7 @@ class WingSkinDissipator(object):
                 "flow": fluid_flow,
                 "p_drop": pressure_drop,
                 "pw_drop": pw_drop,
-                "pwe":pwe}
+                "pw_input":pwe}
 
     def print_design(self):
         print("")
@@ -964,7 +1026,7 @@ class WingSkinDissipator(object):
         print("Fluid mass flow = ", "%.2f"%(dict["flow"]*1000), " g/s")
         print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict["p_drop"]), " bar")
         print("Fluid flow power = ", "%.0f"%(dict["pw_drop"]), " W")
-        print("Pump electrical power = ", "%.0f"%dict["pwe"], " W")
+        print("Pump electrical power = ", "%.0f"%dict["pw_input"], " W")
         print("")
         print("Wing skin system dissipator Leading edge working data")
         print("=========================================================================")
