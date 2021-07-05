@@ -763,184 +763,6 @@ class PowerElectronics(object):
 
 
 
-class WingSkinCircuit(object):
-
-    def __init__(self, fc_system):
-        self.fc_system = fc_system
-
-        self.available_span = None
-        self.available_curved_length = None
-        self.mean_chord = None
-
-        self.skin_thickness = unit.convert_from("mm",1.5)
-        self.skin_conduct = 237.        # W/m/K, Aluminium thermal conductivity
-        self.skin_exchange_area = None  # Exchange area with one tube
-
-        self.tube_density = 2700        # Aluminium density
-        self.tube_width = unit.convert_from("mm",10)
-        self.tube_height = unit.convert_from("mm",6)
-        self.tube_thickness = unit.convert_from("mm",0.5)
-        self.tube_foot_width = unit.convert_from("mm",0.25)
-        self.tube_footprint_width = None
-
-        self.tube_count = None
-        self.tube_length = None
-        self.tube_section = None
-        self.tube_hydro_width = None
-        self.tube_exchange_area = None
-
-        self.tube_mass = None
-        self.tube_fluid_mass = None
-
-    def pressure_drop(self,temp,speed,hydro_width,tube_length):
-        """Pressure drop along a cylindrical tube
-        """
-        rho, cp, mu, lbd = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
-        rex = (rho * speed / mu) * hydro_width                       # Reynolds number
-        cf = 0.5
-        for j in range(6):
-            cf = (1./(2.*np.log(rex*np.sqrt(cf))/np.log(10)-0.8))**2
-        dp = 0.5 * cf * (tube_length/hydro_width) * rho * speed**2
-        return dp
-
-    def design(self, span, web_width, mean_chord):
-        self.available_span = span
-        self.available_curved_length = web_width
-        self.mean_chord = mean_chord
-
-        # The fluid makes a loop along the span from and to the nacelle
-        self.tube_length = 2 * self.available_span
-        self.tube_exchange_area = self.tube_width * self.tube_length
-        self.skin_exchange_area = (self.tube_width + 2*self.tube_foot_width) * self.tube_length
-
-        self.tube_footprint_width = self.tube_width + 2*(self.tube_thickness + self.tube_foot_width)
-        self.tube_count = np.floor(0.5*self.available_curved_length / self.tube_footprint_width)
-
-        if self.tube_height<0.5*self.tube_width:
-            raise Exception("Tube height 'ht' cannot be lower than half tube width 'wt'")
-        self.tube_section = 0.125*np.pi*self.tube_width**2 + (self.tube_height-0.5*self.tube_width)*self.tube_width      # Tube section
-        rho_f, cp_f, mu_f, lbd_f = self.fc_system.phd.fluid_data(tamb, fluid="water_mp30")
-
-        tube_prm = 0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + self.tube_width    # Tube perimeter
-        self.tube_hydro_width = 4 * self.tube_section / tube_prm             # Hydrolic section
-
-        self.tube_fluid_mass = self.tube_section * self.tube_length * self.tube_count * rho_f
-        self.tube_mass =  (0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + 2*self.tube_foot_width) \
-                        * self.tube_thickness * self.tube_length * (2*self.tube_count) * self.tube_density
-
-    def operate(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
-        ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,air_speed, self.mean_chord)
-        temp = 0.5 * (fluid_temp_in + fluid_temp_out)
-        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(temp, fluid_speed, self.tube_hydro_width)
-        kail = np.sqrt(hf * 2*self.tube_length * self.skin_conduct * 2*self.tube_thickness*self.tube_length)
-
-        # self.skin_exchange_area is taken as reference area
-        ks = 1 / (  1/ha
-                  + (self.skin_thickness/self.skin_conduct) * (self.skin_exchange_area/self.tube_exchange_area)
-                  + 1/((kail + hf*self.tube_exchange_area) / self.skin_exchange_area)
-                 )
-
-        fluid_flow = rhof * self.tube_section * self.tube_count * fluid_speed
-
-        def fct(temp_out):
-            q_fluid = fluid_flow * cpf * (fluid_temp_in - temp_out)
-            q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - temp_out) / np.log((temp_out-tamb)/(fluid_temp_in-tamb))
-            return q_fluid-q_out
-
-        temp_ini = fluid_temp_out
-        output_dict = fsolve(fct, x0=temp_ini, args=(), full_output=True)
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
-        fluid_temp_out = output_dict[0][0]
-
-        q_fluid = fluid_flow * cpf * (fluid_temp_in - fluid_temp_out)
-        q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - fluid_temp_out) / np.log((fluid_temp_out-tamb)/(fluid_temp_in-tamb))
-
-        temp = 0.5*(fluid_temp_in + fluid_temp_out)
-        pd = self.pressure_drop(temp, fluid_speed, self.tube_hydro_width, self.tube_length)
-        pwd = pd * (fluid_flow / rhof)
-
-        return {"temp_in":fluid_temp_in,
-                "temp_out":fluid_temp_out,
-                "q_fluid":q_fluid,
-                "q_out":q_out,
-                "flow":fluid_flow,
-                "p_drop":pd,
-                "pw_drop":pwd,
-                "ks":ks,
-                "ha":ha,
-                "rhoa":rhoa,
-                "cpa":cpa,
-                "mua":mua,
-                "pra":pra,
-                "rea":rea,
-                "nua":nua,
-                "lbda":lbda,
-                "rhof":rhof,
-                "hf":hf,
-                "cpf":cpf,
-                "muf":muf,
-                "prf":prf,
-                "redf":redf,
-                "nudf":nudf,
-                "lbdf":lbdf}
-
-    def print_design(self):
-        print("")
-        print("Wing skin dissipator design data")
-        print("----------------------------------------------------------")
-        print("Tube width = ", "%.2f"%unit.convert_to("mm",self.tube_width), " mm")
-        print("Tube height = ", "%.2f"%unit.convert_to("mm",self.tube_height), " mm")
-        print("Tube foot width = ", "%.2f"%unit.convert_to("mm",self.tube_foot_width), " mm")
-        print("Tube footprint width = ", "%.2f"%unit.convert_to("mm",self.tube_footprint_width), " mm")
-        print("Tube wall thickness = ", "%.2f"%unit.convert_to("mm",self.tube_thickness), " mm")
-        print("Tube internal section = ", "%.2f"%unit.convert_to("cm2",self.tube_section), " cm2")
-        print("Tube hydraulic diameter = ", "%.2f"%unit.convert_to("mm",self.tube_hydro_width), " mm")
-        print("")
-        print("Skin thickness = ", "%.2f"%unit.convert_to("mm",self.skin_thickness), " mm")
-        print("Skin thermal conductivity = ", "%.2f"%(self.skin_conduct), "W/m/K")
-        print("")
-        print("Number of wing tubes = 2 x ", "%.0f"%self.tube_count)
-        print("Total tube length = ", "%.2f"%(self.tube_length), " m")
-        print("Skin exchange area with air = ", "%.2f"%(self.skin_exchange_area*self.tube_count), " m2")
-        print("tube exchange area with skin = ", "%.2f"%(self.tube_exchange_area*self.tube_count), " m2")
-        print("")
-        print("Tube mass = ", "%.1f"%(self.tube_mass), " kg")
-        print("Tube fluid mass = ", "%.1f"%(self.tube_fluid_mass), " kg")
-
-    def print_operate(self, dict):
-        print("")
-        print("Wing skin dissipator working data")
-        print("----------------------------------------------------------")
-        print("Fluid input temperature = ", "%.2f"%dict["temp_in"], " °K")
-        print("Fluid output temperature = ", "%.2f"%dict["temp_out"], " °K")
-        print("Fluid delta temperature = ", "%.2f"%(dict["temp_in"]-dict["temp_out"]), " °K")
-        print("q_fluid = ", "%.2f"%unit.convert_to("kW",dict["q_fluid"]), " kW")
-        print("q_out = ", "%.2f"%unit.convert_to("kW",dict["q_out"]), " kW")
-        print("Global exchange factor = ", "%.2f"%(dict["ks"]), " W/m2/K")
-        print("")
-        print("Fluid mass flow = ", "%.2f"%(dict["flow"]*1000), " g/s")
-        print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict["p_drop"]), " bar")
-        print("Fluid flow power = ", "%.0f"%(dict["pw_drop"]), " W")
-        print("")
-        print("air heat transfer factor = ", "%.3f"%dict["ha"], " W/m2/K")
-        print("rho air = ", "%.3f"%dict["rhoa"], " kg/m3")
-        print("Cp air = ", "%.1f"%dict["cpa"], " J/kg")
-        print("mu air = ", "%.1f"%(dict["mua"]*1e6), " 10-6Pa.s")
-        print("Pr air = ", "%.4f"%dict["pra"])
-        print("Re air = ", "%.0f"%dict["rea"])
-        print("Nu air = ", "%.0f"%dict["nua"])
-        print("Lambda air = ", "%.4f"%dict["lbda"])
-        print("")
-        print("fluid heat transfer factor = ", "%.3f"%dict["hf"], " W/m2/K")
-        print("rho fluide = ", "%.1f"%dict["rhof"], " kg/m3")
-        print("Cp fluide = ", "%.1f"%dict["cpf"], " J/kg")
-        print("mu fluide = ", "%.1f"%(dict["muf"]*1e6), " 10-6Pa.s")
-        print("Pr fluide = ", "%.4f"%dict["prf"])
-        print("ReD fluide = ", "%.0f"%dict["redf"])
-        print("NuD fluide = ", "%.2f"%dict["nudf"])
-        print("Lambda fluide = ", "%.4f"%dict["lbdf"])
-
-
 class WingSkinDissipator(object):
 
     def __init__(self, fc_system):
@@ -949,30 +771,38 @@ class WingSkinDissipator(object):
         self.circuit_le = WingSkinCircuit(fc_system)
         self.circuit_te = WingSkinCircuit(fc_system)
 
+        ref_wing_chord = 2
+
+        self.x_le_lattice = 0.00/ref_wing_chord     # Leading edge lattice starts at 0% of the chord
+        self.dx_le_lattice = 0.52/ref_wing_chord    # Leading edge lattive chord extension
+
+        self.x_te_lattice = 0.80/ref_wing_chord     # Trailing edge lattice starts at 0% of the chord
+        self.dx_te_lattice = 0.70/ref_wing_chord    # Trailing edge lattive chord extension
+
         self.pump_efficiency = 0.80
         self.fluid_factor = 1.15        # Factor on fluid mass for piping
-        self.tube_factor = 1.20        # Factor on tube mass for piping
+        self.tube_factor = 1.20         # Factor on tube mass for piping
 
         self.web_tube_mass = None
         self.web_fluid_mass = None
         self.mass = None
 
     def design(self, wing_aspect_ratio, wing_area):
-        ref_wing_chord = 2
-
+        """Coolent circuit geometry for a rectangular wing
+        """
         wing_span = np.sqrt(wing_area*wing_aspect_ratio)
-
-        available_span = (wing_span - 2) / 2
         wing_chord = wing_area / wing_span
 
-        le_web_width = 1.04 * (wing_chord/ref_wing_chord)
-        te_web_width = 1.40 * (wing_chord/ref_wing_chord)
+        available_span = (wing_span - 2) / 2
 
-        le_mean_chord = 0.15 * (wing_chord/ref_wing_chord)
-        te_mean_chord = 0.95 * (wing_chord/ref_wing_chord)
+        x_le_lattice = self.x_le_lattice * wing_chord
+        dx_le_lattice = self.dx_le_lattice * wing_chord
 
-        self.circuit_le.design(available_span, le_web_width, le_mean_chord)
-        self.circuit_te.design(available_span, te_web_width, te_mean_chord)
+        x_te_lattice = self.x_te_lattice * wing_chord
+        dx_te_lattice = self.dx_te_lattice * wing_chord
+
+        self.circuit_le.design(available_span, x_le_lattice, dx_le_lattice)
+        self.circuit_te.design(available_span, x_te_lattice, dx_te_lattice)
 
         self.web_tube_mass = self.circuit_le.tube_mass + self.circuit_te.tube_mass
         self.web_fluid_mass = self.circuit_le.tube_fluid_mass + self.circuit_te.tube_fluid_mass
@@ -1037,6 +867,211 @@ class WingSkinDissipator(object):
         self.circuit_te.print_operate(dict["te_data"])
 
 
+
+class WingSkinCircuit(object):
+
+    def __init__(self, fc_system):
+        self.fc_system = fc_system
+
+        self.x_lattice = None
+        self.dx_lattice = None
+
+        self.available_span = None
+        self.available_curved_length = None
+        self.mean_chord = None
+
+        self.skin_thickness = unit.convert_from("mm",1.5)
+        self.skin_conduct = 237.        # W/m/K, Aluminium thermal conductivity
+        self.skin_exchange_area = None  # Exchange area with one tube
+
+        self.tube_density = 2700        # Aluminium density
+        self.tube_width = unit.convert_from("mm",10)
+        self.tube_height = unit.convert_from("mm",6)
+        self.tube_thickness = unit.convert_from("mm",0.5)
+        self.tube_foot_width = unit.convert_from("mm",0.25)
+        self.tube_footprint_width = None
+
+        self.tube_count = None
+        self.tube_length = None
+        self.tube_section = None
+        self.tube_hydro_width = None
+        self.tube_exchange_area = None
+
+        self.tube_mass = None
+        self.tube_fluid_mass = None
+
+    def pressure_drop(self,temp,speed,hydro_width,tube_length):
+        """Pressure drop along a cylindrical tube
+        """
+        rho, cp, mu, lbd = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
+        rex = (rho * speed / mu) * hydro_width                       # Reynolds number
+        cf = 0.5
+        for j in range(6):
+            cf = (1./(2.*np.log(rex*np.sqrt(cf))/np.log(10)-0.8))**2
+        dp = 0.5 * cf * (tube_length/hydro_width) * rho * speed**2
+        return dp
+
+    def integral_heat_transfer(self, pamb,tamb,vair, x0, dx, n):
+        ea = dx / n     # Exchange area for one single tube (supposing tubes are adjacent
+        x_int = x0
+        h_int = 0
+        x = 0
+        for j in range(int(n)):
+            x = x_int + 0.5 * ea
+            h, rho, cp, mu, pr, re, nu, lbd = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,vair, x)
+            x_int += ea
+            h_int += h / n
+        x_mean = x0 + 0.5*dx
+        return h_int
+
+    def design(self, span, x_lattice, dx_lattice):
+        self.x_lattice = x_lattice
+        self.dx_lattice = dx_lattice
+
+        self.available_span = span
+        self.available_curved_length = self.dx_lattice
+        self.mean_chord = self.x_lattice + 0.5*self.dx_lattice
+
+        # The fluid makes a loop along the span from and to the nacelle
+        self.tube_length = 2 * self.available_span
+        self.tube_exchange_area = self.tube_width * self.tube_length
+        self.tube_footprint_width = self.tube_width + 2*(self.tube_thickness + self.tube_foot_width)
+
+        self.skin_exchange_area = self.tube_footprint_width * self.tube_length
+        self.tube_count = np.floor(self.available_curved_length / self.tube_footprint_width)
+
+        if self.tube_height<0.5*self.tube_width:
+            raise Exception("Tube height 'ht' cannot be lower than half tube width 'wt'")
+        self.tube_section = 0.125*np.pi*self.tube_width**2 + (self.tube_height-0.5*self.tube_width)*self.tube_width      # Tube section
+        rho_f, cp_f, mu_f, lbd_f = self.fc_system.phd.fluid_data(tamb, fluid="water_mp30")
+
+        tube_prm = 0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + self.tube_width    # Tube perimeter
+        self.tube_hydro_width = 4 * self.tube_section / tube_prm             # Hydrolic section
+
+        self.tube_fluid_mass = self.tube_section * self.tube_length * self.tube_count * rho_f
+        self.tube_mass =  (0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + 2*self.tube_foot_width) \
+                        * self.tube_thickness * self.tube_length * (2*self.tube_count) * self.tube_density
+
+    def operate(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
+        ha_int = self.integral_heat_transfer(pamb,tamb,air_speed, self.x_lattice, self.dx_lattice, self.tube_count)
+        ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,air_speed, self.mean_chord)
+        temp = 0.5 * (fluid_temp_in + fluid_temp_out)
+        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(temp, fluid_speed, self.tube_hydro_width)
+        kail = np.sqrt(hf * 2*self.tube_length * self.skin_conduct * 2*self.tube_thickness*self.tube_length)
+
+        # self.skin_exchange_area is taken as reference area
+        ks = 1 / (  1/ha_int
+                  + (self.skin_thickness/self.skin_conduct) * (self.skin_exchange_area/self.tube_exchange_area)
+                  + 1/((kail + hf*self.tube_exchange_area) / self.skin_exchange_area)
+                 )
+
+        fluid_flow = rhof * self.tube_section * self.tube_count * fluid_speed
+
+        def fct(temp_out):
+            q_fluid = fluid_flow * cpf * (fluid_temp_in - temp_out)
+            q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - temp_out) / np.log((temp_out-tamb)/(fluid_temp_in-tamb))
+            return q_fluid-q_out
+
+        temp_ini = fluid_temp_out
+        output_dict = fsolve(fct, x0=temp_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        fluid_temp_out = output_dict[0][0]
+
+        q_fluid = fluid_flow * cpf * (fluid_temp_in - fluid_temp_out)
+        q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - fluid_temp_out) / np.log((fluid_temp_out-tamb)/(fluid_temp_in-tamb))
+
+        temp = 0.5*(fluid_temp_in + fluid_temp_out)
+        pd = self.pressure_drop(temp, fluid_speed, self.tube_hydro_width, self.tube_length)
+        pwd = pd * (fluid_flow / rhof)
+
+        return {"temp_in":fluid_temp_in,
+                "temp_out":fluid_temp_out,
+                "q_fluid":q_fluid,
+                "q_out":q_out,
+                "flow":fluid_flow,
+                "p_drop":pd,
+                "pw_drop":pwd,
+                "ks":ks,
+                "ha_int":ha_int,
+                "ha":ha,
+                "rhoa":rhoa,
+                "cpa":cpa,
+                "mua":mua,
+                "pra":pra,
+                "rea":rea,
+                "nua":nua,
+                "lbda":lbda,
+                "rhof":rhof,
+                "hf":hf,
+                "cpf":cpf,
+                "muf":muf,
+                "prf":prf,
+                "redf":redf,
+                "nudf":nudf,
+                "lbdf":lbdf}
+
+    def print_design(self):
+        print("")
+        print("Wing skin dissipator design data")
+        print("----------------------------------------------------------")
+        print("Tube width = ", "%.2f"%unit.convert_to("mm",self.tube_width), " mm")
+        print("Tube height = ", "%.2f"%unit.convert_to("mm",self.tube_height), " mm")
+        print("Tube foot width = ", "%.2f"%unit.convert_to("mm",self.tube_foot_width), " mm")
+        print("Tube footprint width = ", "%.2f"%unit.convert_to("mm",self.tube_footprint_width), " mm")
+        print("Tube wall thickness = ", "%.2f"%unit.convert_to("mm",self.tube_thickness), " mm")
+        print("Tube internal section = ", "%.2f"%unit.convert_to("cm2",self.tube_section), " cm2")
+        print("Tube hydraulic diameter = ", "%.2f"%unit.convert_to("mm",self.tube_hydro_width), " mm")
+        print("")
+        print("Skin thickness = ", "%.2f"%unit.convert_to("mm",self.skin_thickness), " mm")
+        print("Skin thermal conductivity = ", "%.2f"%(self.skin_conduct), "W/m/K")
+        print("")
+        print("Lattice start position = ", "%.3f"%(self.x_lattice), " m")
+        print("Lattice curved extension = ", "%.3f"%(self.dx_lattice), " m")
+        print("")
+        print("Number of wing tubes = 2 x ", "%.0f"%self.tube_count)
+        print("Total tube length = ", "%.2f"%(self.tube_length), " m")
+        print("Skin exchange area with air = ", "%.2f"%(self.skin_exchange_area*self.tube_count), " m2")
+        print("tube exchange area with skin = ", "%.2f"%(self.tube_exchange_area*self.tube_count), " m2")
+        print("")
+        print("Tube mass = ", "%.1f"%(self.tube_mass), " kg")
+        print("Tube fluid mass = ", "%.1f"%(self.tube_fluid_mass), " kg")
+
+    def print_operate(self, dict):
+        print("")
+        print("Wing skin dissipator working data")
+        print("----------------------------------------------------------")
+        print("Fluid input temperature = ", "%.2f"%dict["temp_in"], " °K")
+        print("Fluid output temperature = ", "%.2f"%dict["temp_out"], " °K")
+        print("Fluid delta temperature = ", "%.2f"%(dict["temp_in"]-dict["temp_out"]), " °K")
+        print("q_fluid = ", "%.2f"%unit.convert_to("kW",dict["q_fluid"]), " kW")
+        print("q_out = ", "%.2f"%unit.convert_to("kW",dict["q_out"]), " kW")
+        print("Global exchange factor = ", "%.2f"%(dict["ks"]), " W/m2/K")
+        print("")
+        print("Fluid mass flow = ", "%.2f"%(dict["flow"]*1000), " g/s")
+        print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict["p_drop"]), " bar")
+        print("Fluid flow power = ", "%.0f"%(dict["pw_drop"]), " W")
+        print("")
+        print("air integral heat transfer factor = ", "%.3f"%dict["ha_int"], " W/m2/K")
+        print("air mean heat transfer factor = ", "%.3f"%dict["ha"], " W/m2/K")
+        print("rho air = ", "%.3f"%dict["rhoa"], " kg/m3")
+        print("Cp air = ", "%.1f"%dict["cpa"], " J/kg")
+        print("mu air = ", "%.1f"%(dict["mua"]*1e6), " 10-6Pa.s")
+        print("Pr air = ", "%.4f"%dict["pra"])
+        print("Re air = ", "%.0f"%dict["rea"])
+        print("Nu air = ", "%.0f"%dict["nua"])
+        print("Lambda air = ", "%.4f"%dict["lbda"])
+        print("")
+        print("fluid heat transfer factor = ", "%.3f"%dict["hf"], " W/m2/K")
+        print("rho fluide = ", "%.1f"%dict["rhof"], " kg/m3")
+        print("Cp fluide = ", "%.1f"%dict["cpf"], " J/kg")
+        print("mu fluide = ", "%.1f"%(dict["muf"]*1e6), " 10-6Pa.s")
+        print("Pr fluide = ", "%.4f"%dict["prf"])
+        print("ReD fluide = ", "%.0f"%dict["redf"])
+        print("NuD fluide = ", "%.2f"%dict["nudf"])
+        print("Lambda fluide = ", "%.4f"%dict["lbdf"])
+
+
+
 if __name__ == '__main__':
 
     phd = PhysicalData()
@@ -1057,7 +1092,7 @@ if __name__ == '__main__':
     fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
     fc_syst.print_design(graph=False)
 
-    req_power = unit.W_kW(100)
+    req_power = unit.W_kW(80)
 
     dict = fc_syst.operate(pamb, tamb, vair, req_power)
     fc_syst.print_operate(dict)
@@ -1072,8 +1107,8 @@ if __name__ == '__main__':
     pamb, tamb, g = phd.atmosphere(altp, disa)
 
     fluid_speed = 2. # m/s
-    fluid_temp_in = 273.15 + 75
-    fluid_temp_out = 273.15 + 70    # Initial value
+    fluid_temp_in = 273.15 + 65
+    fluid_temp_out = 273.15 + 60    # Initial value
 
     wing_aspect_ratio = 13
     wing_area = 42
