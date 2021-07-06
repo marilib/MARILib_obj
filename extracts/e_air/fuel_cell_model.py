@@ -15,7 +15,10 @@ import matplotlib.pyplot as plt
 import unit, utils
 from physical_data import PhysicalData
 
-
+import matplotlib.pyplot as plt
+from matplotlib import rc
+font = {'size':12}
+rc('font',**font)
 
 
 
@@ -1096,24 +1099,24 @@ if __name__ == '__main__':
     phd = PhysicalData()
     fc_syst = FuelCellSystem(phd)
 
-    # Fuel cell test
-    #----------------------------------------------------------------------
-    altp = unit.m_ft(10000)
-    disa = 15
-    vair = unit.mps_kmph(200)
-
-    pamb, tamb, g = phd.atmosphere(altp, disa)
-
-    stack_power = unit.convert_from("kW", 50)
-    n_stack = 6
-
-    fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
-    fc_syst.print_design(graph=False)
-
-    req_power = unit.W_kW(80)
-
-    dict = fc_syst.operate_stacks(pamb, tamb, vair, req_power)
-    fc_syst.print_operate(dict)
+    # # Fuel cell test
+    # #----------------------------------------------------------------------
+    # altp = unit.m_ft(10000)
+    # disa = 15
+    # vair = unit.mps_kmph(200)
+    #
+    # pamb, tamb, g = phd.atmosphere(altp, disa)
+    #
+    # stack_power = unit.convert_from("kW", 50)
+    # n_stack = 6
+    #
+    # fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    # fc_syst.print_design(graph=False)
+    #
+    # req_power = unit.W_kW(80)
+    #
+    # dict = fc_syst.operate_stacks(pamb, tamb, vair, req_power)
+    # fc_syst.print_operate(dict)
 
 
     # # heatsink test
@@ -1134,6 +1137,52 @@ if __name__ == '__main__':
     #
     # dict_rad = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
     # fc_syst.heatsink.print_operate(dict_rad)
+
+
+
+    wing_aspect_ratio = 13
+    wing_area = 42
+
+    fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
+
+    fluid_temp_in = 273.15 + 65
+
+    disa = 15
+    air_speed = np.linspace(100, 300, 10)
+    altitude = np.linspace(0, 10000, 10)
+    X, Y = np.meshgrid(air_speed, altitude)
+
+    heat_extracted = []
+    for x,y in zip(X.flatten(),Y.flatten()):
+        vair = unit.convert_from("km/h", x)
+        altp = unit.convert_from("ft", y)
+        pamb, tamb, g = phd.atmosphere(altp, disa)
+
+        dict = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
+
+        heat_extracted.append(dict["pw_heat"]/1000)
+
+    # convert to numpy array with good shape
+    heat_extracted = np.array(heat_extracted)
+    heat_extracted = heat_extracted.reshape(np.shape(X))
+
+    print("")
+    # Plot contour
+    cs = plt.contourf(X, Y, heat_extracted, cmap=plt.get_cmap("Greens"), levels=20)
+
+
+    plt.colorbar(cs, label=r"Heat balance")
+    plt.grid(True)
+
+    plt.suptitle("Heat extracted (kW)")
+    plt.xlabel("Air speed (km/h)")
+    plt.ylabel("Altitude (ft)")
+
+    plt.show()
+
+
+
+
 
 
     # # full test
@@ -1171,3 +1220,74 @@ if __name__ == '__main__':
     #
     # print("")
     # print("Heat power balance = ", "%.2f"%unit.convert_to("kW",dict["system"]["thermal_balance"]), " kW")
+
+
+    # # Airplane coupling mini test
+    # #----------------------------------------------------------------------
+    # wing_aspect_ratio = 13
+    # wing_area = 42
+    #
+    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
+    #
+    # altp = unit.m_ft(10000)
+    # disa = 15
+    # pamb, tamb, g = phd.atmosphere(altp, disa)
+    #
+    # vair = unit.mps_kmph(200)
+    # stack_power = unit.convert_from("kW", 50)
+    # n_stack = 6
+    #
+    # fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    #
+    #
+    # lod = 17.5
+    # eff = 0.82
+    # mass = 4500
+    # g = 9.81
+    #
+    # req_power = unit.W_kW(80)
+    # disa = 25
+    # air_speed = np.linspace(100, 300, 10)
+    # altitude = np.linspace(0, 10000, 10)
+    # X, Y = np.meshgrid(air_speed, altitude)
+    #
+    # heat_balance = []
+    # for x,y in zip(X.flatten(),Y.flatten()):
+    #     vair = unit.convert_from("km/h", x)
+    #     altp = unit.convert_from("ft", y)
+    #     pamb, tamb, g = phd.atmosphere(altp, disa)
+    #
+    #     fn = mass * g / lod
+    #     pw = fn * vair / eff
+    #     req_power = pw / 2
+    #     dict = fc_syst.operate(pamb, tamb, vair, req_power)
+    #
+    #     heat_balance.append(dict["system"]["thermal_balance"])
+    #
+    # # convert to numpy array with good shape
+    # heat_balance = np.array(heat_balance)
+    # heat_balance = heat_balance.reshape(np.shape(X))
+    #
+    # print("")
+    # # Plot contour
+    # cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
+    #
+    # # Plot limit
+    # color = 'yellow'
+    # c_c = plt.contour(X, Y, heat_balance, levels=[0], colors =[color], linewidths=2)
+    # c_h = plt.contourf(X, Y, heat_balance, levels=[-100000,0], linewidths=2, colors='none', hatches=['//'])
+    # for c in c_h.collections:
+    #     c.set_edgecolor(color)
+    #
+    # plt.colorbar(cs, label=r"Heat balance")
+    # plt.grid(True)
+    #
+    # plt.suptitle("Heat balance")
+    # plt.xlabel("Air speed (km/h)")
+    # plt.ylabel("Altitude (ft)")
+    #
+    # plt.show()
+
+
+
+
