@@ -34,7 +34,9 @@ class FuelCellSystem(object):
         self.h2_heater = HydrogenHeater(self)
         self.stack = FuelCellPEMLT(self)
         self.power_elec = PowerElectronics(self)
-        self.dissipator = WingSkinDissipator(self)
+        self.heatsink = WingSkinheatsink(self)
+
+        self.miscellaneous_req_power = 1000     # Power allowance for varius systems, including heatsink pump
 
     def run_fc_system(self, pamb, tamb, vair, total_jj, nc=None):
         jj = total_jj / self.n_stack
@@ -67,7 +69,7 @@ class FuelCellSystem(object):
 
         # System level data
         total_heat_power = fc_dict["pw_extracted"] * self.n_stack + pc_dict["pw_extracted"] + pe_dict["pw_extracted"] - ht_dict["pw_absorbed"]
-        pw_util = pe_dict["pw_output"] - cp_dict["pw_input"]
+        pw_util = pe_dict["pw_output"] - cp_dict["pw_input"] - self.miscellaneous_req_power
 
         fc_system = {"pw_output": pw_util,
                      "pwe_effective":fc_dict["pw_output"] * self.n_stack,
@@ -89,7 +91,18 @@ class FuelCellSystem(object):
                 "precooler":pc_dict}
 
     def operate(self, pamb, tamb, vair, pw_req):
+        """Full operation method, including stack system and heatsink
+        """
+        dict = self.operate_stacks(pamb, tamb, vair, pw_req)
+        input_temp = self.stack.working_temperature
+        hs_dict = self.heatsink.operate(pamb, tamb, vair, input_temp)
+        dict["heatsink"] = hs_dict
+        dict["system"]["thermal_balance"] = hs_dict["pw_heat"] - dict["system"]["pw_extracted"]
+        return dict
 
+    def operate_stacks(self, pamb, tamb, vair, pw_req):
+        """Operate stack system only
+        """
         def fct(jj):
             dict = self.run_fc_system(pamb, tamb,vair, jj)
             return pw_req - dict["system"]["pw_output"]
@@ -424,7 +437,7 @@ class FuelCellPEMLT(object):
         self.cell_area = unit.convert_from("cm2", 625)              # m2
         self.max_current_density = 4./unit.convert_from("cm2",1)    # A/m2
         self.cell_entry_total_pressure = unit.convert_from("bar", 1.5)    # Gas pressure at electrode entry
-        self.working_temperature = 273.15 + 75                      # Cell working temperature
+        self.working_temperature = 273.15 + 65                      # Cell working temperature
         self.air_over_feeding = 2                                   # air flow ratio over stoechiometry
         self.power_margin = 0.8                                     # Ratio allowed power over max power
         self.heat_washout_factor = 0.12                             # Fraction of heat washed out by the air flow across the stack
@@ -763,7 +776,7 @@ class PowerElectronics(object):
 
 
 
-class WingSkinDissipator(object):
+class WingSkinheatsink(object):
 
     def __init__(self, fc_system):
         self.fc_system = fc_system
@@ -778,6 +791,9 @@ class WingSkinDissipator(object):
 
         self.x_te_lattice = 0.80/ref_wing_chord     # Trailing edge lattice starts at 0% of the chord
         self.dx_te_lattice = 0.70/ref_wing_chord    # Trailing edge lattive chord extension
+
+        self.max_delta_temp = 5         # K, Maximum temperature drop between input and output
+        self.nominal_fluid_speed = 1.2  # m/s, Nominal fluid speed in the tubes
 
         self.pump_efficiency = 0.80
         self.fluid_factor = 1.15        # Factor on fluid mass for piping
@@ -809,8 +825,10 @@ class WingSkinDissipator(object):
 
         self.mass =  self.web_tube_mass * self.tube_factor + self.web_fluid_mass * self.fluid_factor
 
-    def operate(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
+    def operate(self, pamb, tamb, air_speed, fluid_temp_in):
         # Both circuits are working in parallel, flows are blended at the end
+        fluid_temp_out = fluid_temp_in - self.max_delta_temp    # initial guess, final temperature is recomputed
+        fluid_speed = self.nominal_fluid_speed
         dict_le = self.circuit_le.operate(pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out)
         dict_te = self.circuit_te.operate(pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out)
         temp_out =   (dict_le["flow"]*dict_le["temp_out"] + dict_te["flow"]*dict_te["temp_out"]) / (dict_le["flow"] + dict_te["flow"])
@@ -831,23 +849,23 @@ class WingSkinDissipator(object):
 
     def print_design(self):
         print("")
-        print("Wing skin system dissipator design data")
+        print("Wing skin system heatsink design data")
         print("=========================================================================")
         print("Web tube mass = ", "%.1f"%self.web_tube_mass, " kg")
         print("Web fluid mass = ", "%.1f"%self.web_fluid_mass, " kg")
         print("Total mass = ", "%.1f"%self.mass, " kg")
         print("")
-        print("Wing skin system dissipator Leading edge design data")
+        print("Wing skin system heatsink Leading edge design data")
         print("=========================================================================")
         self.circuit_le.print_design()
         print("")
-        print("Wing skin system dissipator Trailing edge design data")
+        print("Wing skin system heatsink Trailing edge design data")
         print("=========================================================================")
         self.circuit_te.print_design()
 
     def print_operate(self, dict):
         print("")
-        print("Wing skin system dissipator working data")
+        print("Wing skin system heatsink working data")
         print("=========================================================================")
         print("Fluid output temperature = ", "%.2f"%dict["temp_out"], " °K")
         print("Fluid delta temperature = ", "%.2f"%(dict["temp_in"]-dict["temp_out"]), " °K")
@@ -858,11 +876,11 @@ class WingSkinDissipator(object):
         print("Fluid flow power = ", "%.0f"%(dict["pw_drop"]), " W")
         print("Pump electrical power = ", "%.0f"%dict["pw_input"], " W")
         print("")
-        print("Wing skin system dissipator Leading edge working data")
+        print("Wing skin system heatsink Leading edge working data")
         print("=========================================================================")
         self.circuit_le.print_operate(dict["le_data"])
         print("")
-        print("Wing skin system dissipator Trailing edge working data")
+        print("Wing skin system heatsink Trailing edge working data")
         print("=========================================================================")
         self.circuit_te.print_operate(dict["te_data"])
 
@@ -943,7 +961,8 @@ class WingSkinCircuit(object):
         if self.tube_height<0.5*self.tube_width:
             raise Exception("Tube height 'ht' cannot be lower than half tube width 'wt'")
         self.tube_section = 0.125*np.pi*self.tube_width**2 + (self.tube_height-0.5*self.tube_width)*self.tube_width      # Tube section
-        rho_f, cp_f, mu_f, lbd_f = self.fc_system.phd.fluid_data(tamb, fluid="water_mp30")
+        temp = self.fc_system.stack.working_temperature
+        rho_f, cp_f, mu_f, lbd_f = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
 
         tube_prm = 0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + self.tube_width    # Tube perimeter
         self.tube_hydro_width = 4 * self.tube_section / tube_prm             # Hydrolic section
@@ -1012,7 +1031,7 @@ class WingSkinCircuit(object):
 
     def print_design(self):
         print("")
-        print("Wing skin dissipator design data")
+        print("Wing skin heatsink design data")
         print("----------------------------------------------------------")
         print("Tube width = ", "%.2f"%unit.convert_to("mm",self.tube_width), " mm")
         print("Tube height = ", "%.2f"%unit.convert_to("mm",self.tube_height), " mm")
@@ -1038,7 +1057,7 @@ class WingSkinCircuit(object):
 
     def print_operate(self, dict):
         print("")
-        print("Wing skin dissipator working data")
+        print("Wing skin heatsink working data")
         print("----------------------------------------------------------")
         print("Fluid input temperature = ", "%.2f"%dict["temp_in"], " °K")
         print("Fluid output temperature = ", "%.2f"%dict["temp_out"], " °K")
@@ -1075,7 +1094,6 @@ class WingSkinCircuit(object):
 if __name__ == '__main__':
 
     phd = PhysicalData()
-
     fc_syst = FuelCellSystem(phd)
 
     # Fuel cell test
@@ -1094,29 +1112,62 @@ if __name__ == '__main__':
 
     req_power = unit.W_kW(80)
 
-    dict = fc_syst.operate(pamb, tamb, vair, req_power)
+    dict = fc_syst.operate_stacks(pamb, tamb, vair, req_power)
     fc_syst.print_operate(dict)
 
 
-    # Dissipator test
-    #----------------------------------------------------------------------
-    altp = unit.m_ft(10000)
-    disa = 15
-    vair = unit.mps_kmph(200)
-
-    pamb, tamb, g = phd.atmosphere(altp, disa)
-
-    fluid_speed = 2. # m/s
-    fluid_temp_in = 273.15 + 65
-    fluid_temp_out = 273.15 + 60    # Initial value
-
-    wing_aspect_ratio = 13
-    wing_area = 42
-
-    fc_syst.dissipator.design(wing_aspect_ratio, wing_area)
-    fc_syst.dissipator.print_design()
-
-    dict_rad = fc_syst.dissipator.operate(pamb, tamb, vair, fluid_speed, fluid_temp_in, fluid_temp_out)
-    fc_syst.dissipator.print_operate(dict_rad)
+    # # heatsink test
+    # #----------------------------------------------------------------------
+    # altp = unit.m_ft(10000)
+    # disa = 15
+    # vair = unit.mps_kmph(200)
+    #
+    # pamb, tamb, g = phd.atmosphere(altp, disa)
+    #
+    # fluid_temp_in = 273.15 + 65
+    #
+    # wing_aspect_ratio = 13
+    # wing_area = 42
+    #
+    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)
+    # fc_syst.heatsink.print_design()
+    #
+    # dict_rad = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
+    # fc_syst.heatsink.print_operate(dict_rad)
 
 
+    # # full test
+    # #----------------------------------------------------------------------
+    # wing_aspect_ratio = 13
+    # wing_area = 42
+    #
+    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
+    #
+    # altp = unit.m_ft(10000)
+    # disa = 15
+    # pamb, tamb, g = phd.atmosphere(altp, disa)
+    #
+    # vair = unit.mps_kmph(200)
+    # stack_power = unit.convert_from("kW", 50)
+    # n_stack = 6
+    #
+    # fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    #
+    # vair = unit.mps_kmph(200)
+    #
+    # # lod = 17.5
+    # # eff = 0.82
+    # # mass = 4000
+    # # g = 9.81
+    # # fn = mass*g/lod
+    # # pw = fn*vair/eff
+    # # pw_1e = pw/2
+    # # print("Req flight power, 1 engine = " "%.1f"%(pw_1e/1000), " kW")
+    # # req_power = pw_1e
+    #
+    # req_power = unit.W_kW(80)
+    #
+    # dict = fc_syst.operate(pamb, tamb, vair, req_power)
+    #
+    # print("")
+    # print("Heat power balance = ", "%.2f"%unit.convert_to("kW",dict["system"]["thermal_balance"]), " kW")

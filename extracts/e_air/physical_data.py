@@ -126,7 +126,7 @@ class PhysicalData(object):
         return re
 
     def air_thermal_transfer_data(self, pamb,tamb,air_speed, x):
-        """Thermal transfert factor for turbulent air flow
+        """Thermal transfert factor assuming turbulent air flow
         """
         r,gam,cp,cv = self.gas_data()
         rho = self.gas_density(pamb,tamb)
@@ -135,7 +135,7 @@ class PhysicalData(object):
         pr = mu / (alpha * rho)                         # Prandtl number
         re = rho * air_speed / mu                       # Reynolds number
         if (re*x)<1.e8 and 0.6<pr and pr<60.:
-            nu = 0.0296 * (re*x)**(4/5) * pr**(1/3)     # Nusselt number
+            nu = 0.0296 * (re*x)**(4/5) * pr**(1/3)     # Nusselt number, turbulent flow
         else:
             print("Re = ", re*x, "  Pr = ", pr)
             raise Exception("Re or Pr are not in the valid domain")
