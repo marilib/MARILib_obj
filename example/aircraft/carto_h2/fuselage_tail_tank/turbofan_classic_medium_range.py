@@ -35,7 +35,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A320-200neo"
 n_pax_ref = 150
-design_range = unit.m_NM(3000.)
+#design_range = unit.m_NM(3000.)
+design_range = unit.m_NM(2250.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
@@ -84,13 +85,36 @@ ac.airframe.horizontal_stab.volume_factor = 0.94
 ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
-ac.airframe.tank.volumetric_index = 0.85
-ac.airframe.tank.gravimetric_index = 0.1
+ac.airframe.tank.volumetric_index = 0.845
+ac.airframe.tank.gravimetric_index = 0.6
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-ac.power_system.reference_thrust = unit.N_kN(120.33)
-ac.airframe.wing.area = 124.5
+#ac.power_system.reference_thrust = unit.N_kN(120.33)
+#ac.airframe.wing.area = 124.5
+
+#design_range = unit.m_NM(1000.)
+#ac.airframe.tank.volumetric_index = 0.606
+#ac.airframe.tank.gravimetric_index = 0.1
+#ac.power_system.reference_thrust = unit.N_kN(206)
+#ac.airframe.wing.area = 288.7
+
+#design_range = unit.m_NM(1900)
+#ac.airframe.tank.volumetric_index = 0.845
+#ac.airframe.tank.gravimetric_index = 0.3
+#ac.power_system.reference_thrust = unit.N_kN(121)
+#ac.airframe.wing.area = 164
+
+"""Même avec un indice gravimétrique de 0.6, on ne peut pas dépasser un range de 2250 NM à cause de l'allongement du fuselage car 
+ on atteint le facteur de forme (indice de saucisse longeur/largeur du fuselage) limite de l'A240-600 d'environ 13.4"""
+#design_range = unit.m_NM(2250)
+#ac.airframe.tank.volumetric_index = 0.845
+#ac.airframe.tank.gravimetric_index = 0.6
+#ac.power_system.reference_thrust = unit.N_kN(103.3)
+#ac.airframe.wing.area = 131.9
+
+ac.power_system.reference_thrust = unit.N_kN(103.3)
+ac.airframe.wing.area = 131.9
 
 ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
@@ -106,7 +130,7 @@ elif proc=="mda_plus":
 
 print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
 print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
-
+print("length/height = %0.2f" %(ac.airframe.body.length/ac.airframe.body.height) )
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -123,6 +147,7 @@ cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.t
        "aircraft.performance.mcr_ceiling.vz_eff - aircraft.performance.mcr_ceiling.vz_req",
        "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
        "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff",
+       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total",
        "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total"]
 
 # Magnitude used to scale constraints
@@ -160,8 +185,8 @@ ac.draw.payload_range("This_plot")                      # Draw a payload range d
 
 # Configure design space exploration
 # ---------------------------------------------------------------------------------------------------------------------
-step = [0.05,
-        0.05]    # Relative grid step
+step = [0.1,
+        0.1]    # Relative grid step
 
 data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["Wing_area", "m2", "%8.1f", var[1]],
