@@ -34,12 +34,16 @@ class FuelCellSystem(object):
         self.air_scoop = PitotScoop(self)
         self.compressor = AirCompressor(self)
         self.precooler = AirPreCooler(self)
-        self.h2_heater = HydrogenHeater(self)
-        self.stack = FuelCellPEMLT(self)
+        self.h2_heater = HydrogenHeater(self)       # For LH2 only, GH2 version To Be Done
+        self.stack = FuelCellPEMLT(self)            # PEMHT To Be Done
         self.power_elec = PowerElectronics(self)
-        self.heatsink = WingSkinheatsink(self)
+        self.heatsink = WingSkinheatsink(self)      # Oil fluid To Be Added, Compact version To Be Done
+        self.tank = None                            # Tank To Be Done
 
         self.miscellaneous_req_power = 1000     # Power allowance for varius systems, including heatsink pump
+
+        self.volume_allocation = None
+        self.mass = None
 
     def run_fc_system(self, pamb, tamb, vair, total_jj, nc=None):
         jj = total_jj / self.n_stack
@@ -47,7 +51,7 @@ class FuelCellSystem(object):
         # Fuel cell stack
         fc_dict = self.stack.run_fuel_cell(jj, nc=nc)
 
-        # Heater
+        # LH2 heater
         h2_flow = fc_dict["h2_flow"] * self.n_stack
         temp_out = self.stack.working_temperature
         ht_dict = self.h2_heater.operate(h2_flow, temp_out)
@@ -89,7 +93,7 @@ class FuelCellSystem(object):
                 "power_elec":pe_dict,
                 "stack":fc_dict,
                 "h2_heater":ht_dict,
-                "scoop":sc_dict,
+                "air_scoop":sc_dict,
                 "compressor":cp_dict,
                 "precooler":pc_dict}
 
@@ -128,11 +132,8 @@ class FuelCellSystem(object):
         req_system_power = req_stack_power * n_stack
         self.power_elec.design(req_system_power)
 
-        # Precooler design
-        self.precooler.design()
-
-        # Hydrogen heater design
-        self.h2_heater.design()
+        # Hydrogen heater pre-design
+        self.h2_heater.design(0)
 
         self.stack.eval_cell_max_power()            # Max power corresponds to self.stack.power_margin of effective max power
         
@@ -161,9 +162,29 @@ class FuelCellSystem(object):
         p_ratio = dict["compressor"]["p_ratio"]
         self.compressor.design(tt_in, p_ratio, air_flow)
 
+        # Precooler design
+        self.precooler.design(dict["precooler"]["pw_extracted"])
+
+        # Hydrogen heater design
+        self.h2_heater.design(dict["h2_heater"]["pw_absorbed"])
+
         # Stack design
         fc_req_power = dict["stack"]["pw_output"]
         self.stack.design(fc_req_power)
+
+        # System level
+        self.volume_allocation =  self.stack.volume_allocation * self.n_stack \
+                                + self.air_scoop.volume_allocation \
+                                + self.compressor.volume_allocation \
+                                + self.precooler.volume_allocation \
+                                + self.h2_heater.volume_allocation \
+                                + self.power_elec.volume_allocation
+        self.mass =  self.stack.mass * self.n_stack \
+                   + self.air_scoop.mass \
+                   + self.compressor.mass \
+                   + self.precooler.mass \
+                   + self.h2_heater.mass \
+                   + self.power_elec.mass
 
     def print_design(self, graph=False):
         print("")
@@ -192,7 +213,7 @@ class FuelCellSystem(object):
         print("Voltage = ", "%.1f"%(dict["system"]["voltage"]), " V")
         print("Current = ", "%.1f"%(dict["system"]["current"]), " A")
 
-        self.air_scoop.print_operate(dict["scoop"])
+        self.air_scoop.print_operate(dict["air_scoop"])
         self.compressor.print_operate(dict["compressor"])
         self.precooler.print_operate(dict["precooler"])
         self.h2_heater.print_operate(dict["h2_heater"])
@@ -209,7 +230,7 @@ class PitotScoop(object):
         self.diameter = None
         self.design_drag = None
 
-        self.volume = np.nan
+        self.volume_allocation = np.nan
         self.mass = np.nan
 
     def operate(self, pamb, tamb, vair, air_flow):
@@ -234,6 +255,8 @@ class PitotScoop(object):
         sec = air_flow / (rho*vair)
         self.diameter = np.sqrt(4*sec/np.pi)
         self.design_drag = air_flow * vair
+        self.mass = 2   # Scoop & pipe
+        self.volume_allocation = 0
 
     def print_design(self):
         print("")
@@ -242,7 +265,7 @@ class PitotScoop(object):
         print("Pitot diameter = ", "%.2f"%unit.convert_to("cm",self.diameter), " cm")
         print("Design drag = ", "%.2f"%unit.convert_to("daN",self.design_drag), " daN")
         print("")
-        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume), " dm3")
+        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume_allocation), " dm3")
         print("Mass = ", "%.1f"%self.mass, " kg")
 
     def print_operate(self, dict):
@@ -269,17 +292,22 @@ class HydrogenHeater(object):
         self.h2_specific_heat = unit.convert_from("kJ",14.3)    # J/kg, H2 specific heat, supposed constant above 273 kelvin
         self.h2_integral_heat = unit.convert_from("kJ",3100)    # J/kg, heat to warm 1 kg of gazeous hydrogen from 20.3 K to 273.15 K
 
+        self.gravimetric_index = unit.convert_from("kW", 5)     # kW/kg, Thermal power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
+
         self.h2_heat_liq2zero = None            # J/kg Amount of heat to bring 1kg of liquid H2 to 0°C
 
-        self.volume = None
+        self.design_thermal_power = None
+        self.volume_allocation = None
         self.mass = None
 
-    def design(self):
+    def design(self, pw_thermal):
         self.h2_heat_liq2zero =  self.h2_ortho_ratio * self.h2_orth_para_heat \
                                + self.h2_vap_latent_heat \
                                + self.h2_integral_heat
-        self.volume = np.nan
-        self.mass = np.nan
+        self.design_thermal_power = pw_thermal
+        self.volume_allocation = pw_thermal / self.volumetric_index
+        self.mass = pw_thermal / self.gravimetric_index
 
     def operate(self, h2_flow, temp_out):
         if temp_out<273.15:
@@ -295,7 +323,7 @@ class HydrogenHeater(object):
         print("----------------------------------------------------------")
         print("Liquid to 0°C specific heat = ", "%.2f"%unit.convert_to("kJ",self.h2_heat_liq2zero), " kJ/kg")
         print("")
-        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume), " dm3")
+        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume_allocation), " dm3")
         print("Mass = ", "%.1f"%self.mass, " kg")
 
     def print_operate(self, dict):
@@ -317,12 +345,17 @@ class AirPreCooler(object):
 
         self.air_specific_heat = cp     # J/kg, Air specific heat
 
-        self.volume = None
+        self.gravimetric_index = unit.convert_from("kW", 5)     # kW/kg, Thermal power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
+
+        self.design_thermal_power = None
+        self.volume_allocation = None
         self.mass = None
 
-    def design(self):
-        self.volume = np.nan
-        self.mass = np.nan
+    def design(self, pw_thermal):
+        self.design_thermal_power = pw_thermal
+        self.volume_allocation = pw_thermal / self.volumetric_index
+        self.mass = pw_thermal / self.gravimetric_index
 
     def operate(self, air_flow, temp_in, temp_out):
         pw_extracted = self.air_specific_heat * (temp_in - temp_out) * air_flow
@@ -335,7 +368,7 @@ class AirPreCooler(object):
         print("")
         print("Precooler design characteristics")
         print("----------------------------------------------------------")
-        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume), " dm3")
+        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume_allocation), " dm3")
         print("Mass = ", "%.1f"%self.mass, " kg")
 
     def print_operate(self, dict):
@@ -360,13 +393,16 @@ class AirCompressor(object):
         self.mechanical_efficiency = 0.9
         self.electrical_efficiency = 0.85
 
+        self.gravimetric_index = unit.convert_from("kW", 5)     # kW/kg, Compression power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Compression power manageable per Liter of heater system
+
         self.design_air_flow = None
         self.design_p_ratio = None
         self.design_shaft_power = None
         self.design_elec_power = None
 
-        self.volume = np.nan
-        self.mass = np.nan
+        self.volume_allocation = None
+        self.mass = None
 
     def operate(self, pt_in, tt_in, air_flow):
         """WARNING : compressor operation is independent from design point
@@ -404,6 +440,9 @@ class AirCompressor(object):
         self.design_shaft_power = real_power / self.mechanical_efficiency
         self.design_elec_power = self.design_shaft_power / self.electrical_efficiency
 
+        self.volume_allocation = self.design_shaft_power / self.volumetric_index
+        self.mass = self.design_shaft_power / self.gravimetric_index
+
     def print_design(self):
         print("")
         print("Compressor design characteristics")
@@ -417,7 +456,7 @@ class AirCompressor(object):
         print("Design shaft power = ", "%.2f"%unit.convert_to("kW",self.design_shaft_power), " kW")
         print("Design electric power = ", "%.2f"%unit.convert_to("kW",self.design_elec_power), " kW")
         print("")
-        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume), " dm3")
+        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume_allocation), " dm3")
         print("Mass = ", "%.1f"%self.mass, " kg")
 
     def print_operate(self, dict):
@@ -445,8 +484,8 @@ class FuelCellPEMLT(object):
         self.power_margin = 0.8                                     # Ratio allowed power over max power
         self.heat_washout_factor = 0.12                             # Fraction of heat washed out by the air flow across the stack
 
-        self.bip_thickness = unit.convert_from("cm",0.65)           # Thickness of one bipolar plate
-        self.end_plate_thickness = unit.convert_from("cm",1.15)     # Thickness of one stack end plate
+        self.gravimetric_index = unit.convert_from("kW", 5)     # kW/kg, Electric power produced per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Electric power produced per Liter of heater system
 
         self.cell_max_power = None          # Max power for one single cell
         self.cell_max_current = None
@@ -462,7 +501,7 @@ class FuelCellPEMLT(object):
         self.nominal_h2_flow = None
         self.nominal_air_flow = None
 
-        self.volume = None
+        self.volume_allocation = None
         self.mass = None
 
         self.h2_molar_mass = unit.convert_from("g", 2.01588)    # kg/mol
@@ -642,19 +681,9 @@ class FuelCellPEMLT(object):
         self.power_max = self.cell_max_power * self.n_cell          # Get effective max power"
         dict = self.operate(self.power_max)                         # Run the stack for maximum power
 
-        # tightening fuel cell mass calculation
-        end_plate_area = 2 * self.cell_area
-        end_plate_volume = 2 * end_plate_area * self.end_plate_thickness
-        end_plate_mass = 2.7e-9 * end_plate_volume
-
-        # bipolar fuel cell mass calculation
-        n_bip = self.n_cell + 1                             # Number of bipolar plate
-        bip_area = 1.7e-4 * self.cell_area
-        bip_volume = self.bip_thickness * bip_area * n_bip
-        bip_effective_volume = 0.666 * bip_volume
-        bip_mass = bip_effective_volume * 1.89e-9
-        self.mass = bip_mass + end_plate_mass               # To be confirmed
-        self.volume = np.nan
+        # Mass & Volume calculation
+        self.mass = self.power_max / self.gravimetric_index
+        self.volume_allocation = self.power_max / self.volumetric_index
 
         self.nominal_thermal_power = dict["pw_extracted"]
         self.nominal_voltage = dict["voltage"]
@@ -684,7 +713,7 @@ class FuelCellPEMLT(object):
         print("Stack maximum hydrogen mass flow = ", "%.2f"%(self.nominal_h2_flow*1000), " g/s")
         print("Stack maximum stack efficiency = ", "%.3f"%self.nominal_efficiency)
         print("")
-        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume), " dm3")
+        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume_allocation), " dm3")
         print("Mass = ", "%.1f"%self.mass, " kg")
 
         if graph:
@@ -788,6 +817,8 @@ class WingSkinheatsink(object):
         self.circuit_te = WingSkinCircuit(fc_system)
 
         ref_wing_chord = 2
+        self.wing_area = None
+        self.wing_chord = None
 
         self.x_le_lattice = 0.00/ref_wing_chord     # Leading edge lattice starts at 0% of the chord
         self.dx_le_lattice = 0.52/ref_wing_chord    # Leading edge lattive chord extension
@@ -806,19 +837,22 @@ class WingSkinheatsink(object):
         self.web_fluid_mass = None
         self.mass = None
 
-    def design(self, wing_aspect_ratio, wing_area):
+        self.volume_allocation = 0.2/unit.convert_from("L", 1)   # kg/s/L, Amount of fluid flow manageable in 1 Liter, WARNING : account only for what is inside the nacelle
+
+    def design(self, wing_aspect_ratio, wing_area, fluid_flow):
         """Coolent circuit geometry for a rectangular wing
         """
         wing_span = np.sqrt(wing_area*wing_aspect_ratio)
-        wing_chord = wing_area / wing_span
+        self.wing_chord = wing_area / wing_span
+        self.wing_area = wing_area
 
         available_span = (wing_span - 2) / 2
 
-        x_le_lattice = self.x_le_lattice * wing_chord
-        dx_le_lattice = self.dx_le_lattice * wing_chord
+        x_le_lattice = self.x_le_lattice * self.wing_chord
+        dx_le_lattice = self.dx_le_lattice * self.wing_chord
 
-        x_te_lattice = self.x_te_lattice * wing_chord
-        dx_te_lattice = self.dx_te_lattice * wing_chord
+        x_te_lattice = self.x_te_lattice * self.wing_chord
+        dx_te_lattice = self.dx_te_lattice * self.wing_chord
 
         self.circuit_le.design(available_span, x_le_lattice, dx_le_lattice)
         self.circuit_te.design(available_span, x_te_lattice, dx_te_lattice)
@@ -827,6 +861,7 @@ class WingSkinheatsink(object):
         self.web_fluid_mass = self.circuit_le.tube_fluid_mass + self.circuit_te.tube_fluid_mass
 
         self.mass =  self.web_tube_mass * self.tube_factor + self.web_fluid_mass * self.fluid_factor
+        self.volume_allocation = 0
 
     def operate(self, pamb, tamb, air_speed, fluid_temp_in):
         # Both circuits are working in parallel, flows are blended at the end
@@ -872,7 +907,7 @@ class WingSkinheatsink(object):
         print("=========================================================================")
         print("Fluid output temperature = ", "%.2f"%dict["temp_out"], " °K")
         print("Fluid delta temperature = ", "%.2f"%(dict["temp_in"]-dict["temp_out"]), " °K")
-        print("Dissipated heat power = ", "%.2f"%unit.convert_to("kW",dict["pw_heat"]), " kW")
+        print("Dissipated heat power = ", "%.6f"%unit.convert_to("kW",dict["pw_heat"]), " kW")
         print("")
         print("Fluid mass flow = ", "%.2f"%(dict["flow"]*1000), " g/s")
         print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict["p_drop"]), " bar")
@@ -909,7 +944,7 @@ class WingSkinCircuit(object):
         self.tube_width = unit.convert_from("mm",10)
         self.tube_height = unit.convert_from("mm",6)
         self.tube_thickness = unit.convert_from("mm",0.5)
-        self.tube_foot_width = unit.convert_from("mm",0.25)
+        self.tube_foot_width = unit.convert_from("mm",2.5)
         self.tube_footprint_width = None
 
         self.tube_count = None
@@ -932,6 +967,13 @@ class WingSkinCircuit(object):
         dp = 0.5 * cf * (tube_length/hydro_width) * rho * speed**2
         return dp
 
+    def integral_heat_transfer_v2(self, pamb,tamb,vair, x0, dx, chord):
+        aoa = 6 # deg
+        h, rho, cp, mu, pr, re, nu, lbd = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,vair, chord)
+        nu = 0.0943 * (0.75 + 0.017*aoa) * re**0.636 * pr**(1/3)
+        h_int = lbd * nu / chord
+        return h_int
+
     def integral_heat_transfer(self, pamb,tamb,vair, x0, dx, n):
         ea = dx / n     # Exchange area for one single tube (supposing tubes are adjacent
         x_int = x0
@@ -942,7 +984,6 @@ class WingSkinCircuit(object):
             h, rho, cp, mu, pr, re, nu, lbd = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,vair, x)
             x_int += ea
             h_int += h / n
-        x_mean = x0 + 0.5*dx
         return h_int
 
     def design(self, span, x_lattice, dx_lattice):
@@ -975,6 +1016,8 @@ class WingSkinCircuit(object):
                         * self.tube_thickness * self.tube_length * (2*self.tube_count) * self.tube_density
 
     def operate(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
+        # wing_chord = self.fc_system.heatsink.wing_chord
+        # ha_int = self.integral_heat_transfer_v2(pamb,tamb,air_speed, self.x_lattice, self.dx_lattice, wing_chord)
         ha_int = self.integral_heat_transfer(pamb,tamb,air_speed, self.x_lattice, self.dx_lattice, self.tube_count)
         ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,air_speed, self.mean_chord)
         temp = 0.5 * (fluid_temp_in + fluid_temp_out)
@@ -991,6 +1034,7 @@ class WingSkinCircuit(object):
 
         def fct(temp_out):
             q_fluid = fluid_flow * cpf * (fluid_temp_in - temp_out)
+            # q_out = ks * self.fc_system.heatsink.wing_area * (0.5*(fluid_temp_in + temp_out) - tamb)
             q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - temp_out) / np.log((temp_out-tamb)/(fluid_temp_in-tamb))
             return q_fluid-q_out
 
@@ -1000,6 +1044,7 @@ class WingSkinCircuit(object):
         fluid_temp_out = output_dict[0][0]
 
         q_fluid = fluid_flow * cpf * (fluid_temp_in - fluid_temp_out)
+        # q_out = ks * self.fc_system.heatsink.wing_area * (0.5*(fluid_temp_in + fluid_temp_out) - tamb)
         q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - fluid_temp_out) / np.log((fluid_temp_out-tamb)/(fluid_temp_in-tamb))
 
         temp = 0.5*(fluid_temp_in + fluid_temp_out)
@@ -1100,28 +1145,7 @@ if __name__ == '__main__':
     fc_syst = FuelCellSystem(phd)
 
 
-    # Fuel cell test
-    #----------------------------------------------------------------------
-    altp = unit.m_ft(10000)
-    disa = 15
-    vair = unit.mps_kmph(200)
-
-    pamb, tamb, g = phd.atmosphere(altp, disa)
-
-    stack_power = unit.convert_from("kW", 50)
-    n_stack = 6
-
-    fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
-    fc_syst.print_design(graph=False)
-
-    req_power = unit.W_kW(80)
-
-    dict = fc_syst.operate_stacks(pamb, tamb, vair, req_power)
-    fc_syst.print_operate(dict)
-
-
-
-    # # heatsink test
+    # # Fuel cell test
     # #----------------------------------------------------------------------
     # altp = unit.m_ft(10000)
     # disa = 15
@@ -1129,22 +1153,45 @@ if __name__ == '__main__':
     #
     # pamb, tamb, g = phd.atmosphere(altp, disa)
     #
-    # fluid_temp_in = 273.15 + 65
+    # stack_power = unit.convert_from("kW", 50)
+    # n_stack = 6
     #
-    # wing_aspect_ratio = 13
-    # wing_area = 42
+    # fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    # fc_syst.print_design(graph=False)
     #
-    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)
-    # fc_syst.heatsink.print_design()
+    # req_power = unit.W_kW(100)
     #
-    # dict_rad = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
-    # fc_syst.heatsink.print_operate(dict_rad)
+    # dict = fc_syst.operate_stacks(pamb, tamb, vair, req_power)
+    # fc_syst.print_operate(dict)
+
+
+
+    # heatsink test
+    #----------------------------------------------------------------------
+    altp = unit.m_ft(10000)
+    disa = 15
+    vair = unit.mps_kmph(200)
+
+    pamb, tamb, g = phd.atmosphere(altp, disa)
+
+    fluid_temp_in = 273.15 + 65
+
+    wing_aspect_ratio = 10
+    wing_area = 42
+
+    design_fluid_flow = 10  # kg/s
+
+    fc_syst.heatsink.design(wing_aspect_ratio, wing_area, design_fluid_flow)
+    fc_syst.heatsink.print_design()
+
+    dict_rad = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
+    fc_syst.heatsink.print_operate(dict_rad)
 
 
 
     # # heatsink plot test
     # #----------------------------------------------------------------------
-    # wing_aspect_ratio = 13
+    # wing_aspect_ratio = 10
     # wing_area = 42
     #
     # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
@@ -1175,11 +1222,11 @@ if __name__ == '__main__':
     # cs = plt.contourf(X, Y, heat_extracted, cmap=plt.get_cmap("Greens"), levels=20)
     #
     #
-    # plt.colorbar(cs, label=r"Heat balance")
+    # plt.colorbar(cs, label=r"Heat extracted (kW)")
     # plt.grid(True)
     #
-    # plt.suptitle("Heat extracted (kW)")
-    # plt.xlabel("Air speed (km/h)")
+    # plt.suptitle("Wing skin heatsink")
+    # plt.xlabel("True Air Speed (km/h)")
     # plt.ylabel("Altitude (ft)")
     #
     # plt.show()
@@ -1192,7 +1239,9 @@ if __name__ == '__main__':
     # wing_aspect_ratio = 13
     # wing_area = 42
     #
-    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
+    # total_fluid_flow = 10   # Max value
+    #
+    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area, total_fluid_flow)   # WARNING, not included in fc_syst.design
     #
     # altp = unit.m_ft(10000)
     # disa = 15
@@ -1206,15 +1255,15 @@ if __name__ == '__main__':
     #
     # vair = unit.mps_kmph(200)
     #
-    # # lod = 17.5
-    # # eff = 0.82
-    # # mass = 4000
-    # # g = 9.81
-    # # fn = mass*g/lod
-    # # pw = fn*vair/eff
-    # # pw_1e = pw/2
-    # # print("Req flight power, 1 engine = " "%.1f"%(pw_1e/1000), " kW")
-    # # req_power = pw_1e
+    # lod = 17.5
+    # eff = 0.82
+    # mass = 4000
+    # g = 9.81
+    # fn = mass*g/lod
+    # pw = fn*vair/eff
+    # pw_1e = pw/2
+    # print("Req flight power, 1 engine = " "%.1f"%(pw_1e/1000), " kW")
+    # req_power = pw_1e
     #
     # req_power = unit.W_kW(80)
     #
@@ -1226,7 +1275,7 @@ if __name__ == '__main__':
 
     # # Airplane coupling mini test
     # #----------------------------------------------------------------------
-    # wing_aspect_ratio = 13
+    # wing_aspect_ratio = 10
     # wing_area = 42
     #
     # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
@@ -1242,13 +1291,16 @@ if __name__ == '__main__':
     # fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
     #
     #
-    # lod = 17.5
+    # lod = 18
     # eff = 0.82
-    # mass = 4500
+    # mass = 6000
     # g = 9.81
     #
+    # fc_syst.stack.working_temperature = 273.15 + 95                      # Cell working temperature
+    #
+    #
     # req_power = unit.W_kW(80)
-    # disa = 25
+    # disa = 15
     # air_speed = np.linspace(100, 300, 10)
     # altitude = np.linspace(0, 10000, 10)
     # X, Y = np.meshgrid(air_speed, altitude)
@@ -1285,7 +1337,7 @@ if __name__ == '__main__':
     # plt.grid(True)
     #
     # plt.suptitle("Heat balance")
-    # plt.xlabel("Air speed (km/h)")
+    # plt.xlabel("True Air Speed (km/h)")
     # plt.ylabel("Altitude (ft)")
     #
     # plt.show()

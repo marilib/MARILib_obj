@@ -33,11 +33,10 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
-airplane_type = "A320-200neo"
-n_pax_ref = 150
-#design_range = unit.m_NM(3000.)
-design_range = unit.m_NM(2250.)
-cruise_mach = 0.78
+airplane_type = "A330-800"
+n_pax_ref = 320
+design_range = unit.m_NM(3000.)
+cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 
 
@@ -56,10 +55,14 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 # Operational requirements
 #-----------------------------------------------------------------------------------------------------------------------
 # Take off
-ac.requirement.take_off.tofl_req = 2300
+ac.requirement.take_off.altp = 0
+ac.requirement.take_off.disa = 15
+ac.requirement.take_off.tofl_req = 3200
 
 # Approach
-ac.requirement.approach.app_speed_req = unit.mps_kt(137)
+ac.requirement.approach.altp = 0
+ac.requirement.approach.disa = 0
+ac.requirement.approach.app_speed_req = unit.mps_kt(140)
 
 # Climb
 ac.requirement.mcl_ceiling.altp = cruise_altp
@@ -86,39 +89,41 @@ ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
 ac.airframe.tank.volumetric_index = 0.845
-ac.airframe.tank.gravimetric_index = 0.6
+ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-#ac.power_system.reference_thrust = unit.N_kN(120.33)
-#ac.airframe.wing.area = 124.5
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# n_pax_ref = 240
+# design_range = unit.m_NM(1310.)
+# ac.power_system.reference_thrust = unit.N_kN(430)
+# ac.airframe.wing.area = 681.5
+# fuselage ratio = 13.4  (limite à 13.4)
 
-#design_range = unit.m_NM(1000.)
-#ac.airframe.tank.volumetric_index = 0.606
-#ac.airframe.tank.gravimetric_index = 0.1
-#ac.power_system.reference_thrust = unit.N_kN(209)
-#ac.airframe.wing.area = 290
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# design_range = unit.m_NM(3000.)
+# ac.power_system.reference_thrust = unit.N_kN()
+# ac.airframe.wing.area =
+# fuselage ratio = 12.9  (limite à 13.4)
 
-#design_range = unit.m_NM(1900)
-#ac.airframe.tank.volumetric_index = 0.845
-#ac.airframe.tank.gravimetric_index = 0.3
-#ac.power_system.reference_thrust = unit.N_kN(121)
-#ac.airframe.wing.area = 164
+# gravimetric index = 0.60
+# volumetric_index = 0.845
+# design_range = unit.m_NM(3000.)
+# ac.power_system.reference_thrust = unit.N_kN(97.3)
+# ac.airframe.wing.area = 122.6
+# fuselage ratio = 12.2  (limite à 13.4)
 
-"""Même avec un indice gravimétrique de 0.6, on ne peut pas dépasser un range de 2250 NM à cause de l'allongement du fuselage car 
- on atteint le facteur de forme (indice de saucisse longeur/largeur du fuselage) limite de l'A240-600 d'environ 13.4"""
-#design_range = unit.m_NM(2250)
-#ac.airframe.tank.volumetric_index = 0.845
-#ac.airframe.tank.gravimetric_index = 0.6
-#ac.power_system.reference_thrust = unit.N_kN(103.3)
-#ac.airframe.wing.area = 131.9
+ac.airframe.cabin.n_pax_front = 8
 
-ac.power_system.reference_thrust = unit.N_kN(103.3)
-ac.airframe.wing.area = 131.9
+ac.power_system.reference_thrust = unit.N_kN(420)
+ac.airframe.wing.sweep25 = unit.rad_deg(30)
+ac.airframe.wing.aspect_ratio = 10
+ac.airframe.wing.area = 660
 
 ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
-
 
 
 proc = "mda_plus"
@@ -233,5 +238,4 @@ limit = [ac.requirement.take_off.tofl_req,
          ac.requirement.max_body_aspect_ratio]              # Limit values
 
 process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
-
 
