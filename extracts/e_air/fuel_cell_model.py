@@ -975,7 +975,7 @@ class WingSkinCircuit(object):
         return h_int
 
     def integral_heat_transfer(self, pamb,tamb,vair, x0, dx, n):
-        ea = dx / n     # Exchange area for one single tube (supposing tubes are adjacent
+        ea = dx / n     # Exchange length for one single tube (supposing tubes are adjacent
         x_int = x0
         h_int = 0
         x = 0
