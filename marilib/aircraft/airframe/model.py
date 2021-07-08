@@ -108,7 +108,10 @@ class Aerodynamics(object):
         cz_design = 0.5
         mach_div = self.aircraft.requirement.cruise_mach + (0.03 + 0.1*(cz_design-cz))
 
-        cxc = 0.0025 * np.exp(40.*(mach - mach_div) )
+        if 0.55 < mach:
+            cxc = 0.0025 * np.exp(40.*(mach - mach_div) )
+        else:
+            cxc = 0.
 
         # Sum up
         #-----------------------------------------------------------------------------------------------------------
