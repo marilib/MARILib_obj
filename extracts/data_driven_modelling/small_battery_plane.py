@@ -154,7 +154,7 @@ class SmallPlane(object):
         wrc,hrc,vrc,frl = [area/span, np.sqrt(ha/5), np.sqrt(va/1.7), 1.296*span -5.36]
         wwa,hwa,vwa,fwa = [1.7*wa, 1.9*ha, 2.0*va, 2.7*fa]
         lref = (wrc*wwa+hrc*hwa+vrc*vwa+frl*fwa) / (wwa+hwa+vwa+fwa)
-
+        print(wrc, lref)
         re = self.phd.reynolds_number(pamb,tamb,vtas)
         kre = (1/np.log(re*lref))**2.58
 
@@ -498,11 +498,12 @@ if __name__ == '__main__':
     spe.lod = 13
     spe.design_solver()
     print(spe)
-    #
+
     # wing_area = 11.75
     # wing_span = 9.27
     # spe.set_aero_data(wing_area, wing_span, unit.mps_kmph(87))
     # spe.get_aero_model(full_output=True)
+    #
     #
     # mass = spe.design["mtow"]
     # altp = 0

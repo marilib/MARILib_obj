@@ -827,7 +827,7 @@ class WingSkinheatsink(object):
         self.dx_te_lattice = 0.70/ref_wing_chord    # Trailing edge lattive chord extension
 
         self.max_delta_temp = 5         # K, Maximum temperature drop between input and output
-        self.nominal_fluid_speed = 1.2  # m/s, Nominal fluid speed in the tubes
+        self.nominal_fluid_speed = 1.6  # m/s, Nominal fluid speed in the tubes
 
         self.pump_efficiency = 0.80
         self.fluid_factor = 1.15        # Factor on fluid mass for piping
@@ -937,7 +937,7 @@ class WingSkinCircuit(object):
         self.mean_chord = None
 
         self.skin_thickness = unit.convert_from("mm",1.5)
-        self.skin_conduct = 237.        # W/m/K, Aluminium thermal conductivity
+        self.skin_conduct = 130.        # W/m/K, Aluminium thermal conductivity
         self.skin_exchange_area = None  # Exchange area with one tube
 
         self.tube_density = 2700        # Aluminium density
@@ -956,7 +956,7 @@ class WingSkinCircuit(object):
         self.tube_mass = None
         self.tube_fluid_mass = None
 
-    def pressure_drop(self,temp,speed,hydro_width,tube_length):
+    def pressure_drop(self, temp, speed, hydro_width, tube_length):
         """Pressure drop along a cylindrical tube
         """
         rho, cp, mu, lbd = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
@@ -967,21 +967,14 @@ class WingSkinCircuit(object):
         dp = 0.5 * cf * (tube_length/hydro_width) * rho * speed**2
         return dp
 
-    def integral_heat_transfer_v2(self, pamb,tamb,vair, x0, dx, chord):
-        aoa = 6 # deg
-        h, rho, cp, mu, pr, re, nu, lbd = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,vair, chord)
-        nu = 0.0943 * (0.75 + 0.017*aoa) * re**0.636 * pr**(1/3)
-        h_int = lbd * nu / chord
-        return h_int
-
-    def integral_heat_transfer(self, pamb,tamb,vair, x0, dx, n):
+    def integral_heat_transfer(self, pamb,tamb,fluid_temp,vair, x0, dx, n):
         ea = dx / n     # Exchange length for one single tube (supposing tubes are adjacent
         x_int = x0
         h_int = 0
         x = 0
         for j in range(int(n)):
             x = x_int + 0.5 * ea
-            h, rho, cp, mu, pr, re, nu, lbd = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,vair, x)
+            h, rho, cp, mu, pr, re, nu, lbd = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,fluid_temp,vair, x)
             x_int += ea
             h_int += h / n
         return h_int
@@ -1018,8 +1011,8 @@ class WingSkinCircuit(object):
     def operate(self, pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out):
         # wing_chord = self.fc_system.heatsink.wing_chord
         # ha_int = self.integral_heat_transfer_v2(pamb,tamb,air_speed, self.x_lattice, self.dx_lattice, wing_chord)
-        ha_int = self.integral_heat_transfer(pamb,tamb,air_speed, self.x_lattice, self.dx_lattice, self.tube_count)
-        ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,air_speed, self.mean_chord)
+        ha_int = self.integral_heat_transfer(pamb,tamb,fluid_temp_in,air_speed, self.x_lattice, self.dx_lattice, self.tube_count)
+        ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,fluid_temp_in,air_speed, self.mean_chord)
         temp = 0.5 * (fluid_temp_in + fluid_temp_out)
         hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(temp, fluid_speed, self.tube_hydro_width)
         kail = np.sqrt(hf * 2*self.tube_length * self.skin_conduct * 2*self.tube_thickness*self.tube_length)
@@ -1259,26 +1252,27 @@ if __name__ == '__main__':
 
 
 
-    # # heatsink test
-    # #----------------------------------------------------------------------
-    # altp = unit.m_ft(10000)
-    # disa = 15
-    # vair = unit.mps_kmph(200)
-    #
-    # pamb, tamb, g = phd.atmosphere(altp, disa)
-    #
-    # fluid_temp_in = 273.15 + 65
-    #
-    # wing_aspect_ratio = 10
-    # wing_area = 42
-    #
-    # design_fluid_flow = 10  # kg/s
-    #
-    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area, design_fluid_flow)
-    # fc_syst.heatsink.print_design()
-    #
-    # dict_rad = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
-    # fc_syst.heatsink.print_operate(dict_rad)
+    # heatsink test
+    #----------------------------------------------------------------------
+    altp = unit.m_ft(10000)
+    disa = 0
+    vair = unit.mps_kmph(200)
+
+    pamb, tamb, g = phd.atmosphere(altp, disa)
+
+    fluid_temp_in = 273.15 + 65
+
+    wing_aspect_ratio = 10
+    wing_area = 42
+
+    design_fluid_flow = 10  # kg/s
+
+    fc_syst.heatsink.design(wing_aspect_ratio, wing_area, design_fluid_flow)
+    fc_syst.heatsink.print_design()
+
+    dict_rad = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
+    fc_syst.heatsink.print_operate(dict_rad)
+
 
 
 
@@ -1434,7 +1428,4 @@ if __name__ == '__main__':
     # plt.ylabel("Altitude (ft)")
     #
     # plt.show()
-
-
-
 

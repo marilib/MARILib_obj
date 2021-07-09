@@ -125,12 +125,13 @@ class PhysicalData(object):
         re = rho*tas/mu
         return re
 
-    def air_thermal_transfer_data(self, pamb,tamb,air_speed, x):
+    def air_thermal_transfer_data(self, pamb,tamb,fluid_temp,air_speed, x):
         """Thermal transfert factor assuming turbulent air flow
         """
+        temp = 0.5*(tamb+fluid_temp)
         r,gam,cp,cv = self.gas_data()
-        rho = self.gas_density(pamb,tamb)
-        mu = self.air_viscosity(tamb)
+        rho = self.gas_density(pamb,temp)
+        mu = self.air_viscosity(temp)
         alpha = self.air_thermal_diffusivity()
         pr = mu / (alpha * rho)                         # Prandtl number
         re = rho * air_speed / mu                       # Reynolds number
@@ -146,6 +147,7 @@ class PhysicalData(object):
     def air_thermal_diffusivity(self):
         """Thermal diffusivity of the air at 300 K
         """
+        # lambda/rho/cp
         thermal_diffusivity = 20.e-6   # m2/s
         return thermal_diffusivity
 
@@ -163,7 +165,7 @@ class PhysicalData(object):
         rho, cp, mu, lbd = self.fluid_data(temp, fluid=fluid)
         pr = mu * cp / lbd                                  # Prandtl number
         red = (rho * fluid_speed / mu) * tube_hydro_width   # Reynolds number
-        nu = 4.36   # Nusselt number in fully established stream with constant wall thermal flow
+        nu = 3.66   # Nusselt number in fully established stream with constant wall thermal flow
 
         # Thermal transfert factor
         h = lbd * nu / tube_hydro_width

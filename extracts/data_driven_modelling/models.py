@@ -60,11 +60,17 @@ class DDM(object):                  # Data Driven Modelling
         self.fc_system_gravimetric_index = unit.convert_from("kW/kg", 2)    # kW/kg
         self.cooling_gravimetric_index = unit.convert_from("kW/kg", 5)      # kW/kg, Dissipated thermal power per cooloing system mass
 
-        self.gh2_tank_gravimetric_index = 0.05              # kgH2 / (kg_H2 + kg_Tank)
-        self.gh2_tank_volumetric_index = 25                 # kgH2 / (m3_H2 + m3_Tank)
+        self.initial_gh2_pressure = unit.convert_from("bar", 700)
+        self.tank_efficiency_factor = unit.convert_from("bar", 930e-3)  # bar.L/kg, state of the art efficiency factor for pressured vessel
 
-        self.lh2_tank_gravimetric_index = 0.10              # kgH2 / (kg_H2 + kg_Tank)
-        self.lh2_tank_volumetric_index = 45                 # kgH2 / (m3_H2 + m3_Tank)
+        h2_density = phd.fuel_density("compressed_h2", press=self.initial_gh2_pressure)
+
+        # kgH2 / (kg_H2 + kg_Tank)
+        self.gh2_tank_gravimetric_index = 1/(1+self.initial_gh2_pressure/(self.tank_efficiency_factor*h2_density))
+        self.gh2_tank_volumetric_index = 25         # kgH2 / (m3_Tank_+_H2)
+
+        self.lh2_tank_gravimetric_index = 0.10      # kgH2 / (kg_H2 + kg_Tank)
+        self.lh2_tank_volumetric_index = 45         # kgH2 / (m3_H2 + m3_Tank)
 
         self.propeller = "propeller"    # thruster item
         self.fan = "fan"                # thruster item
@@ -119,6 +125,7 @@ class DDM(object):                  # Data Driven Modelling
 
         self.delta_ref_power = 0.       # Reference power tuning
         self.wing_area = None
+
 
     def get_pax_allowance(self,distance):
         mpax_min, dist_min = self.mpax_allowance_low
@@ -448,6 +455,8 @@ class DDM(object):                  # Data Driven Modelling
         if power_system["energy_source"]==self.kerosene:
             energy_storage = 0.
         elif power_system["energy_source"]==self.gh2:
+            h2_density = self.phd.fuel_density("compressed_h2", press=self.initial_gh2_pressure)
+            self.gh2_tank_gravimetric_index = 1/(1+self.initial_gh2_pressure/(self.tank_efficiency_factor*h2_density))
             energy_storage = dict["total_fuel"] * (1./self.gh2_tank_gravimetric_index - 1.)
         elif power_system["energy_source"]==self.lh2:
             energy_storage = dict["total_fuel"] * (1./self.lh2_tank_gravimetric_index - 1.)

@@ -47,14 +47,18 @@ if __name__ == '__main__':
     altitude_data = ddm.cruise_altp(airplane_type)
     reserve_data = ddm.reserve_data(airplane_type)
 
-    tpws = [{"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.kerosene},
-            {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.gh2},
-            {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.lh2},
-            {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.battery},
-            {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.gh2},
-            {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.lh2}]
+    # tpws = [{"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.kerosene},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.gh2},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.lh2},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.battery},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.gh2},
+    #         {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.lh2}]
 
-    target_power_system = {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.battery}
+
+    ddm.initial_gh2_pressure = unit.convert_from("bar", 350)
+
+    target_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.gh2}
+    # target_power_system = {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.battery}
     dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
     ddm.print_design(dict)
 

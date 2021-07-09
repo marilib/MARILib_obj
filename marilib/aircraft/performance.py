@@ -203,7 +203,7 @@ class Flight(object):
         dict["sar"] = self.aircraft.power_system.specific_air_range(mass,tas,dict)
         return dict
 
-    def air_path(self,nei,altp,disa,speed_mode,speed,mass,rating,kfn, full_output=False):
+    def wair_path(self,nei,altp,disa,speed_mode,speed,mass,rating,kfn, full_output=False):
         """Retrieve air path in various conditions
         """
         g = earth.gravity()
