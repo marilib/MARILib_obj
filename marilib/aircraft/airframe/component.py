@@ -254,38 +254,34 @@ class Nacelle(Component):
 
         section, = self.get_this_shape(["sec1"])
 
-        nac_xz = np.array([[nac_x                , nac_z+0.4*nac_height ] ,
-                           [nac_x+0.1*nac_length , nac_z+0.5*nac_height ] ,
-                           [nac_x+0.5*nac_length , nac_z+0.5*nac_height ] ,
-                           [nac_x+nac_length     , nac_z+0.3*nac_height ] ,
-                           [nac_x+nac_length     , nac_z-0.3*nac_height ] ,
-                           [nac_x+0.5*nac_length , nac_z-0.5*nac_height ] ,
-                           [nac_x+0.1*nac_length , nac_z-0.5*nac_height ] ,
-                           [nac_x                , nac_z-0.4*nac_height ] ,
-                           [nac_x                , nac_z+0.4*nac_height ]])
+        nac_cowl = 0.6
 
-        nac_xy = np.array([[nac_x                , nac_y+0.4*nac_width ] ,
-                           [nac_x+0.1*nac_length , nac_y+0.5*nac_width ] ,
-                           [nac_x+0.5*nac_length , nac_y+0.5*nac_width ] ,
-                           [nac_x+nac_length     , nac_y+0.3*nac_width ] ,
-                           [nac_x+nac_length     , nac_y-0.3*nac_width ] ,
-                           [nac_x+0.5*nac_length , nac_y-0.5*nac_width ] ,
-                           [nac_x+0.1*nac_length , nac_y-0.5*nac_width ] ,
-                           [nac_x                , nac_y-0.4*nac_width ] ,
-                           [nac_x                , nac_y+0.4*nac_width ]])
+        nac_xz = np.array([[nac_x                     , nac_z+0.4*nac_height ] ,
+                           [nac_x+0.1*nac_length      , nac_z+0.5*nac_height ] ,
+                           [nac_x+nac_cowl*nac_length , nac_z+0.5*nac_height ] ,
+                           [nac_x+nac_length          , nac_z+0.2*nac_height ] ,
+                           [nac_x+nac_length          , nac_z-0.2*nac_height ] ,
+                           [nac_x+nac_cowl*nac_length , nac_z-0.5*nac_height ] ,
+                           [nac_x+0.1*nac_length      , nac_z-0.5*nac_height ] ,
+                           [nac_x                     , nac_z-0.4*nac_height ] ,
+                           [nac_x                     , nac_z+0.4*nac_height ]])
+
+        nac_xy = np.array([[nac_x                     , nac_y+0.4*nac_width ] ,
+                           [nac_x+0.1*nac_length      , nac_y+0.5*nac_width ] ,
+                           [nac_x+nac_cowl*nac_length , nac_y+0.5*nac_width ] ,
+                           [nac_x+nac_length          , nac_y+0.2*nac_width ] ,
+                           [nac_x+nac_length          , nac_y-0.2*nac_width ] ,
+                           [nac_x+nac_cowl*nac_length , nac_y-0.5*nac_width ] ,
+                           [nac_x+0.1*nac_length      , nac_y-0.5*nac_width ] ,
+                           [nac_x                     , nac_y-0.4*nac_width ] ,
+                           [nac_x                     , nac_y+0.4*nac_width ]])
 
         d_nac_yz = np.stack([section[0:,0]*nac_width , section[0:,1]*nac_height , section[0:,2]*nac_height], axis=1)
 
-        d_fan_yz = np.stack([section[0:,0]*0.80*nac_width , section[0:,1]*0.80*nac_height , section[0:,2]*0.80*nac_height], axis=1)
+        d_fan_yz = np.stack([section[0:,0]*0.40*nac_width , section[0:,1]*0.40*nac_height , section[0:,2]*0.40*nac_height], axis=1)
 
         nac_yz = np.vstack([np.stack([nac_y+d_nac_yz[0:,0] , nac_z+d_nac_yz[0:,1]],axis=1) ,
                             np.stack([nac_y+d_nac_yz[::-1,0] , nac_z+d_nac_yz[::-1,2]],axis=1)])
-
-        nac_le = np.stack([[nac_x]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)
-
-        nac_te = np.stack([[nac_x+nac_length]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)
-
-        nac_toc = 0.15
 
         if hasattr(self, "propeller_width"):
             prop_width = self.propeller_width
@@ -296,7 +292,33 @@ class Nacelle(Component):
             disk_yz = np.vstack([np.stack([nac_y+d_fan_yz[0:,0] , nac_z+d_fan_yz[0:,1]],axis=1) ,
                                  np.stack([nac_y+d_fan_yz[::-1,0] , nac_z+d_fan_yz[::-1,2]],axis=1)])
 
-        return {"xy":nac_xy , "yz":nac_yz, "xz":nac_xz, "disk":disk_yz, "le":nac_le, "te":nac_te, "toc":nac_toc}
+        nac_fle = np.stack([[nac_x]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)
+        nac_fte = np.stack([[nac_x+nac_cowl*nac_length]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)
+
+        if self.get_component_type() in ["body_nacelle", "body_tail_nacelle", "pod_tail_nacelle", "piggyback_tail_nacelle"]:
+            nac_cle = np.stack([[nac_x-0.15*nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)
+            nac_cte = np.stack([[nac_x+nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)
+        else:
+            nac_cle = np.stack([[nac_x+0.15*nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)
+            nac_cte = np.stack([[nac_x+nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)
+
+        nac_toc = 0.15
+
+        nac_s1le = [[nac_x+0.15*nac_length, nac_y, nac_z+0.5*nac_height],
+                    [nac_x+0.15*nac_length, nac_y, nac_z+0.2*nac_height]]
+
+        nac_s1te = [[nac_x+0.6*nac_length, nac_y, nac_z+0.5*nac_height],
+                    [nac_x+0.6*nac_length, nac_y, nac_z+0.2*nac_height]]
+
+        nac_s2le = [[nac_x+0.15*nac_length, nac_y, nac_z-0.2*nac_height],
+                    [nac_x+0.15*nac_length, nac_y, nac_z-0.5*nac_height]]
+
+        nac_s2te = [[nac_x+0.6*nac_length, nac_y, nac_z-0.2*nac_height],
+                    [nac_x+0.6*nac_length, nac_y, nac_z-0.5*nac_height]]
+
+        return {"xy":nac_xy , "yz":nac_yz, "xz":nac_xz, "disk":disk_yz,
+                "fle":nac_fle, "fte":nac_fte, "cle":nac_cle, "cte":nac_cte, "toc":nac_toc,
+                "s1le":nac_s1le, "s1te":nac_s1te, "s2le":nac_s2le, "s2te":nac_s2te}
 
 class Tank(Component):
 
@@ -986,19 +1008,21 @@ class Wing(Component):
         wing_c_tip = self.tip_c
         wing_toc_t = self.tip_toc
 
-        le = np.array([[wing_x_tip              , -wing_y_tip  , wing_z_tip ],
-                       [wing_x_kink             , -wing_y_kink , wing_z_kink],
-                       [wing_x_root             , -wing_y_root , wing_z_root],
-                       [wing_x_root             ,  wing_y_root , wing_z_root],
-                       [wing_x_kink             ,  wing_y_kink , wing_z_kink],
-                       [wing_x_tip              ,  wing_y_tip  , wing_z_tip]])
+        dx = 0.5*wing_toc_r*wing_c_root
 
-        te = np.array([[wing_x_tip+wing_c_tip   , -wing_y_tip  , wing_z_tip ],
-                       [wing_x_kink+wing_c_kink , -wing_y_kink , wing_z_kink],
-                       [wing_x_root+wing_c_root , -wing_y_root , wing_z_root],
-                       [wing_x_root+wing_c_root ,  wing_y_root , wing_z_root],
-                       [wing_x_kink+wing_c_kink ,  wing_y_kink , wing_z_kink],
-                       [wing_x_tip+wing_c_tip   ,  wing_y_tip  , wing_z_tip]])
+        le = np.array([[wing_x_tip              , -wing_y_tip  , dx + wing_z_tip ],
+                       [wing_x_kink             , -wing_y_kink , dx + wing_z_kink],
+                       [wing_x_root             , -wing_y_root , dx + wing_z_root],
+                       [wing_x_root             ,  wing_y_root , dx + wing_z_root],
+                       [wing_x_kink             ,  wing_y_kink , dx + wing_z_kink],
+                       [wing_x_tip              ,  wing_y_tip  , dx + wing_z_tip]])
+
+        te = np.array([[wing_x_tip+wing_c_tip   , -wing_y_tip  , dx + wing_z_tip ],
+                       [wing_x_kink+wing_c_kink , -wing_y_kink , dx + wing_z_kink],
+                       [wing_x_root+wing_c_root , -wing_y_root , dx + wing_z_root],
+                       [wing_x_root+wing_c_root ,  wing_y_root , dx + wing_z_root],
+                       [wing_x_kink+wing_c_kink ,  wing_y_kink , dx + wing_z_kink],
+                       [wing_x_tip+wing_c_tip   ,  wing_y_tip  , dx + wing_z_tip]])
 
         toc = np.array([wing_toc_t, wing_toc_k, wing_toc_r, wing_toc_r, wing_toc_k, wing_toc_t])
 
@@ -2295,13 +2319,13 @@ class TankPiggyBack(Pod):
         pyl_fte = np.array([[self.frame_origin[0] + 0.30*self.length, 0 , self.frame_origin[2] - 0.45*self.width],
                             [self.frame_origin[0] + 0.30*self.length, 0 , 0.90*self.aircraft.airframe.body.width]])
 
-        pyl_ble = np.array([[self.frame_origin[0] + 0.75*self.length, 0 , self.frame_origin[2] - 0.45*self.width],
-                            [self.frame_origin[0] + 0.75*self.length, 0 , 0.90*self.aircraft.airframe.body.width]])
+        pyl_ble = np.array([[self.frame_origin[0] + 0.65*self.length, 0 , self.frame_origin[2] - 0.45*self.width],
+                            [self.frame_origin[0] + 0.65*self.length, 0 , 0.90*self.aircraft.airframe.body.width]])
 
-        pyl_bte = np.array([[self.frame_origin[0] + 0.80*self.length, 0 , self.frame_origin[2] - 0.45*self.width],
-                            [self.frame_origin[0] + 0.80*self.length, 0 , 0.90*self.aircraft.airframe.body.width]])
+        pyl_bte = np.array([[self.frame_origin[0] + 0.70*self.length, 0 , self.frame_origin[2] - 0.45*self.width],
+                            [self.frame_origin[0] + 0.70*self.length, 0 , 0.90*self.aircraft.airframe.body.width]])
 
-        pyl_toc = np.array([0.15, 0.15])
+        pyl_toc = np.array([0.20, 0.20])
 
         return {"fle":pyl_fle, "fte":pyl_fte, "ble":pyl_ble, "bte":pyl_bte, "toc":pyl_toc}
 
