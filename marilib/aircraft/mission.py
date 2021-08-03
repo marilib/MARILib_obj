@@ -79,6 +79,8 @@ class AllMissionVarMass(AllMissions):
         self.crz_tas = None
         self.crz_sar = None
         self.crz_cz = None
+        self.crz_wing_aoa = None
+        self.crz_fuselage_aoa = None
         self.crz_lod = None
         self.crz_thrust = None
         self.crz_throttle = None
@@ -124,6 +126,10 @@ class AllMissionVarMass(AllMissions):
             self.crz_psfc = lf_dict["sfc"]
         if "sec" in lf_dict.keys():
             self.crz_sec = lf_dict["sec"]
+
+        crz_wing_aoa, crz_fuselage_aoa = self.aircraft.aerodynamics.aoa(self.mach,self.crz_cz)
+        self.crz_wing_aoa = crz_wing_aoa
+        self.crz_fuselage_aoa = crz_fuselage_aoa
 
         sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
 

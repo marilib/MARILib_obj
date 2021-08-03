@@ -65,7 +65,7 @@ ac.requirement.mcr_ceiling.altp = cruise_altp
 ac.requirement.mcr_ceiling.mach = cruise_mach
 ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",200.)
 
-ac.requirement.oei_ceiling.altp = cruise_altp * 0.5
+ac.requirement.oei_ceiling.altp = cruise_altp * 0.35
 
 ac.requirement.time_to_climb.altp1 = unit.convert_from("ft",1500.)
 ac.requirement.time_to_climb.cas1 = unit.convert_from("km/h",150.)

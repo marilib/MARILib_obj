@@ -50,6 +50,13 @@ class Aerodynamics(object):
         self.czmax_conf_to,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_to)
         self.czmax_conf_ld,Cz0 = self.aircraft.airframe.wing.high_lift(self.hld_conf_ld)
 
+    def aoa(self, mach, cz):
+        wing_setting = self.aircraft.airframe.wing.setting
+        cza_wo_htp, xlc_wo_htp, ki_wing = self.aircraft.airframe.wing.eval_aero_data(self.hld_conf_clean, mach)
+        aoa_wing = cz / cza_wo_htp
+        aoa_fuselage = aoa_wing - wing_setting
+        return aoa_wing, aoa_fuselage
+
     def drag(self,pamb,tamb,mach,cz):
         """Retrieves airplane drag and L/D in current flying conditions
         """

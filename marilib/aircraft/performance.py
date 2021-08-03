@@ -57,6 +57,7 @@ class Performance(object):
         self.take_off.v2 = to_dict["v2"]
         self.take_off.mach2 = to_dict["mach2"]
         self.take_off.limit = to_dict["limit"]
+        self.take_off.aoa_wing = to_dict["aoa_wing"]
 
         #---------------------------------------------------------------------------------------------------
         self.approach.disa = self.aircraft.requirement.approach.disa
@@ -70,6 +71,7 @@ class Performance(object):
         ld_dict = self.approach.eval(self.approach.disa,self.approach.altp,mass,self.approach.hld_conf,self.approach.kvs1g)
 
         self.approach.app_speed_eff = ld_dict["vapp"]
+        self.approach.aoa_wing = ld_dict["aoa_wing"]
 
         #---------------------------------------------------------------------------------------------------
         self.mcl_ceiling.disa = self.aircraft.requirement.mcl_ceiling.disa
@@ -86,6 +88,7 @@ class Performance(object):
                                         self.mcl_ceiling.rating,kfn,self.mcl_ceiling.speed_mode)
 
         self.mcl_ceiling.vz_eff = cl_dict["vz"]
+        self.mcl_ceiling.aoa_wing = cl_dict["aoa_wing"]
 
         #---------------------------------------------------------------------------------------------------
         self.mcr_ceiling.disa = self.aircraft.requirement.mcr_ceiling.disa
@@ -102,6 +105,7 @@ class Performance(object):
                                         self.mcr_ceiling.rating,kfn,self.mcr_ceiling.speed_mode)
 
         self.mcr_ceiling.vz_eff = cl_dict["vz"]
+        self.mcr_ceiling.aoa_wing = cl_dict["aoa_wing"]
 
         #---------------------------------------------------------------------------------------------------
         self.oei_ceiling.disa = self.aircraft.requirement.oei_ceiling.disa
@@ -117,6 +121,7 @@ class Performance(object):
 
         self.oei_ceiling.path_eff = ei_dict["path"]
         self.oei_ceiling.mach_opt = ei_dict["mach"]
+        self.oei_ceiling.aoa_wing = ei_dict["aoa_wing"]
 
         #---------------------------------------------------------------------------------------------------
         self.time_to_climb.disa = self.aircraft.requirement.time_to_climb.disa
@@ -232,7 +237,7 @@ class Flight(object):
         else:
             return slope,vz
 
-    def max_air_path(self,nei,altp,disa,speed_mode,mass,rating,kfn):
+    def max_air_path(self,nei,altp,disa,speed_mode,mass,rating,kfn, full_output=False):
         """Optimize the speed of the aircraft to maximize the air path
         """
         def fct(cz):
@@ -437,6 +442,7 @@ class TakeOff(Flight):
         self.mach2 = None
         self.s2_path = None
         self.limit = None
+        self.aoa_wing = None
 
     def thrust_opt(self,kfn):
         mass = self.kmtow*self.aircraft.weight_cg.mtow
@@ -446,7 +452,7 @@ class TakeOff(Flight):
     def eval(self,disa,altp,mass,hld_conf,rating,kfn,kvs1g,s2_min_path):
         """Take off field length and climb path with eventual kVs1g increase to recover min regulatory slope
         """
-        tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf,rating,kfn)
+        tofl,s2_path,cas,mach,cz,w_aoa = self.take_off(kvs1g,altp,disa,mass,hld_conf,rating,kfn)
 
         if(s2_min_path<s2_path):
             limitation = "fl"   # field length
@@ -458,23 +464,23 @@ class TakeOff(Flight):
 
             s2_path_ = np.array([0.,0.])
             s2_path_[0] = s2_path
-            tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf,rating,kfn)
+            tofl,s2_path_[1],cas,mach,cz,w_aoa = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf,rating,kfn)
 
             while(s2_path_[0]<s2_path_[1] and s2_path_[1]<s2_min_path):
                 kvs1g_[0] = kvs1g_[1]
                 kvs1g_[1] = kvs1g_[1] + dkvs1g
-                tofl,s2_path_[1],cas,mach = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf,rating,kfn)
+                tofl,s2_path_[1],cas,mach,cz,w_aoa = self.take_off(kvs1g_[1],altp,disa,mass,hld_conf,rating,kfn)
 
             if(s2_min_path<s2_path_[1]):
                 kvs1g = kvs1g_[0] + ((kvs1g_[1]-kvs1g_[0])/(s2_path_[1]-s2_path_[0]))*(s2_min_path-s2_path_[0])
-                tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf,rating,kfn)
+                tofl,s2_path,cas,mach,cz,w_aoa = self.take_off(kvs1g,altp,disa,mass,hld_conf,rating,kfn)
                 s2_path = s2_min_path
                 limitation = "s2"   # second segment
             else:
-                tofl,s2_path,cas,mach = self.take_off(kvs1g,altp,disa,mass,hld_conf,rating,kfn)
+                tofl,s2_path,cas,mach,cz,w_aoa = self.take_off(kvs1g,altp,disa,mass,hld_conf,rating,kfn)
                 limitation = "s2 not reached"
 
-        to_dict = {"tofl":tofl, "kvs1g":kvs1g, "path":s2_path, "v2":cas, "mach2":mach, "limit":limitation}
+        to_dict = {"tofl":tofl, "kvs1g":kvs1g, "path":s2_path, "v2":cas, "mach2":mach, "limit":limitation, "cz":cz, "aoa_wing":w_aoa}
 
         return to_dict
 
@@ -505,7 +511,9 @@ class TakeOff(Flight):
 
         s2_path,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,"MTO",kfn)
 
-        return tofl,s2_path,speed,mach
+        w_aoa_to,_ = self.aircraft.aerodynamics.aoa(mach,cz_to)
+
+        return tofl,s2_path,speed,mach,cz_to,w_aoa_to
 
 
 class Approach(Flight):
@@ -533,7 +541,9 @@ class Approach(Flight):
         mach = self.speed_from_lift(pamb,tamb,cz,mass)
         vapp = self.get_speed(pamb,"cas",mach)
 
-        return {"vapp":vapp}
+        w_aoa,_ = self.aircraft.aerodynamics.aoa(mach,cz)
+
+        return {"vapp":vapp, "aoa_wing":w_aoa}
 
 
 class MclCeiling(Flight):
@@ -565,8 +575,9 @@ class MclCeiling(Flight):
         nei = 0
         pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
         speed = self.get_speed(pamb,self.speed_mode,self.mach)
-        slope,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
-        return {"vz":vz, "slope":slope}
+        slope,vz,fn,ff,acc,cz,cx,pamb,tamb = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn, full_output=True)
+        w_aoa,_ = self.aircraft.aerodynamics.aoa(self.mach,cz)
+        return {"vz":vz, "slope":slope, "aoa_wing":w_aoa}
 
 
 class McrCeiling(Flight):
@@ -598,8 +609,9 @@ class McrCeiling(Flight):
         nei = 0
         pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
         speed = self.get_speed(pamb,self.speed_mode,self.mach)
-        slope,vz = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn)
-        return {"vz":vz, "slope":slope}
+        slope,vz,fn,ff,acc,cz,cx,pamb,tamb = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn, full_output=True)
+        w_aoa,_ = self.aircraft.aerodynamics.aoa(self.mach,cz)
+        return {"vz":vz, "slope":slope, "aoa_wing":w_aoa}
 
 
 class OeiCeiling(Flight):
@@ -630,7 +642,17 @@ class OeiCeiling(Flight):
         """
         nei = 1.
         path,vz,mach,cz = self.max_air_path(nei,altp,disa,speed_mode,mass,rating,kfn)
-        return {"path":path, "vz":vz, "mach":mach, "cz":cz}
+
+        czmax = self.aircraft.aerodynamics.czmax_conf_clean
+        if cz > czmax/1.1:
+            cz = czmax/1.1
+            pamb,tamb,tstd,dtodz = earth.atmosphere(self.altp, self.disa)
+            mach = self.speed_from_lift(pamb,tamb,cz,mass)
+            speed = self.get_speed(pamb,speed_mode,mach)
+            path,vz,fn,ff,acc,cz,cx,pamb,tamb = self.air_path(nei,altp,disa,speed_mode,speed,mass,rating,kfn, full_output=True)
+
+        w_aoa,_ = self.aircraft.aerodynamics.aoa(mach,cz)
+        return {"path":path, "vz":vz, "mach":mach, "cz":cz, "aoa_wing":w_aoa}
 
 
 class TimeToClimb(Flight):

@@ -1252,26 +1252,27 @@ if __name__ == '__main__':
 
 
 
-    # # heatsink test
-    # #----------------------------------------------------------------------
-    # altp = unit.m_ft(10000)
-    # disa = 0
-    # vair = unit.mps_kmph(200)
-    #
-    # pamb, tamb, g = phd.atmosphere(altp, disa)
-    #
-    # fluid_temp_in = 273.15 + 65
-    #
-    # wing_aspect_ratio = 10
-    # wing_area = 42
-    #
-    # design_fluid_flow = 10  # kg/s
-    #
-    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area, design_fluid_flow)
-    # fc_syst.heatsink.print_design()
-    #
-    # dict_rad = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
-    # fc_syst.heatsink.print_operate(dict_rad)
+
+    # heatsink test
+    #----------------------------------------------------------------------
+    altp = unit.m_ft(10000)
+    disa = 0
+    vair = unit.mps_kmph(200)
+
+    pamb, tamb, g = phd.atmosphere(altp, disa)
+
+    fluid_temp_in = 273.15 + 65
+
+    wing_aspect_ratio = 10
+    wing_area = 42
+
+    design_fluid_flow = 10  # kg/s
+
+    fc_syst.heatsink.design(wing_aspect_ratio, wing_area)
+    fc_syst.heatsink.print_design()
+
+    dict_rad = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
+    fc_syst.heatsink.print_operate(dict_rad)
 
 
 
@@ -1361,76 +1362,76 @@ if __name__ == '__main__':
 
 
 
-    # Airplane coupling mini test
-    #----------------------------------------------------------------------
-    wing_aspect_ratio = 12
-    wing_area = 42
-
-    g = 9.81
-    eff = 0.82
-    mass = 5700
-
-    disa = 0
-
-    fc_syst.stack.working_temperature = 273.15 + 75                      # Cell working temperature
-
-
-    stack_power = unit.convert_from("kW", 50)
-    n_stack = 6
-
-
-    dp = DragPolar(wing_aspect_ratio)
-
-    vair = unit.mps_kmph(250)
-    altp = unit.m_ft(10000)
-    pamb, tamb, g = phd.atmosphere(altp, disa)
-    fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
-
-    fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
-
-
-    air_speed = np.linspace(100, 300, 10)
-    altitude = np.linspace(0, 10000, 10)
-    X, Y = np.meshgrid(air_speed, altitude)
-
-    heat_balance = []
-    for x,y in zip(X.flatten(),Y.flatten()):
-        vair = unit.convert_from("km/h", x)
-        altp = unit.convert_from("ft", y)
-
-        pamb, tamb, g = phd.atmosphere(altp, disa)
-        rho = phd.gas_density(pamb,tamb)
-        cz = (2*mass*g) / (rho * vair**2 * wing_area)
-        cx,_ = dp.get_cx(pamb, tamb, vair, cz)
-        lod = cz / cx
-        fn = mass * g / lod
-        pw = fn * vair / eff
-        req_power = pw / 2
-        dict = fc_syst.operate(pamb, tamb, vair, req_power)
-
-        heat_balance.append(dict["system"]["thermal_balance"])
-
-    # convert to numpy array with good shape
-    heat_balance = np.array(heat_balance)
-    heat_balance = heat_balance.reshape(np.shape(X))
-
-    print("")
-    # Plot contour
-    cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
-
-    # Plot limit
-    color = 'yellow'
-    c_c = plt.contour(X, Y, heat_balance, levels=[0], colors =[color], linewidths=2)
-    c_h = plt.contourf(X, Y, heat_balance, levels=[-10000000,0], linewidths=2, colors='none', hatches=['//'])
-    for c in c_h.collections:
-        c.set_edgecolor(color)
-
-    plt.colorbar(cs, label=r"Heat balance")
-    plt.grid(True)
-
-    plt.suptitle("Heat balance")
-    plt.xlabel("True Air Speed (km/h)")
-    plt.ylabel("Altitude (ft)")
-
-    plt.show()
-
+    # # Airplane coupling mini test
+    # #----------------------------------------------------------------------
+    # wing_aspect_ratio = 12
+    # wing_area = 42
+    #
+    # g = 9.81
+    # eff = 0.82
+    # mass = 5700
+    #
+    # disa = 0
+    #
+    # fc_syst.stack.working_temperature = 273.15 + 75                      # Cell working temperature
+    #
+    #
+    # stack_power = unit.convert_from("kW", 50)
+    # n_stack = 6
+    #
+    #
+    # dp = DragPolar(wing_aspect_ratio)
+    #
+    # vair = unit.mps_kmph(250)
+    # altp = unit.m_ft(10000)
+    # pamb, tamb, g = phd.atmosphere(altp, disa)
+    # fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    #
+    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
+    #
+    #
+    # air_speed = np.linspace(100, 300, 10)
+    # altitude = np.linspace(0, 10000, 10)
+    # X, Y = np.meshgrid(air_speed, altitude)
+    #
+    # heat_balance = []
+    # for x,y in zip(X.flatten(),Y.flatten()):
+    #     vair = unit.convert_from("km/h", x)
+    #     altp = unit.convert_from("ft", y)
+    #
+    #     pamb, tamb, g = phd.atmosphere(altp, disa)
+    #     rho = phd.gas_density(pamb,tamb)
+    #     cz = (2*mass*g) / (rho * vair**2 * wing_area)
+    #     cx,_ = dp.get_cx(pamb, tamb, vair, cz)
+    #     lod = cz / cx
+    #     fn = mass * g / lod
+    #     pw = fn * vair / eff
+    #     req_power = pw / 2
+    #     dict = fc_syst.operate(pamb, tamb, vair, req_power)
+    #
+    #     heat_balance.append(dict["system"]["thermal_balance"])
+    #
+    # # convert to numpy array with good shape
+    # heat_balance = np.array(heat_balance)
+    # heat_balance = heat_balance.reshape(np.shape(X))
+    #
+    # print("")
+    # # Plot contour
+    # cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
+    #
+    # # Plot limit
+    # color = 'yellow'
+    # c_c = plt.contour(X, Y, heat_balance, levels=[0], colors =[color], linewidths=2)
+    # c_h = plt.contourf(X, Y, heat_balance, levels=[-10000000,0], linewidths=2, colors='none', hatches=['//'])
+    # for c in c_h.collections:
+    #     c.set_edgecolor(color)
+    #
+    # plt.colorbar(cs, label=r"Heat balance")
+    # plt.grid(True)
+    #
+    # plt.suptitle("Heat balance")
+    # plt.xlabel("True Air Speed (km/h)")
+    # plt.ylabel("Altitude (ft)")
+    #
+    # plt.show()
+    #
