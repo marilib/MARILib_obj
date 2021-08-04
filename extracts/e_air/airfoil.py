@@ -7,7 +7,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 import numpy as np
 from scipy.optimize import fsolve
-from scipy.interpolate import interp1d, interp2d
+from scipy.interpolate import interp1d, interp2d, RegularGridInterpolator
 
 import pandas as pd
 from tabulate import tabulate
@@ -56,6 +56,7 @@ with open(file_name, 'w') as f:
         f.write("{:1.0f} {:3.0f} {:.8f} {:.8f} {:.8f}".format(*airfoil[i,:]))
         f.write('\n')
 f.close()
+
 
 # # Print airfoil data
 # for i in range(n):
@@ -115,8 +116,105 @@ h_int = np.array([[float(h_int_0(x)) for x in x_abs],
                   [float(h_int_5(x)) for x in x_abs],
                   [float(h_int_8(x)) for x in x_abs]])
 
-
 h_ext_fct = interp2d(s_abs_ext, aoa_vec, h_ext, kind="cubic")
 h_int_fct = interp2d(s_abs_int, aoa_vec, h_int, kind="cubic")
 
 
+
+def integral_heat_transfer(vair, aoa, x0, dx, nt):
+    ea = dx / nt     # Exchange length for one single tube (supposing tubes are adjacent
+    x_int = x0
+    h_m = 0
+    x = 0
+    for j in range(int(n)):
+        x = x_int + 0.5 * ea
+        h_ext = h_ext_fct(x,aoa)
+        h_int = h_int_fct(x,aoa)
+        x_int += ea
+        h_m += 0.5*(h_ext + h_int) / nt
+    return h_m
+
+
+nt = 33
+x0 = 0
+dx = 0.52
+
+vair = 60
+
+print("")
+for aoa in aoa_vec:
+    print("aoa = ", "%.2f"%unit.deg_rad(aoa), "   h = ", "%.1f"%integral_heat_transfer(vair, aoa, x0, dx, n))
+
+
+nt = 45
+x0 = 0.8
+dx = 0.7
+
+vair = 60
+
+print("")
+for aoa in aoa_vec:
+    print("aoa = ", "%.2f"%unit.deg_rad(aoa), "   h = ", "%.1f"%integral_heat_transfer(vair, aoa, x0, dx, n))
+
+
+print("")
+phd = PhysicalData()
+
+
+
+def fct(disa, altp, vtas):
+    fluid_temp = 273.15 + 65
+    x = 0.25
+    pamb, tamb, g = phd.atmosphere(altp, disa)
+    h, rho, cp, mu, pr, re, nu, lbd = phd.air_thermal_transfer_data(pamb,tamb,fluid_temp,vtas, x)
+    return h/href
+
+def fct_grid(disa_list, altp_list, vtas_list):
+    data = []
+    for disa in disa_list:
+        disa_block = []
+        for altp in altp_list:
+            altp_block = []
+            for vtas in vtas_list:
+                altp_block.append(fct(disa, altp, vtas))
+            disa_block.append(altp_block)
+        data.append(disa_block)
+    return data
+
+
+disa = 0
+altp = 3000
+vtas = 60
+
+href = 1
+href = fct(disa, altp, vtas)
+
+disa_list = [-40, -30, -20, -10, 0, 10, 20, 30, 40]
+altp_list = [0, 500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 8000, 10000, 12000]
+vtas_list = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+disa_grid, altp_grid ,vtas_grid = np.meshgrid(disa_list, altp_list, vtas_list, indexing='ij', sparse=True)
+
+data_list = fct_grid(disa_list, altp_list, vtas_list)
+
+data = np.array(data_list)
+
+interp_fct = RegularGridInterpolator((disa_list, altp_list, vtas_list), data)
+
+print("")
+disa = 0
+altp = 3000
+vtas = 60
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", interp_fct([disa,altp,vtas]))
+disa = 20
+altp = 3000
+vtas = 60
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", interp_fct([disa,altp,vtas]))
+disa = 0
+altp = 1000
+vtas = 60
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", interp_fct([disa,altp,vtas]))
+disa = 0
+altp = 3000
+vtas = 80
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", interp_fct([disa,altp,vtas]))
