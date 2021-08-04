@@ -199,22 +199,56 @@ data_list = fct_grid(disa_list, altp_list, vtas_list)
 
 data = np.array(data_list)
 
-interp_fct = RegularGridInterpolator((disa_list, altp_list, vtas_list), data)
+interp_fct = RegularGridInterpolator((disa_list, altp_list, vtas_list), data, method="linear")
 
 print("")
 disa = 0
 altp = 3000
 vtas = 60
-print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", interp_fct([disa,altp,vtas]))
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", float(interp_fct([disa,altp,vtas])))
 disa = 20
 altp = 3000
 vtas = 60
-print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", interp_fct([disa,altp,vtas]))
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", float(interp_fct([disa,altp,vtas])))
 disa = 0
 altp = 1000
 vtas = 60
-print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", interp_fct([disa,altp,vtas]))
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", float(interp_fct([disa,altp,vtas])))
 disa = 0
 altp = 3000
 vtas = 80
-print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", interp_fct([disa,altp,vtas]))
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", float(interp_fct([disa,altp,vtas])))
+
+
+
+A = []
+B = []
+for disa in disa_list:
+    for altp in altp_list:
+        for vtas in vtas_list:
+            A.append([disa**2, disa, altp**2, altp, vtas**2, vtas, disa*altp, disa*vtas, altp*vtas, 1])
+            B.append(fct(disa, altp, vtas))
+
+(C, res, rnk, s) = np.linalg.lstsq(A, B, rcond=None)
+
+def surrog_fct(disa, altp, vats):
+    X = np.array([disa**2, disa, altp**2, altp, vtas**2, vtas, disa*altp, disa*vtas, altp*vtas, 1])
+    return np.dot(C,X)
+
+print("")
+disa = 0
+altp = 3000
+vtas = 60
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", float(surrog_fct(disa,altp,vtas)))
+disa = 20
+altp = 3000
+vtas = 60
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", float(surrog_fct(disa,altp,vtas)))
+disa = 0
+altp = 1000
+vtas = 60
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", float(surrog_fct(disa,altp,vtas)))
+disa = 0
+altp = 3000
+vtas = 80
+print("disa = ", disa, "  altp = ", altp, "  vtas = ", vtas, "  h/h0 = ", float(surrog_fct(disa,altp,vtas)))
