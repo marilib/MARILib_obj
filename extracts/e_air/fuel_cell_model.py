@@ -37,7 +37,8 @@ class FuelCellSystem(object):
         self.h2_heater = HydrogenHeater(self)       # For LH2 only, GH2 version To Be Done
         self.stack = FuelCellPEMLT(self)            # PEMHT To Be Done
         self.power_elec = PowerElectronics(self)
-        self.heatsink = WingSkinheatsink(self)      # Oil fluid To Be Added, Compact version To Be Done
+        self.wing_heatsink = WingSkinHeatsink(self)      # Oil fluid To Be Added
+        self.compact_heatsink = CompactHeatsink(self)      # Oil fluid To Be Added
         self.tank = None                            # Tank To Be Done
 
         self.miscellaneous_req_power = 1000     # Power allowance for varius systems, including heatsink pump
@@ -102,7 +103,7 @@ class FuelCellSystem(object):
         """
         dict = self.operate_stacks(pamb, tamb, vair, pw_req)
         input_temp = self.stack.working_temperature
-        hs_dict = self.heatsink.operate(pamb, tamb, vair, input_temp)
+        hs_dict = self.wing_heatsink.operate(pamb, tamb, vair, input_temp)
         dict["heatsink"] = hs_dict
         dict["system"]["thermal_balance"] = hs_dict["pw_heat"] - dict["system"]["pw_extracted"]
         return dict
@@ -192,6 +193,8 @@ class FuelCellSystem(object):
         print("===============================================================================")
         print("Number of stack = ", "%.0f"%self.n_stack)
         print("Design power = ", "%.1f"%unit.convert_to("kW", self.total_max_power), " kW")
+        print("Total volume without heatsink = ", "%.1f"%self.volume_allocation, " m3")
+        print("Total mass without heatsink = ", "%.1f"%self.mass, " kg")
         self.air_scoop.print_design()
         self.compressor.print_design()
         self.precooler.print_design()
@@ -292,8 +295,8 @@ class HydrogenHeater(object):
         self.h2_specific_heat = unit.convert_from("kJ",14.3)    # J/kg, H2 specific heat, supposed constant above 273 kelvin
         self.h2_integral_heat = unit.convert_from("kJ",3100)    # J/kg, heat to warm 1 kg of gazeous hydrogen from 20.3 K to 273.15 K
 
-        self.gravimetric_index = unit.convert_from("kW", 5)     # kW/kg, Thermal power manageable per kg of heater system
-        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
+        self.gravimetric_index = unit.convert_from("kW", 1)     # kW/kg, Thermal power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 1)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
 
         self.h2_heat_liq2zero = None            # J/kg Amount of heat to bring 1kg of liquid H2 to 0°C
 
@@ -345,8 +348,8 @@ class AirPreCooler(object):
 
         self.air_specific_heat = cp     # J/kg, Air specific heat
 
-        self.gravimetric_index = unit.convert_from("kW", 5)     # kW/kg, Thermal power manageable per kg of heater system
-        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
+        self.gravimetric_index = unit.convert_from("kW", 1)     # kW/kg, Thermal power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 1)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
 
         self.design_thermal_power = None
         self.volume_allocation = None
@@ -393,8 +396,8 @@ class AirCompressor(object):
         self.mechanical_efficiency = 0.9
         self.electrical_efficiency = 0.85
 
-        self.gravimetric_index = unit.convert_from("kW", 5)     # kW/kg, Compression power manageable per kg of heater system
-        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Compression power manageable per Liter of heater system
+        self.gravimetric_index = unit.convert_from("kW", 1)     # kW/kg, Compression power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 1)/unit.convert_from("L", 1)    # kW/L, Compression power manageable per Liter of heater system
 
         self.design_air_flow = None
         self.design_p_ratio = None
@@ -484,7 +487,7 @@ class FuelCellPEMLT(object):
         self.power_margin = 0.8                                     # Ratio allowed power over max power
         self.heat_washout_factor = 0.12                             # Fraction of heat washed out by the air flow across the stack
 
-        self.gravimetric_index = unit.convert_from("kW", 5)     # kW/kg, Electric power produced per kg of heater system
+        self.gravimetric_index = unit.convert_from("kW", 4)     # kW/kg, Electric power produced per kg of heater system
         self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Electric power produced per Liter of heater system
 
         self.cell_max_power = None          # Max power for one single cell
@@ -713,8 +716,8 @@ class FuelCellPEMLT(object):
         print("Stack maximum hydrogen mass flow = ", "%.2f"%(self.nominal_h2_flow*1000), " g/s")
         print("Stack maximum stack efficiency = ", "%.3f"%self.nominal_efficiency)
         print("")
-        print("Volume allocation = ", "%.0f"%unit.convert_to("dm3", self.volume_allocation), " dm3")
-        print("Mass = ", "%.1f"%self.mass, " kg")
+        print("Volume allocation for one stack = ", "%.0f"%unit.convert_to("dm3", self.volume_allocation), " dm3")
+        print("Mass of one stack = ", "%.1f"%self.mass, " kg")
 
         if graph:
             jj_list = np.linspace(0.01, self.max_current_density, 100)
@@ -808,7 +811,226 @@ class PowerElectronics(object):
 
 
 
-class WingSkinheatsink(object):
+class CompactHeatsink(object):
+
+    def __init__(self, fc_system):
+        self.fc_system = fc_system
+
+        self.width = None
+        self.height = None
+
+        self.max_delta_temp = 5             # K, Maximum temperature drop between input and output
+        self.nominal_fluid_speed = 1.       # m/s, Nominal fluid speed in the tubes
+        self.pressure_drop_factor = 2.      # Factor on pressure drop
+
+        self.tube_width = unit.convert_from("mm",80)        # Internal width
+        self.tube_height = unit.convert_from("mm",5)        # Internal height
+        self.tube_thickness = unit.convert_from("mm",0.6)
+        self.tube_interval = unit.convert_from("mm",30)     # Distance between tubes
+        self.tube_factor = 1.25                             # Factor on tube mass for piping
+
+        self.tube_count = None
+        self.tube_inner_area = None
+        self.tube_outer_area = None
+        self.tube_perimeter = None
+        self.tube_section = None
+        self.tube_hydro_width = None
+
+        self.fin_thickness = unit.convert_from("mm",0.6)
+        self.fin_step = unit.convert_from("mm",10)
+        self.fin_factor = 1.15                             # Factor on fin mass for binding
+
+        self.fin_count = None
+        self.fin_height = None
+        self.fin_area = None
+
+        self.conductivity = 380.        # W/m/K, Copper thermal conductivity
+        self.density = 8960.            # kg/m3, Copper density
+
+        self.fluid_mass = None
+        self.tube_mass = None
+        self.fin_mass = None
+        self.mass = None
+
+    def pressure_drop(self, temp, speed, hydro_width, tube_length):
+        """Pressure drop along a cylindrical tube
+        """
+        rho, cp, mu, lbd = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
+        rex = (rho * speed / mu) * hydro_width                       # Reynolds number
+        k = 0.001   # Facteur de rugosité
+        cf = 0.5
+        for j in range(6):
+            # Formule de Colebrook
+            cf = (-0.5/(np.log10((2.51/rex)*(1/np.sqrt(cf))+(k/(3.7*hydro_width)))))**2
+        dp = 0.5 * cf * (tube_length/hydro_width) * rho * speed**2
+        return dp
+
+    def flat_tube_heat_transfer(self, pamb,tamb,fluid_temp,vair,dx):
+        n = 32
+        ea = dx / n     # Exchange length for one single tube (supposing tubes are adjacent
+        x_int = 0
+        h_int = 0
+        x = 0
+        for j in range(int(n)):
+            x = x_int + 0.5 * ea
+            h, rho, cp, mu, pr, re, nu, lbd = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,fluid_temp,vair, x)
+            x_int += ea
+            h_int += h / n
+        return h_int
+
+    def design(self, width, height):
+        """Compact heatsink geometry
+        """
+        self.width = width
+        self.height = height
+
+        self.tube_count = np.floor(self.height / (self.tube_height + 2*self.tube_thickness + self.tube_interval))
+        self.tube_inner_area = (  2*(self.tube_width - self.tube_height) \
+                                + np.pi*self.tube_height ) * self.width                             # Assuming hypodrome section
+        self.tube_outer_area = (  2*(self.tube_width - self.tube_height) \
+                                + np.pi*(self.tube_height + 2*self.tube_thickness) ) * self.width   # Assuming hypodrome section
+
+        self.tube_section =   (self.tube_width - self.tube_height) * self.tube_height \
+                            + 0.25 * np.pi * self.tube_height**2
+
+        self.tube_perimeter = 2*(self.tube_width - self.tube_height) + np.pi*self.tube_height
+        self.tube_hydro_width = 4 * self.tube_section / self.tube_perimeter             # Hydrolic section
+
+        self.fin_count = np.floor(self.width / self.fin_step) * 2   # Number of fins around one single tube
+        self.fin_height = 0.5 * (self.height - (self.tube_height + 2*self.tube_thickness) * self.tube_count) / (self.tube_count + 1)  # Half interval between tubes
+        self.fin_area = self.tube_width * self.fin_height
+
+        temp = self.fc_system.stack.working_temperature
+        rho_f, cp_f, mu_f, lbd_f = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
+
+        self.fluid_mass = self.tube_section * self.width * self.tube_count * rho_f * self.tube_factor
+        self.tube_mass = self.tube_perimeter * self.tube_thickness * self.width * self.tube_count * self.density * self.tube_factor
+        self.fin_mass = self.fin_area * self.fin_thickness * self.fin_count * self.tube_count * self.density * self.fin_factor
+        self.mass = self.fin_mass + self.tube_mass + self.fluid_mass
+
+    def operate(self, pamb, tamb, air_speed, fluid_temp_in, fluid_speed=None):
+        fluid_temp_out = fluid_temp_in - self.max_delta_temp    # initial guess, final temperature is recomputed
+        if fluid_speed is None:
+            fluid_speed = self.nominal_fluid_speed
+        ha_int = self.flat_tube_heat_transfer(pamb,tamb,fluid_temp_in,air_speed, self.tube_width)
+        ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,fluid_temp_in,air_speed, 0.35*self.tube_width)
+        temp = 0.5 * (fluid_temp_in + fluid_temp_out)
+        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(temp, fluid_speed, self.tube_hydro_width)
+        k1ail =  np.sqrt(hf * (2*self.tube_width) * self.conductivity * (self.fin_thickness*self.tube_width)) \
+               * np.tanh(np.sqrt((hf*(2*self.tube_width))/(self.conductivity * (self.fin_thickness*self.tube_width)))*self.fin_height)
+
+        # tube_inner_area is taken as reference area, ks is for one single tube
+        ks = 1 / (  1/((k1ail*self.fin_count + ha_int*self.tube_outer_area) / self.tube_inner_area)
+                  + (self.tube_thickness/self.conductivity) * (self.tube_outer_area/self.tube_inner_area)
+                  + 1/hf
+                 )
+
+        fluid_flow = rhof * self.tube_section * self.tube_count * fluid_speed
+
+        def fct(temp_out):
+            q_fluid = fluid_flow * cpf * (fluid_temp_in - temp_out)
+            q_out = - ks * self.tube_inner_area * self.tube_count * (fluid_temp_in - temp_out) / np.log((temp_out-tamb)/(fluid_temp_in-tamb))
+            return q_fluid-q_out
+
+        temp_ini = fluid_temp_out
+        output_dict = fsolve(fct, x0=temp_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        fluid_temp_out = output_dict[0][0]
+
+        q_fluid = fluid_flow * cpf * (fluid_temp_in - fluid_temp_out)
+        q_out = - ks * self.tube_inner_area * self.tube_count * (fluid_temp_in - fluid_temp_out) / np.log((fluid_temp_out-tamb)/(fluid_temp_in-tamb))
+
+        temp = 0.5*(fluid_temp_in + fluid_temp_out)
+        pd = self.pressure_drop(temp, fluid_speed, self.tube_hydro_width, self.width) * self.pressure_drop_factor
+        pwd = pd * (fluid_flow / rhof)
+
+        return {"temp_in":fluid_temp_in,
+                "temp_out":fluid_temp_out,
+                "q_fluid":q_fluid,
+                "q_out":q_out,
+                "flow":fluid_flow,
+                "p_drop":pd,
+                "pw_drop":pwd,
+                "ks":ks,
+                "ha_int":ha_int,
+                "ha":ha,
+                "rhoa":rhoa,
+                "cpa":cpa,
+                "mua":mua,
+                "pra":pra,
+                "rea":rea,
+                "nua":nua,
+                "lbda":lbda,
+                "rhof":rhof,
+                "hf":hf,
+                "cpf":cpf,
+                "muf":muf,
+                "prf":prf,
+                "redf":redf,
+                "nudf":nudf,
+                "lbdf":lbdf}
+
+    def print_design(self):
+        print("")
+        print("Wing skin heatsink design data")
+        print("----------------------------------------------------------")
+        print("Tube width = ", "%.2f"%unit.convert_to("mm",self.tube_width), " mm")
+        print("Tube height = ", "%.2f"%unit.convert_to("mm",self.tube_height), " mm")
+        print("Tube wall thickness = ", "%.2f"%unit.convert_to("mm",self.tube_thickness), " mm")
+        print("Tube interval = ", "%.2f"%unit.convert_to("mm",self.tube_interval), " mm")
+        print("Tube internal section = ", "%.2f"%unit.convert_to("cm2",self.tube_section), " cm2")
+        print("Tube hydraulic diameter = ", "%.2f"%unit.convert_to("mm",self.tube_hydro_width), " mm")
+        print("Number of tubes = ", "%.0f"%self.tube_count)
+        print("")
+        print("Fin thickness = ", "%.2f"%unit.convert_to("mm",self.fin_thickness), " mm")
+        print("Fin interval = ", "%.2f"%unit.convert_to("mm",self.fin_step), " mm")
+        print("Number of fins around one tube = ", "%.0f"%self.fin_count)
+        print("")
+        print("Material thermal conductivity conductivity = ", "%.2f"%(self.conductivity), "W/m/K")
+        print("Material density = ", "%.2f"%(self.density), "kg/m3")
+        print("")
+        print("Fluid mass = ", "%.2f"%(self.fluid_mass), "kg")
+        print("Tube mass = ", "%.2f"%(self.tube_mass), "kg")
+        print("Fin mass = ", "%.2f"%(self.fin_mass), "kg")
+        print("Total mass mass = ", "%.2f"%(self.mass), "kg")
+
+    def print_operate(self, dict):
+        print("")
+        print("Wing skin heatsink working data")
+        print("----------------------------------------------------------")
+        print("Fluid input temperature = ", "%.2f"%dict["temp_in"], " °K")
+        print("Fluid output temperature = ", "%.2f"%dict["temp_out"], " °K")
+        print("Fluid delta temperature = ", "%.2f"%(dict["temp_in"]-dict["temp_out"]), " °K")
+        print("q_fluid = ", "%.2f"%unit.convert_to("kW",dict["q_fluid"]), " kW")
+        print("q_out = ", "%.2f"%unit.convert_to("kW",dict["q_out"]), " kW")
+        print("Global exchange factor = ", "%.2f"%(dict["ks"]), " W/m2/K")
+        print("")
+        print("Fluid mass flow = ", "%.2f"%(dict["flow"]*1000), " g/s")
+        print("Fluid pressure drop = ", "%.4f"%unit.convert_to("bar",dict["p_drop"]), " bar")
+        print("Fluid flow power = ", "%.0f"%(dict["pw_drop"]), " W")
+        print("")
+        print("air integral heat transfer factor = ", "%.3f"%dict["ha_int"], " W/m2/K")
+        print("air mean heat transfer factor = ", "%.3f"%dict["ha"], " W/m2/K")
+        print("rho air = ", "%.3f"%dict["rhoa"], " kg/m3")
+        print("Cp air = ", "%.1f"%dict["cpa"], " J/kg")
+        print("mu air = ", "%.1f"%(dict["mua"]*1e6), " 10-6Pa.s")
+        print("Pr air = ", "%.4f"%dict["pra"])
+        print("Re air = ", "%.0f"%dict["rea"])
+        print("Nu air = ", "%.0f"%dict["nua"])
+        print("Lambda air = ", "%.4f"%dict["lbda"])
+        print("")
+        print("fluid heat transfer factor = ", "%.3f"%dict["hf"], " W/m2/K")
+        print("rho fluide = ", "%.1f"%dict["rhof"], " kg/m3")
+        print("Cp fluide = ", "%.1f"%dict["cpf"], " J/kg")
+        print("mu fluide = ", "%.1f"%(dict["muf"]*1e6), " 10-6Pa.s")
+        print("Pr fluide = ", "%.4f"%dict["prf"])
+        print("ReD fluide = ", "%.0f"%dict["redf"])
+        print("NuD fluide = ", "%.2f"%dict["nudf"])
+        print("Lambda fluide = ", "%.4f"%dict["lbdf"])
+
+
+
+class WingSkinHeatsink(object):
 
     def __init__(self, fc_system):
         self.fc_system = fc_system
@@ -831,7 +1053,7 @@ class WingSkinheatsink(object):
 
         self.pump_efficiency = 0.80
         self.fluid_factor = 1.15        # Factor on fluid mass for piping
-        self.tube_factor = 1.20         # Factor on tube mass for piping
+        self.tube_factor = 1.15         # Factor on tube mass for piping
 
         self.web_tube_mass = None
         self.web_fluid_mass = None
@@ -863,10 +1085,11 @@ class WingSkinheatsink(object):
         self.mass =  self.web_tube_mass * self.tube_factor + self.web_fluid_mass * self.fluid_factor
         self.volume_allocation = 0
 
-    def operate(self, pamb, tamb, air_speed, fluid_temp_in):
+    def operate(self, pamb, tamb, air_speed, fluid_temp_in, fluid_speed=None):
         # Both circuits are working in parallel, flows are blended at the end
         fluid_temp_out = fluid_temp_in - self.max_delta_temp    # initial guess, final temperature is recomputed
-        fluid_speed = self.nominal_fluid_speed
+        if fluid_speed is None:
+            fluid_speed = self.nominal_fluid_speed
         dict_le = self.circuit_le.operate(pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out)
         dict_te = self.circuit_te.operate(pamb, tamb, air_speed, fluid_speed, fluid_temp_in, fluid_temp_out)
         temp_out =   (dict_le["flow"]*dict_le["temp_out"] + dict_te["flow"]*dict_te["temp_out"]) / (dict_le["flow"] + dict_te["flow"])
@@ -961,9 +1184,11 @@ class WingSkinCircuit(object):
         """
         rho, cp, mu, lbd = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
         rex = (rho * speed / mu) * hydro_width                       # Reynolds number
+        k = 0.001   # Indice de rugosité
         cf = 0.5
-        for j in range(6):
-            cf = (1./(2.*np.log(rex*np.sqrt(cf))/np.log(10)-0.8))**2
+        for j in range(4):
+            # Formule de Colebrook
+            cf = (-0.5/(np.log10((2.51/rex)*(1/np.sqrt(cf))+(k/(3.7*hydro_width)))))**2
         dp = 0.5 * cf * (tube_length/hydro_width) * rho * speed**2
         return dp
 
@@ -1033,7 +1258,7 @@ class WingSkinCircuit(object):
 
         def fct(temp_out):
             q_fluid = fluid_flow * cpf * (fluid_temp_in - temp_out)
-            # q_out = ks * self.fc_system.heatsink.wing_area * (0.5*(fluid_temp_in + temp_out) - tamb)
+            # q_out = ks * self.fc_system.wing_heatsink.wing_area * (0.5*(fluid_temp_in + temp_out) - tamb)
             q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - temp_out) / np.log((temp_out-tamb)/(fluid_temp_in-tamb))
             return q_fluid-q_out
 
@@ -1043,7 +1268,7 @@ class WingSkinCircuit(object):
         fluid_temp_out = output_dict[0][0]
 
         q_fluid = fluid_flow * cpf * (fluid_temp_in - fluid_temp_out)
-        # q_out = ks * self.fc_system.heatsink.wing_area * (0.5*(fluid_temp_in + fluid_temp_out) - tamb)
+        # q_out = ks * self.fc_system.wing_heatsink.wing_area * (0.5*(fluid_temp_in + fluid_temp_out) - tamb)
         q_out = - ks * self.tube_count * self.skin_exchange_area * (fluid_temp_in - fluid_temp_out) / np.log((fluid_temp_out-tamb)/(fluid_temp_in-tamb))
 
         temp = 0.5*(fluid_temp_in + fluid_temp_out)
@@ -1259,7 +1484,7 @@ if __name__ == '__main__':
 
 
 
-    # # heatsink test
+    # # Wing heatsink test
     # #----------------------------------------------------------------------
     # altp = unit.m_ft(10000)
     # disa = 0
@@ -1268,27 +1493,49 @@ if __name__ == '__main__':
     # pamb, tamb, g = phd.atmosphere(altp, disa)
     #
     # fluid_temp_in = 273.15 + 65
+    # fluid_speed = 1.6
     #
     # wing_aspect_ratio = 10
     # wing_area = 42
     #
-    # design_fluid_flow = 10  # kg/s
+    # fc_syst.wing_heatsink.design(wing_aspect_ratio, wing_area)
+    # fc_syst.wing_heatsink.print_design()
     #
-    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)
-    # fc_syst.heatsink.print_design()
-    #
-    # dict_rad = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
-    # fc_syst.heatsink.print_operate(dict_rad)
+    # dict_rad = fc_syst.wing_heatsink.operate(pamb, tamb, vair, fluid_temp_in, fluid_speed)
+    # fc_syst.wing_heatsink.print_operate(dict_rad)
 
 
 
 
-    # # heatsink plot test
+    # Compact heatsink test
+    #----------------------------------------------------------------------
+    altp = unit.m_ft(10000)
+    disa = 0
+    vair = unit.mps_kmph(200)
+
+    pamb, tamb, g = phd.atmosphere(altp, disa)
+
+    fluid_temp_in = 273.15 + 65
+    fluid_speed = 0.6
+
+    width = 0.5
+    height = 0.4
+
+    fc_syst.compact_heatsink.design(width, height)
+    fc_syst.compact_heatsink.print_design()
+
+    dict_rad = fc_syst.compact_heatsink.operate( pamb, tamb, vair, fluid_temp_in, fluid_speed)
+    fc_syst.compact_heatsink.print_operate(dict_rad)
+
+
+
+
+    # # wing_heatsink plot test
     # #----------------------------------------------------------------------
     # wing_aspect_ratio = 10
     # wing_area = 42
     #
-    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
+    # fc_syst.wing_heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
     #
     # fluid_temp_in = 273.15 + 65
     #
@@ -1303,7 +1550,7 @@ if __name__ == '__main__':
     #     altp = unit.convert_from("ft", y)
     #     pamb, tamb, g = phd.atmosphere(altp, disa)
     #
-    #     dict = fc_syst.heatsink.operate(pamb, tamb, vair, fluid_temp_in)
+    #     dict = fc_syst.wing_heatsink.operate(pamb, tamb, vair, fluid_temp_in)
     #
     #     heat_extracted.append(dict["pw_heat"]/1000)
     #
@@ -1335,7 +1582,7 @@ if __name__ == '__main__':
     #
     # total_fluid_flow = 10   # Max value
     #
-    # fc_syst.heatsink.design(wing_aspect_ratio, wing_area, total_fluid_flow)   # WARNING, not included in fc_syst.design
+    # fc_syst.wing_heatsink.design(wing_aspect_ratio, wing_area, total_fluid_flow)   # WARNING, not included in fc_syst.design
     #
     # altp = unit.m_ft(10000)
     # disa = 15
@@ -1368,76 +1615,76 @@ if __name__ == '__main__':
 
 
 
-    # Airplane coupling mini test
-    #----------------------------------------------------------------------
-    wing_aspect_ratio = 12
-    wing_area = 42
-
-    g = 9.81
-    eff = 0.82
-    mass = 5700
-
-    disa = 0
-
-    fc_syst.stack.working_temperature = 273.15 + 75                      # Cell working temperature
-
-
-    stack_power = unit.convert_from("kW", 50)
-    n_stack = 6
-
-
-    dp = DragPolar(wing_aspect_ratio)
-
-    vair = unit.mps_kmph(250)
-    altp = unit.m_ft(10000)
-    pamb, tamb, g = phd.atmosphere(altp, disa)
-    fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
-
-    fc_syst.heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
-
-
-    air_speed = np.linspace(100, 300, 10)
-    altitude = np.linspace(0, 10000, 10)
-    X, Y = np.meshgrid(air_speed, altitude)
-
-    heat_balance = []
-    for x,y in zip(X.flatten(),Y.flatten()):
-        vair = unit.convert_from("km/h", x)
-        altp = unit.convert_from("ft", y)
-
-        pamb, tamb, g = phd.atmosphere(altp, disa)
-        rho = phd.gas_density(pamb,tamb)
-        cz = (2*mass*g) / (rho * vair**2 * wing_area)
-        cx,_ = dp.get_cx(pamb, tamb, vair, cz)
-        lod = cz / cx
-        fn = mass * g / lod
-        pw = fn * vair / eff
-        req_power = pw / 2
-        dict = fc_syst.operate(pamb, tamb, vair, req_power)
-
-        heat_balance.append(dict["system"]["thermal_balance"])
-
-    # convert to numpy array with good shape
-    heat_balance = np.array(heat_balance)
-    heat_balance = heat_balance.reshape(np.shape(X))
-
-    print("")
-    # Plot contour
-    cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
-
-    # Plot limit
-    color = 'yellow'
-    c_c = plt.contour(X, Y, heat_balance, levels=[0], colors =[color], linewidths=2)
-    c_h = plt.contourf(X, Y, heat_balance, levels=[-10000000,0], linewidths=2, colors='none', hatches=['//'])
-    for c in c_h.collections:
-        c.set_edgecolor(color)
-
-    plt.colorbar(cs, label=r"Heat balance")
-    plt.grid(True)
-
-    plt.suptitle("Heat balance")
-    plt.xlabel("True Air Speed (km/h)")
-    plt.ylabel("Altitude (ft)")
-
-    plt.show()
+    # # Airplane coupling mini test
+    # #----------------------------------------------------------------------
+    # wing_aspect_ratio = 10
+    # wing_area = 42
+    #
+    # g = 9.81
+    # eff = 0.82
+    # mass = 5700
+    #
+    # disa = 0
+    #
+    # fc_syst.stack.working_temperature = 273.15 + 75                      # Cell working temperature
+    #
+    #
+    # stack_power = unit.convert_from("kW", 50)
+    # n_stack = 6
+    #
+    #
+    # dp = DragPolar(wing_aspect_ratio)
+    #
+    # vair = unit.mps_kmph(250)
+    # altp = unit.m_ft(10000)
+    # pamb, tamb, g = phd.atmosphere(altp, disa)
+    # fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    #
+    # fc_syst.wing_heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
+    #
+    #
+    # air_speed = np.linspace(100, 300, 10)
+    # altitude = np.linspace(0, 10000, 10)
+    # X, Y = np.meshgrid(air_speed, altitude)
+    #
+    # heat_balance = []
+    # for x,y in zip(X.flatten(),Y.flatten()):
+    #     vair = unit.convert_from("km/h", x)
+    #     altp = unit.convert_from("ft", y)
+    #
+    #     pamb, tamb, g = phd.atmosphere(altp, disa)
+    #     rho = phd.gas_density(pamb,tamb)
+    #     cz = (2*mass*g) / (rho * vair**2 * wing_area)
+    #     cx,_ = dp.get_cx(pamb, tamb, vair, cz)
+    #     lod = cz / cx
+    #     fn = mass * g / lod
+    #     pw = fn * vair / eff
+    #     req_power = pw / 2
+    #     dict = fc_syst.operate(pamb, tamb, vair, req_power)
+    #
+    #     heat_balance.append(dict["system"]["thermal_balance"])
+    #
+    # # convert to numpy array with good shape
+    # heat_balance = np.array(heat_balance)
+    # heat_balance = heat_balance.reshape(np.shape(X))
+    #
+    # print("")
+    # # Plot contour
+    # cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
+    #
+    # # Plot limit
+    # color = 'yellow'
+    # c_c = plt.contour(X, Y, heat_balance, levels=[0], colors =[color], linewidths=2)
+    # c_h = plt.contourf(X, Y, heat_balance, levels=[-10000000,0], linewidths=2, colors='none', hatches=['//'])
+    # for c in c_h.collections:
+    #     c.set_edgecolor(color)
+    #
+    # plt.colorbar(cs, label=r"Heat balance")
+    # plt.grid(True)
+    #
+    # plt.suptitle("Heat balance")
+    # plt.xlabel("True Air Speed (km/h)")
+    # plt.ylabel("Altitude (ft)")
+    #
+    # plt.show()
 

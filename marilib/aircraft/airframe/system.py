@@ -223,6 +223,99 @@ class SystemWithFuelCell(Component):
                   + 0.10*power_elec_cg
 
 
+class SystemWithLaplaceFuelCell(Component):
+
+    def __init__(self, aircraft):
+        super(SystemWithLaplaceFuelCell, self).__init__(aircraft)
+
+        self.wiring_efficiency = aircraft.get_init(self,"wiring_efficiency")
+        self.wiring_pw_density = aircraft.get_init(self,"wiring_pw_density")
+
+
+
+
+
+        self.fuel_cell_output_power_ref = None
+        self.compressor_power_ref = None
+        self.cooler_power_ref = None
+        self.heat_power_ref = None
+
+        self.fuel_cell_system_mass = None
+        self.cooling_mass = None
+
+    def eval_fuel_cell_power(self,required_power,pamb,tamb):
+
+
+
+
+        return {"fuel_cell_power":fuel_cell_power,
+                "compressor_power":compressor_power,
+                "cooling_power":cooling_power,
+                "heat_power":heat_power,
+                "fuel_flow":fuel_flow}
+
+    def eval_geometry(self):
+        reference_power = self.aircraft.power_system.reference_power
+        n_engine = self.aircraft.power_system.n_engine
+
+        self.power_chain_efficiency =   self.wiring_efficiency \
+                                      * self.aircraft.airframe.nacelle.controller_efficiency \
+                                      * self.aircraft.airframe.nacelle.motor_efficiency
+
+        required_power = n_engine * reference_power / self.power_chain_efficiency
+
+        # Fuell cell stack is designed for cruise
+        disa = self.aircraft.requirement.cruise_disa
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
+        mass = self.ktow*self.aircraft.weight_cg.mtow
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+
+        dict = self.eval_fuel_cell_power(required_power,pamb,tamb)
+
+        self.fuel_cell_output_power_ref = dict["fuel_cell_power"]
+        self.compressor_power_ref = dict["compressor_power"]
+        self.cooling_power_ref = dict["cooling_power"]
+
+        # Heat dissipated by wiring and nacelles must be added to heat dissipated by fuell cells
+        self.heat_power_ref = dict["heat_power"] + n_engine*reference_power*(1. - self.wiring_efficiency +
+                                                                             1. - self.aircraft.airframe.nacelle.controller_efficiency +
+                                                                             1. - self.aircraft.airframe.nacelle.motor_efficiency)
+
+        self.frame_origin = [0., 0., 0.]
+
+    def eval_mass(self):
+        reference_power = self.aircraft.power_system.reference_power
+
+        mtow = self.aircraft.weight_cg.mtow
+        body_cg = self.aircraft.airframe.body.cg
+        wing_cg = self.aircraft.airframe.wing.cg
+        horizontal_stab_cg = self.aircraft.airframe.horizontal_stab.cg
+        vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
+        nacelle_cg = self.aircraft.airframe.nacelle.cg
+        landing_gear_cg = self.aircraft.airframe.landing_gear.cg
+        n_engine = self.aircraft.power_system.n_engine
+
+        # self.fuel_cell_mass =
+        # self.compressor_mass =
+        # self.cooling_mass =
+        #
+        # self.power_chain_mass =
+
+        power_elec_cg = 0.30*nacelle_cg + 0.70*body_cg
+
+        self.mass = 0.545*mtow**0.8  + self.power_chain_mass  # global mass of all systems
+
+        self.cg =   0.40*body_cg \
+                  + 0.20*wing_cg \
+                  + 0.10*landing_gear_cg \
+                  + 0.05*horizontal_stab_cg \
+                  + 0.05*vertical_stab_cg \
+                  + 0.10*nacelle_cg \
+                  + 0.10*power_elec_cg
+
+
 class SystemPartialTurboElectric(Component):
 
     def __init__(self, aircraft):

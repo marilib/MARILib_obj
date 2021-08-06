@@ -231,6 +231,9 @@ for disa in disa_list:
 
 (C, res, rnk, s) = np.linalg.lstsq(A, B, rcond=None)
 
+print("")
+print(C)
+
 def surrog_fct(disa, altp, vats):
     X = np.array([disa**2, disa, altp**2, altp, vtas**2, vtas, disa*altp, disa*vtas, altp*vtas, 1])
     return np.dot(C,X)
