@@ -159,7 +159,6 @@ class Optimizer(object):
 
         return criterion,constraint
 
-
     def eval_optim_data_checked(self,x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
         """Compute criterion and constraints and check that it was not already computed.
         """
@@ -233,6 +232,7 @@ class Optimizer(object):
                        #options={'maxiter':500,'xtol': np.linalg.norm(start_value)*0.01,
                        #         'initial_tr_radius': np.linalg.norm(start_value)*0.05 })
         return res
+
 
     def custom_descent_search(self,cost_fun, x0, delta=0.02, delta_end=0.005, pen=1e6):
         """ A custom minimization method limited to 2 parameters problems (x1,x2).

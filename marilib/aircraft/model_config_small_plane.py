@@ -156,6 +156,9 @@ class ModelConfiguration(object):
         },
         "RearFuselageMountedNacelle":{
         },
+        "PowerSystem":{
+            "sfc_correction": [1.0, "no_dim", "Factor on specific fuel consumption (fuel only)"]
+        },
         "System":{
         },
         "SystemWithBattery":{
@@ -304,7 +307,8 @@ class ModelConfiguration(object):
             "max_body_aspect_ratio": [75.36/5.64, "no_dim", "Ratio body length / body height, maximum ratio comming from A340-600"]
         },
         "Aerodynamics":{
-            "cx_correction": [0.0020, "no_dim", "Drag correction on cx coefficient"],
+            "kcx_correction": [1., "no_dim", "Drag FACTCOR on cx coefficient"],
+            "dcx_correction": [0.0020, "no_dim", "Drag SHIFT on cx coefficient"],
             "cruise_lodmax": [16., "no_dim", "Assumption on L/D max for some initializations"],
             "hld_conf_clean": [0., "no_dim", "High lift device setting for clean wing, must be 0."],
             "hld_conf_to": [0.30, "no_dim", "High lift device setting for take off, between 0. and 0.5"],

@@ -279,14 +279,11 @@ class Component(object):
         self.eval_geometry()
         self.eval_mass()
 
-    def get_this_shape(self, name): # TODO: is the docstring up to date ?
+    def sketch_curve(self, name): # TODO: is the docstring up to date ?
         """Contour curves for 3 view drawing
         nose1 : modern nose (A220, A350, 787)
-        nose3 : classical Airbus nose
-        nose2 : symetrical nose
         cone1 : classical tail cone
-        cone2 : symetrical cone
-        section : circle
+        sec1 : circle
         """
         curve = {
         "nose1":np.array([[ 0.0000 , 0.3339 , 0.3339 , 0.0000 ,  0.0000 ] ,
@@ -340,7 +337,6 @@ class Component(object):
                          [- 0.4903926 , 0.0975452 , -0.0975452 ] ,
                          [- 0.5000000 , 0.0000000 ,  0.0000000 ]])
         }
-
         return [curve[n] for n in name]
 
 
@@ -413,7 +409,7 @@ class Fuselage(Component):
         body_height = self.height
         body_length = self.length
 
-        nose,cone,section = self.get_this_shape(["nose1","cone1","sec1"])
+        nose,cone,section = self.sketch_curve(["nose1","cone1","sec1"])
 
         r_nose = self.nose_cone_length / self.length    # Fuselage length ratio of nose evolutive part
         r_cone = self.tail_cone_length / self.length    # Fuselage length ratio of tail cone evolutive part
@@ -925,7 +921,7 @@ class Nacelles(Component):
         nac_y = self.engine_loc[1] * side
         nac_z = self.engine_loc[2]
 
-        section, = self.get_this_shape(["sec1"])
+        section, = self.sketch_curve(["sec1"])
 
         nac_xz = np.array([[nac_x                , nac_z+0.4*nac_height ] ,
                            [nac_x+0.1*nac_length , nac_z+0.5*nac_height ] ,
@@ -998,7 +994,7 @@ class Systems(Component):
         self.mass = 0.545*mtow**0.8    # global mass of all systems
 
     def sketch_3view(self, side=None):
-        return "ldg", {}
+        return "sys", {}
 
 
 #-----------------------------------------------------------------------------------------------------------------------

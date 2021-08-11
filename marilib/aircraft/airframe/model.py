@@ -26,7 +26,8 @@ class Aerodynamics(object):
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
-        self.cx_correction = aircraft.get_init(self,"cx_correction")  # Drag correction on cx coefficient
+        self.kcx_correction = aircraft.get_init(self,"kcx_correction")  # Drag FACTOR on cx coefficient
+        self.dcx_correction = aircraft.get_init(self,"dcx_correction")  # Drag SHIFT on cx coefficient
         self.cruise_lodmax = aircraft.get_init(self,"cruise_lodmax")  # Assumption on L/D max for some initializations
         self.cz_cruise_lodmax = None
 
@@ -102,7 +103,7 @@ class Aerodynamics(object):
 
         # Total zero lift drag
         #-----------------------------------------------------------------------------------------------------------
-        cx0 = cxf + cx_par + cx_tap + self.cx_correction
+        cx0 = (cxf + cx_par + cx_tap) * self.kcx_correction + self.dcx_correction
 
         # Induced drag
         #-----------------------------------------------------------------------------------------------------------
@@ -431,6 +432,10 @@ class Turbofan(PowerSystem, Flight):
     def __init__(self, aircraft):
         super(Turbofan, self).__init__(aircraft)
 
+        class_name = "PowerSystem"
+
+        self.sfc_correction = aircraft.get_init(class_name,"sfc_correction")  # FACTOR on specific fuel consumption
+
         self.n_engine = number_of_engine(aircraft)
         self.reference_thrust = init_thrust(aircraft)
         self.sfc_type = "thrust"
@@ -468,7 +473,7 @@ class Turbofan(PowerSystem, Flight):
         dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
 
         fn = dict["fn"]*(n_engine-nei)
-        ff = dict["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
+        ff = dict["ff"]*self.sfc_correction * (n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
         sfc = ff / fn
         t41 = dict["t4"]
 
@@ -484,7 +489,7 @@ class Turbofan(PowerSystem, Flight):
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
-        dict["sfc"] = dict["sfc"] * earth.fuel_heat("kerosene") / fuel_heat
+        dict["sfc"] = dict["sfc"]*self.sfc_correction * earth.fuel_heat("kerosene") / fuel_heat
 
         return dict
 
@@ -528,6 +533,10 @@ class Turboprop(PowerSystem, Flight):
 
     def __init__(self, aircraft):
         super(Turboprop, self).__init__(aircraft)
+
+        class_name = "PowerSystem"
+
+        self.sfc_correction = aircraft.get_init(class_name,"sfc_correction")  # FACTOR on specific fuel consumption
 
         self.n_engine = number_of_engine(aircraft)
         self.reference_power = init_power(aircraft)
@@ -573,7 +582,7 @@ class Turboprop(PowerSystem, Flight):
         dict = self.aircraft.airframe.nacelle.unitary_thrust(pamb,tamb,mach,rating,throttle=throttle)
 
         fn = dict["fn"]*(n_engine-nei)
-        ff = dict["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
+        ff = dict["ff"]*self.sfc_correction * (n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
         pw = dict["pw"]*(n_engine-nei)
         sfc = ff / pw
         t41 = dict["t4"]
@@ -590,7 +599,7 @@ class Turboprop(PowerSystem, Flight):
         fn = thrust/(n_engine - nei)
 
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
-        dict["sfc"] = dict["sfc"] * earth.fuel_heat("kerosene") / fuel_heat
+        dict["sfc"] = dict["sfc"]*self.sfc_correction * earth.fuel_heat("kerosene") / fuel_heat
 
         return dict
 
@@ -914,6 +923,10 @@ class PartialTurboElectric(PowerSystem, Flight):
     def __init__(self, aircraft):
         super(PartialTurboElectric, self).__init__(aircraft)
 
+        class_name = "PowerSystem"
+
+        self.sfc_correction = aircraft.get_init(class_name,"sfc_correction")  # FACTOR on specific fuel consumption
+
         self.n_engine = number_of_engine(aircraft)
         self.reference_thrust = init_thrust(aircraft)
         self.sfc_type = "thrust"
@@ -1067,7 +1080,7 @@ class PartialTurboElectricPods(PartialTurboElectric):
 
         fn1 = dict_tf["fn"]*(n_engine-nei)              # All turbofan thrust
         fn = fn1 + dict_ef1["fn"] + 2.*dict_ef2["fn"]   # Total thrust
-        ff = dict_tf["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
+        ff = dict_tf["ff"]*self.sfc_correction * (n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
         sfc = ff / fn                       # Global SFC
         t41 = dict_tf["t4"]
         efn = dict_ef1["fn"] + 2.*dict_ef2["fn"]
@@ -1115,7 +1128,7 @@ class PartialTurboElectricPiggyBack(PartialTurboElectric):
 
         fn1 = dict_tf["fn"]*(n_engine-nei)          # All turbofan thrust
         fn = fn1 + dict_ef1["fn"] + dict_ef2["fn"]  # Total thrust
-        ff = dict_tf["ff"]*(n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
+        ff = dict_tf["ff"]*self.sfc_correction * (n_engine-nei) * earth.fuel_heat("kerosene") / fuel_heat
         sfc = ff / fn                       # Global SFC
         t41 = dict_tf["t4"]
         efn = dict_ef1["fn"] + dict_ef2["fn"]
