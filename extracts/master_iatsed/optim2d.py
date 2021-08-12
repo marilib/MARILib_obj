@@ -94,12 +94,12 @@ def search_in_cells_around(zed_df_cell, P, N, X1, dX1, X2, dX2, crit_name, crit_
 
     # find best cell candidate shift
     # ---------------------------------------------------------------------------------------------------------------
-    print(Cmin_list)
+    # print(Cmin_list)
     shift_Cmin = np.argmin(Cmin_list)
 
     # find best cell candidate
     # ---------------------------------------------------------------------------------------------------------------
-    print(dist)
+    # print(dist)
     shift_Dsum = np.argmin(dist)
 
     return crit_ref, shift_Cmin, shift_Dsum
@@ -143,7 +143,7 @@ def compute_base_cell_data(zed_df, ref_cell_point_on_grid, N, X1, X2, dX1, dX2, 
     # get information from existing zed_df
     zed_list_new = list(zed_df.values)  # .tolist()
     pt_eval_grid_list_new = [list(ele) for ele in zed_df.index]
-    print("zed_df.index.names = ", zed_df.index.names)
+    # print("zed_df.index.names = ", zed_df.index.names)
     index_list = list(zed_df.index.names)
     names_list = list(zed_df.columns)
 
@@ -174,8 +174,8 @@ def compute_base_cell_data(zed_df, ref_cell_point_on_grid, N, X1, X2, dX1, dX2, 
     # print("zed_list = ", zed_list)
     # df_index = pd.DataFrame(pt_eval_grid_list_new, columns=index_list, )
     index_array = np.array(pt_eval_grid_list_new)
-    print("index_array = ", index_array)
-    print("index_list = ", index_list)
+    # print("index_array = ", index_array)
+    # print("index_list = ", index_list)
     zed_df_new = pd.DataFrame(zed_list_new,
                               columns=names_list,
                               index=pd.MultiIndex.from_arrays(index_array.T, names=index_list))
@@ -232,7 +232,7 @@ def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst)
     # keep the Y column corresponding to crossing constraints
     # ---------------------------------------------------------------------------------------------------------------
     Y_array = np.array(Y_list)
-    cross_Y_array = Y_array[:, np.any(Y_array > 0, axis=0)]
+    cross_Y_array = Y_array[:, np.any(Y_array > epsilon, axis=0)]
 
     # keep the point with Y negative (or close to zero) and minimum C
     # ---------------------------------------------------------------------------------------------------------------
@@ -250,12 +250,13 @@ def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst)
     # keep the points that satisfy the constraints
     # ---------------------------------------------------------------------------------------------------------------
     C_list_ordered_indices = C_list_ordered_indices[do_satisfy_cst]
-    sorted_Ys = sorted_Ys[do_satisfy_cst]
+    # sorted_Ys = sorted_Ys[do_satisfy_cst]
 
     # find in sorted_Ys the first negative or close to zero element
-    sorted_Ys_sol_index = np.argwhere(sorted_Ys < epsilon)
+    # sorted_Ys_sol_index = np.argwhere(sorted_Ys < epsilon)
 
-    best_C_index = C_list_ordered_indices[sorted_Ys_sol_index[0][0]]
+    # best_C_index = C_list_ordered_indices[sorted_Ys_sol_index[0][0]]
+    best_C_index = C_list_ordered_indices[0]
     best_C = C_list[best_C_index]
 
     print("--------------------------> candidates_list         = ", candidates_list)
@@ -263,7 +264,7 @@ def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst)
     print("--------------------------> cross_Y_array           = ", cross_Y_array)
     print("--------------------------> C_list_ordered_indices  = ", C_list_ordered_indices)
     print("--------------------------> sorted_Ys               = ", sorted_Ys)
-    print("--------------------------> sorted_Ys_sol_index     = ", sorted_Ys_sol_index)
+    # print("--------------------------> sorted_Ys_sol_index     = ", sorted_Ys_sol_index)
     print("--------------------------> best_C_index            = ", best_C_index)
     print("--------------------------> best_C                  = ", best_C)
 
@@ -277,8 +278,7 @@ def fct_scitwod_ex_(Xhyp, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, OneVar):
     # ---------------------------------------------------------------------------------------------------------------
 
     # # 2021_0804 - We evaluate the function at the point of evaluation
-    [LwCs, UpCs, Cr] = fct_SciTwoD(
-        Xhyp)  # the output of the function fct_SciTwoD include lower and upper constraints and the objective function (i.e. criteria)
+    [LwCs, UpCs, Cr] = fct_SciTwoD(Xhyp)  # the output of the function fct_SciTwoD include lower and upper constraints and the objective function (i.e. criteria)
 
     # ---------------------------------------------------------------------------------------------------------------
     if OneVar:
@@ -340,7 +340,7 @@ def fct_scitwod_rs_(xin, df_piv, scaled_crit_name, scaled_cst_list):  # ff_vec, 
     return [D, C, Y]
 
 
-def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, graph, varargin=[]):
+def scitwod_(X1, X2, dX1, dX2, noms, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, graph, varargin=[]):
     # =========================================================================================================================
     # global SciTwoD_gn, SciTwoD_gnum
     #
@@ -421,8 +421,8 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
     # ---------------------------------------------------------------------------------------------------------------
     for Nz in range(1, 1 + Nzoom):  # Nz goes from 1 to Nzoom
 
-        print("======================")
-        print("======================")
+        # print("======================")
+        # print("======================")
         print("Nz : ", Nz)
 
         # initiate search
@@ -507,8 +507,8 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
     # check that at least one constraint crosses the last cell
     # if not, move toward a cell with better criteria
     # ---------------------------------------------------------------------------------------------------------------
-    print("###########################################################@")
-    print("Checking that constraints cross the last cell...")
+    # print("###########################################################@")
+    # print("Checking that constraints cross the last cell...")
     exist_cst_crossing = False
     while exist_cst_crossing is False:
 
@@ -524,11 +524,11 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
 
         if ((cst_cross_sum != 4) & (cst_cross_sum != 0)).any():
             exist_cst_crossing = True
-            print("--> At least one constraint crosses the last cell")
+            # print("--> At least one constraint crosses the last cell")
 
         elif ~(((cst_cross_sum != 4) & (cst_cross_sum != 0)).all()):
-            print(exist_cst_crossing)
-            print("--> no constraint cross the cell. Looking for another cell...")
+            # print(exist_cst_crossing)
+            # print("--> no constraint cross the cell. Looking for another cell...")
             # we search in the cells around for place where the criteria is reduced
 
             CritRef, q_Cmin, trash = search_in_cells_around(zed_df_cell, P, N, X1, dX1, X2, dX2, crit_name, CritRef,
@@ -552,7 +552,7 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
                                                                         UpBs, UpFc,
                                                                         CrFc, CritRef,
                                                                         fct_SciTwoD, OneVar)
-            print("--> new cell (for crossing constraint) identified and calculated...")
+            # print("--> new cell (for crossing constraint) identified and calculated...")
 
             exist_cst_crossing = exist_cst_crossing or new_cell_proposed
 
@@ -561,11 +561,11 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
     search_new_cell = True
     shift_ = [0, 0]
 
-    print("###########################################################@")
-    print("Solving for optimum inside the last cell (with linearized local problem)...")
+    # print("###########################################################@")
+    # print("Solving for optimum inside the last cell (with linearized local problem)...")
     while search_new_cell:
 
-        print("--> extracting last cell...")
+        # print("--> extracting last cell...")
         ref_cell_pt_on_grid = ref_cell_pt_on_grid_list[-1]
 
         new_cell_grid_point_list = []
@@ -576,7 +576,7 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
         zed_df_cell = zed_df.loc[new_cell_grid_point_list]
         cst_cross_sum = (zed_df_cell[scaled_cst] > 0).sum()
 
-        print("--> searching for candidates optima...")
+        # print("--> searching for candidates optima...")
         csts_list = []  # list of [Ai, Bi] coordinates where Ai and Bi are one the constraint and on the cell boundaries
         edges_list = []  # list of [Cj, Dj] representing the edges of the cell
         cst_pts_list = []  # list of points Ai, Bi
@@ -587,11 +587,11 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
                 csts_list.append(csts)
             cst_pts_list = cst_pts_list + cst_pts
 
-        print("len(edges_list) = ", len(edges_list))
-        print("csts_list       = ", csts_list)
-        print("cst_pts_list    = ", cst_pts_list)
-        print("edges_list      = ", edges_list)
-        print("edges_pts_list  = ", edges_pts_list)
+        # print("len(edges_list) = ", len(edges_list))
+        # print("csts_list       = ", csts_list)
+        # print("cst_pts_list    = ", cst_pts_list)
+        # print("edges_list      = ", edges_list)
+        # print("edges_pts_list  = ", edges_pts_list)
 
         cst_edges_list = csts_list + edges_list
         intersec_pt_list = []
@@ -602,33 +602,33 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
                     intersec_pt_list.append(intersection_of_(edge_1, edge_2))
                     # print(intersec_pt_list)
 
-        print(intersec_pt_list)
+        # print(intersec_pt_list)
 
         # for cst in csts_list:
         #     plt.plot(np.array(cst).T[0], np.array(cst).T[1])
         # plt.scatter(np.array(intersec_pt_list).T[0], np.array(intersec_pt_list).T[1])
         # plt.show()
 
-        print("--> select the best candidate...")
+        # print("--> select the best candidate...")
         all_opt_candidates_coord = cst_pts_list + edges_pts_list + intersec_pt_list
-        print("all_opt_candidates_coord = ", all_opt_candidates_coord)
+        # print("all_opt_candidates_coord = ", all_opt_candidates_coord)
         all_opt_candidates_tags = ["cst"] * len(cst_pts_list) + \
                                   ["edg"] * len(edges_pts_list) + \
                                   ["int"] * len(intersec_pt_list)
-        print("all_opt_candidates_tags = ", all_opt_candidates_tags)
+        # print("all_opt_candidates_tags = ", all_opt_candidates_tags)
 
         bst_C_ind, bst_C = find_best_opt_candidate(zed_df_cell, all_opt_candidates_coord, crit_name, scaled_cst)
 
-        print("bst_C_ind, bst_C = ", bst_C_ind, bst_C)
-        print("all_opt_candidates_coord[bst_C_ind] = ", all_opt_candidates_coord[bst_C_ind])
+        # print("bst_C_ind, bst_C = ", bst_C_ind, bst_C)
+        # print("all_opt_candidates_coord[bst_C_ind] = ", all_opt_candidates_coord[bst_C_ind])
 
-        print("--> where is the best candidate...")
+        # print("--> where is the best candidate...")
         if all_opt_candidates_tags[bst_C_ind] == "int":
-            print("----> if inside the cell, stop !")
+            # print("----> if inside the cell, stop !")
             search_new_cell = False
             sol = all_opt_candidates_coord[bst_C_ind]
         else:
-            print("----> if on the border, shift the cell and start again...")
+            # print("----> if on the border, shift the cell and start again...")
             all_opt_candidates_coord[bst_C_ind]
             # where is it on the grid ?
 
@@ -649,9 +649,9 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
             elif abs(grid_x2_opt - 1) < epsilon:
                 shift_list.append([0, 1])
 
-            print("[opt_x1, opt_x2] = ", [opt_x1, opt_x2])
-            print("[grid_x1_opt, grid_x2_opt] = ", [grid_x1_opt, grid_x2_opt])
-            print("shift_list = ", shift_list)
+            # print("[opt_x1, opt_x2] = ", [opt_x1, opt_x2])
+            # print("[grid_x1_opt, grid_x2_opt] = ", [grid_x1_opt, grid_x2_opt])
+            # print("shift_list = ", shift_list)
             # if the ref_cell_pt_on_grid is already in zed_df,
             # then this means the new cell has already been searched
             # then last opt candidate is kept as the solution
@@ -659,10 +659,10 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
             # consider the first possible shift_ in shift_list.
             shift_ = shift_list[0]
             ref_cell_pt_on_grid = list(np.array(ref_cell_pt_on_grid) + np.array(shift_))
-            print("ref_cell_pt_on_grid = ", ref_cell_pt_on_grid)
-            print("zed_df.index = ", zed_df.index)
+            # print("ref_cell_pt_on_grid = ", ref_cell_pt_on_grid)
+            # print("zed_df.index = ", zed_df.index)
             if ~zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
-                print("------> ref_cell_pt_on_grid has not already been calculated")
+                # print("------> ref_cell_pt_on_grid has not already been calculated")
                 # print(ref_cell_pt_on_grid)
                 ref_cell_pt_on_grid_list.append(ref_cell_pt_on_grid)
 
@@ -676,10 +676,10 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
                                                                             UpBs, UpFc,
                                                                             CrFc, CritRef,
                                                                             fct_SciTwoD, OneVar)
-                print("--> new cell identified and calculated...")
-                print("zed_df.index = ", zed_df.index)
+                # print("--> new cell identified and calculated...")
+                # print("zed_df.index = ", zed_df.index)
 
-                print("--> extracting last cell...")
+                # print("--> extracting last cell...")
                 ref_cell_pt_on_grid = ref_cell_pt_on_grid_list[-1]
 
                 new_cell_grid_point_list = []
@@ -694,17 +694,17 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
                     # this means one constraint is not satisfied by any corner of the cell
                     # then check the shift_list[1] option (if any)
                     if len(shift_list) == 1:
-                        print("------> shifting the cell to find a better optimum is not possible")
+                        # print("------> shifting the cell to find a better optimum is not possible")
                         # search is over
                         sol = [opt_x1, opt_x2]
                         search_new_cell = False
                     elif len(shift_list) == 2:
-                        print("------> shift and check the cell in the other direction")
+                        # print("------> shift and check the cell in the other direction")
                         shift_ = list(- np.array(shift_list[0]) + np.array(shift_list[1]))
                         ref_cell_pt_on_grid = list(np.array(ref_cell_pt_on_grid) + np.array(shift_))
 
                 if ~zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
-                    print("------> ref_cell_pt_on_grid has not already been calculated")
+                    # print("------> ref_cell_pt_on_grid has not already been calculated")
                     # print(ref_cell_pt_on_grid)
                     ref_cell_pt_on_grid_list.append(ref_cell_pt_on_grid)
 
@@ -718,18 +718,18 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
                                                                                 UpBs, UpFc,
                                                                                 CrFc, CritRef,
                                                                                 fct_SciTwoD, OneVar)
-                    print("--> new cell identified and calculated...")
-                    print("zed_df.index = ", zed_df.index)
+                    # print("--> new cell identified and calculated...")
+                    # print("zed_df.index = ", zed_df.index)
 
                 else:
-                    print("------> ref_cell_pt_on_grid has already been calculated - search is over")
+                    # print("------> ref_cell_pt_on_grid has already been calculated - search is over")
                     ref_cell_pt_on_grid = ref_cell_pt_on_grid_list[-1]
                     sol = [opt_x1, opt_x2]
                     search_new_cell = False
 
                 # search_new_cell = search_new_cell or new_cell_proposed
             else:
-                print("------> ref_cell_pt_on_grid has already been calculated - search is over")
+                # print("------> ref_cell_pt_on_grid has already been calculated - search is over")
                 ref_cell_pt_on_grid = ref_cell_pt_on_grid_list[-1]
                 sol = [opt_x1, opt_x2]
                 search_new_cell = False
@@ -1111,7 +1111,7 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
 #
 # ================================================================================================================
 
-def optim2d_(Xini, dXini, Names, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, graph):
+def optim2d_(Xini, dXini, Names, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, graph):
     # ===============================================================================================================
     # 2021_0804 : Xini, LwBs, UpBs, Names, Units, LwFc, UpFc are lists
     #             Nzoom = number of zooming cycles
@@ -1125,7 +1125,6 @@ def optim2d_(Xini, dXini, Names, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct
         X2 = 0
         dX2 = 0.1
         Names = [Names[0], "dummy", *Names[1:1 + nL], "low", *Names[1 + nL:1 + nL + nU], "up"]
-        Units = [Units[0]] + ["no_dim"] + Units[1:1 + nL] + ["no_dim"] + Units[1 + nL:1 + nL + nU] + ["no_dim"]
         LwBs_ = [*LwBs, -1]
         LwFc_ = [*LwFc, 10]
         UpBs_ = [*UpBs, 1]
@@ -1144,7 +1143,7 @@ def optim2d_(Xini, dXini, Names, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct
         # print(UpBs_)
         # print(UpFc_)
 
-        zed_df, ref_cell_pt_on_grid_list = scitwod_(X1, X2, dX1, dX2, Names, Units, Nzoom, LwBs_, LwFc_, UpBs_, UpFc_,
+        zed_df, ref_cell_pt_on_grid_list = scitwod_(X1, X2, dX1, dX2, Names, Nzoom, LwBs_, LwFc_, UpBs_, UpFc_,
                                                     CrFc, fct_SciTwoD, graph, "OneVar")
         # [XYCopt,gnum] = SciTwoD_(X1,X2,dX1,dX2,Names,Units,Nzoom,LwBs,LwFc,UpBs,UpFc,CrFc,fct_SciTwoD,graph,"OneVar")
     elif n == 2:
@@ -1158,7 +1157,7 @@ def optim2d_(Xini, dXini, Names, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct
         # print(X2 )
         # print(dX2)
 
-        zed_df, ref_cell_pt_on_grid_list, zed_df_cell, sol = scitwod_(X1, X2, dX1, dX2, Names, Units, Nzoom, LwBs, LwFc,
+        zed_df, ref_cell_pt_on_grid_list, zed_df_cell, sol = scitwod_(X1, X2, dX1, dX2, Names, Nzoom, LwBs, LwFc,
                                                                       UpBs, UpFc, CrFc, fct_SciTwoD, graph, )
         # [XYCopt,gnum] = scitwod_(X1,X2,dX1,dX2,Names,Units,Nzoom,LwBs_,LwFc_,UpBs_,UpFc_,CrFc,fct_SciTwoD,graph)
     else:
@@ -1208,7 +1207,6 @@ if __name__ == "__main__":
 
     # set upper bounds information : hi(x) <= upbs
     names_upbs = []  # ["toto_upb1"]
-    units_upbs = []  # ["no_dim"]
     if sum(lwbs) > 0:
         upbs = []  # [rd.uniform(sum(lwbs), max(2*sum(lwbs),5))]  # [10]
     else:
@@ -1217,19 +1215,16 @@ if __name__ == "__main__":
 
     # set criteria information : f(x)
     names_crit = ["crit"]
-    units_crit = ["no_dim"]
     crfc = 1
 
     # set function information [gi(x), hj(x), f(x)
     fct_scitwod = my_fct_scitwod
     names = names_lwbs + names_upbs  # + names_crit
-    units = units_lwbs + units_upbs  # + units_crit
     graph = None
 
     my_zed_df, ref_cell_pts_on_grid_list, my_zed_df_cell, my_sol = optim2d_(xini,
                                                                             dxini,
                                                                             names,
-                                                                            units,
                                                                             nzoom,
                                                                             lwbs,
                                                                             lwfc,

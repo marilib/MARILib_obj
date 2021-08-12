@@ -166,27 +166,7 @@ class Optimizer(object):
 
         elif method == 'optim2d':
 
-            pass
-
-            # xini =
-            # dxini =
-            # names =
-            # units =
-            # nzoom =
-            # lwbs =
-            # lwfc =
-            # upbs =
-            # upfc =
-            # crfc =
-            # fct_scitwod =
-            # graph =
-            #
-            # my_zed_df, ref_cell_pts_on_grid_list, my_zed_df_cell, my_sol \
-            # = optim2d.optim2d_(xini,dxini, names,units, nzoom, lwbs,lwfc, upbs,upfc, crfc, fct_scitwod, graph)
-
-
-
-
+            res = self.optim_2d_from_sci(aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag)
 
         print(res)
 
@@ -212,3 +192,29 @@ class Optimizer(object):
         return res
 
 
+    def optim_2d_from_sci(self,aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag):
+
+        def fct_optim2d(x_in):
+            criterion, constraints = self.eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,crt_mag)
+            return [constraints, [], criterion]
+
+        n = len(cst)
+
+        xini = start_value.tolist()
+        dxini = [0.1*(b[1]-b[0]) for b in var_bnd]
+        names = ["CST_"+str(j) for j in range(n)]
+        nzoom = 3
+        lwbs = [0]*n
+        lwfc = [1]*n
+        upbs = []
+        upfc = []
+        crfc = 1
+        graph = None
+
+        zed_df, ref_cell_pts_on_grid_list, zed_df_cell, sol \
+        = optim2d.optim2d_(xini,dxini, names, nzoom, lwbs,lwfc, upbs,upfc, crfc, fct_optim2d, graph)
+
+        zed_df.to_html('my_zed_df.html')
+        zed_df_cell.to_html('my_zed_df_cell.html')
+
+        return sol

@@ -322,7 +322,9 @@ if __name__ == "__main__":
 
     # Perform an MDF optimization process
     opt = process.Optimizer()
-    opt.mdf(ap, var,var_bnd, cst,cst_mag, crt, method='trust-constr')
+    # method = 'trust-constr'
+    method = 'optim2d'
+    opt.mdf(ap, var,var_bnd, cst,cst_mag, crt, method)
     algo_points = None
 
 # Design space exploration
