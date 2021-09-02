@@ -216,7 +216,7 @@ def find_cst_points_in_cell(cell_df, param):
 
 
 def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst):
-    epsilon = 1e-4
+    epsilon = 0  # 1e-4
     zed_df_piv = zed_df_cell.pivot(index="pt_x1", columns="pt_x2")
     C_list = []
     Y_list = []
@@ -229,19 +229,18 @@ def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst)
         C_list.append(C)
         Y_list.append(Y)
 
-    # keep the Y column corresponding to crossing constraints
-    # ---------------------------------------------------------------------------------------------------------------
     Y_array = np.array(Y_list)
-    cross_Y_array = Y_array[:, np.any(Y_array > epsilon, axis=0)]
+    C_array = np.array(C_list)
+    # cross_Y_array = Y_array[:, np.any(Y_array > epsilon, axis=0)]
 
     # keep the point with Y negative (or close to zero) and minimum C
     # ---------------------------------------------------------------------------------------------------------------
     # get the indices that sorts C_list in ascending order
-    C_list_ordered_indices = np.argsort(np.array(C_list))
+    C_list_ordered_indices = np.argsort(C_array)
 
     # in Y_list, sorted according to ascending order of C_list,
     # ---------------------------------------------------------------------------------------------------------------
-    sorted_Ys = cross_Y_array[C_list_ordered_indices]
+    sorted_Ys = Y_array[C_list_ordered_indices]
 
     # identify points satisfying all the constraints
     # ---------------------------------------------------------------------------------------------------------------
@@ -259,14 +258,14 @@ def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst)
     best_C_index = C_list_ordered_indices[0]
     best_C = C_list[best_C_index]
 
-    print("--------------------------> candidates_list         = ", candidates_list)
-    print("--------------------------> Y_array                 = ", Y_array)
-    print("--------------------------> cross_Y_array           = ", cross_Y_array)
-    print("--------------------------> C_list_ordered_indices  = ", C_list_ordered_indices)
-    print("--------------------------> sorted_Ys               = ", sorted_Ys)
-    # print("--------------------------> sorted_Ys_sol_index     = ", sorted_Ys_sol_index)
-    print("--------------------------> best_C_index            = ", best_C_index)
-    print("--------------------------> best_C                  = ", best_C)
+    # print("--------------------------> candidates_list         = ", candidates_list)
+    # print("--------------------------> Y_array                 = ", Y_array)
+    # print("--------------------------> cross_Y_array           = ", cross_Y_array)
+    # print("--------------------------> C_list_ordered_indices  = ", C_list_ordered_indices)
+    # print("--------------------------> sorted_Ys               = ", sorted_Ys)
+    # # print("--------------------------> sorted_Ys_sol_index     = ", sorted_Ys_sol_index)
+    # print("--------------------------> best_C_index            = ", best_C_index)
+    # print("--------------------------> best_C                  = ", best_C)
 
     return best_C_index, best_C
 
@@ -661,7 +660,8 @@ def scitwod_(X1, X2, dX1, dX2, noms, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_Sc
             ref_cell_pt_on_grid = list(np.array(ref_cell_pt_on_grid) + np.array(shift_))
             # print("ref_cell_pt_on_grid = ", ref_cell_pt_on_grid)
             # print("zed_df.index = ", zed_df.index)
-            if ~zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
+            ref_cell_pt_on_grid_list_tuples = [tuple(ele) for ele in ref_cell_pt_on_grid_list]
+            if tuple(ref_cell_pt_on_grid) not in ref_cell_pt_on_grid_list_tuples: # ~zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
                 # print("------> ref_cell_pt_on_grid has not already been calculated")
                 # print(ref_cell_pt_on_grid)
                 ref_cell_pt_on_grid_list.append(ref_cell_pt_on_grid)
@@ -703,7 +703,8 @@ def scitwod_(X1, X2, dX1, dX2, noms, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_Sc
                         shift_ = list(- np.array(shift_list[0]) + np.array(shift_list[1]))
                         ref_cell_pt_on_grid = list(np.array(ref_cell_pt_on_grid) + np.array(shift_))
 
-                if ~zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
+                ref_cell_pt_on_grid_list_tuples = [tuple(ele) for ele in ref_cell_pt_on_grid_list]
+                if tuple(ref_cell_pt_on_grid) not in ref_cell_pt_on_grid_list_tuples:  # if ~zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
                     # print("------> ref_cell_pt_on_grid has not already been calculated")
                     # print(ref_cell_pt_on_grid)
                     ref_cell_pt_on_grid_list.append(ref_cell_pt_on_grid)

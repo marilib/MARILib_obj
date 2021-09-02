@@ -697,7 +697,9 @@ class Electroprop(PowerSystem, Flight):
         dict = {"fn":fn, "pw":pw_net, "sec":sec, "fn1":fn}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            vsnd = earth.sound_speed(tamb)
+            vtas = vsnd*mach
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb,vtas)
             dict["sfc"] = fc_dict["fuel_flow"] / pw_net     # WARNING : PSFC here
             dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
@@ -719,7 +721,9 @@ class Electroprop(PowerSystem, Flight):
         pw_net  = dict["sec"] * thrust
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            vsnd = earth.sound_speed(tamb)
+            vtas = vsnd*mach
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb,vtas)
             dict["sfc"] = fc_dict["fuel_flow"] / pw_net     # WARNING : PSFC here
             dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
@@ -837,7 +841,9 @@ class Electrofan(PowerSystem, Flight):
         dict = {"fn":fn, "pw":pw_net, "sec":sec, "fn1":fn}
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            vsnd = earth.sound_speed(tamb)
+            vtas = vsnd*mach
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb,vtas)
             dict["sfc"] = fc_dict["fuel_flow"] / fn     # TSFC here
             dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):
@@ -859,7 +865,9 @@ class Electrofan(PowerSystem, Flight):
         pw_net  = dict["sec"] * thrust
 
         if (self.aircraft.arrangement.power_source == "fuel_cell"):
-            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb)
+            vsnd = earth.sound_speed(tamb)
+            vtas = vsnd*mach
+            fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb,vtas)
             dict["sfc"] = fc_dict["fuel_flow"] / thrust     # TSFC here
             dict["ff"] = fc_dict["fuel_flow"]
         elif (self.aircraft.arrangement.power_source == "battery"):

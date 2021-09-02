@@ -203,7 +203,7 @@ class Optimizer(object):
         xini = start_value.tolist()
         dxini = [0.1*(b[1]-b[0]) for b in var_bnd]
         names = ["CST_"+str(j) for j in range(n)]
-        nzoom = 3
+        nzoom = 8
         lwbs = [0]*n
         lwfc = [1]*n
         upbs = []

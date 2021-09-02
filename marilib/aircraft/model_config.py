@@ -95,7 +95,7 @@ class ModelConfiguration(object):
         },
         "HtpHtail":{
             "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
-            "taper_ratio": [0.35, "no_dim", "Horizontal tail taper ratio"],
+            "taper_ratio": [0.8, "no_dim", "Horizontal tail taper ratio"],
             "sweep25": ["function", "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the Horizontal tail"],
             "dihedral": [5, "deg", "Dihedral angle of the horizontal tail"],

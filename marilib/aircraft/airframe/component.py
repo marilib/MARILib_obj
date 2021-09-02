@@ -12,6 +12,7 @@ import numpy as np
 
 from marilib.utils import earth, unit
 
+from marilib.utils.math import lin_interp_1d
 
 
 class Component(object):
@@ -292,23 +293,32 @@ class Nacelle(Component):
             disk_yz = np.vstack([np.stack([nac_y+d_fan_yz[0:,0] , nac_z+d_fan_yz[0:,1]],axis=1) ,
                                  np.stack([nac_y+d_fan_yz[::-1,0] , nac_z+d_fan_yz[::-1,2]],axis=1)])
 
-        nac_fle = np.stack([[nac_x]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)
-        nac_fte = np.stack([[nac_x+nac_cowl*nac_length]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)
+        nac_fle = np.stack([[nac_x]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)                       # Fan leading edge
+        nac_fte = np.stack([[nac_x+nac_cowl*nac_length]*len(nac_yz) , nac_yz[:,0] , nac_yz[:,1]], axis=1)   # Fan trailing edge
 
         if self.get_component_type() in ["body_nacelle", "body_tail_nacelle", "pod_tail_nacelle", "piggyback_tail_nacelle"]:
-            nac_cle = np.stack([[nac_x-0.15*nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)
-            nac_cte = np.stack([[nac_x+nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)
+            nac_cle = np.stack([[nac_x-0.15*nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)    # Core leading edge
+            nac_cte = np.stack([[nac_x+nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)         # Core trailing edge
         else:
-            nac_cle = np.stack([[nac_x+0.15*nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)
-            nac_cte = np.stack([[nac_x+nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)
+            nac_cle = np.stack([[nac_x+0.15*nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)    # Core leading edge
+            nac_cte = np.stack([[nac_x+nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)         # Core trailing edge
 
         nac_toc = 0.15
 
-        nac_s1le = [[nac_x+0.15*nac_length, nac_y, nac_z+0.5*nac_height],
-                    [nac_x+0.15*nac_length, nac_y, nac_z+0.2*nac_height]]
+        if self.get_component_type() == "wing_nacelle":
+            nac_s1le = [[nac_x+0.15*nac_length, nac_y, nac_z+0.5*nac_height],
+                        [nac_x+0.15*nac_length, nac_y, nac_z+0.5*nac_height],
+                        [nac_x+0.15*nac_length, nac_y, nac_z+0.2*nac_height]]
 
-        nac_s1te = [[nac_x+0.6*nac_length, nac_y, nac_z+0.5*nac_height],
-                    [nac_x+0.6*nac_length, nac_y, nac_z+0.2*nac_height]]
+            nac_s1te = [[nac_x+0.6*nac_length, nac_y, nac_z+0.5*nac_height],
+                        [nac_x+0.6*nac_length, nac_y, nac_z+0.5*nac_height],
+                        [nac_x+0.6*nac_length, nac_y, nac_z+0.2*nac_height]]
+        else:
+            nac_s1le = [[nac_x+0.15*nac_length, nac_y, nac_z+0.5*nac_height],
+                        [nac_x+0.15*nac_length, nac_y, nac_z+0.2*nac_height]]
+
+            nac_s1te = [[nac_x+0.6*nac_length, nac_y, nac_z+0.5*nac_height],
+                        [nac_x+0.6*nac_length, nac_y, nac_z+0.2*nac_height]]
 
         nac_s2le = [[nac_x+0.15*nac_length, nac_y, nac_z-0.2*nac_height],
                     [nac_x+0.15*nac_length, nac_y, nac_z-0.5*nac_height]]
@@ -771,7 +781,7 @@ class Wing(Component):
 
         self.mac_loc = np.full(3,None)      # Position of MAC chord leading edge
         self.mac = None
-        
+
         self.mass_correction_factor = aircraft.get_init(self,"mass_correction_factor")
 
     def get_component_type(self):
@@ -805,6 +815,7 @@ class Wing(Component):
         body_width = self.aircraft.airframe.body.width
         body_length = self.aircraft.airframe.body.length
         body_height = self.aircraft.airframe.body.height
+        y_nacelle = self.aircraft.airframe.nacelle.frame_origin[1]
 
         self.tip_toc = 0.10
         self.kink_toc = self.tip_toc + 0.01
@@ -868,6 +879,14 @@ class Wing(Component):
 
         z_kink = z_root+(y_kink-y_root)*np.tan(self.dihedral)
         z_tip = z_root+(y_tip-y_root)*np.tan(self.dihedral)
+
+        # Wing chord at engine position
+        wing_xle_nac = lin_interp_1d(y_nacelle, [y_root,y_kink,y_tip], [x_root,x_kink,x_tip])   # Wing leading edge x at pylon position
+        wing_zle_nac = lin_interp_1d(y_nacelle, [y_root,y_kink,y_tip], [z_root,z_kink,z_tip])   # Wing leading edge z at pylon position
+
+        if self.get_component_type() == "wing_nacelle":
+            self.nacelle_wing_chord = lin_interp_1d(y_nacelle, [y_root,y_kink,y_tip], [c_root,c_kink,c_tip])
+            self.nacelle_wing_chord_loc = np.array([wing_xle_nac, y_nacelle, wing_zle_nac])
 
         self.root_loc = np.array([x_root, y_root, z_root])
         self.kink_loc = np.array([x_kink, y_kink, z_kink])

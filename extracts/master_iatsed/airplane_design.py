@@ -26,10 +26,10 @@ from performance import Missions, Operations, Economics
 class Airplane(object):
     def __init__(self, cruise_mach=0.78, design_range=unit.m_NM(3000), cost_range=unit.m_NM(500),
                  n_pax=150, n_aisle=1, n_front=6,
-                 wing_area=122, wing_aspect_ratio=9, wing_taper_ratio=0.20, wing_toc_ratio=0.12, wing_sweep25=unit.rad_deg(25), wing_dihedral=unit.rad_deg(5), hld_type=9,
+                 wing_area=112, wing_aspect_ratio=9, wing_taper_ratio=0.20, wing_toc_ratio=0.12, wing_sweep25=unit.rad_deg(25), wing_dihedral=unit.rad_deg(5), hld_type=9,
                  htp_aspect_ratio=5, htp_taper_ratio=0.35, htp_toc_ratio=0.10, htp_sweep25=unit.rad_deg(30), htp_dihedral=unit.rad_deg(5), volume=0.94,
                  vtp_aspect_ratio=1.7, vtp_taper_ratio=0.4, vtp_toc_ratio=0.10, vtp_sweep25=unit.rad_deg(30), thrust_volume=0.4,
-                 engine_slst=unit.N_kN(120.), engine_bpr=9, z_ratio = 0.55,
+                 engine_slst=unit.N_kN(112.), engine_bpr=9, z_ratio = 0.55,
                  leg_length=3.7,
                  holding_time=unit.s_min(30), reserve_fuel_ratio=0.05, diversion_range=unit.m_NM(200),
                  hld_conf_to=0.3, kvs1g_req_to=1.13, s2_path_req_to=0.024, hld_conf_ld=1., kvs1g_ld=1.23,
