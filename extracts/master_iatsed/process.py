@@ -14,6 +14,7 @@ from scipy.optimize import SR1, NonlinearConstraint, minimize, fsolve
 import unit
 
 import optim2d
+import optim2d_polytope as optim2d_poly
 
 
 def geometry_solver(aircraft):
@@ -168,6 +169,10 @@ class Optimizer(object):
 
             res = self.optim_2d_from_sci(aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag)
 
+        elif method == 'optim2d_poly':
+
+            res = self.optim_2d_polytope(aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag)
+
         print(res)
 
 
@@ -203,7 +208,7 @@ class Optimizer(object):
         xini = start_value.tolist()
         dxini = [0.1*(b[1]-b[0]) for b in var_bnd]
         names = ["CST_"+str(j) for j in range(n)]
-        nzoom = 8
+        nzoom = 4
         lwbs = [0]*n
         lwfc = [1]*n
         upbs = []
@@ -218,3 +223,49 @@ class Optimizer(object):
         zed_df_cell.to_html('my_zed_df_cell.html')
 
         return sol
+
+
+    def optim_2d_polytope(self,aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag):
+
+        def fct_optim2d(x_in):
+            criterion, constraints = self.eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,crt_mag)
+            return [constraints, [], criterion]
+
+        n = len(cst)
+
+        xini = start_value.tolist()
+        initial_scales = [0.1*(b[1]-b[0]) for b in var_bnd]
+        initial_scales_matrix = np.diag(np.array(initial_scales))
+
+        if len(var) == 2:
+            poly_unit_matrix = np.array([[1, 0],[0.5, np.sqrt(3) / 2]]).T
+
+            dxini_matrix = np.dot(initial_scales_matrix, poly_unit_matrix)
+            dxini = [dxini_matrix.T[0],
+                     dxini_matrix.T[1]]  # [rd.uniform(0.1, 2), rd.uniform(0.1, 2)]
+        else:
+            raise Exception("this optimization algorithm is for 2D problem only")
+
+        # dxini = [0.1*(b[1]-b[0]) for b in var_bnd]
+        names = ["CST_"+str(j) for j in range(n)]
+        nzoom = 4
+        lwbs = [0]*n
+        lwfc = [1]*n
+        upbs = []
+        upfc = []
+        crfc = 1
+        graph = None
+
+        zed_df, ref_cell_pts_on_grid_list, zed_df_cell, sol \
+        = optim2d_poly.optim2d_poly(xini,dxini, names, [], nzoom, lwbs,lwfc, upbs,upfc, crfc, fct_optim2d, graph)
+                                  # (Xini, dXini, Names, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, graph)
+
+        zed_df.to_html('my_zed_df.html')
+        zed_df_cell.to_html('my_zed_df_cell.html')
+
+        fct_optim2d(sol[["pt_x1", "pt_x2"]])  # to update aircraft object with solution values
+
+        return sol
+
+
+

@@ -216,7 +216,7 @@ def find_cst_points_in_cell(cell_df, param):
 
 
 def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst):
-    epsilon = 0  # 1e-4
+    epsilon = 0  # 1e-10
     zed_df_piv = zed_df_cell.pivot(index="pt_x1", columns="pt_x2")
     C_list = []
     Y_list = []
@@ -229,9 +229,8 @@ def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst)
         C_list.append(C)
         Y_list.append(Y)
 
-    Y_array = np.array(Y_list)
     C_array = np.array(C_list)
-    # cross_Y_array = Y_array[:, np.any(Y_array > epsilon, axis=0)]
+    Y_array = np.array(Y_list)
 
     # keep the point with Y negative (or close to zero) and minimum C
     # ---------------------------------------------------------------------------------------------------------------
@@ -248,24 +247,25 @@ def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst)
 
     # keep the points that satisfy the constraints
     # ---------------------------------------------------------------------------------------------------------------
-    C_list_ordered_indices = C_list_ordered_indices[do_satisfy_cst]
+    C_list_ordered_indices_satisfy = C_list_ordered_indices[do_satisfy_cst]
     # sorted_Ys = sorted_Ys[do_satisfy_cst]
 
     # find in sorted_Ys the first negative or close to zero element
     # sorted_Ys_sol_index = np.argwhere(sorted_Ys < epsilon)
 
     # best_C_index = C_list_ordered_indices[sorted_Ys_sol_index[0][0]]
-    best_C_index = C_list_ordered_indices[0]
+    best_C_index = C_list_ordered_indices_satisfy[0]
     best_C = C_list[best_C_index]
 
-    # print("--------------------------> candidates_list         = ", candidates_list)
-    # print("--------------------------> Y_array                 = ", Y_array)
-    # print("--------------------------> cross_Y_array           = ", cross_Y_array)
-    # print("--------------------------> C_list_ordered_indices  = ", C_list_ordered_indices)
-    # print("--------------------------> sorted_Ys               = ", sorted_Ys)
-    # # print("--------------------------> sorted_Ys_sol_index     = ", sorted_Ys_sol_index)
-    # print("--------------------------> best_C_index            = ", best_C_index)
-    # print("--------------------------> best_C                  = ", best_C)
+    print("--------------------------> candidates_list                 = ", candidates_list)
+    print("--------------------------> Y_array                         = ", Y_array)
+    print("--------------------------> C_array                         = ", C_array)
+    print("--------------------------> C_list_ordered_indices          = ", C_list_ordered_indices)
+    print("--------------------------> sorted_Ys                       = ", sorted_Ys)
+    print("--------------------------> do_satisfy_cst                  = ", do_satisfy_cst)
+    print("--------------------------> C_list_ordered_indices_satisfy  = ", C_list_ordered_indices_satisfy)
+    print("--------------------------> best_C_index                    = ", best_C_index)
+    print("--------------------------> best_C                          = ", best_C)
 
     return best_C_index, best_C
 
@@ -279,10 +279,10 @@ def fct_scitwod_ex_(Xhyp, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, OneVar):
     # # 2021_0804 - We evaluate the function at the point of evaluation
     [LwCs, UpCs, Cr] = fct_SciTwoD(Xhyp)  # the output of the function fct_SciTwoD include lower and upper constraints and the objective function (i.e. criteria)
 
-    # ---------------------------------------------------------------------------------------------------------------
-    if OneVar:
-        LwCs = [*LwCs, Xhyp(2)]
-        UpCs = [*UpCs, Xhyp(2)]
+    # # ---------------------------------------------------------------------------------------------------------------
+    # if OneVar:
+    #     LwCs = [*LwCs, Xhyp(2)]
+    #     UpCs = [*UpCs, Xhyp(2)]
 
     # ---------------------------------------------------------------------------------------------------------------
     V = []
@@ -661,7 +661,7 @@ def scitwod_(X1, X2, dX1, dX2, noms, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_Sc
             # print("ref_cell_pt_on_grid = ", ref_cell_pt_on_grid)
             # print("zed_df.index = ", zed_df.index)
             ref_cell_pt_on_grid_list_tuples = [tuple(ele) for ele in ref_cell_pt_on_grid_list]
-            if tuple(ref_cell_pt_on_grid) not in ref_cell_pt_on_grid_list_tuples: # ~zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
+            if tuple(ref_cell_pt_on_grid) not in ref_cell_pt_on_grid_list_tuples:  # ~zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
                 # print("------> ref_cell_pt_on_grid has not already been calculated")
                 # print(ref_cell_pt_on_grid)
                 ref_cell_pt_on_grid_list.append(ref_cell_pt_on_grid)
@@ -704,7 +704,7 @@ def scitwod_(X1, X2, dX1, dX2, noms, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_Sc
                         ref_cell_pt_on_grid = list(np.array(ref_cell_pt_on_grid) + np.array(shift_))
 
                 ref_cell_pt_on_grid_list_tuples = [tuple(ele) for ele in ref_cell_pt_on_grid_list]
-                if tuple(ref_cell_pt_on_grid) not in ref_cell_pt_on_grid_list_tuples:  # if ~zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
+                if tuple(ref_cell_pt_on_grid) not in ref_cell_pt_on_grid_list_tuples:  # zed_df.index.isin([tuple(ref_cell_pt_on_grid)]).any():
                     # print("------> ref_cell_pt_on_grid has not already been calculated")
                     # print(ref_cell_pt_on_grid)
                     ref_cell_pt_on_grid_list.append(ref_cell_pt_on_grid)
@@ -1119,17 +1119,18 @@ def optim2d_(Xini, dXini, Names, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwo
     n = len(Xini)  # size(Xini,'*')
 
     if n == 1:
-        nL = len(LwBs)
-        nU = len(UpBs)
-        X1 = Xini[0]  # first element of Xini list
-        dX1 = dXini[0]  # first element of dXini list
-        X2 = 0
-        dX2 = 0.1
-        Names = [Names[0], "dummy", *Names[1:1 + nL], "low", *Names[1 + nL:1 + nL + nU], "up"]
-        LwBs_ = [*LwBs, -1]
-        LwFc_ = [*LwFc, 10]
-        UpBs_ = [*UpBs, 1]
-        UpFc_ = [*UpFc, 10]
+        raise Exception("Does not work in 1D !")
+        # nL = len(LwBs)
+        # nU = len(UpBs)
+        # X1 = Xini[0]  # first element of Xini list
+        # dX1 = dXini[0]  # first element of dXini list
+        # X2 = 0
+        # dX2 = 0.1
+        # Names = [Names[0], "dummy", *Names[1:1 + nL], "low", *Names[1 + nL:1 + nL + nU], "up"]
+        # LwBs_ = [*LwBs, -1]
+        # LwFc_ = [*LwFc, 10]
+        # UpBs_ = [*UpBs, 1]
+        # UpFc_ = [*UpFc, 10]
 
         # print(nL   )
         # print(nU   )
