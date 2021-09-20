@@ -16,6 +16,10 @@ from marilib.utils import earth, unit
 from marilib.aircraft.airframe.component import Component
 from marilib.aircraft.airframe.model import init_power
 
+from marilib.utils.physical_data import PhysicalData
+from marilib.aircraft.fuel_cell_model import FuelCellSystem
+
+
 
 class System(Component):
 
@@ -204,14 +208,16 @@ class SystemWithFuelCell(Component):
         landing_gear_cg = self.aircraft.airframe.landing_gear.cg
         n_engine = self.aircraft.power_system.n_engine
 
-        self.fuel_cell_mass = self.fuel_cell_output_power_ref / self.fuel_cell_pw_density \
-                            + self.compressor_power_ref / self.compressor_pw_density
+        self.fuel_cell_mass = self.fuel_cell_output_power_ref / self.fuel_cell_pw_density
+
+        self.compressor_mass = self.compressor_power_ref / self.compressor_pw_density
+
         self.cooling_mass = self.heat_power_ref / self.cooling_gravimetric_index
 
         self.power_chain_mass =   self.fuel_cell_mass \
                                 + self.compressor_mass \
-                                + self.fuel_cell_output_power_ref/self.wiring_pw_density \
-                                + self.cooling_mass
+                                + self.cooling_mass \
+                                + self.fuel_cell_output_power_ref/self.wiring_pw_density
 
         power_elec_cg = 0.30*nacelle_cg + 0.70*body_cg
 
@@ -242,6 +248,11 @@ class SystemWithLaplaceFuelCell(Component):
         self.max_stack_power = unit.W_kW(50)
         self.over_power_factor = 2
 
+        self.max_power_time = aircraft.get_init(self,"max_power_time")    # Max power endurance on battery
+        self.battery_energy_density = aircraft.get_init(self,"battery_energy_density")
+        self.battery_capacity = None
+        self.battery_mass = None
+
         self.stack_power = None
         self.stack_count = None
 
@@ -259,6 +270,7 @@ class SystemWithLaplaceFuelCell(Component):
         dict = self.fuel_cell_system.operate(pamb, tamb, vtas, required_power)
 
         return {"fuel_cell_power": dict["system"]["pwe_effective"],
+                "thermal_balance": dict["system"]["thermal_balance"],
                 "compressor_power": dict["compressor"]["pw_input"],
                 "cooling_power": dict["heatsink"]["pw_input"],
                 "heat_power": dict["heatsink"]["pw_heat"],
@@ -280,17 +292,19 @@ class SystemWithLaplaceFuelCell(Component):
         disa = self.aircraft.requirement.cruise_disa
         altp = self.aircraft.requirement.cruise_altp
         mach = self.aircraft.requirement.cruise_mach
-        mass = self.ktow*self.aircraft.weight_cg.mtow
 
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
         vsnd = earth.sound_speed(tamb)
         vtas = vsnd*mach
 
+        # Battery sizing
+        self.battery_capacity = required_power * self.max_power_time
+
+        # Fuell cell sizing
         power = required_power * self.over_power_factor
         self.stack_count = np.ceil(power / self.max_stack_power)
         self.stack_power = power / self.stack_count
 
-        # Design all
         self.fuel_cell_system.design(pamb, tamb, vtas, self.stack_count, self.stack_power)
 
         self.fuel_cell_system.wing_heatsink.design(wing_aspect_ratio, wing_area)
@@ -326,9 +340,12 @@ class SystemWithLaplaceFuelCell(Component):
                                 + self.cooling_system_mass \
                                 + self.fuel_cell_output_power_ref/self.wiring_pw_density
 
+        # Battery mass
+        self.battery_mass = self.battery_capacity / self.battery_energy_density
+
         power_elec_cg = 0.30*nacelle_cg + 0.70*body_cg
 
-        self.mass = 0.545*mtow**0.8  + self.power_chain_mass  # global mass of all systems
+        self.mass = 0.545*mtow**0.8  + self.power_chain_mass  + self.battery_mass   # global mass of all systems
 
         self.cg =   0.40*body_cg \
                   + 0.20*wing_cg \

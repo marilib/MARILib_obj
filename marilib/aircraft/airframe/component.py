@@ -305,6 +305,9 @@ class Nacelle(Component):
 
         nac_toc = 0.15
 
+        wing_chord_loc = self.nacelle_wing_chord_loc
+        wing_chord = self.nacelle_wing_chord
+
         if self.get_component_type() == "wing_nacelle":
             nac_s1le = [[nac_x+0.15*nac_length, nac_y, nac_z+0.5*nac_height],
                         [nac_x+0.15*nac_length, nac_y, nac_z+0.5*nac_height],
@@ -879,14 +882,6 @@ class Wing(Component):
 
         z_kink = z_root+(y_kink-y_root)*np.tan(self.dihedral)
         z_tip = z_root+(y_tip-y_root)*np.tan(self.dihedral)
-
-        # Wing chord at engine position
-        wing_xle_nac = lin_interp_1d(y_nacelle, [y_root,y_kink,y_tip], [x_root,x_kink,x_tip])   # Wing leading edge x at pylon position
-        wing_zle_nac = lin_interp_1d(y_nacelle, [y_root,y_kink,y_tip], [z_root,z_kink,z_tip])   # Wing leading edge z at pylon position
-
-        if self.get_component_type() == "wing_nacelle":
-            self.nacelle_wing_chord = lin_interp_1d(y_nacelle, [y_root,y_kink,y_tip], [c_root,c_kink,c_tip])
-            self.nacelle_wing_chord_loc = np.array([wing_xle_nac, y_nacelle, wing_zle_nac])
 
         self.root_loc = np.array([x_root, y_root, z_root])
         self.kink_loc = np.array([x_kink, y_kink, z_kink])

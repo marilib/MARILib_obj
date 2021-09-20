@@ -180,6 +180,12 @@ class ModelConfiguration(object):
             "fuel_cell_pw_density": [2., "kW/kg", "Fuell cell power density"],
             "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
         },
+        "SystemWithLaplaceFuelCell":{
+            "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
+            "wiring_pw_density": [10., "kW/kg", "Electric wiring power density"],
+            "max_power_time": [15., "min", "Max power endurance on battery"],
+            "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
+        },
         "SystemPartialTurboElectric":{
             "chain_power_pod": ["function", "kW", "Electric shaft power of the wing tank tail electric fan"],
             "chain_power_body": ["function", "kW", "Electric shaft power of the main body tail electric fan"],
