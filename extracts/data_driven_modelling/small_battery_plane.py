@@ -116,11 +116,13 @@ class SmallPlane(object):
         return "\n|\t".join(s)
 
 
-    def set_aero_data(self, area, span, stall_speed):
+    def set_aero_data(self, area, span, length, width, stall_speed):
         if self.design==None:
             raise Exception("No design available, Wing data cannot be loaded")
         self.design["wing_area"] = area
         self.design["wing_span"] = span
+        self.design["fuselage_length"] = length
+        self.design["fuselage_width"] = width
         self.design["stall_speed"] = stall_speed
 
 
@@ -129,7 +131,13 @@ class SmallPlane(object):
             raise Exception("No design available, Polar cannot be assessed")
 
         if self.design["wing_area"]==None:
-            raise Exception("No wing area available, set wing area before asking for polar")
+            raise Exception("No wing area available, set data before asking for polar")
+        if self.design["wing_span"]==None:
+            raise Exception("No wing span available, set data before asking for polar")
+        if self.design["fuselage_length"]==None:
+            raise Exception("No fuselage length available, set data before asking for polar")
+        if self.design["fuselage_width"]==None:
+            raise Exception("No fuselage width available, set data before asking for polar")
 
         if self.mode in ["classic", "fuel_cell"]:
             mass = self.design["mtow"] - 0.5*self.design["fuel_mission"]
@@ -138,23 +146,25 @@ class SmallPlane(object):
         else:
             raise Exception("Aircraft mode is unknown")
 
+        mass, stall_speed = [self.design["mtow"], self.design["stall_speed"]]
+        area, span = [self.design["wing_area"], self.design["wing_span"]]
+        length, width = [self.design["fuselage_length"], self.design["fuselage_width"]]
+
         pamb,tamb,g = self.phd.atmosphere(self.altp, self.disa)
         rho = self.phd.gas_density(pamb,tamb)
         vtas = self.vtas
-        ar = self.design["wing_span"]**2 / self.design["wing_area"]
-        cz = (mass*g) / (0.5*rho*self.design["wing_area"]*vtas**2)
-        ki = 1.1 / (np.pi*ar)
+
+        ar = span**2 / area
+        cz = (mass*g) / (0.5*rho*area*vtas**2)
+        ki = (1.08 + (width / span)**2) / (np.pi*ar)
         cx0 = cz/self.lod - ki*cz**2
         cza = (np.pi*ar) / (1+np.sqrt(1+(ar/2)**2))
         rho0 = 1.225
-        czmax = (self.design["mtow"]*g) / (0.5*rho0*self.design["wing_area"]*self.design["stall_speed"]**2)
+        czmax = (mass*g) / (0.5*rho0*area*stall_speed**2)
 
-        area, span = [self.design["wing_area"], self.design["wing_span"]]
-        wa,ha,va,fa = [area, 0.253*area-0.79, 0.213*area-1.34, 1.248*area-8.33]
-        wrc,hrc,vrc,frl = [area/span, np.sqrt(ha/5), np.sqrt(va/1.7), 1.296*span -5.36]
-        wwa,hwa,vwa,fwa = [1.7*wa, 1.9*ha, 2.0*va, 2.7*fa]
-        lref = (wrc*wwa+hrc*hwa+vrc*vwa+frl*fwa) / (wwa+hwa+vwa+fwa)
-        print(wrc, lref)
+        wrl,frl = [area/span, length]
+        wwa,fwa = [(span-width)*wrl, 2*width*length]
+        lref = (wrl*wwa+frl*fwa) / (wwa+fwa)
         re = self.phd.reynolds_number(pamb,tamb,vtas)
         kre = (1/np.log(re*lref))**2.58
 
@@ -170,8 +180,13 @@ class SmallPlane(object):
             print("|    lref ", "%.1f"%lref, " m")
             cz_list = np.linspace(0., 1.5, 50)
             lod_list = [cz/(cx0+ki*cz**2) for cz in cz_list]
+            fig,axes = plt.subplots(1,1)
+            fig.canvas.set_window_title("MARILib output")
+            fig.suptitle("Aerodynamic polar", fontsize=14)
             plt.plot(cz_list, lod_list)
             plt.scatter(cz, cz/(cx0+ki*cz**2), marker="o",c="green",s=50)
+            plt.ylabel('Lift/Drag ratio')
+            plt.xlabel('Lift Coefficient')
             plt.grid(True)
             plt.show()
 
@@ -499,11 +514,13 @@ if __name__ == '__main__':
     spe.design_solver()
     print(spe)
 
-    # wing_area = 11.75
-    # wing_span = 9.27
-    # spe.set_aero_data(wing_area, wing_span, unit.mps_kmph(87))
-    # spe.get_aero_model(full_output=True)
-    #
+    wing_area = 11.75
+    wing_span = 9.27
+    fuselage_length = 6.5
+    fuselage_width = 1.3
+    spe.set_aero_data(wing_area, wing_span, fuselage_length, fuselage_width, unit.mps_kmph(87))
+    spe.get_aero_model(full_output=True)
+
     #
     # mass = spe.design["mtow"]
     # altp = 0
