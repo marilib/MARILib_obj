@@ -12,6 +12,8 @@ from scipy.optimize import fsolve
 
 from marilib.utils import earth, unit, math
 
+from marilib.utils import earth, unit, math
+
 from marilib.aircraft.airframe.component import Nacelle
 
 
@@ -23,6 +25,7 @@ class InboardWingMountedNacelle(Nacelle):
 
     def locate_nacelle(self):
         body_width = self.aircraft.airframe.body.width
+        wing_root_c = self.aircraft.airframe.wing.root_c
         wing_root_loc = self.aircraft.airframe.wing.root_loc
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_dihedral = self.aircraft.airframe.wing.dihedral
@@ -31,11 +34,23 @@ class InboardWingMountedNacelle(Nacelle):
         wing_tip_c = self.aircraft.airframe.wing.tip_c
         wing_tip_loc = self.aircraft.airframe.wing.tip_loc
 
+        x_wing = [wing_root_loc[0], wing_kink_loc[0], wing_tip_loc[0]]
+        y_wing = [wing_root_loc[1], wing_kink_loc[1], wing_tip_loc[1]]
+        z_wing = [wing_root_loc[2], wing_kink_loc[2], wing_tip_loc[2]]
+        c_wing = [wing_root_c, wing_kink_c, wing_tip_c]
+
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
         y_int = 0.6 * body_width + self.y_wise_margin(1)
         x_int = wing_root_loc[0] + (y_int-wing_root_loc[1])*tan_phi0 - 0.7*self.length
         z_int = wing_root_loc[2] + (y_int-wing_root_loc[2])*np.tan(wing_dihedral) - self.z_wise_margin()
+
+        # Wing chord at engine position
+        wing_xle_nac = math.lin_interp_1d(y_int, y_wing, x_wing)   # Wing leading edge x at pylon position
+        wing_zle_nac = math.lin_interp_1d(y_int, y_wing, z_wing)   # Wing leading edge z at pylon position
+
+        self.nacelle_wing_chord = math.lin_interp_1d(y_int, y_wing, c_wing)
+        self.nacelle_wing_chord_loc = np.array([wing_xle_nac, y_int, wing_zle_nac])
 
         return np.array([x_int, y_int*self.get_side(), z_int])
 
@@ -1007,7 +1022,7 @@ class SemiEmpiricEfNacelle(object):
         pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
         sec = pw_elec/eFn
 
-        return {"sec":sec, "thtl":throttle}
+        return {"sec":sec, "thtl":throttle, "pw_elec":pw_elec}
 
 class OutboardWingMountedEfNacelle(SemiEmpiricEfNacelle,OutboardWingMountedNacelle):
     def __init__(self, aircraft, side):
@@ -1174,7 +1189,7 @@ class SemiEmpiricEfBliNacelle(SemiEmpiricEfNacelle):
         pw_elec = pw_shaft / (self.controller_efficiency*self.motor_efficiency)
         sec = pw_elec/fan_thrust
 
-        return {"sec":sec, "thtl":throttle}
+        return {"sec":sec, "thtl":throttle, "pw_elec":pw_elec}
 
 class PodTailConeMountedEfNacelle(SemiEmpiricEfBliNacelle,PodTailConeMountedNacelle):
     def __init__(self, aircraft, side):
@@ -1387,17 +1402,18 @@ class SemiEmpiricEpNacelle(object):
         pw_shaft = reference_power*getattr(self.rating_factor,rating)*throttle - pw_offtake
         pw_elec = pw_shaft / (self.motor_efficiency*self.controller_efficiency)
         fn = self.propeller_efficiency*pw_shaft/Vair
-        return {"fn":fn, "pw":pw_elec, "sec":pw_elec/fn}
+        return {"fn":fn, "pw_elec":pw_elec, "sec":pw_elec/fn}
 
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         """Unitary thrust of a pure turbofan engine (semi-empirical model)
         """
         dict = self.unitary_thrust(pamb,tamb,mach,rating,pw_offtake=pw_offtake)
         fn = dict["fn"]
-        pw = dict["pw"]
+        pw = dict["pw_elec"]
         throttle = thrust/fn
+        pw_elec = pw*throttle
         sec = pw/fn     # Specific Energy Consumption
-        return {"sec":sec, "thtl":throttle}
+        return {"sec":sec, "thtl":throttle, "pw_elec":pw_elec}
 
 class ExternalWingMountedEpNacelle(SemiEmpiricEpNacelle,ExternalWingMountedNacelle):
     def __init__(self, aircraft, side):

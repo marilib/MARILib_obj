@@ -16,6 +16,10 @@ from marilib.utils import earth, unit
 from marilib.aircraft.airframe.component import Component
 from marilib.aircraft.airframe.model import init_power
 
+from marilib.utils.physical_data import PhysicalData
+from marilib.aircraft.fuel_cell_model import FuelCellSystem
+
+
 
 class System(Component):
 
@@ -130,7 +134,7 @@ class SystemWithFuelCell(Component):
         self.cooling_mass = None
         self.power_chain_mass = None
 
-    def eval_fuel_cell_power(self,required_power,pamb,tamb):
+    def eval_fuel_cell_power(self,required_power,pamb,tamb,vtas):
         r,gam,Cp,Cv = earth.gas_data()
 
         n_engine = self.aircraft.power_system.n_engine
@@ -176,7 +180,10 @@ class SystemWithFuelCell(Component):
 
         required_power = n_engine * reference_power / self.power_chain_efficiency
 
-        dict = self.eval_fuel_cell_power(required_power,pamb,tamb)
+        mach = 0.25
+        vsnd = earth.sound_speed(tamb)
+        vtas = vsnd*mach
+        dict = self.eval_fuel_cell_power(required_power,pamb,tamb,vtas)
 
         self.fuel_cell_output_power_ref = dict["fuel_cell_power"]
         self.compressor_power_ref = dict["compressor_power"]
@@ -202,17 +209,143 @@ class SystemWithFuelCell(Component):
         n_engine = self.aircraft.power_system.n_engine
 
         self.fuel_cell_mass = self.fuel_cell_output_power_ref / self.fuel_cell_pw_density
+
         self.compressor_mass = self.compressor_power_ref / self.compressor_pw_density
+
         self.cooling_mass = self.heat_power_ref / self.cooling_gravimetric_index
 
         self.power_chain_mass =   self.fuel_cell_mass \
                                 + self.compressor_mass \
-                                + self.fuel_cell_output_power_ref/self.wiring_pw_density \
-                                + self.cooling_mass
+                                + self.cooling_mass \
+                                + self.fuel_cell_output_power_ref/self.wiring_pw_density
 
         power_elec_cg = 0.30*nacelle_cg + 0.70*body_cg
 
         self.mass = 0.545*mtow**0.8  + self.power_chain_mass  # global mass of all systems
+
+        self.cg =   0.40*body_cg \
+                  + 0.20*wing_cg \
+                  + 0.10*landing_gear_cg \
+                  + 0.05*horizontal_stab_cg \
+                  + 0.05*vertical_stab_cg \
+                  + 0.10*nacelle_cg \
+                  + 0.10*power_elec_cg
+
+
+class SystemWithLaplaceFuelCell(Component):
+    """Wing Skin Cooling is for rectangular wing only
+    """
+    def __init__(self, aircraft):
+        super(SystemWithLaplaceFuelCell, self).__init__(aircraft)
+
+        self.wiring_efficiency = aircraft.get_init(self,"wiring_efficiency")
+        self.wiring_pw_density = aircraft.get_init(self,"wiring_pw_density")
+
+        phd = PhysicalData()
+        self.fuel_cell_system = FuelCellSystem(phd)
+
+        self.fuel_cell_system.stack.working_temperature = 273.15 + 75   # Cell working temperature
+        self.max_stack_power = unit.W_kW(50)
+        self.over_power_factor = 2
+
+        self.max_power_time = aircraft.get_init(self,"max_power_time")    # Max power endurance on battery
+        self.battery_energy_density = aircraft.get_init(self,"battery_energy_density")
+        self.battery_capacity = None
+        self.battery_mass = None
+
+        self.stack_power = None
+        self.stack_count = None
+
+        self.fuel_cell_output_power_ref = None
+        self.compressor_power_ref = None
+        self.cooler_power_ref = None
+        self.heat_power_ref = None
+
+        self.fuel_cell_system_mass = None
+        self.cooling_system_mass = None
+        self.power_chain_mass =   None
+
+    def eval_fuel_cell_power(self,required_power,pamb,tamb,vtas):
+
+        dict = self.fuel_cell_system.operate(pamb, tamb, vtas, required_power)
+
+        return {"fuel_cell_power": dict["system"]["pwe_effective"],
+                "thermal_balance": dict["system"]["thermal_balance"],
+                "compressor_power": dict["compressor"]["pw_input"],
+                "cooling_power": dict["heatsink"]["pw_input"],
+                "heat_power": dict["heatsink"]["pw_heat"],
+                "fuel_flow": dict["system"]["h2_flow"]}
+
+    def eval_geometry(self):
+        reference_power = self.aircraft.power_system.reference_power
+        n_engine = self.aircraft.power_system.n_engine
+        wing_aspect_ratio = self.aircraft.airframe.wing.aspect_ratio
+        wing_area = self.aircraft.airframe.wing.area
+
+        self.power_chain_efficiency =   self.wiring_efficiency \
+                                      * self.aircraft.airframe.nacelle.controller_efficiency \
+                                      * self.aircraft.airframe.nacelle.motor_efficiency
+
+        required_power = n_engine * reference_power / self.power_chain_efficiency
+
+        # Fuell cell stack is designed for cruise
+        disa = self.aircraft.requirement.cruise_disa
+        altp = self.aircraft.requirement.cruise_altp
+        mach = self.aircraft.requirement.cruise_mach
+
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        vsnd = earth.sound_speed(tamb)
+        vtas = vsnd*mach
+
+        # Battery sizing
+        self.battery_capacity = required_power * self.max_power_time
+
+        # Fuell cell sizing
+        power = required_power * self.over_power_factor
+        self.stack_count = np.ceil(power / self.max_stack_power)
+        self.stack_power = power / self.stack_count
+
+        self.fuel_cell_system.design(pamb, tamb, vtas, self.stack_count, self.stack_power)
+
+        self.fuel_cell_system.wing_heatsink.design(wing_aspect_ratio, wing_area)
+
+        dict = self.eval_fuel_cell_power(required_power,pamb,tamb,vtas)
+
+        self.fuel_cell_output_power_ref = dict["fuel_cell_power"]
+        self.compressor_power_ref = dict["compressor_power"]
+        self.cooling_power_ref = dict["cooling_power"]
+
+        # Heat dissipated by wiring and nacelles must be added to heat dissipated by fuell cells
+        self.heat_power_ref = dict["heat_power"] + n_engine*reference_power*(1. - self.wiring_efficiency +
+                                                                             1. - self.aircraft.airframe.nacelle.controller_efficiency +
+                                                                             1. - self.aircraft.airframe.nacelle.motor_efficiency)
+        self.frame_origin = [0., 0., 0.]
+
+    def eval_mass(self):
+        reference_power = self.aircraft.power_system.reference_power
+
+        mtow = self.aircraft.weight_cg.mtow
+        body_cg = self.aircraft.airframe.body.cg
+        wing_cg = self.aircraft.airframe.wing.cg
+        horizontal_stab_cg = self.aircraft.airframe.horizontal_stab.cg
+        vertical_stab_cg = self.aircraft.airframe.vertical_stab.cg
+        nacelle_cg = self.aircraft.airframe.nacelle.cg
+        landing_gear_cg = self.aircraft.airframe.landing_gear.cg
+        n_engine = self.aircraft.power_system.n_engine
+
+        self.fuel_cell_system_mass = self.fuel_cell_system.mass
+        self.cooling_system_mass = self.fuel_cell_system.wing_heatsink.mass
+
+        self.power_chain_mass =   self.fuel_cell_system_mass \
+                                + self.cooling_system_mass \
+                                + self.fuel_cell_output_power_ref/self.wiring_pw_density
+
+        # Battery mass
+        self.battery_mass = self.battery_capacity / self.battery_energy_density
+
+        power_elec_cg = 0.30*nacelle_cg + 0.70*body_cg
+
+        self.mass = 0.545*mtow**0.8  + self.power_chain_mass  + self.battery_mass   # global mass of all systems
 
         self.cg =   0.40*body_cg \
                   + 0.20*wing_cg \

@@ -84,7 +84,7 @@ def get_pod_cruise_thrust(mass, altp, disa, vtas):
     stall margin must be higher or equal to 1.13 (check for CS23)
     REMARK : Aero model includes Reynolds effect
     """
-    area,czmax,cx0,ki,kre,lref = 11.75,1.99,0.0292,0.048,0.796138,3.3
+    area,czmax,cx0,ki,kre,lref = 11.75,1.45,0.0292,0.048,0.796138,3.3
     pamb,tamb,g = atmosphere(altp, disa)
     rho = gas_density(pamb,tamb)
     mu = air_viscosity(tamb)

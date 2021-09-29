@@ -35,7 +35,7 @@ class Arrangement(object):
                       number_of_engine = "twin",            # "twin" or "quadri"
                       nacelle_attachment = "wing",          # "wing", "pod" or "rear"
                       power_architecture = "tf",            # "tf", "tp", "ef", "pte1", "ef1", "ep1",
-                      power_source = "fuel",                # "fuel", "battery", "fuel_cell"
+                      power_source = "fuel",                # "fuel", "battery", "fuel_cell", "fuel_cell_plus"
                       fuel_type = "kerosene"                # "kerosene", "liquid_h2", "Compressed_h2" or "battery"
                  ):
 
@@ -84,7 +84,7 @@ class Aircraft(object):
         self.requirement.init_all_requirements(arrangement)  # finalize the initialisation of all requirements.
 
         if (self.arrangement.power_architecture in ["ef","ep","exef"]):
-            if(self.arrangement.power_source not in ["battery","fuel_cell"]):
+            if(self.arrangement.power_source not in ["battery","fuel_cell","fuel_cell_plus"]):
                 raise Exception("Power architecture electro_fan (ef) requires energy source battery or fuel_cell")
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -152,6 +152,8 @@ class Aircraft(object):
             self.airframe.system = system.SystemWithBattery(self)
         elif (self.arrangement.power_source == "fuel_cell"):
             self.airframe.system = system.SystemWithFuelCell(self)
+        elif (self.arrangement.power_source == "fuel_cell_plus"):
+            self.airframe.system = system.SystemWithLaplaceFuelCell(self)
         else:
             if (self.arrangement.power_architecture=="pte"):
                 self.airframe.system = system.SystemPartialTurboElectric(self)

@@ -14,19 +14,32 @@ or `"h_tail"`, because MARILIB does not handle such cases.
 
 ARRANGEMENT_DICT={
 # TODO : in Marilib 2.0, the body_type is always fixed to 'fuselage'
-          "body_type" :           ["fuselage", ""          , ""         , ""             , ""       , ""    , ""     ],
 # TODO : in Marilib 2.0, the wing_type is always fixed to 'classic'
-          "wing_type" :           ["classic" , ""          , ""         , ""             , ""       , ""    , ""     ],
-          "wing_attachment":      ["low"     , "high"      , ""         , ""             , ""       , ""    , ""     ],
-          "stab_architecture":    ["classic" , "t_tail"    , "h_tail"   , ""             , ""       , ""    , ""     ],
-          "tank_architecture":    ["wing_box", "piggy_back", "pods"     , ""             , ""       , ""    , ""     ],
-          "number_of_engine":     ["twin"    , "quadri"    , "hexa"     , ""             , ""       , ""    , ""     ],
-          "nacelle_attachment" :  ["wing"    , "rear"      , "pods"     , ""             , ""       , ""    , ""     ],
-          "power_architecture":   ["tf"      , "tp"        , "ef"       , "ep"           , "pte"    , "extf", "exef" ],
-          "power_source" :        ["fuel"    , "fuel_cell" , "battery"  , ""             , ""       , ""    , ""     ],
-          "fuel_type":            ["kerosene", "methane"   , "liquid_h2", "compressed_h2", "battery", ""    , ""     ]
+          "body_type" :           ["fuselage"   , ""             , ""              , ""             , ""       ],
+          "wing_type" :           ["classic"    , ""             , ""              , ""             , ""       ],
+          "wing_attachment":      ["low"        , "high"         , ""              , ""             , ""       ],
+          "stab_architecture":    ["classic"    , "t_tail"       , "h_tail"        , ""             , ""       ],
+          "tank_architecture":    ["wing_box"   , "under_floor"  , "rear_fuselage" , "piggy_back"   , "pods"   ],
+          "gear_architecture":    ["retractable", "bare_fixed"   , ""              , ""             , ""       ],
+          "number_of_engine":     ["twin"       , "quadri"       , "hexa"          , ""             , ""       ],
+          "nacelle_attachment" :  ["wing"       , "rear"         , "pods"          , ""             , ""       ],
+          "power_architecture":   ["tf"         , "tp"           , "ef"            , "ep"           , "pte"    ],
+          "power_source" :        ["fuel"       , "fuel_cell"    , "fuel_cell_plus", "battery"      , ""       ],
+          "fuel_type":            ["kerosene"   , "methane"      , "liquid_h2"     , "compressed_h2", "battery"]
           }
 
+DISPLAIED_NAME={"Body type"               : "body_type"         ,
+                "Wing type"               : "wing_type"         ,
+                "Wing\nattachment"        : "wing_attachment"   ,
+                "Stabilizer\narchitecture": "stab_architecture" ,
+                "Tank\narchitecture"      : "tank_architecture" ,
+                "Landing\ngears"          : "gear_architecture" ,
+                "Number\nof engine"       : "number_of_engine"  ,
+                "Nacelle\nattachment"     : "nacelle_attachment",
+                "Power\narchitecture"     : "power_architecture",
+                "Power\nsource"           : "power_source"      ,
+                "Fuel type"               : "fuel_type"
+                }
 
 INCOMPATIBILITY_DICT = {
     "body_type": None,
@@ -45,6 +58,7 @@ INCOMPATIBILITY_DICT = {
             "stab_architecture": ["classic", "t_tail"]
         }
     },
+    "gear_architecture":None,
     "number_of_engine": {
         "quadri": {
             "tank_architecture": ["pods"]
@@ -66,27 +80,30 @@ INCOMPATIBILITY_DICT = {
     "power_architecture": None,
     "power_source": {
         "fuel_cell": {
-            "power_architecture": ["tf", "tp", "extf","pte"]
+            "power_architecture": ["tf", "tp","pte"]
+        },
+        "fuel_cell_plus": {
+            "power_architecture": ["tf", "tp","pte"]
         },
         "battery": {
-            "power_architecture": ["tf", "tp", "extf","pte"]
+            "power_architecture": ["tf", "tp","pte"]
         },
         "fuel": {
-            "power_architecture": ["ef", "ep", "exef"]
+            "power_architecture": ["ef", "ep"]
         }
     },
     "fuel_type": {
         "battery": {
-            "power_architecture": ["tf", "tp", "extf"],
-            "power_source": ["fuel", "fuel_cell"]
+            "power_architecture": ["tf", "tp"],
+            "power_source": ["fuel", "fuel_cell", "fuel_cell_plus"]
         },
         "kerosene": {
-            "power_architecture": ["ef", "ep", "exef"],
-            "power_source": ["fuel_cell", "battery"]
+            "power_architecture": ["ef", "ep"],
+            "power_source": ["fuel_cell", "fuel_cell_plus", "battery"]
         },
         "methane": {
-            "power_architecture": ["ef", "ep", "exef"],
-            "power_source": ["fuel_cell", "battery"]
+            "power_architecture": ["ef", "ep"],
+            "power_source": ["fuel_cell", "fuel_cell_plus", "battery"]
         },
         "liquid_h2": {
             "power_source": ["battery"]
@@ -222,11 +239,12 @@ class ArrangementTree(Node):
 # Plot the table of Arrangement settings
 #-------------------------------------------------
 
-colLabels = [k for k in ARRANGEMENT_DICT.keys()]
+# colLabels = [k for k in ARRANGEMENT_DICT.keys()]
+colLabels = [k for k in DISPLAIED_NAME.keys()]
 cellText = [[p for p in options] for options in ARRANGEMENT_DICT.values()]
 cellText = list(zip(*cellText))  # trick to transpose the 2D list
 
-fig = plt.figure("Arrangement choice helper",figsize=(15,5))
+fig = plt.figure("Arrangement choice helper",figsize=(13,7))
 ax = plt.subplot(111)
 ax.set_xlim([0,1])
 ax.set_ylim([0,1])
@@ -263,11 +281,11 @@ def onclick(event):
                             break
                     cell.set_facecolor((0,0,1,0.5))  # set face color to blue
                     cell.set_text_props(color=(0, 0, 0, 1))
-                    arrangement_dict[tab[0, col].get_text().get_text()] = cell.get_text().get_text()  # add this setting
+                    arrangement_dict[DISPLAIED_NAME[tab[0, col].get_text().get_text()]] = cell.get_text().get_text()  # add this setting
                 else: # if not white, then reset to white and delete dict entry
                     cell.set_facecolor('w')
                     try:
-                        del arrangement_dict[tab[0, col].get_text().get_text()]
+                        del arrangement_dict[DISPLAIED_NAME[tab[0, col].get_text().get_text()]]
                     except KeyError:
                         print("WARNING: KeyError '%s'" % tab[0, col].get_text().get_text())
 

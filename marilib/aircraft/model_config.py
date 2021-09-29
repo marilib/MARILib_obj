@@ -95,7 +95,7 @@ class ModelConfiguration(object):
         },
         "HtpHtail":{
             "aspect_ratio": [5.0, "no_dim", "Horizontal tail aspect ratio"],
-            "taper_ratio": [0.35, "no_dim", "Horizontal tail taper ratio"],
+            "taper_ratio": [0.8, "no_dim", "Horizontal tail taper ratio"],
             "sweep25": ["function", "deg", "Horizontal tail sweep angle at 25% of the chords (function)"],
             "toc": [0.1, "no_dim", "Thickness to chord ratio of the Horizontal tail"],
             "dihedral": [5, "deg", "Dihedral angle of the horizontal tail"],
@@ -151,6 +151,9 @@ class ModelConfiguration(object):
         },
         "RearFuselageMountedNacelle":{
         },
+        "PowerSystem":{
+            "sfc_correction": [1.0, "no_dim", "Factor on specific fuel consumption (fuel only)"]
+        },
         "System":{
         },
         "SystemWithBattery":{
@@ -166,11 +169,17 @@ class ModelConfiguration(object):
             "wiring_pw_density": [10., "kW/kg", "Electric wiring power density"],
             "compressor_over_pressure": [100., "kPa", "Compressor over pressure"],
             "compressor_efficiency": [0.80, "no_dim", "Compressor efficiency, power delivered to the air flow over input power"],
-            "compressor_pw_density": [1., "kW/kg", "Compressor total power density"],
+            "compressor_pw_density": [2., "kW/kg", "Compressor total power density"],
             "cooling_power_index": [0.005, "no_dim", "Cooling efficiency, ex: 0.01 means that the required power to cool the system is 1% of the dissipated power"],
             "cooling_gravimetric_index": [5., "kW/kg", "Cooling power density, the ratio of the dissipated power over the required system mass to dissipate it"],
             "fuel_cell_pw_density": [2., "kW/kg", "Fuell cell power density"],
             "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
+        },
+        "SystemWithLaplaceFuelCell":{
+            "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
+            "wiring_pw_density": [10., "kW/kg", "Electric wiring power density"],
+            "max_power_time": [15., "min", "Max power endurance on battery"],
+            "battery_energy_density": [0.4, "kWh/kg", "Battery energy density"]
         },
         "SystemPartialTurboElectric":{
             "chain_power_pod": ["function", "kW", "Electric shaft power of the wing tank tail electric fan"],
@@ -299,7 +308,8 @@ class ModelConfiguration(object):
             "max_body_aspect_ratio": [75.36/5.64, "no_dim", "Ratio body length / body height, maximum ratio comming from A340-600"]
         },
         "Aerodynamics":{
-            "cx_correction": [0., "no_dim", "Drag correction on cx coefficient"],
+            "kcx_correction": [1., "no_dim", "Drag FACTCOR on cx coefficient"],
+            "dcx_correction": [0., "no_dim", "Drag SHIFT on cx coefficient"],
             "cruise_lodmax": [16., "no_dim", "Assumption on L/D max for some initializations"],
             "hld_conf_clean": [0., "no_dim", "High lift device setting for clean wing, must be 0."],
             "hld_conf_to": [0.30, "no_dim", "High lift device setting for take off, between 0. and 0.5"],

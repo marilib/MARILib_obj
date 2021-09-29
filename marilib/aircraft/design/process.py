@@ -29,6 +29,8 @@ from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from marilib.utils import unit
 
+from marilib.aircraft.tool import optim2d_polytope
+
 
 def eval_this(aircraft,design_variables):
     """Evaluate the current value of the design variables of the aircraft
@@ -141,13 +143,13 @@ class Optimizer(object):
         """
         self.computed_points = {}
 
-    def eval_optim_data(self,x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
+    def eval_optim_data(self,x_in,aircraft,var,cst,cst_mag,crt,crt_mag, proc):
         """Compute criterion and constraints.
         """
         for k, key in enumerate(var):  # Put optimization variables in aircraft object
             exec(key + " = x_in[k]")
 
-        mda(aircraft)  # Run MDA
+        eval(proc+"(aircraft)")  # Run MDA
 
         constraint = np.zeros(len(cst))
         for k, key in enumerate(cst):  # put optimization variables in aircraft object
@@ -159,29 +161,28 @@ class Optimizer(object):
 
         return criterion,constraint
 
-
-    def eval_optim_data_checked(self,x_in,aircraft,var,cst,cst_mag,crt,crt_mag):
+    def eval_optim_data_checked(self,x_in,aircraft,var,cst,cst_mag,crt,crt_mag, proc):
         """Compute criterion and constraints and check that it was not already computed.
         """
         in_key = tuple(x_in)
         if self.check_for_doublon:
 
             if in_key not in self.computed_points.keys(): # check if this point has not been already evaluated
-                criterion,constraint = self.eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,crt_mag)
+                criterion,constraint = self.eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,crt_mag, proc)
 
             else:
                 criterion = self.computed_points[in_key][0]
                 constraint = self.computed_points[in_key][1]
 
         else:
-            criterion, constraint = self.eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, crt_mag)
+            criterion, constraint = self.eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, crt_mag, proc)
 
         print("-->Design point:", x_in)
         print("Criterion :", criterion)
         print("Constraints :", constraint)
         return criterion,constraint
 
-    def mdf(self,aircraft,var,var_bnd,cst,cst_mag,crt,method='trust-constr'):
+    def mdf(self,aircraft,var,var_bnd,cst,cst_mag,crt, method='trust-constr', proc='mda'):
         """Run the Multidisciplinary Design Feasible procedure for a given aircraft.
          The minimization procedure finds the minimal value of a given criteria with respect to given design variables,
          and given constraints.
@@ -202,19 +203,22 @@ class Optimizer(object):
         print("start_value = ", start_value)
         print("--------------------------------------------------------------")
 
-        crt_mag, unused = self.eval_optim_data(start_value, aircraft, var, cst, cst_mag, crt, 1.)
+        crt_mag, unused = self.eval_optim_data(start_value, aircraft, var, cst, cst_mag, crt, 1., proc)
 
         if method == 'trust-constr':
-            res = self.scipy_trust_constraint(aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag)
+            res = self.scipy_trust_constraint(aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag, proc)
+
+        elif method == 'optim2d_poly':
+            res = self.optim_2d_polytope(aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag, proc)
 
         elif method == 'custom':
-            cost_const = lambda x_in: self.eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, 1.)
+            cost_const = lambda x_in: self.eval_optim_data(x_in, aircraft, var, cst, cst_mag, crt, 1., proc)
             res = self.custom_descent_search(cost_const,start_value)
 
         print(res)
 
 
-    def scipy_trust_constraint(self,aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag):
+    def scipy_trust_constraint(self,aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag, proc):
         """
         Run the trust-constraint minimization procedure :func:`scipy.optimize.minimize` to minimize a given criterion
         and satisfy given constraints for a given aircraft.
@@ -223,7 +227,7 @@ class Optimizer(object):
             return self.eval_optim_data_checked(x,*args)[0]
 
         def constraints(x):
-            return self.eval_optim_data_checked(x,aircraft,var,cst,cst_mag,crt,crt_mag)[1]
+            return self.eval_optim_data_checked(x,aircraft,var,cst,cst_mag,crt,crt_mag, proc)[1]
 
         res = minimize(cost, start_value, args=(aircraft,var,cst,cst_mag,crt,crt_mag,),
                        constraints=NonlinearConstraint(fun=constraints,
@@ -233,6 +237,50 @@ class Optimizer(object):
                        #options={'maxiter':500,'xtol': np.linalg.norm(start_value)*0.01,
                        #         'initial_tr_radius': np.linalg.norm(start_value)*0.05 })
         return res
+
+
+    def optim_2d_polytope(self,aircraft,start_value,var,var_bnd,cst,cst_mag,crt,crt_mag, proc):
+
+        def fct_optim2d(x_in):
+            criterion, constraints = self.eval_optim_data(x_in,aircraft,var,cst,cst_mag,crt,crt_mag, proc)
+            return [constraints, [], criterion]
+
+        n = len(cst)
+
+        xini = start_value.tolist()
+        initial_scales = [0.1*(b[1]-b[0]) for b in var_bnd]
+        initial_scales_matrix = np.diag(np.array(initial_scales))
+
+        if len(var) == 2:
+            poly_unit_matrix = np.array([[1, 0],[0.5, np.sqrt(3) / 2]]).T
+
+            dxini_matrix = np.dot(initial_scales_matrix, poly_unit_matrix)
+            dxini = [dxini_matrix.T[0],
+                     dxini_matrix.T[1]]  # [rd.uniform(0.1, 2), rd.uniform(0.1, 2)]
+        else:
+            raise Exception("this optimization algorithm is for 2D problem only")
+
+        # dxini = [0.1*(b[1]-b[0]) for b in var_bnd]
+        names = ["CST_"+str(j) for j in range(n)]
+        nzoom = 4
+        lwbs = [0]*n
+        lwfc = [1]*n
+        upbs = []
+        upfc = []
+        crfc = 1
+        graph = None
+
+        zed_df, ref_cell_pts_on_grid_list, zed_df_cell, sol \
+        = optim2d_polytope.optim2d_poly(xini,dxini, names, [], nzoom, lwbs,lwfc, upbs,upfc, crfc, fct_optim2d, graph)
+                                  # (Xini, dXini, Names, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, graph)
+
+        zed_df.to_html('my_zed_df.html')
+        zed_df_cell.to_html('my_zed_df_cell.html')
+
+        fct_optim2d(sol[["pt_x1", "pt_x2"]])  # to update aircraft object with solution values
+
+        return sol
+
 
     def custom_descent_search(self,cost_fun, x0, delta=0.02, delta_end=0.005, pen=1e6):
         """ A custom minimization method limited to 2 parameters problems (x1,x2).

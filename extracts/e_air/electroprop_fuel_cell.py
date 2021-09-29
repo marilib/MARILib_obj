@@ -24,19 +24,20 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "high",       # "low" or "high"
                    stab_architecture = "t_tail",   # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "wing_box",      # "wing_box", "floor", "piggy_back" or "pods"
+                   tank_architecture = "rear",      # "wing_box", "rear", "floor", "piggy_back" or "pods"
                    gear_architecture = "bare_fixed",    # "retractable", "bare_fixed"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
-                   power_architecture = "tp",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
-                   power_source = "fuel",            # "fuel", "battery", "fuel_cell", "fuel_cell_plus"
-                   fuel_type = "kerosene")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
+                   power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
+                   power_source = "fuel_cell_plus",            # "fuel", "battery", "fuel_cell", "fuel_cell_plus"
+                   fuel_type = "liquid_h2")           # "kerosene", "liquid_h2", "compressed_h2", "battery"
 
 disa = 0
 cruise_altp = unit.m_ft(10000.)
-cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 250))
+cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
+print(cruise_mach)
 
-reqs = Requirement(n_pax_ref = 19.,
+reqs = Requirement(n_pax_ref = 12.,
                    design_range = unit.m_km(200.),
                    cruise_mach = cruise_mach,
                    cruise_altp = cruise_altp,
@@ -77,9 +78,12 @@ ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",14.)
 # overwrite default values for design space graph centering (see below)
 ac.power_system.reference_power = unit.W_kW(250.)
 
+# ac.airframe.cabin.n_pax_front = 3
+ac.airframe.tank.ref_length = 2.
+
 ac.airframe.wing.hld_type = 4
 ac.airframe.wing.aspect_ratio = 13
-ac.airframe.wing.area = 42
+ac.airframe.wing.area = 38
 
 ac.weight_cg.mtow = 3500.
 

@@ -12,14 +12,17 @@ import pandas as pd
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 
-import unit, utils
-from physical_data import PhysicalData
+from marilib.utils import unit
+
+from marilib.utils.math import maximize_1d
+
+from marilib.utils.physical_data import PhysicalData
+
 
 import matplotlib.pyplot as plt
 from matplotlib import rc
 font = {'size':12}
 rc('font',**font)
-
 
 
 
@@ -295,8 +298,8 @@ class HydrogenHeater(object):
         self.h2_specific_heat = unit.convert_from("kJ",14.3)    # J/kg, H2 specific heat, supposed constant above 273 kelvin
         self.h2_integral_heat = unit.convert_from("kJ",3100)    # J/kg, heat to warm 1 kg of gazeous hydrogen from 20.3 K to 273.15 K
 
-        self.gravimetric_index = unit.convert_from("kW", 1)     # kW/kg, Thermal power manageable per kg of heater system
-        self.volumetric_index = unit.convert_from("kW", 1)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
+        self.gravimetric_index = unit.convert_from("kW", 2)     # kW/kg, Thermal power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
 
         self.h2_heat_liq2zero = None            # J/kg Amount of heat to bring 1kg of liquid H2 to 0°C
 
@@ -348,8 +351,8 @@ class AirPreCooler(object):
 
         self.air_specific_heat = cp     # J/kg, Air specific heat
 
-        self.gravimetric_index = unit.convert_from("kW", 1)     # kW/kg, Thermal power manageable per kg of heater system
-        self.volumetric_index = unit.convert_from("kW", 1)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
+        self.gravimetric_index = unit.convert_from("kW", 2)     # kW/kg, Thermal power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
 
         self.design_thermal_power = None
         self.volume_allocation = None
@@ -396,8 +399,8 @@ class AirCompressor(object):
         self.mechanical_efficiency = 0.9
         self.electrical_efficiency = 0.85
 
-        self.gravimetric_index = unit.convert_from("kW", 1)     # kW/kg, Compression power manageable per kg of heater system
-        self.volumetric_index = unit.convert_from("kW", 1)/unit.convert_from("L", 1)    # kW/L, Compression power manageable per Liter of heater system
+        self.gravimetric_index = unit.convert_from("kW", 2)     # kW/kg, Compression power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Compression power manageable per Liter of heater system
 
         self.design_air_flow = None
         self.design_p_ratio = None
@@ -666,7 +669,7 @@ class FuelCellPEMLT(object):
             return self.run_fuel_cell(jj, nc=1)["pw_output"]
 
         xini, dx = 1000, 500
-        xres,yres,rc = utils.maximize_1d(xini, dx, [fct_jj])    # Compute the maximum power of the cell
+        xres,yres,rc = maximize_1d(xini, dx, [fct_jj])    # Compute the maximum power of the cell
 
         dict = self.run_fuel_cell(xres, nc=1)
 
@@ -1383,7 +1386,6 @@ class DragPolar(object):
         self.disa = 0
         self.altp = unit.m_ft(10000)
         self.vtas = unit.mps_kmph(210)
-
         self.cz_crz = 0.72127       # Cruise lift coefficient
         self.lod_crz = 17.8044       # Cruise lift to drag ratio
 
@@ -1619,6 +1621,7 @@ if __name__ == '__main__':
 
 
 
+
     # Airplane coupling mini test
     #----------------------------------------------------------------------
     wing_aspect_ratio = 10
@@ -1628,7 +1631,7 @@ if __name__ == '__main__':
     eff = 0.82
     mass = 5700
 
-    disa = 10
+    disa = 15
 
     fc_syst.stack.working_temperature = 273.15 + 75                      # Cell working temperature
 
@@ -1648,7 +1651,7 @@ if __name__ == '__main__':
 
 
     air_speed = np.linspace(100, 300, 10)
-    altitude = np.linspace(0, 12000, 15)
+    altitude = np.linspace(0, 20000, 15)
     X, Y = np.meshgrid(air_speed, altitude)
 
     heat_balance = []
@@ -1666,12 +1669,7 @@ if __name__ == '__main__':
         req_power = pw / 2
         dict = fc_syst.operate(pamb, tamb, vair, req_power)
 
-        heat_pw_eff = dict["heatsink"]["pw_heat"]
-        heat_pw_req = dict["system"]["pw_extracted"]
-
-        # heat_balance.append(dict["system"]["thermal_balance"])
-        heat_balance.append(heat_pw_eff - heat_pw_req)
-        # print(altp,vair,heat_pw_eff - heat_pw_req)
+        heat_balance.append(dict["system"]["thermal_balance"])
 
     # convert to numpy array with good shape
     heat_balance = np.array(heat_balance)
@@ -1696,52 +1694,4 @@ if __name__ == '__main__':
     plt.ylabel("Altitude (ft)")
 
     plt.show()
-
-
-
-    # heat power curves
-    altitude = 10000
-    air_speed = np.linspace(100, 300, 20)
-    altp = unit.convert_from("ft", altitude)
-
-    heat_pw_req = []
-    heat_pw_eff = []
-    for v in air_speed:
-        vair = unit.convert_from("km/h", v)
-
-        pamb, tamb, g = phd.atmosphere(altp, disa)
-        rho = phd.gas_density(pamb,tamb)
-        cz = (2*mass*g) / (rho * vair**2 * wing_area)
-        cx,_ = dp.get_cx(pamb, tamb, vair, cz)
-        lod = cz / cx
-        fn = mass * g / lod
-        pw = fn * vair / eff
-        req_power = pw / 2
-        dict = fc_syst.operate(pamb, tamb, vair, req_power)
-
-        heat_pw_eff.append(unit.kW_W(dict["heatsink"]["pw_heat"]))
-        heat_pw_req.append(unit.kW_W(dict["system"]["pw_extracted"]))
-
-    # Plot
-    fig,axes = plt.subplots(1,1)
-    fig.canvas.set_window_title("MARILib output")
-    fig.suptitle("Heat balance at "+str(altitude)+" ft", fontsize=14)
-
-    x = np.array(np.vstack([air_speed, air_speed])).T
-    y = np.array(np.vstack([heat_pw_eff, heat_pw_req])).T
-
-    plt.plot(air_speed,heat_pw_eff,linewidth=2, color="orange", label="potential dissipation")
-    plt.plot(air_speed,heat_pw_req,linewidth=2, color="blue", label="to be dissipated")
-
-    plt.legend(loc="upper left")
-
-    plt.grid(True)
-
-    plt.ylabel('Heat power (kW)')
-    plt.xlabel('Air speed (km/h)')
-
-    plt.show()
-
-
-
 

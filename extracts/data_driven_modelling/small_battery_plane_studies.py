@@ -49,74 +49,63 @@ df1 = df1[df1['name']!='GrobRangerG160'].reset_index(drop=True)
 df1 = df1[df1['name']!='SF600ACanguro'].reset_index(drop=True)
 df1 = df1[df1['name']!='VF600WMission'].reset_index(drop=True)
 
-#----------------------------------------------------------------------------------
-abs = "nominal_range"
-ord = "cruise_speed"
+# #----------------------------------------------------------------------------------
+# abs = "nominal_range"
+# ord = "cruise_speed"
+#
+# df2 = df1[df1['airplane_type']=="general"].reset_index(drop=True).copy()    # Remove
+# un2 = un1.copy()
+#
+# order = [1, 0]
+# dict = do_regression(df2, un2, abs, ord, coloration, order)
+#
+# #----------------------------------------------------------------------------------
+# abs = "nominal_range"
+# ord = "cruise_speed"
+#
+# df2 = df1[df1['airplane_type']=="commuter"].reset_index(drop=True).copy()    # Remove
+# un2 = un1.copy()
+#
+# order = [1, 0]
+# dict = do_regression(df2, un2, abs, ord, coloration, order)
+#
+# #----------------------------------------------------------------------------------
+# abs = "nominal_range"
+# ord = "cruise_speed"
+#
+# df2 = df1[df1['cruise_speed']<1].reset_index(drop=True).copy()    # Remove
+# un2 = un1.copy()
+# un2[ord] = "mach"
+#
+# order = [2, 1, 0]
+# dict = do_regression(df2, un2, abs, ord, coloration, order)
 
-df2 = df1[df1['airplane_type']=="general"].reset_index(drop=True).copy()    # Remove
-un2 = un1.copy()
+#----------------------------------------------------------------------------------
+abs = "wing_area"
+ord = "HTP_area"
 
 order = [1, 0]
-dict = do_regression(df2, un2, abs, ord, coloration, order)
+dict = do_regression(df1, un1, abs, ord, coloration, order)
+
+# Coef =  [0.2398759  0.33909265]
 
 #----------------------------------------------------------------------------------
-abs = "nominal_range"
-ord = "cruise_speed"
+abs = "wing_area"
+ord = "VTP_area"
 
-df2 = df1[df1['airplane_type']=="commuter"].reset_index(drop=True).copy()    # Remove
-un2 = un1.copy()
+order = [2, 1]
+dict = do_regression(df1, un1, abs, ord, coloration, order)
 
-order = [1, 0]
-dict = do_regression(df2, un2, abs, ord, coloration, order)
+# Coef =  [-1.03984667e-04  1.83589484e-01]
 
 #----------------------------------------------------------------------------------
-abs = "nominal_range"
-ord = "cruise_speed"
+abs = "fuselage_width"
+ord = "total_length"
 
-df2 = df1[df1['cruise_speed']<1].reset_index(drop=True).copy()    # Remove
-un2 = un1.copy()
-un2[ord] = "mach"
+order = [2, 1]
+dict = do_regression(df1, un1, abs, ord, coloration, order)
 
-order = [2, 1, 0]
-dict = do_regression(df2, un2, abs, ord, coloration, order)
+# Coef =  [0.35429986 8.55339511]
 
-# #----------------------------------------------------------------------------------
-# abs = "wing_area"
-# ord = "HTP_area"
-#
-# order = [1, 0]
-# dict = do_regression(df1, un1, abs, ord, coloration, order)
-#
-# # Coef =  [ 0.25346032 -0.78972057]
-#
-# #----------------------------------------------------------------------------------
-# abs = "wing_area"
-# ord = "VTP_area"
-#
-# order = [1, 0]
-# dict = do_regression(df1, un1, abs, ord, coloration, order)
-#
-# # Coef =  [ 0.21268623 -1.34186734]
-#
-# #----------------------------------------------------------------------------------
-# abs = "wing_span"
-# ord = "total_length"
-#
-# order = [1, 0]
-# dict = do_regression(df1, un1, abs, ord, coloration, order)
-#
-# # Coef =  [ 1.29620043 -5.35595366]
-#
-# #----------------------------------------------------------------------------------
-# abs = "wing_area"
-# ord = "fuselage_width*total_length"
-#
-# df1[ord] = df1['fuselage_width'] * df1['total_length']   # Add the new column to the dataframe
-# un1[ord] = "m2"
-#
-# order = [1, 0]
-# dict = do_regression(df1, un1, abs, ord, coloration, order)
-#
-# # Coef =  [ 1.24799765 -8.33301203]
-#
+
 

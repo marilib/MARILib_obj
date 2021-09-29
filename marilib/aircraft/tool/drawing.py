@@ -74,11 +74,15 @@ class Drawing(object):
                     component["surface"].append({"le":pyl_data["fle"], "te":pyl_data["fte"], "toc":pyl_data["toc"]})
                     component["surface"].append({"le":pyl_data["ble"], "te":pyl_data["bte"], "toc":pyl_data["toc"]})
 
-
         for comp in self.aircraft.airframe:
             if issubclass(type(comp),Nacelle):
                 data = comp.sketch_3view()
-                component["nacelle"].append({"le":data["le"], "te":data["te"], "toc":data["toc"]})
+                component["nacelle"].append({"le":data["fle"], "te":data["fte"], "toc":data["toc"]})
+                component["nacelle"].append({"le":data["cle"], "te":data["cte"], "toc":data["toc"]})
+                if comp.get_component_type() in ["body_nacelle", "body_tail_nacelle", "pod_tail_nacelle", "piggyback_tail_nacelle"]:
+                    component["surface"].append({"le":data["s1le"], "te":data["s1te"], "toc":data["toc"]})
+                    component["surface"].append({"le":data["s2le"], "te":data["s2te"], "toc":data["toc"]})
+
 
         return component
 

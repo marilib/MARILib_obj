@@ -134,7 +134,7 @@ class PhysicalData(object):
         mu = self.air_viscosity(temp)
         alpha = self.air_thermal_diffusivity()
         pr = mu / (alpha * rho)                         # Prandtl number
-        re = rho * air_speed / mu                       # Reynolds number
+        re = rho * air_speed / mu                       # 1/m, Reynolds number
         if (re*x)<1.e8 and 0.6<pr and pr<60.:
             nu = 0.0296 * (re*x)**(4/5) * pr**(1/3)     # Nusselt number, turbulent flow
         else:
