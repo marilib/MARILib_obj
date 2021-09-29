@@ -8,8 +8,6 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
-from tabulate import tabulate
-
 from marilib.utils import unit
 from marilib.aircraft.aircraft_root import Arrangement, Aircraft
 from marilib.aircraft.requirement import Requirement
