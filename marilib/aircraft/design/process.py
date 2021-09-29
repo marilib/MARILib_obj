@@ -428,8 +428,8 @@ def explore_design_space(ac, var, step, data, file, proc="mda"):
 
     res = eval_this(aircraft,var)
 
-    slst_list = [res[0]*(1-1.5*step[0]), res[0]*(1-0.5*step[0]), res[0]*(1+0.5*step[0]), res[0]*(1+1.5*step[0])]
-    area_list = [res[1]*(1-1.5*step[1]), res[1]*(1-0.5*step[1]), res[1]*(1+0.5*step[1]), res[1]*(1+1.5*step[1])]
+    slst_list = [res[0]*(1-1.5*step[0]), res[0]*(1-0.5*step[0]), res[0], res[0]*(1+0.5*step[0]), res[0]*(1+1.5*step[0])]
+    area_list = [res[1]*(1-1.5*step[1]), res[1]*(1-0.5*step[1]), res[1], res[1]*(1+0.5*step[1]), res[1]*(1+1.5*step[1])]
 
     #print(slst_list)
     #print(area_list)
@@ -554,7 +554,10 @@ def draw_design_space(file, mark, other, field, const, color, limit, bound, opti
     # Add optim points if specified -------------------------------------- MICOLAS
     if optim_points is not None:
         x,y = zip(*optim_points)
-        axe.scatter(np.array(x)/10,y)  # /10 to rescale units ... WARNING not very robust !!
+        x = np.array(x)/10 # /10 to rescale units ... WARNING not very robust !!
+        y = np.array(y)
+        axe.scatter(x,y)
+        axe.quiver(x[:-1],y[:-1] , x[1:]-x[:-1], y[1:]-y[:-1], scale_units='xy',angles='xy',scale=1,color='k')
 
     # Set introspection
     #------------------------------------------------------------------------------------------------------
