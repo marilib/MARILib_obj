@@ -295,8 +295,8 @@ class HydrogenHeater(object):
         self.h2_specific_heat = unit.convert_from("kJ",14.3)    # J/kg, H2 specific heat, supposed constant above 273 kelvin
         self.h2_integral_heat = unit.convert_from("kJ",3100)    # J/kg, heat to warm 1 kg of gazeous hydrogen from 20.3 K to 273.15 K
 
-        self.gravimetric_index = unit.convert_from("kW", 1)     # kW/kg, Thermal power manageable per kg of heater system
-        self.volumetric_index = unit.convert_from("kW", 1)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
+        self.gravimetric_index = unit.convert_from("kW", 2)     # kW/kg, Thermal power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
 
         self.h2_heat_liq2zero = None            # J/kg Amount of heat to bring 1kg of liquid H2 to 0°C
 
@@ -348,8 +348,8 @@ class AirPreCooler(object):
 
         self.air_specific_heat = cp     # J/kg, Air specific heat
 
-        self.gravimetric_index = unit.convert_from("kW", 1)     # kW/kg, Thermal power manageable per kg of heater system
-        self.volumetric_index = unit.convert_from("kW", 1)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
+        self.gravimetric_index = unit.convert_from("kW", 2)     # kW/kg, Thermal power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Thermal power manageable per Liter of heater system
 
         self.design_thermal_power = None
         self.volume_allocation = None
@@ -396,8 +396,8 @@ class AirCompressor(object):
         self.mechanical_efficiency = 0.9
         self.electrical_efficiency = 0.85
 
-        self.gravimetric_index = unit.convert_from("kW", 1)     # kW/kg, Compression power manageable per kg of heater system
-        self.volumetric_index = unit.convert_from("kW", 1)/unit.convert_from("L", 1)    # kW/L, Compression power manageable per Liter of heater system
+        self.gravimetric_index = unit.convert_from("kW", 2)     # kW/kg, Compression power manageable per kg of heater system
+        self.volumetric_index = unit.convert_from("kW", 2)/unit.convert_from("L", 1)    # kW/L, Compression power manageable per Liter of heater system
 
         self.design_air_flow = None
         self.design_p_ratio = None
@@ -681,7 +681,7 @@ class FuelCellPEMLT(object):
         """
         self.n_cell = np.ceil( power_max / self.cell_max_power )    # Number of cells
 
-        self.power_max = self.cell_max_power * self.n_cell          # Get effective max power"
+        self.power_max = self.cell_max_power * self.n_cell          # Get effective max power
         dict = self.operate(self.power_max)                         # Run the stack for maximum power
 
         # Mass & Volume calculation
@@ -1643,8 +1643,10 @@ if __name__ == '__main__':
     altp = unit.m_ft(10000)
     pamb, tamb, g = phd.atmosphere(altp, disa)
     fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    fc_syst.print_design()
 
     fc_syst.wing_heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
+    fc_syst.wing_heatsink.print_design()
 
 
     air_speed = np.linspace(100, 300, 10)

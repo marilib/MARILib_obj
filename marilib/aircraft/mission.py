@@ -134,11 +134,9 @@ class AllMissionVarMass(AllMissions):
         self.crz_fuselage_aoa = crz_fuselage_aoa
 
         if(self.aircraft.arrangement.power_source == "fuel_cell_plus"):
-            print(lf_dict.keys())
             required_power = lf_dict["pw_elec"]
             dict = self.aircraft.airframe.system.eval_fuel_cell_power(required_power,crz_pamb,crz_tamb,self.crz_tas)
             self.crz_thermal_balance = dict["thermal_balance"]
-            print("--------------------------------->", self.crz_thermal_balance)
 
         sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
 
