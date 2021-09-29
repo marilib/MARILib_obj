@@ -113,8 +113,8 @@ ac.airframe.tank.gravimetric_index = 0.6
 #ac.power_system.reference_thrust = unit.N_kN(103.3)
 #ac.airframe.wing.area = 131.9
 
-ac.power_system.reference_thrust = unit.N_kN(103.3)
-ac.airframe.wing.area = 131.9
+ac.power_system.reference_thrust = unit.N_kN(113.3)
+ac.airframe.wing.area = 141.9
 
 ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
@@ -123,10 +123,12 @@ ac.airframe.tank.mfw_factor = 1
 
 proc = "mda_plus"
 
-if proc=="mda":
-    process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-elif proc=="mda_plus":
-    process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
+eval("process."+proc+"(ac)")  # Run MDA
+
+# if proc=="mda":
+#     process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+# elif proc=="mda_plus":
+#     process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
 
 print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
 print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
@@ -148,7 +150,6 @@ cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.t
        "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
        "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff",
        "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total",
-       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total",
        "aircraft.requirement.max_body_aspect_ratio - aircraft.airframe.body.aspect_ratio"]
 
 # Magnitude used to scale constraints
@@ -166,7 +167,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
+opt.mdf(ac, var,var_bnd, cst,cst_mag, crt, method='optim2d_poly', proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
 algo_points = None

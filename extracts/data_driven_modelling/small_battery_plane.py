@@ -158,6 +158,7 @@ class SmallPlane(object):
         cz = (mass*g) / (0.5*rho*area*vtas**2)
         ki = (1.08 + (width / span)**2) / (np.pi*ar)
         cx0 = cz/self.lod - ki*cz**2
+        print("-------->", cz,cz/self.lod)
         cza = (np.pi*ar) / (1+np.sqrt(1+(ar/2)**2))
         rho0 = 1.225
         czmax = (mass*g) / (0.5*rho0*area*stall_speed**2)
