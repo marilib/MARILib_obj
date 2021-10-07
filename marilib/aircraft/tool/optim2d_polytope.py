@@ -314,7 +314,7 @@ def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst,
         C_list.append(C)
         Y_list.append(Y)
 
-    # print("C_list = ", C_list)
+    print("C_list = ", C_list)
 
     candidates_df = pd.DataFrame([ele[0] + [ele[1]] + ele[2] + [ele[3]] for ele in zip(candidates_list,C_list,Y_list,pt_tags)],
                                  columns=['pt_x1', 'pt_x2'] + crit_name + scaled_cst + ['pt_tag'])
@@ -801,7 +801,7 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
 
         best_candidates_df = find_best_opt_candidate(zed_df_cell, all_opt_candidates_coord, crit_name, scaled_cst, all_opt_candidates_tags)
 
-        # print("best_candidates_df[0] = ", best_candidates_df.iloc[0])
+        print("best_candidates_df = ", best_candidates_df)
         # print("all_opt_candidates_coord[bst_C_ind] = ", all_opt_candidates_coord[bst_C_ind])
 
         print("--> where is the best candidate...")

@@ -29,15 +29,15 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
-                   power_source = "fuel_cell_plus",            # "fuel", "battery", "fuel_cell", "fuel_cell_plus"
+                   power_source = "fuel_cell_PEMLT",            # "fuel", "battery", "fuel_cell", "fuel_cell_PEMLT"
                    fuel_type = "liquid_h2")           # "kerosene", "liquid_h2", "compressed_h2", "battery"
 
 disa = 0
 cruise_altp = unit.m_ft(10000.)
-cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
+cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 250))
 print(cruise_mach)
 
-reqs = Requirement(n_pax_ref = 13.,
+reqs = Requirement(n_pax_ref = 12.,
                    design_range = unit.m_km(200.),
                    cruise_mach = cruise_mach,
                    cruise_altp = cruise_altp,
@@ -89,6 +89,9 @@ ac.weight_cg.mtow = 3500.
 
 
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 
 
 # Configure optimization problem
@@ -123,8 +126,8 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-opt = process.Optimizer()
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc="mda")
+# opt = process.Optimizer()
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc="mda")
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
 # algo_points = None

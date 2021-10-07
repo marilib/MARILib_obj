@@ -84,7 +84,7 @@ class Aircraft(object):
         self.requirement.init_all_requirements(arrangement)  # finalize the initialisation of all requirements.
 
         if (self.arrangement.power_architecture in ["ef","ep","exef"]):
-            if(self.arrangement.power_source not in ["battery","fuel_cell","fuel_cell_plus"]):
+            if(self.arrangement.power_source != "battery" and self.arrangement.power_source[0:9] != "fuel_cell"):
                 raise Exception("Power architecture electro_fan (ef) requires energy source battery or fuel_cell")
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -152,7 +152,7 @@ class Aircraft(object):
             self.airframe.system = system.SystemWithBattery(self)
         elif (self.arrangement.power_source == "fuel_cell"):
             self.airframe.system = system.SystemWithFuelCell(self)
-        elif (self.arrangement.power_source == "fuel_cell_plus"):
+        elif (self.arrangement.power_source[0:13] == "fuel_cell_PEM"):
             self.airframe.system = system.SystemWithLaplaceFuelCell(self)
         else:
             if (self.arrangement.power_architecture=="pte"):

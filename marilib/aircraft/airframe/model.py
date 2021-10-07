@@ -639,7 +639,7 @@ class ThrustDataEp(ThrustData):
         self.thrust = None
         self.power = None
         self.sec = None
-        if (aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        if (aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             self.psfc = None
 
 class Electroprop(PowerSystem, Flight):
@@ -650,7 +650,7 @@ class Electroprop(PowerSystem, Flight):
         self.n_engine = number_of_engine(aircraft)
         self.reference_power = init_power(aircraft)
 
-        if (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        if (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             self.sfc_type = "power"
 
         self.data = {"MTO":ThrustDataEp(aircraft, nei=1),
@@ -678,7 +678,7 @@ class Electroprop(PowerSystem, Flight):
             self.data[rating].thrust = dict["fn"]/(self.aircraft.power_system.n_engine - nei)
             self.data[rating].power = dict["pw"]/(self.aircraft.power_system.n_engine - nei)
             self.data[rating].sec = dict["sec"]
-            if (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+            if (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
                 self.data[rating].psfc = dict["sfc"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
@@ -696,7 +696,7 @@ class Electroprop(PowerSystem, Flight):
 
         dict = {"fn":fn, "pw_elec":pw_net, "sec":sec, "fn1":fn}
 
-        if (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        if (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             vsnd = earth.sound_speed(tamb)
             vtas = vsnd*mach
             fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb,vtas)
@@ -718,9 +718,10 @@ class Electroprop(PowerSystem, Flight):
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
         dict["sec"] = dict["sec"] / self.aircraft.airframe.system.wiring_efficiency
 
+        dict["pw_elec"] = dict["pw_elec"]*(n_engine - nei)  # For all engines
         pw_net  = dict["sec"] * thrust
 
-        if (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        if (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             vsnd = earth.sound_speed(tamb)
             vtas = vsnd*mach
             fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb,vtas)
@@ -749,7 +750,7 @@ class Electroprop(PowerSystem, Flight):
         g = earth.gravity()
         if (self.aircraft.arrangement.power_source == "battery"):
             return (tas*dict["lod"]) / (mass*g*dict["sec"])
-        elif (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        elif (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             eta_prop = self.aircraft.airframe.nacelle.propeller_efficiency
             return (eta_prop*dict["lod"])/(mass*g*dict["sfc"])
         else:
@@ -758,7 +759,7 @@ class Electroprop(PowerSystem, Flight):
     def specific_breguet_range(self,tow,range,tas,dict):
         if (self.aircraft.arrangement.power_source == "battery"):
             return range / self.specific_air_range(tow,tas,dict)
-        elif (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        elif (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             g = earth.gravity()
             eta_prop = self.aircraft.airframe.nacelle.propeller_efficiency
             return tow*(1.-np.exp(-(dict["sfc"]*g*range)/(eta_prop*dict["lod"])))
@@ -769,7 +770,7 @@ class Electroprop(PowerSystem, Flight):
         g = earth.gravity()
         if (self.aircraft.arrangement.power_source == "battery"):
             return dict["sec"]*(mass*g/dict["lod"])*time
-        elif (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        elif (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             eta_prop = self.aircraft.airframe.nacelle.propeller_efficiency
             return ((mass*g*tas*dict["sfc"])/(eta_prop*dict["lod"]))*time
         else:
@@ -783,7 +784,7 @@ class ThrustDataEf(ThrustData):
         self.thrust = None
         self.power = None
         self.sec = None
-        if (aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        if (aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             self.tsfc = None
 
 class Electrofan(PowerSystem, Flight):
@@ -794,7 +795,7 @@ class Electrofan(PowerSystem, Flight):
         self.n_engine = number_of_engine(aircraft)
         self.reference_power = 2.*init_power(aircraft)
 
-        if (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        if (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             self.sfc_type = "thrust"
 
         self.data = {"MTO":ThrustDataEf(aircraft, nei=1),
@@ -822,7 +823,7 @@ class Electrofan(PowerSystem, Flight):
             self.data[rating].thrust = dict["fn"]/(self.aircraft.power_system.n_engine - nei)
             self.data[rating].power = dict["pw"]/(self.aircraft.power_system.n_engine - nei)
             self.data[rating].sec = dict["sec"]
-            if (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+            if (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
                 self.data[rating].tsfc = dict["sfc"]
 
     def thrust(self,pamb,tamb,mach,rating, throttle=1., nei=0):
@@ -840,7 +841,7 @@ class Electrofan(PowerSystem, Flight):
 
         dict = {"fn":fn, "pw_elec":pw_net, "sec":sec, "fn1":fn}
 
-        if (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        if (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             vsnd = earth.sound_speed(tamb)
             vtas = vsnd*mach
             fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb,vtas)
@@ -862,9 +863,10 @@ class Electrofan(PowerSystem, Flight):
         dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,rating,fn)
         dict["sec"] = dict["sec"] / self.aircraft.airframe.system.wiring_efficiency
 
+        dict["pw_elec"] = dict["pw_elec"]*(n_engine - nei)  # For all engines
         pw_net  = dict["sec"] * thrust
 
-        if (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        if (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             vsnd = earth.sound_speed(tamb)
             vtas = vsnd*mach
             fc_dict = self.aircraft.airframe.system.eval_fuel_cell_power(pw_net,pamb,tamb,vtas)
@@ -893,7 +895,7 @@ class Electrofan(PowerSystem, Flight):
         g = earth.gravity()
         if (self.aircraft.arrangement.power_source == "battery"):
             return (tas*dict["lod"])/(mass*g*dict["sec"])
-        elif (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        elif (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             return (tas*dict["lod"])/(mass*g*dict["sfc"])
         else:
             raise Exception("Power source is unknown")
@@ -901,7 +903,7 @@ class Electrofan(PowerSystem, Flight):
     def specific_breguet_range(self,tow,range,tas,dict):
         if (self.aircraft.arrangement.power_source == "battery"):
             return range / self.specific_air_range(tow,tas,dict)
-        elif (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        elif (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             g = earth.gravity()
             return tow*(1-np.exp(-(dict["sfc"]*g*range)/(tas*dict["lod"])))
         else:
@@ -911,7 +913,7 @@ class Electrofan(PowerSystem, Flight):
         g = earth.gravity()
         if (self.aircraft.arrangement.power_source == "battery"):
             return dict["sec"]*(mass*g/dict["lod"])*time
-        elif (self.aircraft.arrangement.power_source in ["fuel_cell", "fuel_cell_plus"]):
+        elif (self.aircraft.arrangement.power_source[0:9] == "fuel_cell"):
             return dict["sfc"]*(mass*g/dict["lod"])*time
         else:
             raise Exception("Power source is unknown")
