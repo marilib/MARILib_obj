@@ -122,7 +122,8 @@ class AllMissionVarMass(AllMissions):
         self.crz_lod = lf_dict["lod"]
         self.crz_thrust = lf_dict["fn"]
         self.crz_propulsive_power = lf_dict["fn"]*self.crz_tas
-        self.crz_engine_input_power = lf_dict["pw_elec"]
+        if (self.aircraft.arrangement.power_architecture in ["ef","ep"]):
+            self.crz_engine_input_power = lf_dict["pw_elec"]
         self.crz_throttle = lf_dict["thtl"]
         if self.aircraft.power_system.sfc_type=="thrust":
             self.crz_tsfc = lf_dict["sfc"]
