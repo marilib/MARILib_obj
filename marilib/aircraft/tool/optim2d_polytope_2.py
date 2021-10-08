@@ -236,18 +236,34 @@ def prepare_next_cell_from_cst(zed_df_cell, best_cand_df, T):
     return new_T, new_point
 
 
-def prepare_next_cell_from_edg(zed_df_cell, T):
+def prepare_next_cell_from_edg(zed_df_cell, list_T_tup):
     # we have to keep the best vertex but we don't know which of the other two to replace
 
-    # test if the cell obtained by replacing one of the two point has already been calculated.
-    # TODO : finish that
     # identify the worst point :
-    worst_grid_point_index = zed_df_cell[zed_df_cell['valid_flag']]['scaled_crit'].idxmin()
+    best_grid_point_index = zed_df_cell[zed_df_cell['valid_flag']]['scaled_crit'].idxmin()
 
-    #   - If not, we keep this as the new cell
-    #   - if yes, the new cell is the one where we replace the 2nd worst (i.e. the 2nd best) point
+    worst_points_indices = [k for k, trash in zed_df_cell.iterrows() if k != best_grid_point_index]
 
-    return
+    new_T = [list(best_grid_point_index), list(worst_points_indices[0])]
+    new_point = np.array(best_grid_point_index) + \
+                (np.array(worst_points_indices[0]) - np.array(worst_points_indices[1]))
+
+    new_T.append(list(new_point))
+    new_T.sort()
+    new_T_tup = tuple([tuple(a) for a in new_T])
+
+    # test if the cell obtained by replacing one of the two point has already been calculated.
+    if new_T_tup in list_T_tup:
+        #   - if yes, the new cell is the one where we replace the 2nd worst (i.e. the 2nd best) point
+        new_T = [list(best_grid_point_index), list(worst_points_indices[1])]
+        new_point = np.array(best_grid_point_index) + \
+                    (np.array(worst_points_indices[1]) - np.array(worst_points_indices[0]))
+        new_T.append(list(new_point))
+        new_T.sort()
+
+        #   - If not, we keep this as the new cell
+
+    return new_T, new_point
 
 def get_active_cell_df(zed_df, T):
     last_cell_grid_point_list = [tuple(cc) for cc in T]
@@ -464,10 +480,10 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
                 elif best_candidates_df['pt_tag'].iloc[0] == "edg":
                     print(
                         "----> the best solution is on a vertex of the active cell!")
-
-                    prepare_next_cell_from_edg(active_cell_df, T)  # TODO  finish that
-
-
+                    # move the cell keeping the best solution
+                    T_new, pt_new = prepare_next_cell_from_edg(active_cell_df, T_tup_list)
+                    T = T_new
+                    new_pt_on_grid_list.append(pt_new)
 
         print("# ================================================")
         print("# RESCALE the search grid                         ")
