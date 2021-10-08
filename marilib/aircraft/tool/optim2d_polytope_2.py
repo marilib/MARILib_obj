@@ -93,7 +93,7 @@ def compute_base_cell_data(zed_df, T, X1, X2, dX1, dX2, LwBs, LwFc, UpBs, UpFc, 
 def find_cst_points_in_cell(cell_df, param):
     cell_indices_list = list(cell_df.index)
     cell_indices_list.append(cell_indices_list[0])
-    cst_bipoints = []
+    cst_bipoints = []   # TODO : check the difference between cst_bipoints and cst_points_list
     cst_points_list = []
 
     # list of the sides (i.e. "vertices bipoints"). First : indices and then
@@ -130,7 +130,7 @@ def find_best_opt_candidate(zed_df_cell, candidates_list, crit_name, scaled_cst,
         C_list.append(C)
         Y_list.append(Y)
 
-    candidates_df = pd.DataFrame([ele[0] + [ele[1]] + ele[2] + [ele[3]] for ele in zip(candidates_list,C_list,Y_list,pt_tags)],
+    candidates_df = pd.DataFrame([ele[0] + [ele[1]] + ele[2] + [ele[3]] for ele in zip(candidates_list, C_list, Y_list, pt_tags)],
                                  columns=['pt_x1', 'pt_x2'] + crit_name + scaled_cst + ['pt_tag'])
 
     # we keep the candidates that satisfy all the constraints
@@ -195,6 +195,7 @@ def prepare_next_cell_from_crit(zed_df, T, criteria):
                 (np.array(zed_df_cell_sorted_ind_list[1]) - np.array(zed_df_cell_sorted_ind_list[2]))
 
     new_T.append(list(new_point))
+    new_T.sort()
 
     return new_T, new_point
 
@@ -203,13 +204,85 @@ def prepare_next_cell_from_scale(T):
     new_T = opt2d.expand_vector_list([T[0]], factor=2)
     new_T.append(list(np.array(new_T[0]) + (np.array(T[1]) - np.array(T[0]))))
     new_T.append(list(np.array(new_T[0]) + (np.array(T[2]) - np.array(T[0]))))
+    new_T.sort()
     return new_T
 
+
+def prepare_next_cell_from_cst(zed_df_cell, best_cand_df, T):
+    # we identify coordinates of the best point
+    bst_pt = list(best_cand_df[['pt_x1', 'pt_x2']].iloc[0])
+
+    # we search the closest side of the cell
+    tri_pts = [[row["pt_x1"], row["pt_x2"]] for k, row in zed_df_cell.iterrows()]
+    tri_pts.append(tri_pts[0])
+    sides = [[tri_pts[i], tri_pts[i + 1]] for i, t in enumerate(tri_pts[:-1])]
+    oppsite_v_index = [int(np.mod(i - 1, 3)) for i in range(3)]
+    side_dist = [abs(side_sign(bst_pt, s[0], s[1])) for s in sides]
+
+    # the point opposite to the side the closest from the best point must be removed and the 2 others kept
+    side_dist_min_index = int(np.argmin(side_dist))
+    T_pt_index_to_be_removed = oppsite_v_index[side_dist_min_index]
+    del oppsite_v_index[side_dist_min_index]
+    T_pt_indices_to_keep = oppsite_v_index
+
+    # we define the next point
+    new_T = [T[ind] for ind in T_pt_indices_to_keep]
+    new_point = np.array(T[T_pt_indices_to_keep[0]]) + \
+                (np.array(T[T_pt_indices_to_keep[1]]) - np.array(T[T_pt_index_to_be_removed]))
+    new_point = new_point.tolist()
+    new_T.append(new_point)
+    new_T.sort()
+
+    return new_T, new_point
+
+
+def prepare_next_cell_from_edg(zed_df_cell, T):
+    # we have to keep the best vertex but we don't know which of the other two to replace
+
+    # test if the cell obtained by replacing one of the two point has already been calculated.
+    # TODO : finish that
+    # identify the worst point :
+    worst_grid_point_index = zed_df_cell[zed_df_cell['valid_flag']]['scaled_crit'].idxmin()
+
+    #   - If not, we keep this as the new cell
+    #   - if yes, the new cell is the one where we replace the 2nd worst (i.e. the 2nd best) point
+
+    return
 
 def get_active_cell_df(zed_df, T):
     last_cell_grid_point_list = [tuple(cc) for cc in T]
     zed_df_cell = zed_df.loc[last_cell_grid_point_list]
     return zed_df_cell
+
+
+def list_best_pt_candidates(zed_df_cell, scaled_const):
+    print("--> searching for candidate optima...")
+    # edge_pts satisfying all the constraints are candidates
+    edges_pts_list = [list(row) for k,row in zed_df_cell[zed_df_cell['valid_flag']][["pt_x1", "pt_x2"]].iterrows()]
+
+    # cst_pts are candidates
+    csts_list = []  # list of [Ai, Bi] coordinates where Ai and Bi are on the constraint and on the cell boundaries
+    cst_pts_list = []  # list of points Ai, Bi
+    for param in scaled_const:
+        csts, cst_pts = find_cst_points_in_cell(zed_df_cell, param)
+        if csts != []:
+            csts_list.append(csts)
+        cst_pts_list = cst_pts_list + cst_pts
+
+    # points of intersections of the constraints are candidates
+    intersec_pt_list = []
+    for i, edge_1 in enumerate(csts_list):
+        for j, edge_2 in enumerate(csts_list):  # enumerate(cst_edges_list[:i]+cst_edges_list[i+1:]):
+            if opt2d.is_crossing_(edge_1, edge_2) & (j > i):
+                intersec_pt_list.append(opt2d.intersection_of_(edge_1, edge_2))
+
+    # gather all candidates
+    all_opt_candidates_coord = cst_pts_list + edges_pts_list + intersec_pt_list
+    all_opt_candidates_tags = ["cst"] * len(cst_pts_list) + \
+                              ["edg"] * len(edges_pts_list) + \
+                              ["int"] * len(intersec_pt_list)
+
+    return all_opt_candidates_coord, all_opt_candidates_tags
 
 
 def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, graph, varargin=[]):
@@ -242,14 +315,21 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
     T = [[0, 0],
          [1, 0],
          [0, 1]]  # define cell corner circuit (modified from scilab)
+    T.sort()
 
     # Nzoom: number of zooming cycle
     # ---------------------------------------------------------------------------------------------------------------
     for Nz in range(1, 1 + Nzoom):  # Nz goes from 1 to Nzoom
 
+        reached_valid_zone_flag = False  # this is to see if the code reaches the valid zone
+        leaved_valid_zone_flag = False  # once it has reached the valid zone, this is to check if it keep one point in valid zone all the time !
+
         print("======================")
         print("======================")
         print("Nz : ", Nz)
+
+        T_tup = tuple([tuple(a) for a in T])
+        T_tup_list = [T_tup]
 
         print("# ================================================")
         print(" MOVE the active cell to minimize 'D_dist'        ")
@@ -264,19 +344,37 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
                                                      CrFc, CritRef,
                                                      fct_SciTwoD,
                                                      OneVar=False)
+
+            # get active cell information
+            active_cell_df = get_active_cell_df(zed_df, T)
+
+            # check position wrt the valid zone
+            if active_cell_df["valid_flag"].any():
+                reached_valid_zone_flag = True  # This flag car be useful in case the algo leaves the valid zone
+            print("reached_valid_zone_flag = ", reached_valid_zone_flag)
+
+            if reached_valid_zone_flag and active_cell_df['valid_flag'].sum()==0:
+                leaved_valid_zone_flag = True
+            print("leaved_valid_zone_flag = ", leaved_valid_zone_flag)
+
             # prepare new cell
             T_new, pt_new = prepare_next_cell_from_crit(zed_df, T, criteria='D_dist')
+            T_tup_new = tuple([tuple(a) for a in T_new])
 
             # if the new cell has not been calculated yet :
-            if not all([tuple(pt) in zed_df.index for pt in T_new]):
+            if T_tup_new not in T_tup_list:
                 T = T_new
                 new_pt_on_grid_list.append(pt_new)
+                T_tup_list.append(T_tup_new)
             else:
                 new_cell_D = False
 
         print("# ================================================")
         print("# SEARCH optimum in the active cell               ")
         is_optimum_in_active_cell = False
+
+        T_tup = tuple([tuple(a) for a in T])
+        T_tup_list = [T_tup]
 
         while not is_optimum_in_active_cell:
 
@@ -292,31 +390,84 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
 
             # get active cell information
             active_cell_df = get_active_cell_df(zed_df, T)
-            cst_cross_sum = (active_cell_df[scaled_cst] > 0).sum()
-            if ((cst_cross_sum == 3) | (cst_cross_sum == 0)).all():  # ((cst_cross_sum != 3) & (cst_cross_sum != 0)).any()
+
+            # check position wrt the valid zone
+            if active_cell_df["valid_flag"].any():
+                reached_valid_zone_flag = True  # This flag car be useful in case the algo leaves the valid zone
+            print("reached_valid_zone_flag = ", reached_valid_zone_flag)
+
+            if reached_valid_zone_flag and active_cell_df['valid_flag'].sum()==0:
+                leaved_valid_zone_flag = True
+            print("leaved_valid_zone_flag = ", leaved_valid_zone_flag)
+
+            cst_cross_sum = (active_cell_df[scaled_cst].T > 0).sum()
+            if ((cst_cross_sum == 3) | (cst_cross_sum == 0)).all():
                 print("--> no constraint cross the cell. Looking for another cell...")
                 # if no constraint crosses the cell
                 #   - we prepare next cell
                 T_new, pt_new = prepare_next_cell_from_crit(zed_df, T, criteria='scaled_crit')
+                T_tup_new = tuple([tuple(a) for a in T_new])
 
                 #   - if the new cell has not been calculated yet :
-                if not all([tuple(pt) in zed_df.index for pt in T_new]):
+                if T_tup_new not in T_tup_list:
                     # we get ready to calculate it
+                    print("----> new cell has NOT been calculated")
                     T = T_new
                     new_pt_on_grid_list.append(pt_new)
+                    T_tup_list.append(T_tup_new)
                 else:
                     # the optimum must be close
+                    print("----> new cell has been calculated")
                     is_optimum_in_active_cell = True
+                    if Nz == Nzoom:
+                        best_grid_point = active_cell_df[active_cell_df['valid_flag']]['scaled_crit'].idxmin()
+                        sol = active_cell_df.loc[best_grid_point]
 
             else:
                 exist_cst_crossing = True
                 print("--> At least one constraint crosses the last cell")
 
+                # search of best point in active cell
+                all_opt_candidates_coord, all_opt_candidates_tags = list_best_pt_candidates(active_cell_df, scaled_cst)
+                best_candidates_df = find_best_opt_candidate(active_cell_df,
+                                                             all_opt_candidates_coord,
+                                                             crit_name,
+                                                             scaled_cst,
+                                                             all_opt_candidates_tags)
+
+                print("--> where is the best candidate...")
+                if best_candidates_df['pt_tag'].iloc[0] == "int":
+                    print("----> the best solution is inside the cell, go to next zoom or stop !")
+                    is_optimum_in_active_cell = True
+                    sol = best_candidates_df.iloc[0]
+
+                elif best_candidates_df['pt_tag'].iloc[0] == "cst":
+                    print(
+                        "----> the best solution is on a constraint on the cell border, then we move in this direction !")
+
+                    # we prepare the next cell
+                    T_new, pt_new = prepare_next_cell_from_cst(active_cell_df, best_candidates_df, T)
+                    T_tup_new = tuple([tuple(a) for a in T_new])
+
+                    if T_tup_new not in T_tup_list:
+                        print("----> new cell has NOT been calculated")
+                        # we get ready to calculate it
+                        T = T_new
+                        new_pt_on_grid_list.append(pt_new)
+                        T_tup_list.append(T_tup_new)
+                    else:
+                        print("----> new cell has been calculated")
+                        # the optimum must be close
+                        is_optimum_in_active_cell = True
+                        sol = best_candidates_df.iloc[0]
+
+                elif best_candidates_df['pt_tag'].iloc[0] == "edg":
+                    print(
+                        "----> the best solution is on a vertex of the active cell!")
+
+                    prepare_next_cell_from_edg(active_cell_df, T)  # TODO  finish that
 
 
-
-
-            is_optimum_in_active_cell = True
 
         print("# ================================================")
         print("# RESCALE the search grid                         ")
@@ -326,6 +477,10 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
 
             # expansion of list of points on grid
             new_pt_on_grid_list = opt2d.expand_vector_list(new_pt_on_grid_list, factor=2)
+
+            # # expansion of list of cells on grid
+            # T_list = [opt2d.expand_vector_list([list(tup) for tup in t], factor=2) for t in T_tup_list]
+            # T_tup_list = [tuple([tuple(tup) for tup in t]) for t in T_list]
 
             # new active scale after grid expansion
             T = prepare_next_cell_from_scale(T)
@@ -386,11 +541,13 @@ def my_fct_scitwod(x):
 
 if __name__ == "__main__":
 
+    pd.set_option("display.max_rows", 10, "display.max_columns", None)
+
     xini = [rd.uniform(-10, 10), rd.uniform(-10, 10)]  # [10, 10]  # [3.5, 5.2]
-    initial_scale = 2
+    initial_scale = 10
     dxini = [initial_scale * np.array([  1,             0]),
              initial_scale * np.array([0.5, np.sqrt(3)/2])]  # [rd.uniform(0.1, 2), rd.uniform(0.1, 2)]
-    nzoom = 2
+    nzoom = 4
 
     # set lower bounds information : gi(x) >= lwbs
     names_lwbs = ["toto_lwb1", "toto_lwb2", "toto_lwbs3"]
@@ -457,8 +614,7 @@ if __name__ == "__main__":
     plt.vlines(lwbs[0], min(x2), max(x2), "r")
     plt.hlines(lwbs[1], min(x1), max(x1), "r")
     plt.plot(x1, -x1 + lwbs[2], '-r')  # upbs[0], '-r')
-    # plt.scatter(np.array(my_sol).T[0], np.array(my_sol).T[1], marker="x", c="yellow")
-    # plt.scatter(my_sol["pt_x1"], my_sol["pt_x2"], marker="x", c="yellow")
+    plt.scatter(my_sol["pt_x1"], my_sol["pt_x2"], marker="x", c="yellow")
     plt.xlim([min(x1), max(x1)])
     plt.ylim([min(x2), max(x2)])
     plt.xlabel("x1")
@@ -471,10 +627,19 @@ if __name__ == "__main__":
               str_lwbs + "\n" +
               str_upbs + "\n" +
               str(ref_cell_pt_list[-1]) + "\n" +
-              "my_sol = ")  # + str([my_sol["pt_x1"], my_sol["pt_x2"]]))
+              "my_sol = " + str([my_sol["pt_x1"], my_sol["pt_x2"]]))
 
-    plt.plot(list(map(list, zip(*ref_cell_pt_list)))[0],
-             list(map(list, zip(*ref_cell_pt_list)))[1])
+    ref_cell_pt_list_x = list(map(list, zip(*ref_cell_pt_list)))[0]
+    ref_cell_pt_list_y = list(map(list, zip(*ref_cell_pt_list)))[1]
+
+    # plt.plot(ref_cell_pt_list_x,
+    #          ref_cell_pt_list_y)
+
+    plt.quiver(ref_cell_pt_list_x[:-1],
+               ref_cell_pt_list_y[:-1],
+               [xf - xi for (xi, xf) in zip(ref_cell_pt_list_x[:-1], ref_cell_pt_list_x[1:])],
+               [yf - yi for (yi, yf) in zip(ref_cell_pt_list_y[:-1], ref_cell_pt_list_y[1:])],
+               units='xy', scale=1)
 
     # plt.plot(my_zed_df_cell["pt_x1"], my_zed_df_cell["pt_x2"], "y")
     plt.show()
