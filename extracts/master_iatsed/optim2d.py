@@ -47,16 +47,6 @@ def intersection_of_(edge_a, edge_b):
     return xyi
 
 
-def bnd_val(bnd, inpt):
-    # ===============================================================================================================
-    if bool(inpt):
-        out = inpt
-    else:
-        out = bnd
-    # ---------------------------------------------------------------------------------------------------------------
-    return out
-
-
 def expand_vector_list(list_in, factor=2):
     """Expand the grid by a factor 2
     """
@@ -106,33 +96,31 @@ def search_in_cells_around(zed_df_cell, P, N, X1, dX1, X2, dX2, crit_name, crit_
 
 
 def initiate_storage_df(index_list, names_list):
-    zed_list = []  # initiate exact calculation storage
-    pt_eval_grid_list = []  # initiate exact calculation point list storage (to use as indices in zed_df)
-    # df_index = pd.DataFrame(pt_eval_grid_list, columns=index_list, )
-    index_array = np.array(pt_eval_grid_list)
+    zed_list = []
+
     idx = pd.MultiIndex.from_tuples([(None, None)])
     idx.names = index_list
     zed_df = pd.DataFrame(zed_list,
                           columns=names_list,
-                          index=idx)  # pd.MultiIndex.set_names(names=index_list))
-    # index=pd.MultiIndex.from_frame(df_index))
+                          index=idx)
     return zed_df
 
 
 def expand_grid(zed_df):
-    zed_list_new = list(zed_df.values)  # .tolist()
+    # read information from zed_df
+    zed_list_new = list(zed_df.values)
     pt_eval_grid_list_new = [list(ele) for ele in zed_df.index]
     index_list = list(zed_df.index.names)
-    names_list = list(zed_df.columns)  # .to_list()
+    names_list = list(zed_df.columns)
 
+    # expand the indices by a factor 2
     pt_eval_grid_list = expand_vector_list(pt_eval_grid_list_new, factor=2)
 
-    # df_index = pd.DataFrame(pt_eval_grid_list, columns=index_list, )
+    # create zed_df_new with some columns and content as zed_df but with the expanded indices
     index_array = np.array(pt_eval_grid_list)
     zed_df_new = pd.DataFrame(zed_list_new,
                               columns=names_list,
                               index=pd.MultiIndex.from_arrays(index_array.T, names=index_list))
-    # index=pd.MultiIndex.from_frame(df_index))
     return zed_df_new
 
 
@@ -143,7 +131,6 @@ def compute_base_cell_data(zed_df, ref_cell_point_on_grid, N, X1, X2, dX1, dX2, 
     # get information from existing zed_df
     zed_list_new = list(zed_df.values)  # .tolist()
     pt_eval_grid_list_new = [list(ele) for ele in zed_df.index]
-    # print("zed_df.index.names = ", zed_df.index.names)
     index_list = list(zed_df.index.names)
     names_list = list(zed_df.columns)
 
@@ -154,34 +141,25 @@ def compute_base_cell_data(zed_df, ref_cell_point_on_grid, N, X1, X2, dX1, dX2, 
         pt_eval_grid = [int(ref_cell_point_on_grid[0]) + int(cc[0]),
                         int(ref_cell_point_on_grid[1]) + int(cc[1])]
         if ~zed_df.index.isin([tuple(pt_eval_grid)]).any():  # if the point has not been computed
-            pt_eval = [X1 + cc[0] * dX1, X2 + cc[1] * dX2]
+            pt_eval = [X1 + cc[0] * dX1, X2 + cc[1] * dX2]  # set the coordinates to be calculated
 
             [D, C, Y, V] = fct_scitwod_ex_(
                 pt_eval, LwBs, LwFc, UpBs, UpFc, CrFc, fct_SciTwoD, OneVar)  # compute exact values
-            # print("D = ", D)
-            # print("C = ", C)
-            # print("Y = ", Y)
-            # print("V = ", V)
 
             if (D == 0) & (crit_ref is None):
                 crit_ref = C  # init criteria reference value
 
-            zed_list_new.append(pt_eval + [C, D] + Y + V)
-            pt_eval_grid_list_new.append(pt_eval_grid)
+            zed_list_new.append(pt_eval + [C, D] + Y + V)  # add the values calculated for the new point to zed_list_new
+            pt_eval_grid_list_new.append(pt_eval_grid)  # add the grid coordinates of the new point to the index list
 
             new_cell = True
 
-    # print("zed_list = ", zed_list)
-    # df_index = pd.DataFrame(pt_eval_grid_list_new, columns=index_list, )
+    # create zed_df_new with the same columns as zed_df and the content on zed_df + the new calculated points
     index_array = np.array(pt_eval_grid_list_new)
-    # print("index_array = ", index_array)
-    # print("index_list = ", index_list)
     zed_df_new = pd.DataFrame(zed_list_new,
                               columns=names_list,
                               index=pd.MultiIndex.from_arrays(index_array.T, names=index_list))
-    # index=pd.MultiIndex.from_frame(df_index))
 
-    # print(zed_df_new)
     return zed_df_new, new_cell, crit_ref
 
 
