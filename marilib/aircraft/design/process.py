@@ -554,8 +554,10 @@ def draw_design_space(file, mark, other, field, const, color, limit, bound, opti
     # Add optim points if specified -------------------------------------- MICOLAS
     if optim_points is not None:
         x,y = zip(*optim_points)
-        x = np.array(x)/10 # /10 to rescale units ... WARNING not very robust !!
+        x = np.array(x)  # /10 # /10 to rescale units ... WARNING not very robust !!
+        x = unit.convert_to(uni_[0], x)
         y = np.array(y)
+        y = unit.convert_to(uni_[1], y)
         axe.scatter(x,y)
         axe.quiver(x[:-1],y[:-1] , x[1:]-x[:-1], y[1:]-y[:-1], scale_units='xy',angles='xy',scale=1,color='k')
 
