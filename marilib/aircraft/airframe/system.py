@@ -242,9 +242,9 @@ class SystemWithLaplaceFuelCell(Component):
         self.wiring_pw_density = aircraft.get_init(self,"wiring_pw_density")
 
         phd = PhysicalData()
-        self.fuel_cell_system = FuelCellSystem(phd)
+        type = aircraft.arrangement.power_source
+        self.fuel_cell_system = FuelCellSystem(phd, type)
 
-        self.fuel_cell_system.stack.working_temperature = 273.15 + 75   # Cell working temperature
         self.max_stack_power = unit.W_kW(50)
         self.over_power_factor = 2
 
@@ -271,6 +271,7 @@ class SystemWithLaplaceFuelCell(Component):
 
         return {"fuel_cell_power": dict["system"]["pwe_effective"],
                 "thermal_balance": dict["system"]["thermal_balance"],
+                "pw_extracted": dict["system"]["pw_extracted"],
                 "compressor_power": dict["compressor"]["pw_input"],
                 "cooling_power": dict["heatsink"]["pw_input"],
                 "heat_power": dict["heatsink"]["pw_heat"],

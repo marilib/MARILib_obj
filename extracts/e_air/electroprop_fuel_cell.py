@@ -29,15 +29,15 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
-                   power_source = "fuel_cell_plus",            # "fuel", "battery", "fuel_cell", "fuel_cell_plus"
+                   power_source = "fuel_cell_PEMLT",            # "fuel", "battery", "fuel_cell", "fuel_cell_PEMLT"
                    fuel_type = "liquid_h2")           # "kerosene", "liquid_h2", "compressed_h2", "battery"
 
 disa = 0
 cruise_altp = unit.m_ft(10000.)
-cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
+cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 250))
 print(cruise_mach)
 
-reqs = Requirement(n_pax_ref = 13.,
+reqs = Requirement(n_pax_ref = 12.,
                    design_range = unit.m_km(200.),
                    cruise_mach = cruise_mach,
                    cruise_altp = cruise_altp,
@@ -76,14 +76,14 @@ ac.requirement.time_to_climb.altp = cruise_altp
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",14.)
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(280.)
+ac.power_system.reference_power = unit.W_kW(260.)
 
 # ac.airframe.cabin.n_pax_front = 3
-ac.airframe.tank.ref_length = 2.
+ac.airframe.tank.ref_length = 1.7
 
 ac.airframe.wing.hld_type = 4
-ac.airframe.wing.aspect_ratio = 13
-ac.airframe.wing.area = 43
+ac.airframe.wing.aspect_ratio = 10
+ac.airframe.wing.area = 42
 
 ac.weight_cg.mtow = 3500.
 
@@ -106,7 +106,8 @@ cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.t
        "aircraft.performance.mcr_ceiling.vz_eff - aircraft.performance.mcr_ceiling.vz_req",
        "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
        "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff",
-       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total"]
+       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total",
+       "aircraft.performance.mission.crz_thermal_balance"]
 
 # Magnitude used to scale constraints
 cst_mag = ["aircraft.performance.take_off.tofl_req",
@@ -115,7 +116,8 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
            "unit.mps_ftpmin(100.)",
            "aircraft.performance.oei_ceiling.path_req",
            "aircraft.performance.time_to_climb.ttc_req",
-           "aircraft.weight_cg.mfw"]
+           "aircraft.weight_cg.mfw",
+           "1"]
 
 # Optimization criteria
 crt = "aircraft.weight_cg.mtow"
@@ -152,6 +154,7 @@ data = [["Power", "kW", "%8.1f", var[0]+"/1000."],
         ["MWE", "kg", "%8.1f", "aircraft.weight_cg.mwe"],
         ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.performance.mission.crz_lod"],
         ["Cruise_SFC", "kg/kW/h", "%8.4f", "aircraft.performance.mission.crz_psfc"],
+        ["Th_bal", "kW", "%8.4f", "aircraft.performance.mission.crz_thermal_balance"],
         ["TOFL", "m", "%8.1f", "aircraft.performance.take_off.tofl_eff"],
         ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.performance.approach.app_speed_eff)"],
         ["OEI_path", "%", "%8.1f", "aircraft.performance.oei_ceiling.path_eff*100"],
@@ -172,16 +175,17 @@ res = process.explore_design_space(ac, var, step, data, file)      # Build a set
 
 field = 'MTOW'                                                                  # Optimization criteria, keys are from data
 other = ['MLW']                                                                 # Additional useful data to show
-const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC', 'FUEL']    # Constrained performances, keys are from data
-bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub", "lb"])                    # ub: upper bound, lb: lower bound
-color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow', 'black']         # Constraint color in the graph
+const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC', 'FUEL', 'Th_bal']    # Constrained performances, keys are from data
+bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub", "lb", "lb"])                    # ub: upper bound, lb: lower bound
+color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow', 'black', 'grey']         # Constraint color in the graph
 limit = [ac.requirement.take_off.tofl_req,
          unit.kt_mps(ac.requirement.approach.app_speed_req),
          unit.pc_no_dim(ac.requirement.oei_ceiling.path_req),
          unit.ftpmin_mps(ac.requirement.mcl_ceiling.vz_req),
          unit.ftpmin_mps(ac.requirement.mcr_ceiling.vz_req),
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
-         ac.performance.mission.nominal.fuel_total]              # Limit values
+         ac.performance.mission.nominal.fuel_total,
+         0]              # Limit values
 
 process.draw_design_space(file, res, other, field, const, color, limit, bound, optim_points=algo_points) # Used stored result to build a graph of the design space
 

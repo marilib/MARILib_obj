@@ -85,7 +85,8 @@ class AllMissionVarMass(AllMissions):
         self.crz_thrust = None
         self.crz_throttle = None
         self.crz_propulsive_power = None
-        if(self.aircraft.arrangement.power_source == "fuel_cell_plus"):
+        if(self.aircraft.arrangement.power_source[0:13] == "fuel_cell_PEM"):
+            self.crz_engine_input_power = None
             self.crz_thermal_balance = None
         if self.aircraft.power_system.sfc_type=="thrust":
             self.crz_tsfc = None
@@ -121,6 +122,8 @@ class AllMissionVarMass(AllMissions):
         self.crz_lod = lf_dict["lod"]
         self.crz_thrust = lf_dict["fn"]
         self.crz_propulsive_power = lf_dict["fn"]*self.crz_tas
+        if (self.aircraft.arrangement.power_architecture in ["ef","ep"]):
+            self.crz_engine_input_power = lf_dict["pw_elec"]
         self.crz_throttle = lf_dict["thtl"]
         if self.aircraft.power_system.sfc_type=="thrust":
             self.crz_tsfc = lf_dict["sfc"]
@@ -133,12 +136,11 @@ class AllMissionVarMass(AllMissions):
         self.crz_wing_aoa = crz_wing_aoa
         self.crz_fuselage_aoa = crz_fuselage_aoa
 
-        if(self.aircraft.arrangement.power_source == "fuel_cell_plus"):
-            print(lf_dict.keys())
-            required_power = lf_dict["pw_elec"]
+        if(self.aircraft.arrangement.power_source[0:13] == "fuel_cell_PEM"):
+            required_power = lf_dict["pw_elec"] / self.aircraft.power_system.n_engine
             dict = self.aircraft.airframe.system.eval_fuel_cell_power(required_power,crz_pamb,crz_tamb,self.crz_tas)
             self.crz_thermal_balance = dict["thermal_balance"]
-            print("--------------------------------->", self.crz_thermal_balance)
+            print(dict["pw_extracted"], dict["heat_power"], dict["thermal_balance"])
 
         sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
 

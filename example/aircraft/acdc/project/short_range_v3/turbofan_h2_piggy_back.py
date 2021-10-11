@@ -65,7 +65,7 @@ print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_c
 
 # overwrite default specific values
 ac.airframe.tank.width = 2.8
-ac.airframe.tank.length = 27.
+ac.airframe.tank.ref_length = 27.
 
 ac.airframe.tank.gravimetric_index = 0.3
 ac.airframe.tank.volumetric_index = 0.85
@@ -159,6 +159,7 @@ file = "aircraft_explore_design.txt"
 res = process.explore_design_space(ac, var, step, data, file)      # Build a set of experiments using above config data and store it in a file
 
 field = 'MTOW'                                                                  # Optimization criteria, keys are from data
+other = ['MLW']                                                                 # Additional useful data to show
 const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'TTC', 'FUEL']    # Constrained performances, keys are from data
 bound = np.array(["ub", "ub", "lb", "lb", "lb", "ub", "lb"])                    # ub: upper bound, lb: lower bound
 color = ['red', 'blue', 'violet', 'orange', 'brown', 'yellow', 'black']         # Constraint color in the graph
@@ -170,6 +171,6 @@ limit = [ac.requirement.take_off.tofl_req,
          unit.min_s(ac.requirement.time_to_climb.ttc_req),
          ac.performance.mission.nominal.fuel_total]              # Limit values
 
-process.draw_design_space(file, res, field, const, color, limit, bound) # Used stored result to build a graph of the design space
+process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
 
 

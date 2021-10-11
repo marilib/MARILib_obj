@@ -220,6 +220,36 @@ if __name__ == '__main__':
     df = df[df['name']!='A380-800'].reset_index(drop=True)
 
 
+    #----------------------------------------------------------------------------------
+    abs = "n_pax*nominal_range"                           # Name of the new column
+    ord = "MTOW"
+
+    df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
+    # df1 = df1[df1['MTOW']<60000].reset_index(drop=True).copy()
+    un1 = un.copy()
+
+    df1[abs] = df1['n_pax']*df1['nominal_range']**0.75    # Add the new column to the dataframe
+    un1[abs] = "km"                 # Add its unit
+
+    order = [0.85]
+    dict = do_regression(df1, un1, abs, ord, coloration, order)
+
+
+    #----------------------------------------------------------------------------------
+    abs = "n_pax*nominal_range"                           # Name of the new column
+    ord = "MTOW"
+
+    df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
+    df1 = df1[df1['MTOW']<100000].reset_index(drop=True).copy()
+    un1 = un.copy()
+
+    df1[abs] = df1['n_pax']*df1['nominal_range']**0.25    # Add the new column to the dataframe
+    un1[abs] = "km"                 # Add its unit
+
+    order = [1]
+    dict = do_regression(df1, un1, abs, ord, coloration, order)
+
+
     # perform regressions
     #-------------------------------------------------------------------------------------------------------------------
     abs = "MTOW"

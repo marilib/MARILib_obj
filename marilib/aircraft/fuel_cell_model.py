@@ -28,7 +28,7 @@ rc('font',**font)
 
 class FuelCellSystem(object):
 
-    def __init__(self, phd):
+    def __init__(self, phd, type):
         self.phd = phd
 
         self.n_stack = None             # Connected in series
@@ -37,12 +37,17 @@ class FuelCellSystem(object):
         self.air_scoop = PitotScoop(self)
         self.compressor = AirCompressor(self)
         self.precooler = AirPreCooler(self)
-        self.h2_heater = HydrogenHeater(self)       # For LH2 only, GH2 version To Be Done
-        self.stack = FuelCellPEMLT(self)            # PEMHT To Be Done
+        self.h2_heater = HydrogenHeater(self)           # For LH2 only, GH2 version To Be Done
+        if type == "fuel_cell_PEMLT" :
+            self.stack = FuelCellPEMLT(self)            # Low temperature
+        elif type == "fuel_cell_PEMHT" :
+            self.stack = FuelCellPEMHT(self)            # High temperature
+        else:
+            raise Exception("Fuel cell must be PEMLT or PEMHT")
         self.power_elec = PowerElectronics(self)
-        self.wing_heatsink = WingSkinHeatsink(self)      # Oil fluid To Be Added
-        self.compact_heatsink = CompactHeatsink(self)      # Oil fluid To Be Added
-        self.tank = None                            # Tank To Be Done
+        self.wing_heatsink = WingSkinHeatsink(self)     # Oil fluid To Be Added
+        self.compact_heatsink = CompactHeatsink(self)   # Oil fluid To Be Added
+        self.tank = None                                # Tank To Be Done
 
         self.miscellaneous_req_power = 1000     # Power allowance for varius systems, including heatsink pump
 
@@ -477,15 +482,15 @@ class AirCompressor(object):
 
 
 
-class FuelCellPEMLT(object):
+class FuelCellPEM(object):
 
     def __init__(self, fc_system):
         self.fc_system = fc_system
 
-        self.cell_area = unit.convert_from("cm2", 625)              # m2
-        self.max_current_density = 4./unit.convert_from("cm2",1)    # A/m2
-        self.cell_entry_total_pressure = unit.convert_from("bar", 1.5)    # Gas pressure at electrode entry
-        self.working_temperature = 273.15 + 65                      # Cell working temperature
+        self.cell_area = unit.convert_from("cm2", 625)                  # m2
+        self.max_current_density = 4./unit.convert_from("cm2",1)        # A/m2
+        self.cell_entry_total_pressure = unit.convert_from("bar", 1.5)  # Gas pressure at electrode entry
+        self.working_temperature = None                                 # Cell working temperature
         self.air_over_feeding = 2                                   # air flow ratio over stoechiometry
         self.power_margin = 0.8                                     # Ratio allowed power over max power
         self.heat_washout_factor = 0.12                             # Fraction of heat washed out by the air flow across the stack
@@ -519,6 +524,141 @@ class FuelCellPEMLT(object):
 
     def ideal_gas_constant(self):
         return 8.3144621   # J/K/mol
+
+    def e_nernst(self, temp, p_h2, p_o2):
+        raise NotImplementedError
+
+    def fuel_cell_polar(self, jj, e_rev, temp):
+        raise NotImplementedError
+
+    def run_fuel_cell(self, jj, nc=None):
+        raise NotImplementedError
+
+    def operate(self, pw):
+        """Compute working point of a stack of fuell cells
+        Input quantity is required output electrical power pw
+        """
+        def fct(jj):
+            return pw - self.run_fuel_cell(jj)["pw_output"]
+
+        x_ini = 1000
+        output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        jj = output_dict[0][0]
+        return self.run_fuel_cell(jj)
+
+    def eval_cell_max_power(self):
+        def fct_jj(jj):
+            return self.run_fuel_cell(jj, nc=1)["pw_output"]
+
+        xini, dx = 1000, 500
+        xres,yres,rc = maximize_1d(xini, dx, [fct_jj])    # Compute the maximum power of the cell
+
+        dict = self.run_fuel_cell(xres, nc=1)
+
+        self.cell_max_power = dict["pw_output"] * self.power_margin   # Nominal power for one single cell
+        self.cell_max_current = dict["current"]
+        self.cell_max_current_density = dict["jj"]
+        self.cell_max_current_voltage = dict["voltage"]
+
+    def design(self, power_max):
+        """Compute the number of cell to ensure the required nominal output power
+        A margin of self.power_margin is taken from versus the effective maximum power
+        """
+        self.n_cell = np.ceil( power_max / self.cell_max_power )    # Number of cells
+
+        self.power_max = self.cell_max_power * self.n_cell          # Get effective max power"
+        dict = self.operate(self.power_max)                         # Run the stack for maximum power
+
+        # Mass & Volume calculation
+        self.mass = self.power_max / self.gravimetric_index
+        self.volume_allocation = self.power_max / self.volumetric_index
+
+        self.nominal_thermal_power = dict["pw_extracted"]
+        self.nominal_voltage = dict["voltage"]
+        self.nominal_current = dict["current"]
+        self.nominal_current_density = dict["jj"]
+        self.nominal_h2_flow = dict["h2_flow"]
+        self.nominal_air_flow = dict["air_flow"]
+        self.nominal_efficiency = dict["efficiency"]
+
+    def print_design(self, graph=False):
+        print("")
+        print("Fuel Cell stack design characteristics")
+        print("----------------------------------------------------------")
+        print("Cell area = ", "%.2f"%unit.convert_to("cm2",self.cell_area), " cm2")
+        print("Cell effective maximum power = ", "%.2f"%(self.cell_max_power), " W")
+        print("Cell effective maximum current = ", "%.2f"%(self.cell_max_current), " A")
+        print("Cell effective maximum current density = ", "%.3f"%(self.cell_max_current_density/1e4), " A/cm2")
+        print("Cell effective maximum current voltage = ", "%.3f"%(self.cell_max_current_voltage), " V")
+        print("")
+        print("Number of cells of the stack = ", self.n_cell)
+        print("Stack maximum continuous power = ", "%.2f"%unit.convert_to("kW", self.power_max), " kW")
+        print("Stack maximum thermal power = ", "%.2f"%unit.convert_to("kW", self.nominal_thermal_power), " kW")
+        print("Stack maximum current density = ", "%.2f"%(self.nominal_current/unit.convert_to("cm2",self.cell_area)), " A/cm2")
+        print("Stack maximum current = ", "%.1f"%self.nominal_current, " A")
+        print("Stack maximum voltage = ", "%.1f"%self.nominal_voltage, " V")
+        print("Stack maximum air mass flow = ", "%.1f"%(self.nominal_air_flow*1000), " g/s")
+        print("Stack maximum hydrogen mass flow = ", "%.2f"%(self.nominal_h2_flow*1000), " g/s")
+        print("Stack maximum stack efficiency = ", "%.3f"%self.nominal_efficiency)
+        print("")
+        print("Volume allocation for one stack = ", "%.0f"%unit.convert_to("dm3", self.volume_allocation), " dm3")
+        print("Mass of one stack = ", "%.1f"%self.mass, " kg")
+
+        if graph:
+            jj_list = np.linspace(0.01, self.max_current_density, 100)
+            j_list = []
+            v_list = []
+            w_list = []
+            e_list = []
+            for jj in jj_list:
+                dict = self.run_fuel_cell(jj, nc=1)
+                j_list.append(dict["jj"]/1e4)
+                v_list.append(dict["voltage"])
+                e_list.append(dict["efficiency"])
+                w_list.append(dict["pw_output"])
+
+            plt.plot(j_list,v_list)
+            plt.grid(True)
+            plt.xlabel('Current density (A/cm2)')
+            plt.ylabel('Voltage (Volt)')
+            plt.show()
+
+            plt.plot(j_list,w_list)
+            plt.grid(True)
+            plt.xlabel('Current density (A/cm2)')
+            plt.ylabel('Power (W)')
+            plt.show()
+
+            plt.plot(j_list,e_list)
+            plt.grid(True)
+            plt.xlabel('Current density (A/cm2)')
+            plt.ylabel('Efficiency')
+            plt.show()
+
+    def print_operate(self, dict):
+        print("")
+        print("Fuel cell stack operation characteristics")
+        print("----------------------------------------------------------")
+        print("Stack effective power = ", "%.2f"%unit.kW_W(dict["pw_output"]), " kW")
+        print("Washed out heat power = ", "%.2f"%unit.kW_W(dict["pw_washout"]), " kW")
+        print("Extracted heat power = ", "%.2f"%unit.kW_W(dict["pw_extracted"]), " kW")
+        print("")
+        print("Hydrogen mass flow = ", "%.2f"%(dict["h2_flow"]*1000), " g/s")
+        print("Stack current density = ", "%.4f"%(dict["jj"]/1e4), " A/cm2")
+        print("Stack effective efficiency = ", "%.4f"%(dict["efficiency"]))
+        print("")
+        print("Voltage = ", "%.1f"%(dict["voltage"]), " V")
+        print("Current = ", "%.1f"%(dict["current"]), " A")
+
+
+
+class FuelCellPEMLT(FuelCellPEM):
+
+    def __init__(self, fc_system):
+        super(FuelCellPEMLT, self).__init__(fc_system)
+
+        self.working_temperature = 273.15 + 75                      # Cell working temperature
 
     def e_nernst(self, temp, p_h2, p_o2):
         """Determination de l'enthalpis de Gibbs : DeltaG_0
@@ -651,122 +791,181 @@ class FuelCellPEMLT(object):
                 "pw_chemical":pw_chemical * nc,
                 "efficiency":efficiency}
 
-    def operate(self, pw):
-        """Compute working point of a stack of fuell cells
-        Input quantity is required output electrical power pw
+
+
+class FuelCellPEMHT(FuelCellPEM):
+
+    def __init__(self, fc_system):
+        super(FuelCellPEMHT, self).__init__(fc_system)
+
+        self.working_temperature = 273.15 + 160                      # Cell working temperature
+
+    def e_nernst(self, temp, p_h2, p_o2):
+        """Determination de l'enthalpis de Gibbs : DeltaG_0
+        Hypothèse: l'eau produite est liquide
         """
-        def fct(jj):
-            return pw - self.run_fuel_cell(jj)["pw_output"]
+        temp_ref = 298          # Température de référence
+        press_ref = 101325      # Pression de référence
 
-        x_ini = 1000
-        output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
-        jj = output_dict[0][0]
-        return self.run_fuel_cell(jj)
+        dh_std_h2o = -241.8e3   # Enthalpie standard de l'eau gazeuse
+        dh_std_h2 = 0           # Enthalpie standard de l'hydrogène gazeux
+        dh_std_o2 = 0           # Enthalpie standard de l'oxygène gazeux
 
-    def eval_cell_max_power(self):
-        def fct_jj(jj):
-            return self.run_fuel_cell(jj, nc=1)["pw_output"]
+        ds_std_h2o = 188.8  # Enthropie standard de l'eau gazeuse
+        ds_std_h2 = 130.684 # Enthropie standard de l'hydrogène gazeux
+        ds_std_o2 = 205.138 # Enthropie standard de l'oxygène gazeux
 
-        xini, dx = 1000, 500
-        xres,yres,rc = maximize_1d(xini, dx, [fct_jj])    # Compute the maximum power of the cell
+        # Coefficients de calcul des capacités thermique molaire
+        a_h2o = 30.33
+        b_h2o = 0.0096056
+        c_h2o = 0.0000011829
 
-        dict = self.run_fuel_cell(xres, nc=1)
+        a_h2 = 29.038
+        b_h2 = -0.0008356
+        c_h2 = 0.0000020097
 
-        self.cell_max_power = dict["pw_output"] * self.power_margin   # Nominal power for one single cell
-        self.cell_max_current = dict["current"]
-        self.cell_max_current_density = dict["jj"]
-        self.cell_max_current_voltage = dict["voltage"]
+        a_o2 = 25.699
+        b_o2 = 0.012966
+        c_o2 = -0.0000038581
 
-    def design(self, power_max):
-        """Compute the number of cell to ensure the required nominal output power
-        A margin of self.power_margin is taken from versus the effective maximum power
+        # Calcul de l'enthalpie globale
+        dh_h2o =  dh_std_h2o + a_h2o*(temp-temp_ref) \
+                + (1/2) * b_h2o*(temp**2-temp_ref**2) \
+                + (1/3) * c_h2o*(temp**3-temp_ref**3)
+
+        dh_h2 =  dh_std_h2 + a_h2*(temp-temp_ref) \
+               + (1/2) * b_h2*(temp**2-temp_ref**2) \
+               + (1/3) * c_h2*(temp**3-temp_ref**3)
+
+        dh_o2 =  dh_std_o2 + a_o2*(temp-temp_ref) \
+               + (1/2) * b_o2*(temp**2-temp_ref**2) \
+               + (1/3) * c_o2*(temp**3-temp_ref**3)
+
+        delta_h = dh_h2o - (1/2) * dh_o2 - dh_h2
+
+        # Calcul de l'entropie globale
+        ds_h2o =  ds_std_h2o + a_h2o*np.log(temp/temp_ref) \
+                + b_h2o*(temp-temp_ref) + (1/2) * c_h2o*(temp**2-temp_ref**2)
+
+        ds_h2 =  ds_std_h2 + a_h2*np.log(temp/temp_ref) \
+               + b_h2*(temp-temp_ref) + (1/2) * c_h2*(temp**2-temp_ref**2)
+
+        ds_o2 =  ds_std_o2 + a_o2*np.log(temp/temp_ref) \
+               + b_o2*(temp-temp_ref) + (1/2) * c_o2*(temp**2-temp_ref**2)
+
+        delta_s = ds_h2o - (1/2) * ds_o2 - ds_h2
+
+        # Calcul de la variation d'enthalpie libre standard
+        dg0 = abs(delta_h - temp*delta_s)
+        dg = dg0 + self.ideal_gas_constant() * temp * (np.log(p_h2/press_ref) + (1/2)*np.log(p_o2/press_ref))
+
+        # Calcul des potentiels de Nernst
+        e_std = dg0 / (2*self.faraday_constant())      # [V] - potentiel reversible
+        e_rev = dg / (2*self.faraday_constant())       # [V] - potentiel reversible + effet de la de la temperature et de la pression
+        e_tn = -delta_h / (2*self.faraday_constant())  # [V] - potentiel thermoneutre
+
+        return e_rev, e_std, e_tn, dg0, dg, delta_h
+
+    def fuel_cell_polar(self, jj, e_rev, temp):
+
+        # Pertes d'activation + diffusion + ohmique
+        # Valeurs expérimentales issue de la thèse de sylvain Rigal pour des conditions opératoire données
+
+        # 1- modele sans dependance aux conditions operatoires
+        # alpha  = 0.45                                         # sans unit - coefficient de transfert de charge equivalent
+        # beta   = 0.11                                         # facteur de diffusion empirique adimensionnel
+        # jn     = 8.08e-4/unit.convert_from("cm2",1) # [A/m2] - densité de courant équivalent de crossover (phénomènes parasites)
+        # r_ohm  = 0.069*unit.convert_from("cm2",1)  # [Ohm.m2] - résistance ohmique surfacique
+        # j_lim  = 1.88/unit.convert_from("cm2",1)    # [A/m2] - densité de courant limite de diffusion
+        # j0     = 6.33e-6/unit.convert_from("cm2",1) # [A/m2] - densité de courant d'echange
+
+        # 2- modele avec dependance aux conditions operatoires (choisir entre 1- sans dependances et 2-avec et commenter)
+        alpha       = 0.46          # sans unit - coefficient de transfert de charge equivalent
+        beta        = 0.11          # sans unit - facteur de diffusion empirique
+        delta       = 0.04          # cm : epaisseur de la cathode
+        gamma       = 0.47          # sans unit - ordre reaction electrochimique
+        phi         = 1.97          # sans unit - coeff present dans relation j_lim
+        sigma       = 4.32          # sans unit - coeff correcteur de la pression partielle O2
+        NRJ_act     = 8.42e4        # J/mol - coeff representant l'energie d'activation
+        i0_ref      = 5.62e-4       # A - coeff courant echange cathodique a l'equilibre
+        Deff_star   = 5.61e-3       # cm2/s - coeff de dissolution / diffusion standard à Tref_ de O2 dans la cathode
+        Tref_       = 433.15        # K -  temperterute de reference pac, soit 160°C
+        Pref_       = 1.021         # bara - pression de reference d'un gaz
+        coeff_lambda_air = 3.60     # sans unit - coefficient correcteur empirique de la pression partielle d'O2 dans les canaux d'alim
+        conc_O2 = 44.66e-6          # mol.Ncm-3 - concentration en 02 dans les canaux d'alimentation
+        lambda_air_ref = 2          # Surstoechiométrie d'air de ref, =2,  à la surstoechio d'air intermédiaire dans étude de sensibilité
+        r_ohm = 0.069*unit.convert_from("cm2",1)                                          # [Ohm.m2] - résistance ohmique surfacique
+        jn     = 8.08e-4/unit.convert_from("cm2",1)            # [A/m2] - densité de courant équivalent de crossover (phénomènes parasites)
+
+        j0     = (i0_ref/(unit.convert_to("cm2",self.cell_area))*(self.air_o2_ratio*self.air_over_feeding \
+                        /coeff_lambda_air)**gamma*np.exp(-NRJ_act \
+                        / (self.ideal_gas_constant()*temp)*(1-temp/Tref_)))\
+                        /unit.convert_from("cm2",1)                    # [A/m2]
+
+        j_lim  = (2*self.faraday_constant()/delta*Deff_star*(temp/Tref_)**phi \
+                                        *conc_O2*np.log(sigma*self.air_over_feeding/lambda_air_ref)) \
+                                        /unit.convert_from("cm2",1)    # [A/m2]
+
+        # Calcul pertes Activation
+        if (jj+jn)>j0:
+            n_act = abs(  self.ideal_gas_constant() \
+                        * temp / (alpha*2*self.faraday_constant()) \
+                        * np.log(jj/j0) )
+        else:
+            n_act = 0
+        # Calcul pertes Diffusion
+        if (j_lim - jj)>0:
+            n_diff = self.ideal_gas_constant() \
+                        * temp / (beta*2*self.faraday_constant()) \
+                        * np.log(1-jj/j_lim)
+
+        n_ohm = r_ohm * jj      # pertes Ohmiques
+
+        # calcul tension de cellule
+        voltage = e_rev - n_act + n_diff - n_ohm
+        current = jj * self.cell_area
+
+        return voltage, current, n_act, n_diff, n_ohm
+
+    def run_fuel_cell(self, jj, nc=None):
+        """Compute working point of a stack of fuell cells or an individuel one if nc=1
+        Input quantity jj is current density in A/m2
         """
-        self.n_cell = np.ceil( power_max / self.cell_max_power )    # Number of cells
+        if nc==None: nc = self.n_cell
 
-        self.power_max = self.cell_max_power * self.n_cell          # Get effective max power"
-        dict = self.operate(self.power_max)                         # Run the stack for maximum power
+        p_o2 = self.air_o2_ratio * self.cell_entry_total_pressure
+        p_h2 = self.cell_entry_total_pressure
 
-        # Mass & Volume calculation
-        self.mass = self.power_max / self.gravimetric_index
-        self.volume_allocation = self.power_max / self.volumetric_index
+        temp = self.working_temperature
+        e_rev, e_std, e_tn, dg0, dg, delta_h = self.e_nernst(temp, p_h2, p_o2)
+        voltage, current, n_act, n_diff, n_ohm = self.fuel_cell_polar(jj, e_rev, temp)
 
-        self.nominal_thermal_power = dict["pw_extracted"]
-        self.nominal_voltage = dict["voltage"]
-        self.nominal_current = dict["current"]
-        self.nominal_current_density = dict["jj"]
-        self.nominal_h2_flow = dict["h2_flow"]
-        self.nominal_air_flow = dict["air_flow"]
-        self.nominal_efficiency = dict["efficiency"]
+        pw_elec =  voltage * current            # Puissance electrique d'une cellule
+        pw_th_total = (e_tn - voltage) * current # puissance thermique
+        pw_washout = pw_th_total * self.heat_washout_factor
+        pw_thermal = pw_th_total * (1 - self.heat_washout_factor)
 
-    def print_design(self, graph=False):
-        print("")
-        print("Fuel Cell stack design characteristics")
-        print("----------------------------------------------------------")
-        print("Cell area = ", "%.2f"%unit.convert_to("cm2",self.cell_area), " cm2")
-        print("Cell effective maximum power = ", "%.2f"%(self.cell_max_power), " W")
-        print("Cell effective maximum current = ", "%.2f"%(self.cell_max_current), " A")
-        print("Cell effective maximum current density = ", "%.3f"%(self.cell_max_current_density/1e4), " A/cm2")
-        print("Cell effective maximum current voltage = ", "%.3f"%(self.cell_max_current_voltage), " V")
-        print("")
-        print("Number of cells of the stack = ", self.n_cell)
-        print("Stack maximum continuous power = ", "%.2f"%unit.convert_to("kW", self.power_max), " kW")
-        print("Stack maximum thermal power = ", "%.2f"%unit.convert_to("kW", self.nominal_thermal_power), " kW")
-        print("Stack maximum current density = ", "%.2f"%(self.nominal_current/unit.convert_to("cm2",self.cell_area)), " A/cm2")
-        print("Stack maximum current = ", "%.1f"%self.nominal_current, " A")
-        print("Stack maximum voltage = ", "%.1f"%self.nominal_voltage, " V")
-        print("Stack maximum air mass flow = ", "%.1f"%(self.nominal_air_flow*1000), " g/s")
-        print("Stack maximum hydrogen mass flow = ", "%.2f"%(self.nominal_h2_flow*1000), " g/s")
-        print("Stack maximum stack efficiency = ", "%.3f"%self.nominal_efficiency)
-        print("")
-        print("Volume allocation for one stack = ", "%.0f"%unit.convert_to("dm3", self.volume_allocation), " dm3")
-        print("Mass of one stack = ", "%.1f"%self.mass, " kg")
+        gas_molar_flow = current / (2 * self.faraday_constant())
+        h2_flow = gas_molar_flow * self.h2_molar_mass   # kg/s, Hydrogen mass flow
+        air_flow =  (gas_molar_flow / self.air_o2_ratio) * self.air_molar_mass * self.air_over_feeding  # kg/s, Air mass flow
 
-        if graph:
-            jj_list = np.linspace(0.01, self.max_current_density, 100)
-            j_list = []
-            v_list = []
-            w_list = []
-            e_list = []
-            for jj in jj_list:
-                dict = self.run_fuel_cell(jj, nc=1)
-                j_list.append(dict["jj"]/1e4)
-                v_list.append(dict["voltage"])
-                e_list.append(dict["efficiency"])
-                w_list.append(dict["pw_output"])
+        lv_h20 = 1000* (-0.0019*(self.working_temperature-273.15)**2-2.2366*(self.working_temperature-273.15)+2499.5)  # [J/kg]
 
-            plt.plot(j_list,v_list)
-            plt.grid(True)
-            plt.xlabel('Current density (A/cm2)')
-            plt.ylabel('Voltage (Volt)')
-            plt.show()
+        h2_heat_sup = -delta_h / self.h2_molar_mass             #  J/kg - H2 internal combustion energy (superior heat power)
+        h2_heat_inf = -delta_h / self.h2_molar_mass - lv_h20    # H2 internal combustion energy (inferior heat power)
+        pw_chemical = h2_flow * h2_heat_inf
+        efficiency = pw_elec / pw_chemical
 
-            plt.plot(j_list,w_list)
-            plt.grid(True)
-            plt.xlabel('Current density (A/cm2)')
-            plt.ylabel('Power (W)')
-            plt.show()
-
-            plt.plot(j_list,e_list)
-            plt.grid(True)
-            plt.xlabel('Current density (A/cm2)')
-            plt.ylabel('Efficiency')
-            plt.show()
-
-    def print_operate(self, dict):
-        print("")
-        print("Fuel cell stack operation characteristics")
-        print("----------------------------------------------------------")
-        print("Stack effective power = ", "%.2f"%unit.kW_W(dict["pw_output"]), " kW")
-        print("Washed out heat power = ", "%.2f"%unit.kW_W(dict["pw_washout"]), " kW")
-        print("Extracted heat power = ", "%.2f"%unit.kW_W(dict["pw_extracted"]), " kW")
-        print("")
-        print("Hydrogen mass flow = ", "%.2f"%(dict["h2_flow"]*1000), " g/s")
-        print("Stack current density = ", "%.4f"%(dict["jj"]/1e4), " A/cm2")
-        print("Stack effective efficiency = ", "%.4f"%(dict["efficiency"]))
-        print("")
-        print("Voltage = ", "%.1f"%(dict["voltage"]), " V")
-        print("Current = ", "%.1f"%(dict["current"]), " A")
+        return {"pw_output":pw_elec * nc,
+                "pw_washout":pw_washout * nc,
+                "pw_extracted":pw_thermal * nc,
+                "voltage":voltage * nc,
+                "current":current,
+                "jj":jj,
+                "air_flow":air_flow * nc,
+                "h2_flow":h2_flow * nc,
+                "pw_chemical":pw_chemical * nc,
+                "efficiency":efficiency}
 
 
 
@@ -858,7 +1057,8 @@ class CompactHeatsink(object):
     def pressure_drop(self, temp, speed, hydro_width, tube_length):
         """Pressure drop along a cylindrical tube
         """
-        rho, cp, mu, lbd = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
+        pac_temp = self.fc_system.stack.working_temperature
+        rho, cp, mu, lbd, mnt, mxt = self.fc_system.phd.fluid_data(temp, pac_temp)
         rex = (rho * speed / mu) * hydro_width                       # Reynolds number
         k = 0.001   # Facteur de rugosité
         cf = 0.5
@@ -904,7 +1104,7 @@ class CompactHeatsink(object):
         self.fin_area = self.tube_width * self.fin_height
 
         temp = self.fc_system.stack.working_temperature
-        rho_f, cp_f, mu_f, lbd_f = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
+        rho_f, cp_f, mu_f, lbd_f, mnt, mxt = self.fc_system.phd.fluid_data(temp, temp)
 
         self.fluid_mass = self.tube_section * self.width * self.tube_count * rho_f * self.tube_factor
         self.tube_mass = self.tube_perimeter * self.tube_thickness * self.width * self.tube_count * self.density * self.tube_factor
@@ -918,7 +1118,8 @@ class CompactHeatsink(object):
         ha_int = self.flat_tube_heat_transfer(pamb,tamb,fluid_temp_in,air_speed, self.tube_width)
         ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,fluid_temp_in,air_speed, 0.35*self.tube_width)
         temp = 0.5 * (fluid_temp_in + fluid_temp_out)
-        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(temp, fluid_speed, self.tube_hydro_width)
+        max_temp = self.fc_system.stack.working_temperature
+        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(temp, max_temp, fluid_speed, self.tube_hydro_width)
         k1ail =  np.sqrt(hf * (2*self.tube_width) * self.conductivity * (self.fin_thickness*self.tube_width)) \
                * np.tanh(np.sqrt((hf*(2*self.tube_width))/(self.conductivity * (self.fin_thickness*self.tube_width)))*self.fin_height)
 
@@ -1185,7 +1386,8 @@ class WingSkinCircuit(object):
     def pressure_drop(self, temp, speed, hydro_width, tube_length):
         """Pressure drop along a cylindrical tube
         """
-        rho, cp, mu, lbd = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
+        pac_temp = self.fc_system.stack.working_temperature
+        rho, cp, mu, lbd, mnt, mxt = self.fc_system.phd.fluid_data(temp, pac_temp)
         rex = (rho * speed / mu) * hydro_width                       # Reynolds number
         k = 0.001   # Indice de rugosité
         cf = 0.5
@@ -1234,7 +1436,7 @@ class WingSkinCircuit(object):
             raise Exception("Tube height 'ht' cannot be lower than half tube width 'wt'")
         self.tube_section = 0.125*np.pi*self.tube_width**2 + (self.tube_height-0.5*self.tube_width)*self.tube_width      # Tube section
         temp = self.fc_system.stack.working_temperature
-        rho_f, cp_f, mu_f, lbd_f = self.fc_system.phd.fluid_data(temp, fluid="water_mp30")
+        rho_f, cp_f, mu_f, lbd_f, mnt, mxt = self.fc_system.phd.fluid_data(temp, temp)
 
         tube_prm = 0.5*np.pi*self.tube_width + 2*(self.tube_height-0.5*self.tube_width) + self.tube_width    # Tube perimeter
         self.tube_hydro_width = 4 * self.tube_section / tube_prm             # Hydrolic section
@@ -1252,7 +1454,8 @@ class WingSkinCircuit(object):
         # ha_int = self.integral_heat_transfer_test(air_speed, self.x_lattice, self.dx_lattice, self.tube_count)
         ha,rhoa,cpa,mua,pra,rea,nua,lbda = self.fc_system.phd.air_thermal_transfer_data(pamb,tamb,fluid_temp_in,air_speed, self.mean_chord)
         temp = 0.5 * (fluid_temp_in + fluid_temp_out)
-        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(temp, fluid_speed, self.tube_hydro_width)
+        max_temp = self.fc_system.stack.working_temperature
+        hf,rhof,cpf,muf,prf,redf,nudf,lbdf = self.fc_system.phd.fluid_thermal_transfer_data(temp, max_temp, fluid_speed, self.tube_hydro_width)
         kail = np.sqrt(hf * 2*self.tube_length * self.skin_conduct * 2*self.tube_thickness*self.tube_length)
 
         # self.skin_exchange_area is taken as reference area
@@ -1465,27 +1668,30 @@ class DragPolar(object):
 if __name__ == '__main__':
 
     phd = PhysicalData()
-    fc_syst = FuelCellSystem(phd)
+    fc_syst = FuelCellSystem(phd, "fuel_cell_PEMLT")
 
 
-    # # Fuel cell test
-    # #----------------------------------------------------------------------
-    # altp = unit.m_ft(10000)
-    # disa = 15
-    # vair = unit.mps_kmph(200)
-    #
-    # pamb, tamb, g = phd.atmosphere(altp, disa)
-    #
-    # stack_power = unit.convert_from("kW", 50)
-    # n_stack = 6
-    #
-    # fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
-    # fc_syst.print_design(graph=False)
-    #
-    # req_power = unit.W_kW(100)
-    #
-    # dict = fc_syst.operate_stacks(pamb, tamb, vair, req_power)
-    # fc_syst.print_operate(dict)
+    # Fuel cell test
+    #----------------------------------------------------------------------
+    altp = unit.m_ft(10000)
+    disa = 15
+    vair = unit.mps_kmph(200)
+
+    pamb, tamb, g = phd.atmosphere(altp, disa)
+
+    stack_power = unit.convert_from("kW", 50)
+    n_stack = 6
+
+    fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    fc_syst.print_design(graph=False)
+
+    req_power = unit.W_kW(100)
+
+    dict = fc_syst.operate_stacks(pamb, tamb, vair, req_power)
+    fc_syst.print_operate(dict)
+
+    dict = fc_syst.operate_stacks(pamb, tamb, vair, req_power)
+    fc_syst.print_operate(dict)
 
 
 
@@ -1622,76 +1828,76 @@ if __name__ == '__main__':
 
 
 
-    # Airplane coupling mini test
-    #----------------------------------------------------------------------
-    wing_aspect_ratio = 10
-    wing_area = 42
-
-    g = 9.81
-    eff = 0.82
-    mass = 5700
-
-    disa = 15
-
-    fc_syst.stack.working_temperature = 273.15 + 75                      # Cell working temperature
-
-
-    stack_power = unit.convert_from("kW", 50)
-    n_stack = 6
-
-
-    dp = DragPolar(wing_aspect_ratio)
-
-    vair = unit.mps_kmph(250)
-    altp = unit.m_ft(10000)
-    pamb, tamb, g = phd.atmosphere(altp, disa)
-    fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
-
-    fc_syst.wing_heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
-
-
-    air_speed = np.linspace(100, 300, 10)
-    altitude = np.linspace(0, 20000, 15)
-    X, Y = np.meshgrid(air_speed, altitude)
-
-    heat_balance = []
-    for x,y in zip(X.flatten(),Y.flatten()):
-        vair = unit.convert_from("km/h", x)
-        altp = unit.convert_from("ft", y)
-
-        pamb, tamb, g = phd.atmosphere(altp, disa)
-        rho = phd.gas_density(pamb,tamb)
-        cz = (2*mass*g) / (rho * vair**2 * wing_area)
-        cx,_ = dp.get_cx(pamb, tamb, vair, cz)
-        lod = cz / cx
-        fn = mass * g / lod
-        pw = fn * vair / eff
-        req_power = pw / 2
-        dict = fc_syst.operate(pamb, tamb, vair, req_power)
-
-        heat_balance.append(dict["system"]["thermal_balance"])
-
-    # convert to numpy array with good shape
-    heat_balance = np.array(heat_balance)
-    heat_balance = heat_balance.reshape(np.shape(X))
-
-    print("")
-    # Plot contour
-    cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
-
-    # Plot limit
-    color = 'yellow'
-    c_c = plt.contour(X, Y, heat_balance, levels=[0], colors =[color], linewidths=2)
-    c_h = plt.contourf(X, Y, heat_balance, levels=[-10000000,0], linewidths=2, colors='none', hatches=['//'])
-    for c in c_h.collections:
-        c.set_edgecolor(color)
-
-    plt.colorbar(cs, label=r"Heat balance")
-    plt.grid(True)
-
-    plt.suptitle("Heat balance")
-    plt.xlabel("True Air Speed (km/h)")
-    plt.ylabel("Altitude (ft)")
-
-    plt.show()
-
+    # # Airplane coupling mini test
+    # #----------------------------------------------------------------------
+    # wing_aspect_ratio = 10
+    # wing_area = 42
+    #
+    # g = 9.81
+    # eff = 0.82
+    # mass = 5700
+    #
+    # disa = 0
+    #
+    # fc_syst.stack.working_temperature = 273.15 + 75                      # Cell working temperature
+    #
+    #
+    # stack_power = unit.convert_from("kW", 50)
+    # n_stack = 6
+    #
+    #
+    # dp = DragPolar(wing_aspect_ratio)
+    #
+    # vair = unit.mps_kmph(250)
+    # altp = unit.m_ft(10000)
+    # pamb, tamb, g = phd.atmosphere(altp, disa)
+    # fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    #
+    # fc_syst.wing_heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
+    #
+    #
+    # air_speed = np.linspace(100, 300, 10)
+    # altitude = np.linspace(0, 20000, 15)
+    # X, Y = np.meshgrid(air_speed, altitude)
+    #
+    # heat_balance = []
+    # for x,y in zip(X.flatten(),Y.flatten()):
+    #     vair = unit.convert_from("km/h", x)
+    #     altp = unit.convert_from("ft", y)
+    #
+    #     pamb, tamb, g = phd.atmosphere(altp, disa)
+    #     rho = phd.gas_density(pamb,tamb)
+    #     cz = (2*mass*g) / (rho * vair**2 * wing_area)
+    #     cx,_ = dp.get_cx(pamb, tamb, vair, cz)
+    #     lod = cz / cx
+    #     fn = mass * g / lod
+    #     pw = fn * vair / eff
+    #     req_power = pw / 2
+    #     dict = fc_syst.operate(pamb, tamb, vair, req_power)
+    #
+    #     heat_balance.append(dict["system"]["thermal_balance"])
+    #
+    # # convert to numpy array with good shape
+    # heat_balance = np.array(heat_balance)
+    # heat_balance = heat_balance.reshape(np.shape(X))
+    #
+    # print("")
+    # # Plot contour
+    # cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
+    #
+    # # Plot limit
+    # color = 'yellow'
+    # c_c = plt.contour(X, Y, heat_balance, levels=[0], colors =[color], linewidths=2)
+    # c_h = plt.contourf(X, Y, heat_balance, levels=[-10000000,0], linewidths=2, colors='none', hatches=['//'])
+    # for c in c_h.collections:
+    #     c.set_edgecolor(color)
+    #
+    # plt.colorbar(cs, label=r"Heat balance")
+    # plt.grid(True)
+    #
+    # plt.suptitle("Heat balance")
+    # plt.xlabel("True Air Speed (km/h)")
+    # plt.ylabel("Altitude (ft)")
+    #
+    # plt.show()
+    #

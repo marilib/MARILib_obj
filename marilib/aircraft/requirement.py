@@ -122,7 +122,10 @@ class OeiCeilingReq(object):
     """
     def __init__(self, arrangement, requirement):
         self.disa = requirement.model_config.get__init(self,"disa")
-        self.altp = requirement.model_config.get__init(self,"altp", val=0.40*requirement.cruise_altp)
+        if (arrangement.power_architecture in ["tp","ep"]):
+            self.altp = requirement.model_config.get__init(self,"altp", val=unit.m_ft(5000))
+        else:
+            self.altp = requirement.model_config.get__init(self,"altp", val=0.40*requirement.cruise_altp)
         self.kmtow = requirement.model_config.get__init(self,"kmtow")
         self.rating = requirement.model_config.get__init(self,"rating")
         self.speed_mode = requirement.model_config.get__init(self,"speed_mode")
@@ -174,7 +177,10 @@ class MclCeilingReq(ClimbReq):
         super(MclCeilingReq, self).__init__(arrangement, requirement)
         self.rating = requirement.model_config.get__init(self,"rating")
         self.speed_mode = requirement.model_config.get__init(self,"speed_mode")
-        self.vz_req = requirement.model_config.get__init(self,"vz_req", val=unit.mps_ftpmin(300.))
+        if (arrangement.power_architecture in ["tp","ep"]):
+            self.vz_req = requirement.model_config.get__init(self,"vz_req", val=unit.mps_ftpmin(100.))
+        else:
+            self.vz_req = requirement.model_config.get__init(self,"vz_req", val=unit.mps_ftpmin(300.))
 
 
 class McrCeilingReq(ClimbReq):
