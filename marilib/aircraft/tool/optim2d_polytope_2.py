@@ -7,14 +7,12 @@ Created on Aug 04 13:56 2021
 
 import numpy as np
 import pandas as pd
+pd.set_option("display.max_rows", 10, "display.max_columns", None)
 
-# from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt
 import random as rd
 
 import extracts.master_iatsed.optim2d as opt2d
-# from collections import Counter
-# from matplotlib.tri import Triangulation, LinearTriInterpolator
 
 import scipy.interpolate as sci_int
 
