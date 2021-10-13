@@ -37,7 +37,7 @@ cruise_altp = unit.m_ft(10000.)
 cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
 print(cruise_mach)
 
-reqs = Requirement(n_pax_ref = 14.,
+reqs = Requirement(n_pax_ref = 19.,
                    design_range = unit.m_km(200.),
                    cruise_mach = cruise_mach,
                    cruise_altp = cruise_altp,
