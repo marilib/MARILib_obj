@@ -124,10 +124,10 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-# opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc="mda")
+opt = process.Optimizer()
+opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc="mda")
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
-# algo_points = opt.computed_points
+algo_points = opt.computed_points
 # algo_points = None
 
 # Main output
@@ -190,6 +190,6 @@ limit = [ac.requirement.take_off.tofl_req,
          ac.performance.mission.nominal.fuel_total,
          0]              # Limit values
 
-process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
+process.draw_design_space(file, res, other, field, const, color, limit, bound, optim_points=algo_points) # Used stored result to build a graph of the design space
 
 

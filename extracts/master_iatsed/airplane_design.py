@@ -68,7 +68,7 @@ class Airplane(object):
         public = [value for value in self.__dict__.values() if issubclass(type(value),Component)]
         return iter(public)
 
-    def print(self):
+    def print_(self):
         # Print some relevant output
         #------------------------------------------------------------------------------------------------------
         print("")
@@ -387,7 +387,7 @@ if __name__ == "__main__":
 #-----------------------------------------
     ap.missions.payload_range()
 
-    ap.print()
+    ap.print_()
 
     ap.view_3d()
 

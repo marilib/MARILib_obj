@@ -363,6 +363,8 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
             # get active cell information
             active_cell_df = get_active_cell_df(zed_df, T)
 
+            print(active_cell_df)
+
             # check position wrt the valid zone
             if active_cell_df["valid_flag"].any():
                 reached_valid_zone_flag = True  # This flag car be useful in case the algo leaves the valid zone
@@ -450,39 +452,46 @@ def scitwod_(X1, X2, dX1, dX2, noms, Units, Nzoom, LwBs, LwFc, UpBs, UpFc, CrFc,
                                                              scaled_cst,
                                                              all_opt_candidates_tags)
 
+                print(all_opt_candidates_coord)
+                print(best_candidates_df)
+
                 print("--> where is the best candidate...")
-                if best_candidates_df['pt_tag'].iloc[0] == "int":
-                    print("----> the best solution is inside the cell, go to next zoom or stop !")
+                if best_candidates_df.shape[0] == 0:
+                    print("----> no solution exist in the cell")
                     is_optimum_in_active_cell = True
-                    sol = best_candidates_df.iloc[0]
-
-                elif best_candidates_df['pt_tag'].iloc[0] == "cst":
-                    print(
-                        "----> the best solution is on a constraint on the cell border, then we move in this direction !")
-
-                    # we prepare the next cell
-                    T_new, pt_new = prepare_next_cell_from_cst(active_cell_df, best_candidates_df, T)
-                    T_tup_new = tuple([tuple(a) for a in T_new])
-
-                    if T_tup_new not in T_tup_list:
-                        print("----> new cell has NOT been calculated")
-                        # we get ready to calculate it
-                        T = T_new
-                        new_pt_on_grid_list.append(pt_new)
-                        T_tup_list.append(T_tup_new)
-                    else:
-                        print("----> new cell has been calculated")
-                        # the optimum must be close
+                else:
+                    if best_candidates_df['pt_tag'].iloc[0] == "int":
+                        print("----> the best solution is inside the cell, go to next zoom or stop !")
                         is_optimum_in_active_cell = True
                         sol = best_candidates_df.iloc[0]
 
-                elif best_candidates_df['pt_tag'].iloc[0] == "edg":
-                    print(
-                        "----> the best solution is on a vertex of the active cell!")
-                    # move the cell keeping the best solution
-                    T_new, pt_new = prepare_next_cell_from_edg(active_cell_df, T_tup_list)
-                    T = T_new
-                    new_pt_on_grid_list.append(pt_new)
+                    elif best_candidates_df['pt_tag'].iloc[0] == "cst":
+                        print(
+                            "----> the best solution is on a constraint on the cell border, then we move in this direction !")
+
+                        # we prepare the next cell
+                        T_new, pt_new = prepare_next_cell_from_cst(active_cell_df, best_candidates_df, T)
+                        T_tup_new = tuple([tuple(a) for a in T_new])
+
+                        if T_tup_new not in T_tup_list:
+                            print("----> new cell has NOT been calculated")
+                            # we get ready to calculate it
+                            T = T_new
+                            new_pt_on_grid_list.append(pt_new)
+                            T_tup_list.append(T_tup_new)
+                        else:
+                            print("----> new cell has been calculated")
+                            # the optimum must be close
+                            is_optimum_in_active_cell = True
+                            sol = best_candidates_df.iloc[0]
+
+                    elif best_candidates_df['pt_tag'].iloc[0] == "edg":
+                        print(
+                            "----> the best solution is on a vertex of the active cell!")
+                        # move the cell keeping the best solution
+                        T_new, pt_new = prepare_next_cell_from_edg(active_cell_df, T_tup_list)
+                        T = T_new
+                        new_pt_on_grid_list.append(pt_new)
 
         print("# ================================================")
         print("# RESCALE the search grid                         ")
