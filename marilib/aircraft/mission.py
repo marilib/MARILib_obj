@@ -140,7 +140,7 @@ class AllMissionVarMass(AllMissions):
             required_power = lf_dict["pw_elec"] / self.aircraft.power_system.n_engine
             dict = self.aircraft.airframe.system.eval_fuel_cell_power(required_power,crz_pamb,crz_tamb,self.crz_tas)
             self.crz_thermal_balance = dict["thermal_balance"]
-            print(dict["pw_extracted"], dict["heat_power"], dict["thermal_balance"])
+            print(dict["pw_extracted"], dict["heat_power"], dict["thermal_balance"])    #printici
 
         sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
 

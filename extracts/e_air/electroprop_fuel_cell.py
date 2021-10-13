@@ -34,10 +34,10 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 disa = 0
 cruise_altp = unit.m_ft(10000.)
-cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 250))
+cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
 print(cruise_mach)
 
-reqs = Requirement(n_pax_ref = 12.,
+reqs = Requirement(n_pax_ref = 14.,
                    design_range = unit.m_km(200.),
                    cruise_mach = cruise_mach,
                    cruise_altp = cruise_altp,
@@ -76,18 +76,19 @@ ac.requirement.time_to_climb.altp = cruise_altp
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",14.)
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(260.)
+ac.power_system.reference_power = unit.W_kW(340)
 
 # ac.airframe.cabin.n_pax_front = 3
 ac.airframe.tank.ref_length = 1.7
 
 ac.airframe.wing.hld_type = 4
 ac.airframe.wing.aspect_ratio = 10
-ac.airframe.wing.area = 42
+ac.airframe.wing.area = 47
 
 ac.weight_cg.mtow = 3500.
 
-
+# Need 2 runs to go around a non identified problem of initilization
+process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 
 
@@ -96,8 +97,8 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 var = ["aircraft.power_system.reference_power",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(230.), unit.N_kN(360.)],       # Design space area where to look for an optimum solution
-           [37., 60.]]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(500.)],       # Design space area where to look for an optimum solution
+           [20., 100.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -123,9 +124,11 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-opt = process.Optimizer()
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt, method='optim2d_poly')
-algo_points= opt.computed_points
+# opt = process.Optimizer()
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc="mda")
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+# algo_points = opt.computed_points
+# algo_points = None
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
@@ -187,6 +190,6 @@ limit = [ac.requirement.take_off.tofl_req,
          ac.performance.mission.nominal.fuel_total,
          0]              # Limit values
 
-process.draw_design_space(file, res, other, field, const, color, limit, bound, optim_points=algo_points) # Used stored result to build a graph of the design space
+process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
 
 

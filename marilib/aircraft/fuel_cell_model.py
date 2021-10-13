@@ -38,12 +38,14 @@ class FuelCellSystem(object):
         self.compressor = AirCompressor(self)
         self.precooler = AirPreCooler(self)
         self.h2_heater = HydrogenHeater(self)           # For LH2 only, GH2 version To Be Done
+
         if type == "fuel_cell_PEMLT" :
             self.stack = FuelCellPEMLT(self)            # Low temperature
         elif type == "fuel_cell_PEMHT" :
             self.stack = FuelCellPEMHT(self)            # High temperature
         else:
             raise Exception("Fuel cell must be PEMLT or PEMHT")
+
         self.power_elec = PowerElectronics(self)
         self.wing_heatsink = WingSkinHeatsink(self)     # Oil fluid To Be Added
         self.compact_heatsink = CompactHeatsink(self)   # Oil fluid To Be Added
@@ -138,8 +140,7 @@ class FuelCellSystem(object):
         self.total_max_power = req_stack_power * n_stack
 
         # Power electronics design
-        req_system_power = req_stack_power * n_stack
-        self.power_elec.design(req_system_power)
+        self.power_elec.design(self.total_max_power)
 
         # Hydrogen heater pre-design
         self.h2_heater.design(0)
