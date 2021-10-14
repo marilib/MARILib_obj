@@ -24,7 +24,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
+                   tank_architecture = "pods",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
@@ -33,10 +33,10 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
-airplane_type = "A330-800"
-n_pax_ref = 240
-design_range = unit.m_NM(1300.)
-cruise_mach = 0.82
+airplane_type = "A220-100_rear_tank"
+n_pax_ref = 135
+design_range = unit.m_NM(1000.)
+cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
 
@@ -54,15 +54,18 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 
 # Operational requirements
 #-----------------------------------------------------------------------------------------------------------------------
+# Max fuel mission
+ac.requirement.max_fuel_range_factor = 1.25
+
 # Take off
 ac.requirement.take_off.altp = 0
 ac.requirement.take_off.disa = 15
-ac.requirement.take_off.tofl_req = 3200
+ac.requirement.take_off.tofl_req = 2000
 
 # Approach
 ac.requirement.approach.altp = 0
 ac.requirement.approach.disa = 0
-ac.requirement.approach.app_speed_req = unit.mps_kt(140)
+ac.requirement.approach.app_speed_req = unit.mps_kt(135)
 
 # Climb
 ac.requirement.mcl_ceiling.altp = cruise_altp
@@ -88,39 +91,47 @@ ac.airframe.horizontal_stab.volume_factor = 0.94
 ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
-ac.airframe.tank.volumetric_index = 0.606
-ac.airframe.tank.gravimetric_index = 0.1
+ac.airframe.tank.volumetric_index = 0.845
+ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
 # gravimetric index = 0.1
 # volumetric_index = 0.606
-# n_pax_ref = 240
-# ac.airframe.cabin.n_pax_front = 8
-# design_range = unit.m_NM(1300.)
-# ac.power_system.reference_thrust = unit.N_kN(415.3)
-# ac.airframe.wing.area = 661
-# fuselage ratio = 13.2  (limite à 13.4)
+# ac.airframe.tank.width = 2.5
+# ac.airframe.other_tank.width = 2.5
+# design_range = unit.m_NM(700.)
+# ac.power_system.reference_thrust = unit.N_kN(119.4)
+# ac.airframe.wing.area = 155.18
+# fuselage ratio = 8.9  (limite à 13.4)
+
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# ac.airframe.tank.width = 2.5
+# ac.airframe.other_tank.width = 2.5
+# design_range = unit.m_NM(1000.)
+# ac.power_system.reference_thrust = unit.N_kN(149.4)
+# ac.airframe.wing.area = 191
 
 # gravimetric index = 0.3
 # volumetric_index = 0.845
-# n_pax_ref = 120
-# ac.airframe.cabin.n_pax_front = 10
-# design_range = unit.m_NM(5000.)
-# ac.power_system.reference_thrust = unit.N_kN(309)
-# ac.airframe.wing.area = 438.15
-# fuselage ratio = 11.5  (limite à 13.4)
+# ac.airframe.tank.width = 3
+# ac.airframe.other_tank.width = 3
+# design_range = unit.m_NM(2100.)
+# ac.power_system.reference_thrust = unit.N_kN(149.6)
+# ac.airframe.wing.area = 185
+# fuselage ratio = 9.1  (limite à 13.4)
 
-ac.power_system.reference_thrust = unit.N_kN(430)
-ac.airframe.wing.sweep25 = unit.rad_deg(30)
-ac.airframe.wing.aspect_ratio = 10
-ac.airframe.wing.area = 680
+ac.power_system.reference_thrust = unit.N_kN(149)
+ac.airframe.wing.aspect_ratio = 11
+ac.airframe.wing.area = 184
 
-# ac.airframe.cabin.n_pax_front = 10
+ac.airframe.tank.width = 3
+ac.airframe.other_tank.width = 3
 
 ac.airframe.tank.ref_length = 15
+ac.airframe.other_tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
-
 
 proc = "mda_plus"
 
@@ -129,17 +140,14 @@ if proc=="mda":
 elif proc=="mda_plus":
     process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
 
-print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
-print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
-print("length/height = %0.2f" %(ac.airframe.body.length/ac.airframe.body.height) )
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(100.), unit.N_kN(1000.)],       # Design space area where to look for an optimum solution
-           [200., 1000.]]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
+           [100., 200.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -188,8 +196,8 @@ ac.draw.payload_range("This_plot")                      # Draw a payload range d
 
 # Configure design space exploration
 # ---------------------------------------------------------------------------------------------------------------------
-step = [0.1,
-        0.1]    # Relative grid step
+step = [0.05,
+        0.05]    # Relative grid step
 
 data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["Wing_area", "m2", "%8.1f", var[1]],
@@ -234,4 +242,5 @@ limit = [ac.requirement.take_off.tofl_req,
          ac.requirement.max_body_aspect_ratio]              # Limit values
 
 process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
+
 

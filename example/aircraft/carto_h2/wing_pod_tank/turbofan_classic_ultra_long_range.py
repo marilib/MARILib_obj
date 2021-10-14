@@ -24,7 +24,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
+                   tank_architecture = "rear",      # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
@@ -33,10 +33,10 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
-airplane_type = "A330-800"
-n_pax_ref = 240
-design_range = unit.m_NM(1300.)
-cruise_mach = 0.82
+airplane_type = "A350-900"
+n_pax_ref = 120
+design_range = unit.m_NM(5000.)
+cruise_mach = 0.85
 cruise_altp = unit.m_ft(35000.)
 
 
@@ -57,7 +57,7 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 # Take off
 ac.requirement.take_off.altp = 0
 ac.requirement.take_off.disa = 15
-ac.requirement.take_off.tofl_req = 3200
+ac.requirement.take_off.tofl_req = 3100
 
 # Approach
 ac.requirement.approach.altp = 0
@@ -88,8 +88,8 @@ ac.airframe.horizontal_stab.volume_factor = 0.94
 ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
-ac.airframe.tank.volumetric_index = 0.606
-ac.airframe.tank.gravimetric_index = 0.1
+ac.airframe.tank.volumetric_index = 0.845
+ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
@@ -97,9 +97,9 @@ ac.airframe.tank.gravimetric_index = 0.1
 # volumetric_index = 0.606
 # n_pax_ref = 240
 # ac.airframe.cabin.n_pax_front = 8
-# design_range = unit.m_NM(1300.)
-# ac.power_system.reference_thrust = unit.N_kN(415.3)
-# ac.airframe.wing.area = 661
+# design_range = unit.m_NM(1000.)
+# ac.power_system.reference_thrust = unit.N_kN(331.7)
+# ac.airframe.wing.area = 499
 # fuselage ratio = 13.2  (limite à 13.4)
 
 # gravimetric index = 0.3
@@ -107,14 +107,16 @@ ac.airframe.tank.gravimetric_index = 0.1
 # n_pax_ref = 120
 # ac.airframe.cabin.n_pax_front = 10
 # design_range = unit.m_NM(5000.)
-# ac.power_system.reference_thrust = unit.N_kN(309)
-# ac.airframe.wing.area = 438.15
-# fuselage ratio = 11.5  (limite à 13.4)
+# ac.power_system.reference_thrust = unit.N_kN(313.9)
+# ac.airframe.wing.area = 443.93
+# fuselage ratio = 11.4  (limite à 13.4)
 
 ac.power_system.reference_thrust = unit.N_kN(430)
-ac.airframe.wing.sweep25 = unit.rad_deg(30)
-ac.airframe.wing.aspect_ratio = 10
-ac.airframe.wing.area = 680
+ac.airframe.wing.sweep25 = unit.rad_deg(32)
+ac.airframe.wing.aspect_ratio = 9.5
+ac.airframe.wing.area = 600
+
+ac.airframe.cabin.n_pax_front = 10
 
 # ac.airframe.cabin.n_pax_front = 10
 
@@ -129,9 +131,6 @@ if proc=="mda":
 elif proc=="mda_plus":
     process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
 
-print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
-print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
-print("length/height = %0.2f" %(ac.airframe.body.length/ac.airframe.body.height) )
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -166,7 +165,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
+# opt.mdf(ac, var,var_bnd, cst[:-1],cst_mag[:-1], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points

@@ -2146,14 +2146,12 @@ class TankWingPod(Pod):
         self.fuel_pressure = aircraft.get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
         self.fuel_density = None
 
-        length = 0.35*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
-        width = 0.80*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
-
         self.dry_bay_length = aircraft.get_init(self,"dry_bay_length")
-        self.ref_length = aircraft.get_init(self,"ref_length", val=length)
+
+        self.width = aircraft.get_init(self,"width")
+        self.ref_length = aircraft.get_init(self,"ref_length")
         self.length = None
 
-        self.width = aircraft.get_init(self,"width", val=width)
         self.x_loc_ratio = aircraft.get_init(self,"x_loc_ratio")
         self.z_loc_ratio = aircraft.get_init(self,"z_loc_ratio")
         self.wing_axe_c = None
@@ -2254,14 +2252,12 @@ class TankPiggyBack(Pod):
         self.fuel_pressure = aircraft.get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
         self.fuel_density = None
 
-        # Estimations based on fuselage dimension estimation
-        length = 0.75*(7.8*(0.38*n_pax_front + 1.05*n_aisle + 0.55) + 0.005*(n_pax_ref/n_pax_front)**2.25)
-        width = 0.80*(0.38*n_pax_front + 1.05*n_aisle + 0.55)
-
         self.dry_bay_length = aircraft.get_init(self,"dry_bay_length")
-        self.ref_length = aircraft.get_init(self,"ref_length", val=length)
+
+        self.width = aircraft.get_init(self,"width")
+        self.ref_length = aircraft.get_init(self,"ref_length")
         self.length = None
-        self.width = aircraft.get_init(self,"width", val=width)
+
         self.x_loc_ratio = aircraft.get_init(self,"x_loc_ratio")
         self.z_loc_ratio = aircraft.get_init(self,"z_loc_ratio")
         self.wing_axe_c = None

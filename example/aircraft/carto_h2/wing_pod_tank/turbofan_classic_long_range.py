@@ -24,7 +24,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
+                   tank_architecture = "pods",      # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
@@ -34,8 +34,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A330-800"
-n_pax_ref = 240
-design_range = unit.m_NM(1300.)
+n_pax_ref = 120
+design_range = unit.m_NM(3000.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 
@@ -88,8 +88,8 @@ ac.airframe.horizontal_stab.volume_factor = 0.94
 ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
-ac.airframe.tank.volumetric_index = 0.606
-ac.airframe.tank.gravimetric_index = 0.1
+ac.airframe.tank.volumetric_index = 0.845
+ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
@@ -98,27 +98,27 @@ ac.airframe.tank.gravimetric_index = 0.1
 # n_pax_ref = 240
 # ac.airframe.cabin.n_pax_front = 8
 # design_range = unit.m_NM(1300.)
-# ac.power_system.reference_thrust = unit.N_kN(415.3)
-# ac.airframe.wing.area = 661
-# fuselage ratio = 13.2  (limite à 13.4)
+# ac.power_system.reference_thrust = unit.N_kN(227.16)
+# ac.airframe.wing.area = 307.4
 
 # gravimetric index = 0.3
 # volumetric_index = 0.845
 # n_pax_ref = 120
-# ac.airframe.cabin.n_pax_front = 10
+# ac.airframe.cabin.n_pax_front = 8
 # design_range = unit.m_NM(5000.)
 # ac.power_system.reference_thrust = unit.N_kN(309)
 # ac.airframe.wing.area = 438.15
 # fuselage ratio = 11.5  (limite à 13.4)
 
-ac.power_system.reference_thrust = unit.N_kN(430)
+ac.power_system.reference_thrust = unit.N_kN(400)
 ac.airframe.wing.sweep25 = unit.rad_deg(30)
 ac.airframe.wing.aspect_ratio = 10
-ac.airframe.wing.area = 680
+ac.airframe.wing.area = 400
 
-# ac.airframe.cabin.n_pax_front = 10
+ac.airframe.cabin.n_pax_front = 8
 
 ac.airframe.tank.ref_length = 15
+ac.airframe.other_tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
 
 

@@ -8,6 +8,8 @@ Created on Thu Jan 20 20:20:20 2020
 """
 
 import numpy as np
+from tabulate import tabulate
+
 from marilib.utils import unit
 from marilib.aircraft.aircraft_root import Arrangement, Aircraft
 from marilib.aircraft.requirement import Requirement
@@ -22,7 +24,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
+                   tank_architecture = "rear",      # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
@@ -31,11 +33,10 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
-airplane_type = "A320-200neo"
-n_pax_ref = 150
-#design_range = unit.m_NM(3000.)
-design_range = unit.m_NM(2250.)
-cruise_mach = 0.78
+airplane_type = "A350-900"
+n_pax_ref = 120
+design_range = unit.m_NM(5000.)
+cruise_mach = 0.85
 cruise_altp = unit.m_ft(35000.)
 
 
@@ -54,10 +55,14 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 # Operational requirements
 #-----------------------------------------------------------------------------------------------------------------------
 # Take off
-ac.requirement.take_off.tofl_req = 2300
+ac.requirement.take_off.altp = 0
+ac.requirement.take_off.disa = 15
+ac.requirement.take_off.tofl_req = 3100
 
 # Approach
-ac.requirement.approach.app_speed_req = unit.mps_kt(137)
+ac.requirement.approach.altp = 0
+ac.requirement.approach.disa = 0
+ac.requirement.approach.app_speed_req = unit.mps_kt(140)
 
 # Climb
 ac.requirement.mcl_ceiling.altp = cruise_altp
@@ -84,61 +89,56 @@ ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
 ac.airframe.tank.volumetric_index = 0.845
-ac.airframe.tank.gravimetric_index = 0.6
+ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-#ac.power_system.reference_thrust = unit.N_kN(120.33)
-#ac.airframe.wing.area = 124.5
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# n_pax_ref = 240
+# ac.airframe.cabin.n_pax_front = 8
+# design_range = unit.m_NM(1000.)
+# ac.power_system.reference_thrust = unit.N_kN(331.7)
+# ac.airframe.wing.area = 499
+# fuselage ratio = 13.2  (limite à 13.4)
 
-#design_range = unit.m_NM(1000.)
-#ac.airframe.tank.volumetric_index = 0.606
-#ac.airframe.tank.gravimetric_index = 0.1
-#ac.power_system.reference_thrust = unit.N_kN(209)
-#ac.airframe.wing.area = 290
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# n_pax_ref = 120
+# ac.airframe.cabin.n_pax_front = 10
+# design_range = unit.m_NM(5000.)
+# ac.power_system.reference_thrust = unit.N_kN(313.9)
+# ac.airframe.wing.area = 443.93
+# fuselage ratio = 11.4  (limite à 13.4)
 
-#design_range = unit.m_NM(1900)
-#ac.airframe.tank.volumetric_index = 0.845
-#ac.airframe.tank.gravimetric_index = 0.3
-#ac.power_system.reference_thrust = unit.N_kN(121)
-#ac.airframe.wing.area = 164
+ac.power_system.reference_thrust = unit.N_kN(430)
+ac.airframe.wing.sweep25 = unit.rad_deg(32)
+ac.airframe.wing.aspect_ratio = 9.5
+ac.airframe.wing.area = 600
 
-"""Même avec un indice gravimétrique de 0.6, on ne peut pas dépasser un range de 2250 NM à cause de l'allongement du fuselage car 
- on atteint le facteur de forme (indice de saucisse longeur/largeur du fuselage) limite de l'A240-600 d'environ 13.4"""
-#design_range = unit.m_NM(2250)
-#ac.airframe.tank.volumetric_index = 0.845
-#ac.airframe.tank.gravimetric_index = 0.6
-#ac.power_system.reference_thrust = unit.N_kN(103.3)
-#ac.airframe.wing.area = 131.9
+ac.airframe.cabin.n_pax_front = 10
 
-ac.power_system.reference_thrust = unit.N_kN(113.3)
-ac.airframe.wing.area = 141.9
+# ac.airframe.cabin.n_pax_front = 10
 
 ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
 
 
-
 proc = "mda_plus"
 
-eval("process."+proc+"(ac)")  # Run MDA
+if proc=="mda":
+    process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+elif proc=="mda_plus":
+    process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
 
-# if proc=="mda":
-#     process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-# elif proc=="mda_plus":
-#     process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
-
-print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
-print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
-print("length/height = %0.2f" %(ac.airframe.body.length/ac.airframe.body.height) )
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
-           [100., 200.]]
+var_bnd = [[unit.N_kN(100.), unit.N_kN(1000.)],       # Design space area where to look for an optimum solution
+           [200., 1000.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -165,10 +165,11 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt, method='optim2d_poly', proc=proc)
+# opt.mdf(ac, var,var_bnd, cst[:-1],cst_mag[:-1], crt,method='optim2d_poly',proc=proc)
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
-algo_points = None
+# algo_points = None
 
 
 # Main output
@@ -232,5 +233,4 @@ limit = [ac.requirement.take_off.tofl_req,
          ac.requirement.max_body_aspect_ratio]              # Limit values
 
 process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
-
 

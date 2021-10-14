@@ -110,13 +110,6 @@ ac.airframe.tank.gravimetric_index = 0.3
 # ac.airframe.wing.area = 167.4
 # fuselage ratio = 12.9  (limite à 13.4)
 
-# gravimetric index = 0.63
-# volumetric_index = 0.845
-# design_range = unit.m_NM(2100.)
-# ac.power_system.reference_thrust = unit.N_kN(97.3)
-# ac.airframe.wing.area = 122.6
-# fuselage ratio = 12.2  (limite à 13.4)
-
 ac.power_system.reference_thrust = unit.N_kN(133.5)
 ac.airframe.wing.aspect_ratio = 11
 ac.airframe.wing.area = 167.4
@@ -165,6 +158,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points

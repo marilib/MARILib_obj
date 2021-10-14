@@ -84,6 +84,8 @@ def mda_plus(aircraft):
 
     def fct(x):
         aircraft.airframe.tank.mfw_factor = x[0]
+        if aircraft.arrangement.tank_architecture=="pods":
+            aircraft.airframe.other_tank.mfw_factor = x[0]
         mda(aircraft)
         max_fuel_range = aircraft.performance.mission.max_fuel.range
         return dist*kdist - max_fuel_range
@@ -93,6 +95,8 @@ def mda_plus(aircraft):
     if (output_dict[2]!=1): raise Exception("Convergence problem")
 
     aircraft.airframe.tank.mfw_factor = output_dict[0][0]
+    if aircraft.arrangement.tank_architecture=="pods":
+        aircraft.airframe.other_tank.mfw_factor = output_dict[0][0]
     mda(aircraft)
 
 
