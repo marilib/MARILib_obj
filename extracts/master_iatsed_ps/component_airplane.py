@@ -25,7 +25,7 @@ from performance import Missions, Operations, Economics
 
 class Airplane(object):
     def __init__(self, cruise_mach=0.78, design_range=unit.m_NM(3000), cost_range=unit.m_NM(500),
-                 n_pax=150, n_aisle=1, n_front=6,
+                 n_pax=170, n_aisle=1, n_front=6,
                  wing_area=122, wing_aspect_ratio=9, wing_taper_ratio=0.20, wing_toc_ratio=0.12, wing_sweep25=unit.rad_deg(25), wing_dihedral=unit.rad_deg(5), hld_type=9,
                  htp_aspect_ratio=5, htp_taper_ratio=0.35, htp_toc_ratio=0.10, htp_sweep25=unit.rad_deg(30), htp_dihedral=unit.rad_deg(5), volume=0.94,
                  vtp_aspect_ratio=1.7, vtp_taper_ratio=0.4, vtp_toc_ratio=0.10, vtp_sweep25=unit.rad_deg(30), thrust_volume=0.4,
@@ -68,7 +68,67 @@ class Airplane(object):
         public = [value for value in self.__dict__.values() if issubclass(type(value),Component)]
         return iter(public)
 
-    def print_(self):
+    def compute_cabin(self, n_pax, range):
+        self.design_range = range
+        self.cabin.n_pax = n_pax
+        self.cabin.eval_geometry()
+        self.mass.nominal_payload = 105. * n_pax
+        self.mass.max_payload = 120. * n_pax
+        return self.cabin.width, self.cabin.length, self.mass.nominal_payload, self.mass.max_payload
+
+    def compute_geometry(self, cabin_width, cabin_length, wing_area, engine_slst):
+        self.cabin.width = cabin_width
+        self.cabin.length = cabin_length
+        self.wing.area = wing_area
+        self.nacelles.engine_slst = engine_slst
+        self.geometry.solve()
+        geometry = {"dummy_object":None}
+        return geometry
+
+    def compute_owe(self, geometry, mtow_i, mzfw_i, mlw_i, d_owe):
+        self.mass.mtow = mtow_i
+        self.mass.mzfw = mzfw_i
+        self.mass.mlw = mlw_i
+        self.mass.d_owe = d_owe
+        self.mass.eval_equiped_mass()
+        self.mass.owe = self.mass.d_owe
+        for comp in self:
+            self.mass.owe += comp.mass
+        return self.mass.owe
+
+    def compute_characteristic_weights(self, owe, nominal_payload, max_payload, nominal_fuel):
+        self.mass.mtow = owe + nominal_payload + nominal_fuel
+        self.mass.mzfw = owe + max_payload
+        self.mass.mlw = 1.07 * self.mass.mzfw
+        self.mass.mfw = 803. * self.tank.fuel_volume
+        return self.mass.mtow, self.mass.mzfw, self.mass.mlw, self.mass.mfw
+
+    def compute_nominal_mission(self, mtow, range):
+        self.design_range = range
+        self.missions.nominal.altp = self.cruise_altp
+        self.missions.nominal.mach = self.cruise_mach
+        self.missions.nominal.range = self.design_range
+        self.missions.nominal.tow = mtow
+        self.missions.nominal.eval()
+        return self.missions.nominal.fuel_total, self.missions.nominal.fuel_reserve
+
+    def compute_other_missions(self, max_payload, mtow, mfw):
+        self.mass.max_payload = max_payload
+        self.mass.mtow = mtow
+        self.mass.mfw = mfw
+        self.missions.eval_payload_range_solver() # Solver inside
+        return self.missions.cost.fuel_block, self.missions.cost.time_block
+
+    def compute_other_performances(self, mtow, mlw, cost_fuel_block, cost_time_bloc):
+        self.mass.mtow = mtow
+        self.mass.mlw = mlw
+        self.operations.eval()
+        self.missions.cost.fuel_block = cost_fuel_block
+        self.missions.cost.time_block = cost_time_bloc
+        self.economics.eval()
+        return self.economics.cash_op_cost, self.economics.direct_op_cost
+
+    def print_airplane_data(self):
         # Print some relevant output
         #------------------------------------------------------------------------------------------------------
         print("")
@@ -260,135 +320,5 @@ class Airplane(object):
 
         plt.show()
         return
-
-
-
-#-----------------------------------------------------------------------------------------------------------------------
-# Test sequence
-#-----------------------------------------------------------------------------------------------------------------------
-
-if __name__ == "__main__":
-
-    ap = Airplane()
-
-
-# MDA
-#-----------------------------------------
-    process.geometry_solver(ap)
-
-    process.mass_mission_adaptation(ap)            # Solver inside
-
-    # ap.mass.eval_equiped_mass()
-    #
-    # ap.mass.eval_characteristic_mass()
-    #
-    # ap.missions.eval_nominal_mission()
-
-    ap.missions.eval_payload_range_solver() # Solver inside
-
-    # ap.missions.eval_cost_mission_solver()
-
-    ap.operations.eval()
-
-    ap.economics.eval()
-
-
-
-# MDF
-#-----------------------------------------
-    var = ["aircraft.nacelles.engine_slst",
-           "aircraft.wing.area"]               # Main design variables
-
-    var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
-               [100., 200.]]
-
-    # Operational constraints definition
-    cst = ["aircraft.operations.take_off.tofl_req - aircraft.operations.take_off.tofl_eff",
-           "aircraft.operations.approach.app_speed_req - aircraft.operations.approach.app_speed_eff",
-           "aircraft.operations.mcl_ceiling.vz_eff - aircraft.operations.mcl_ceiling.vz_req",
-           "aircraft.operations.mcr_ceiling.vz_eff - aircraft.operations.mcr_ceiling.vz_req",
-           "aircraft.operations.oei_ceiling.path_eff - aircraft.operations.oei_ceiling.path_req",
-           "aircraft.mass.mfw - aircraft.missions.nominal.fuel_total"]
-
-    # Magnitude used to scale constraints
-    cst_mag = ["aircraft.operations.take_off.tofl_req",
-               "aircraft.operations.approach.app_speed_req",
-               "unit.mps_ftpmin(100.)",
-               "unit.mps_ftpmin(100.)",
-               "aircraft.operations.oei_ceiling.path_req",
-               "aircraft.mass.mfw"]
-
-    # Optimization criteria
-    crt = "aircraft.mass.mtow"
-
-    # Perform an MDF optimization process
-    opt = process.Optimizer()
-    method = 'optim2d_poly'
-    opt.mdf(ap, var,var_bnd, cst,cst_mag, crt, method)
-
-# Design space exploration
-# ---------------------------------------------------------------------------------------------------------------------
-    step = [0.05,
-            0.05]    # Relative grid step
-
-    data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
-            ["Wing_area", "m2", "%8.1f", var[1]],
-            ["Wing_span", "m", "%8.1f", "aircraft.wing.span"],
-            ["MTOW", "kg", "%8.1f", "aircraft.mass.mtow"],
-            ["MLW", "kg", "%8.1f", "aircraft.mass.mlw"],
-            ["OWE", "kg", "%8.1f", "aircraft.mass.owe"],
-            ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.missions.crz_lod"],
-            ["Cruise_SFC", "kg/daN/h", "%8.4f", "aircraft.missions.crz_sfc"],
-            ["TOFL", "m", "%8.1f", "aircraft.operations.take_off.tofl_eff"],
-            ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.operations.approach.app_speed_eff)"],
-            ["OEI_path", "%", "%8.1f", "aircraft.operations.oei_ceiling.path_eff*100"],
-            ["Vz_MCL", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.operations.mcl_ceiling.vz_eff)"],
-            ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.operations.mcr_ceiling.vz_eff)"],
-            ["FUEL", "kg", "%8.1f", "aircraft.mass.mfw"],
-            ["Cost_Block_fuel", "kg", "%8.1f", "aircraft.missions.cost.fuel_block"],
-            ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
-            ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],
-            ["Direct_op_cost", "$/trip", "%8.1f", "aircraft.economics.direct_op_cost"]]
-
-    file = "table.txt"
-    proc = "process.mda"
-
-    # res = process.eval_this(ac,var)                                  # This function allows to get the values of a list of addresses in the Aircraft
-    res = util.explore_design_space(ap, var, step, data, file, proc)      # Build a set of experiments using above config data and store it in a file
-
-    field = 'MTOW'                                                                  # Optimization criteria, keys are from data
-    other = ['MLW']                                                                 # Additional useful data to show
-    const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'FUEL']    # Constrained performances, keys are from data
-    bound = np.array(["ub", "ub", "lb", "lb", "lb", "lb"])                    # ub: upper bound, lb: lower bound
-    color = ['red', 'blue', 'violet', 'orange', 'brown', 'black']         # Constraint color in the graph
-    limit = [ap.operations.take_off.tofl_req,
-             unit.kt_mps(ap.operations.approach.app_speed_req),
-             unit.pc_no_dim(ap.operations.oei_ceiling.path_req),
-             unit.ftpmin_mps(ap.operations.mcl_ceiling.vz_req),
-             unit.ftpmin_mps(ap.operations.mcr_ceiling.vz_req),
-             ap.missions.nominal.fuel_total]                        # Limit values
-
-    util.draw_design_space(file, res, other, field, const, color, limit, bound,
-                              optim_points=None) # Used stored result to build a graph of the design space
-
-
-
-
-
-
-
-
-
-
-
-
-# Utils
-#-----------------------------------------
-    ap.missions.payload_range()
-
-    ap.print_()
-
-    ap.view_3d()
-
 
 
