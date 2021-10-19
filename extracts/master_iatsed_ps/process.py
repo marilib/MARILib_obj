@@ -255,10 +255,10 @@ class Optimizer(object):
     def optimize(self, fct_optim, start_value, var_bnd):
 
         def fct_optim2d(x_in):
-            criterion, constraints = fct_optim(x_in)
+            criterion, constraints = fct_optim[0](x_in,fct_optim[1])
             return [constraints, [], criterion/crt_mag]
 
-        crt_mag, cst = fct_optim(start_value)
+        crt_mag, cst = fct_optim[0](start_value,fct_optim[1])
 
         n = len(cst)
 
@@ -295,4 +295,5 @@ class Optimizer(object):
         fct_optim2d(sol[["pt_x1", "pt_x2"]])  # to update aircraft object with solution values
 
         return sol[["pt_x1", "pt_x2"]]
+
 

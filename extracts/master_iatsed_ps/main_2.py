@@ -21,11 +21,12 @@ from component_airplane import Airplane
 
 ap = Airplane()
 
-n_pax = 150
+n_pax = 186
 range = unit.m_NM(3000)
 
-wing_area = 122
-engine_slst = unit.N_kN(120.)
+hld_type = 10
+wing_area = 132
+engine_slst = unit.N_kN(142.)
 
 mtow = 80000
 mlw = 65000
@@ -47,7 +48,7 @@ oei_path_req = 0.011
 #-----------------------------------------------------------------------------------------------------------------------
 cabin_width, cabin_length, nominal_pl, max_pl = ap.compute_cabin(n_pax, range)
 
-geometry = ap.compute_geometry(cabin_width, cabin_length, wing_area, engine_slst)
+geometry = ap.compute_geometry(cabin_width, cabin_length, hld_type, wing_area, engine_slst)
 
 owe = ap.compute_owe(geometry, mtow, mzfw, mlw, d_owe)
 
@@ -66,7 +67,7 @@ cash_op_cost, direct_op_cost = ap.compute_other_performances(mtow, mlw, cost_fue
 #-----------------------------------------------------------------------------------------------------------------------
 cabin_width, cabin_length, nominal_pl, max_pl = ap.compute_cabin(n_pax, range)
 
-geometry = ap.compute_geometry(cabin_width, cabin_length, wing_area, engine_slst)
+geometry = ap.compute_geometry(cabin_width, cabin_length, hld_type, wing_area, engine_slst)
 
 # Mass-Mission adaptation
 #-----------------------------------------------------------------------------------------------------------------------
@@ -77,7 +78,7 @@ def fct_mma(x):
     mtow_o, mzfw_o, mlw_o, mfw_o = ap.compute_characteristic_weights(owe, nominal_pl, max_pl, nominal_fuel)
     return [mtow_i-mtow_o, mzfw_i-mzfw_o, mlw_i-mlw_o]
 
-xini = [mtow, mzfw, mlw]
+xini = [ap.mass.mtow, ap.mass.mzfw, ap.mass.mlw]
 output_dict = fsolve(fct_mma, x0=xini, args=(), full_output=True)
 if (output_dict[2]!=1): raise Exception("Convergence problem")
 
@@ -104,10 +105,10 @@ cabin_width, cabin_length, nominal_pl, max_pl = ap.compute_cabin(n_pax, range)
 
 # Performance optimization
 #-----------------------------------------------------------------------------------------------------------------------
-def fct_mda(xx):
+def fct_mda(xx,ap):
     wing_area, engine_slst = xx
 
-    geometry = ap.compute_geometry(cabin_width, cabin_length, wing_area, engine_slst)
+    geometry = ap.compute_geometry(cabin_width, cabin_length, hld_type, wing_area, engine_slst)
 
     # Mass-Mission adaptation
     #-----------------------------------------------------------------------------------------------------------------------
@@ -143,7 +144,7 @@ def fct_mda(xx):
            float(ap.operations.oei_ceiling.path_eff - oei_path_req) / oei_path_req,
            float(ap.mass.mfw - ap.missions.nominal.fuel_total) / ap.mass.mfw]
 
-    crt = mtow
+    crt = cash_op_cost
 
     return crt, cst
 
@@ -153,9 +154,9 @@ opt = process.Optimizer()
 x_ini = np.array([wing_area, engine_slst])
 bnd = [[50., 300.], [unit.N_kN(50.), unit.N_kN(300.)]]       # Design space area where to look for an optimum solution
 
-x_res = opt.optimize(fct_mda, x_ini, bnd)
+x_res = opt.optimize([fct_mda,ap], x_ini, bnd)
 
-crt, cst = fct_mda(x_res)
+fct_mda(x_res, ap)
 
 
 # Graphics
@@ -166,6 +167,6 @@ ap.print_airplane_data()
 
 ap.missions.payload_range_diagram()
 
-
+ap.explore_design_space(fct_mda)
 
 

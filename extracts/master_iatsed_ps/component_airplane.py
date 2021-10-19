@@ -8,6 +8,7 @@ Created on Jan 16 17:18:19 2021
 """
 
 import numpy as np
+from copy import deepcopy
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 
@@ -76,9 +77,10 @@ class Airplane(object):
         self.mass.max_payload = 120. * n_pax
         return self.cabin.width, self.cabin.length, self.mass.nominal_payload, self.mass.max_payload
 
-    def compute_geometry(self, cabin_width, cabin_length, wing_area, engine_slst):
+    def compute_geometry(self, cabin_width, cabin_length, hld_type, wing_area, engine_slst):
         self.cabin.width = cabin_width
         self.cabin.length = cabin_length
+        self.aerodynamics.hld_type = hld_type
         self.wing.area = wing_area
         self.nacelles.engine_slst = engine_slst
         self.geometry.solve()
@@ -320,5 +322,86 @@ class Airplane(object):
 
         plt.show()
         return
+
+    def explore_design_space(self, proc):
+        # Design space exploration
+        # ---------------------------------------------------------------------------------------------------------------------
+        var = ["aircraft.nacelles.engine_slst",
+               "aircraft.wing.area"]               # Design variables
+
+        step = [0.05,
+                0.05]    # Relative grid step
+
+        data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
+                ["Wing_area", "m2", "%8.1f", var[1]],
+                ["Wing_span", "m", "%8.1f", "aircraft.wing.span"],
+                ["MTOW", "kg", "%8.1f", "aircraft.mass.mtow"],
+                ["MLW", "kg", "%8.1f", "aircraft.mass.mlw"],
+                ["OWE", "kg", "%8.1f", "aircraft.mass.owe"],
+                ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.missions.crz_lod"],
+                ["Cruise_SFC", "kg/daN/h", "%8.4f", "aircraft.missions.crz_sfc"],
+                ["TOFL", "m", "%8.1f", "aircraft.operations.take_off.tofl_eff"],
+                ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.operations.approach.app_speed_eff)"],
+                ["OEI_path", "%", "%8.1f", "aircraft.operations.oei_ceiling.path_eff*100"],
+                ["Vz_MCL", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.operations.mcl_ceiling.vz_eff)"],
+                ["Vz_MCR", "ft/min", "%8.1f", "unit.ftpmin_mps(aircraft.operations.mcr_ceiling.vz_eff)"],
+                ["FUEL", "kg", "%8.1f", "aircraft.mass.mfw"],
+                ["Cost_Block_fuel", "kg", "%8.1f", "aircraft.missions.cost.fuel_block"],
+                ["Std_op_cost", "$/trip", "%8.1f", "aircraft.economics.std_op_cost"],
+                ["Cash_op_cost", "$/trip", "%8.1f", "aircraft.economics.cash_op_cost"],
+                ["Direct_op_cost", "$/trip", "%8.1f", "aircraft.economics.direct_op_cost"]]
+
+        file = "table.txt"
+
+        aircraft = deepcopy(self)
+
+        res = []
+        for my_str in var:
+            res.append(eval(my_str))
+
+        slst_list = [res[0]*(1-1.5*step[0]), res[0]*(1-0.5*step[0]), res[0]*(1+0.5*step[0]), res[0]*(1+1.5*step[0])]
+        area_list = [res[1]*(1-1.5*step[1]), res[1]*(1-0.5*step[1]), res[1]*(1+0.5*step[1]), res[1]*(1+1.5*step[1])]
+
+        txt_list = []
+        val_list = []
+        for j in range(len(data)):
+            txt_list.append(data[j][0:2])
+            val_list.append("'"+data[j][2]+"'%("+data[j][3]+")")
+        txt = np.array(txt_list)
+        val = np.array(val_list)
+
+        for area in area_list:
+            for thrust in slst_list:
+
+                print("-----------------------------------------------------------------------")
+                print("Doing case for : thrust = ",thrust/10.," daN    area = ",area, " m")
+
+                proc([area, thrust],aircraft)
+
+                # eval(proc+"([area,thrust])")   # Perform MDA
+
+                res_list = []
+                for j in range(len(data)):
+                    res_list.append([str(eval(val[j]))])
+                res_array = np.array(res_list)
+                txt = np.hstack([txt,res_array])
+
+        np.savetxt(file,txt,delimiter=";",fmt='%15s')
+
+        field = 'MTOW'                                                                  # Optimization criteria, keys are from data
+        other = ['MLW']                                                                 # Additional useful data to show
+        const = ['TOFL', 'App_speed', 'OEI_path', 'Vz_MCL', 'Vz_MCR', 'FUEL']    # Constrained performances, keys are from data
+        bound = np.array(["ub", "ub", "lb", "lb", "lb", "lb"])                    # ub: upper bound, lb: lower bound
+        color = ['red', 'blue', 'violet', 'orange', 'brown', 'black']         # Constraint color in the graph
+        limit = [self.operations.take_off.tofl_req,
+                 unit.kt_mps(self.operations.approach.app_speed_req),
+                 unit.pc_no_dim(self.operations.oei_ceiling.path_req),
+                 unit.ftpmin_mps(self.operations.mcl_ceiling.vz_req),
+                 unit.ftpmin_mps(self.operations.mcr_ceiling.vz_req),
+                 self.missions.nominal.fuel_total]                        # Limit values
+
+        util.draw_design_space(file, res, other, field, const, color, limit, bound,
+                               optim_points=None) # Used stored result to build a graph of the design space
+
 
 

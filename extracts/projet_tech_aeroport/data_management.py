@@ -119,7 +119,7 @@ def load_data_from_file(file_name):
 
 if __name__ == '__main__':
 
-    path_to_oag_file = "../input_data/2016_All_JobId651257.csv"
+    path_to_oag_file = "2016_All_JobId651257.csv"
 
     range_interval = 200.   # km
     capacity_interval = 20. # npax

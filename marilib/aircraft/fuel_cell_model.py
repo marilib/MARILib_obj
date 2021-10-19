@@ -880,33 +880,6 @@ class FuelCellPEMHT(FuelCellPEM):
         j_lim  = 1.88/unit.convert_from("cm2",1)    # [A/m2] - densité de courant limite de diffusion
         j0     = 6.33e-6/unit.convert_from("cm2",1) # [A/m2] - densité de courant d'echange
 
-        # 2- modele avec dependance aux conditions operatoires (choisir entre 1- sans dependances et 2-avec et commenter)
-        # alpha       = 0.46          # sans unit - coefficient de transfert de charge equivalent
-        # beta        = 0.11          # sans unit - facteur de diffusion empirique
-        # delta       = 0.04          # cm : epaisseur de la cathode
-        # gamma       = 0.47          # sans unit - ordre reaction electrochimique
-        # phi         = 1.97          # sans unit - coeff present dans relation j_lim
-        # sigma       = 4.32          # sans unit - coeff correcteur de la pression partielle O2
-        # NRJ_act     = 8.42e4        # J/mol - coeff representant l'energie d'activation
-        # i0_ref      = 5.62e-4       # A - coeff courant echange cathodique a l'equilibre
-        # Deff_star   = 5.61e-3       # cm2/s - coeff de dissolution / diffusion standard à Tref_ de O2 dans la cathode
-        # Tref_       = 433.15        # K -  temperterute de reference pac, soit 160°C
-        # Pref_       = 1.021         # bara - pression de reference d'un gaz
-        # coeff_lambda_air = 3.60     # sans unit - coefficient correcteur empirique de la pression partielle d'O2 dans les canaux d'alim
-        # conc_O2 = 44.66e-6          # mol.Ncm-3 - concentration en 02 dans les canaux d'alimentation
-        # lambda_air_ref = 2          # Surstoechiométrie d'air de ref, =2,  à la surstoechio d'air intermédiaire dans étude de sensibilité
-        # r_ohm = 0.069*unit.convert_from("cm2",1)                                          # [Ohm.m2] - résistance ohmique surfacique
-        # jn     = 8.08e-4/unit.convert_from("cm2",1)            # [A/m2] - densité de courant équivalent de crossover (phénomènes parasites)
-        #
-        # j0     = (i0_ref/(unit.convert_to("cm2",self.cell_area))*(self.air_o2_ratio*self.air_over_feeding \
-        #                 /coeff_lambda_air)**gamma*np.exp(-NRJ_act \
-        #                 / (self.ideal_gas_constant()*temp)*(1-temp/Tref_)))\
-        #                 /unit.convert_from("cm2",1)                    # [A/m2]
-        #
-        # j_lim  = (2*self.faraday_constant()/delta*Deff_star*(temp/Tref_)**phi \
-        #                                 *conc_O2*np.log(sigma*self.air_over_feeding/lambda_air_ref)) \
-        #                                 /unit.convert_from("cm2",1)    # [A/m2]
-
         # Calcul pertes Activation
         if (jj+jn)>j0:
             n_act = abs(  self.ideal_gas_constant() \
