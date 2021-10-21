@@ -246,7 +246,7 @@ class SystemWithLaplaceFuelCell(Component):
         self.fuel_cell_system = FuelCellSystem(phd, type)
 
         self.max_stack_power = unit.W_kW(50)
-        self.over_power_factor = 2
+        self.over_power_factor = aircraft.get_init(self,"over_power_factor")
 
         self.max_power_time = aircraft.get_init(self,"max_power_time")    # Max power endurance on battery
         self.battery_energy_density = aircraft.get_init(self,"battery_energy_density")

@@ -176,6 +176,7 @@ class ModelConfiguration(object):
             "fuel_cell_efficiency": [0.5, "no_dim", "Fuell cell conversion efficiency"]
         },
         "SystemWithLaplaceFuelCell":{
+            "over_power_factor": [2, "no_dim", "Electric wiring efficiency"],
             "wiring_efficiency": [0.995, "no_dim", "Electric wiring efficiency"],
             "wiring_pw_density": [10., "kW/kg", "Electric wiring power density"],
             "max_power_time": [15., "min", "Max power endurance on battery"],

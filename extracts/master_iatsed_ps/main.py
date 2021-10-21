@@ -9,31 +9,34 @@ Created on Jan 16 17:18:19 2021
 
 import numpy as np
 from scipy.optimize import fsolve
-import matplotlib.pyplot as plt
 
 import unit, process
-
 from component_airplane import Airplane
 
 
 
+# DESIGN SETTINGS
+#-----------------------------------------------------------------------------------------------------------------------
+n_pax = 150
+range = unit.m_NM(2500)
 
+hld_type = 9
 
-ap = Airplane()
-
-n_pax = 186
-range = unit.m_NM(3000)
-
-hld_type = 10
-wing_area = 132
-engine_slst = unit.N_kN(142.)
-
-mtow = 80000
-mlw = 65000
-mzfw = 60000
 d_owe = 0
 
+# INITIALIZATIONS
+#-----------------------------------------------------------------------------------------------------------------------
+wing_area = 130
+engine_slst = unit.N_kN(140.)
+
+mtow_i = 80000
+mlw_i = 65000
+mzfw_i = 60000
 nominal_fuel = 20000
+
+# OPERATIONAL REQUIREMENTS AND AIRPLANE INSTANTIATION
+#-----------------------------------------------------------------------------------------------------------------------
+ap = Airplane()
 
 
 

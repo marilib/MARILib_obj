@@ -36,72 +36,83 @@ nominal_fuel = 20000
 
 # OPERATIONAL REQUIREMENTS AND AIRPLANE INSTANTIATION
 #-----------------------------------------------------------------------------------------------------------------------
-ap = Airplane(tofl_req = 2100,
-              app_speed_req = unit.mps_kt(137),
-              vz_mcl_req = unit.mps_ftpmin(300),
-              vz_mcr_req = unit.mps_ftpmin(0),
-              oei_path_req = 0.011)
+ap = Airplane()
 
 
 
-# MDF Process
+# ANALYSIS FUNCTIONS
 #-----------------------------------------------------------------------------------------------------------------------
-# Start of MDA process
+cabin_width, cabin_length, nominal_pl, max_pl = ap.compute_cabin(n_pax, range)
+
+geometry = ap.compute_geometry(cabin_width, cabin_length, hld_type, wing_area, engine_slst)
+
+owe = ap.compute_owe(geometry, mtow_i, mzfw_i, mlw_i, d_owe)
+
+mtow, mzfw, mlw, mfw = ap.compute_characteristic_weights(owe, nominal_pl, max_pl, nominal_fuel)
+
+nominal_fuel, nominal_reserve = ap.compute_nominal_mission(mtow_i, range)
+
+cost_fuel_block, cost_time_bloc = ap.compute_other_missions(max_pl, mtow, mfw)
+
+cash_op_cost, direct_op_cost = ap.compute_other_performances(mtow, mlw, cost_fuel_block, cost_time_bloc)
+
+
+
+
+# MDA process
 #-----------------------------------------------------------------------------------------------------------------------
 
 
-# INSERT HERE THE PART OF THE MDA SEQUENCE THAT CAN BE RUN PRIOR TO THE REST
+# INSERT HERE WEAKLY COUPLED FUNCTIONS THAT CAN BE RUN PRIOR TO ANY OTHERS
 
 
 
-# Performance optimization
+# Mass-Mission adaptation
 #-----------------------------------------------------------------------------------------------------------------------
-def fct_mda(xx,ap):
-    wing_area, engine_slst = xx
+def fct_mma(x):
+    mtow_i, mzfw_i, mlw_i = x
     #-------------------------------------------------------------------------------------------------------------------
 
 
-# INSERT HERE THE REST OF THE MDA SEQUENCE
+# INSERT HERE STRONGLY COUPLED FUNCTIONS IN THE RIGHT ORDER
 
 
-
-    #-----------------------------------------------------------------------------------------------------------------------
-    # End of MDA process
     #-------------------------------------------------------------------------------------------------------------------
-    cst = [float(ap.operations.take_off.tofl_req - ap.operations.take_off.tofl_eff) / ap.operations.take_off.tofl_req,
-           float(ap.operations.approach.app_speed_req - ap.operations.approach.app_speed_eff) / ap.operations.approach.app_speed_req,
-           float(ap.operations.mcl_ceiling.vz_eff - ap.operations.mcl_ceiling.vz_req),
-           float(ap.operations.mcr_ceiling.vz_eff - ap.operations.mcr_ceiling.vz_req),
-           float(ap.operations.oei_ceiling.path_eff - ap.operations.oei_ceiling.path_req) / ap.operations.oei_ceiling.path_req,
-           float(ap.mass.mfw - ap.missions.nominal.fuel_total) /ap.mass.mfw]
+    return [mtow_i-mtow, mzfw_i-mzfw, mlw_i-mlw]
 
-    crt = cash_op_cost
+xini = [ap.mass.mtow, ap.mass.mzfw, ap.mass.mlw]
+output_dict = fsolve(fct_mma, x0=xini, args=(), full_output=True)
+if (output_dict[2]!=1): raise Exception("Convergence problem")
 
-    return crt, cst
+mtow = output_dict[0][0]
+mzfw = output_dict[0][1]
+mlw = output_dict[0][2]
 
+fct_mma([mtow, mzfw, mlw])
 
+mfw = ap.mass.mfw
 
-opt = process.Optimizer()
-x_ini = np.array([wing_area, engine_slst])
-bnd = [[50., 300.], [unit.N_kN(50.), unit.N_kN(300.)]]       # Design space area where to look for an optimum solution
-
-x_res = opt.optimize([fct_mda,ap], x_ini, bnd)
-
-fct_mda(x_res, ap)
+# Finalize MDA
 #-----------------------------------------------------------------------------------------------------------------------
-# End of MDF process
+
+
+
+# INSERT HERE WEAKLY COUPLED FUNCTIONS THAT CAN BE RUN AFTER THE OTHERS
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# End of MDA process
 
 
 
 
-# Graphics
+# Graphics and printings
 #-----------------------------------------
 ap.print_airplane_data()
 
 ap.view_3d()
 
 ap.missions.payload_range_diagram()
-
-ap.explore_design_space(fct_mda)
 
 

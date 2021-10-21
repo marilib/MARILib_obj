@@ -109,6 +109,18 @@ class Aerodynamics(object):
         self.hld_conf_to = hld_conf_to
         self.hld_conf_ld = hld_conf_ld
 
+        self.hld_data = { 0 : [1.45 , "Clean"],
+                          1 : [2.25 , "Flap only, Rotation without slot"],
+                          2 : [2.60 , "Flap only, Rotation single slot (ATR)"],
+                          3 : [2.80 , "Flap only, Rotation double slot"],
+                          4 : [2.80 , "Fowler Flap"],
+                          5 : [2.00 , "Slat only"],
+                          6 : [2.45 , "Slat + Flap rotation without slot"],
+                          7 : [2.70 , "Slat + Flap rotation single slot"],
+                          8 : [2.90 , "Slat + Flap rotation double slot"],
+                          9 : [3.00 , "Slat + Fowler (A320)"],
+                         10 : [3.20 , "Slat + Fowler + Fowler double slot (A321)"]}
+
     def wing_high_lift(self, hld_conf):
         """Retrieves max lift and zero aoa lift of a given (flap/slat) deflection (from 0 to 1).
             * 0 =< hld_type =< 10 : type of high lift device
@@ -120,18 +132,7 @@ class Aerodynamics(object):
         wing = self.airplane.wing
 
         # Maximum lift coefficients of different airfoils, DUBS 1987
-        czmax_ld = {0 : 1.45 ,  # Clean
-                    1 : 2.25 ,  # Flap only, Rotation without slot
-                    2 : 2.60 ,  # Flap only, Rotation single slot      (ATR)
-                    3 : 2.80 ,  # Flap only, Rotation double slot
-                    4 : 2.80 ,  # Fowler Flap
-                    5 : 2.00 ,  # Slat only
-                    6 : 2.45 ,  # Slat + Flap rotation without slot
-                    7 : 2.70 ,  # Slat + Flap rotation single slot
-                    8 : 2.90 ,  # Slat + Flap rotation double slot
-                    9 : 3.00 ,  # Slat + Fowler                      (A320)
-                    10 : 3.20,  # Slat + Fowler + Fowler double slot (A321)
-                    }.get(self.hld_type, "Erreur - high_lift_, HLDtype out of range")    # 9 is default if x not found
+        czmax_ld = self.hld_data.get(self.hld_type, "Erreur - high_lift_, HLDtype out of range")[0]    # 9 is default if x not found
 
         if (self.hld_type<5):
             czmax_base = 1.45      # Flap only

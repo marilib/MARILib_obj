@@ -13,7 +13,7 @@ pd.set_option("display.max_rows", 10, "display.max_columns", None)
 import matplotlib.pyplot as plt
 import random as rd
 
-import extracts.master_iatsed.optim2d as opt2d
+from marilib.aircraft.tool import optim2d as opt2d
 
 import scipy.interpolate as sci_int
 
