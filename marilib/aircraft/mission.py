@@ -192,6 +192,7 @@ class AllMissionVarMass(AllMissions):
 
     def mass_mission_adaptation_max_fuel(self):
         """Solves coupling between MTOW and OWE
+        WARNING, SPECIAL PROCESS, MTOW is adjusted so that nominal mission is max fuel
         """
         # range = self.aircraft.requirement.design_range
         # altp = self.aircraft.requirement.cruise_altp

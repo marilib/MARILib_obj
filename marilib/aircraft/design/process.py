@@ -47,7 +47,7 @@ def eval_this(aircraft,design_variables):
 
 
 
-def mda(aircraft, mass_mission_matching="classic"):
+def mda(aircraft, mass_mission_matching=True):
     """Perform Multidsciplinary_Design_Analysis
     All coupling constraints are solved in a relevent order
     """
@@ -62,12 +62,8 @@ def mda(aircraft, mass_mission_matching="classic"):
     aircraft.handling_quality.analysis()
     # aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
 
-    if mass_mission_matching=="classic" or mass_mission_matching==True:
+    if mass_mission_matching:
         aircraft.performance.mission.mass_mission_adaptation()
-    elif mass_mission_matching=="max_fuel":
-        aircraft.performance.mission.mass_mission_adaptation_max_fuel()
-    elif mass_mission_matching=="no" or mass_mission_matching==False:
-        pass
 
     aircraft.performance.mission.payload_range()
 
@@ -104,9 +100,83 @@ def mda_plus(aircraft):
     mda(aircraft)
 
 
-def mda_ligeois(aircraft):
+def mda_max_fuel(aircraft):
     """Perform Multidsciplinary_Design_Analysis
     All coupling constraints are solved in a relevent order
+    """
+    # aircraft.airframe.geometry_analysis()     # Without statistical empennage sizing
+    aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
+
+    # aircraft.weight_cg.mass_analysis()      # Without MZFW - MLW coupling
+    aircraft.weight_cg.mass_pre_design()    # With MZFW - MLW coupling
+
+    aircraft.aerodynamics.aerodynamic_analysis()
+
+    aircraft.handling_quality.analysis()
+    # aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
+
+    aircraft.performance.mission.mass_mission_adaptation_max_fuel()
+
+    aircraft.performance.mission.payload_range()
+
+    aircraft.performance.analysis()
+
+    aircraft.economics.operating_cost_analysis()
+
+    aircraft.environment.fuel_efficiency_metric()
+
+    # aircraft.power_system.thrust_analysis()
+
+
+def mda_max_fuel(aircraft):
+    """Perform Multidsciplinary_Design_Analysis
+    WARNING, SPECIAL PROCESS, MTOW is given here and tank factor is adjusted accordingly
+    """
+    aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
+    aircraft.weight_cg.mass_pre_design()
+
+    altp = aircraft.requirement.cruise_altp
+    mach = aircraft.requirement.cruise_mach
+    disa = aircraft.requirement.cruise_disa
+
+    payload = aircraft.airframe.cabin.nominal_payload
+
+    def fct(x):
+        aircraft.requirement.design_range = x[0]
+        aircraft.weight_cg.mtow = x[1]
+
+        aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
+        aircraft.weight_cg.mass_pre_design()
+
+        owe = aircraft.weight_cg.owe
+        fuel_total = aircraft.weight_cg.mfw
+
+        aircraft.performance.mission.max_fuel.eval(owe,altp,mach,disa, fuel_total=fuel_total, tow=x[1])
+
+        return [aircraft.requirement.design_range - aircraft.performance.mission.max_fuel.range,
+                x[1] - (owe + payload + fuel_total)]
+
+    x_ini = [aircraft.requirement.design_range, aircraft.weight_cg.mtow]
+    output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
+    if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+    aircraft.requirement.design_range = output_dict[0][0]
+    aircraft.weight_cg.mtow = output_dict[0][1]
+
+    aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
+    aircraft.weight_cg.mass_pre_design()
+    aircraft.aerodynamics.aerodynamic_analysis()
+    aircraft.handling_quality.analysis()
+    aircraft.performance.mission.payload_range()
+    aircraft.performance.analysis()
+    aircraft.economics.operating_cost_analysis()
+    aircraft.environment.fuel_efficiency_metric()
+    # aircraft.power_system.thrust_analysis()
+
+
+def mda_ligeois(aircraft):
+    """Perform Multidsciplinary_Design_Analysis
+    WARNING, SPECIAL PROCESS, MTOW is given here and tank factor is adjusted accordingly
     """
     aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
     aircraft.weight_cg.mass_pre_design()
@@ -119,9 +189,10 @@ def mda_ligeois(aircraft):
     mtow = aircraft.weight_cg.mtow
 
     def fct(x):
-        aircraft.airframe.tank.mfw_factor = x[0]
+        aircraft.requirement.design_range = x[0]
+        aircraft.airframe.tank.mfw_factor = x[1]
         if aircraft.arrangement.tank_architecture=="pods":
-            aircraft.airframe.other_tank.mfw_factor = x[0]
+            aircraft.airframe.other_tank.mfw_factor = x[1]
 
         aircraft.weight_cg.mtow = mtow
 
@@ -131,35 +202,26 @@ def mda_ligeois(aircraft):
         owe = aircraft.weight_cg.owe
         fuel_total = aircraft.weight_cg.mfw
 
-        return mtow - (owe + payload + fuel_total)
+        aircraft.performance.mission.max_fuel.eval(owe,altp,mach,disa, fuel_total=fuel_total, tow=mtow)
 
-    x_ini = [aircraft.airframe.tank.mfw_factor]
+        return [aircraft.requirement.design_range - aircraft.performance.mission.max_fuel.range,
+                mtow - (owe + payload + fuel_total)]
+
+    x_ini = [aircraft.requirement.design_range, aircraft.airframe.tank.mfw_factor]
     output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
     if (output_dict[2]!=1): raise Exception("Convergence problem")
 
-    aircraft.airframe.tank.mfw_factor = output_dict[0][0]
+    aircraft.requirement.design_range = output_dict[0][0]
+    aircraft.airframe.tank.mfw_factor = output_dict[0][1]
+
+    aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
     aircraft.weight_cg.mass_pre_design()
-
-    owe = aircraft.weight_cg.owe
-    fuel_max = aircraft.weight_cg.mfw
-    aircraft.performance.mission.max_fuel.eval(owe,altp,mach,disa, fuel_total=fuel_max, tow=mtow)
-    aircraft.requirement.design_range = aircraft.performance.mission.max_fuel.range
-
     aircraft.aerodynamics.aerodynamic_analysis()
-
     aircraft.handling_quality.analysis()
-    # aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
-
-    # aircraft.performance.mission.mass_mission_adaptation()
-
     aircraft.performance.mission.payload_range()
-
     aircraft.performance.analysis()
-
     aircraft.economics.operating_cost_analysis()
-
     aircraft.environment.fuel_efficiency_metric()
-
     # aircraft.power_system.thrust_analysis()
 
 

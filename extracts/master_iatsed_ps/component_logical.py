@@ -96,9 +96,9 @@ class Mass(object):
         self.max_payload = 120. * cabin.n_pax
         self.mtow = self.owe + self.nominal_payload + missions.nominal.fuel_total
         self.mzfw = self.owe + self.max_payload
-        self.mlw = 1.07 * self.mzfw
+        self.mlw = min(self.mtow , (1.07*self.mzfw))
         self.mwe = self.owe - cabin.m_op_item
-        self.mfw = 803. * tank.fuel_volume
+        self.mfw = max(0, min((803. * tank.fuel_volume), self.mtow - self.owe))
 
 
 class Aerodynamics(object):

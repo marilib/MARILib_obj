@@ -183,11 +183,11 @@ ac.airframe.wing.aspect_ratio = 10
 
 
 # Need 2 runs to go around a non identified problem of initilization
-process.mda(ac, mass_mission_matching="max_fuel")                 # Run an MDA with a design driven by max fuel mission
-process.mda(ac, mass_mission_matching="max_fuel")                 # Run an MDA with a design driven by max fuel mission
-# process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-# process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-# process.mda_ligeois(ac)                 # Run a special MDA with fixed MTOW
+# process.mda(ac)               # Run an MDA on the object (All internal constraints will be solved)
+# process.mda(ac)               # Run an MDA on the object (All internal constraints will be solved)
+process.mda_max_fuel(ac)            # Run a special MDA with Nominal mission beeing max fuel
+process.mda_max_fuel(ac)            # Run a special MDA with Nominal mission beeing max fuel
+# process.mda_ligeois(ac)                 # Run a special MDA with fixed MTOW and Nominal mission beeing max fuel
 # process.mda_ligeois(ac)                 # Run a special MDA with fixed MTOW
 
 
@@ -235,10 +235,9 @@ io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 # dico = io.from_string(json)
 
-ac.draw.thermal_balance("This_plane")
-
 ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
 ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
+ac.draw.thermal_balance("This_plane")
 
 io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
 # ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
