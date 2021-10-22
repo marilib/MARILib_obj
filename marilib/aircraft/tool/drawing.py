@@ -10,7 +10,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from marilib.utils import unit
+from marilib.utils import earth, unit
 
 from marilib.aircraft.airframe.component import Nacelle, Pod
 
@@ -19,6 +19,65 @@ class Drawing(object):
 
     def __init__(self, aircraft):
         self.aircraft = aircraft
+
+    def thermal_balance(self,window_title):
+        """
+        Plot the thermal validity domain for Laplace fuel model
+        """
+        plot_title = self.aircraft.name
+
+        air_speed = np.linspace(50, 450, 10)    # Airspeed list in km/h
+        altitude = np.linspace(0, 10000, 10)    # Altitude list in ft
+        X, Y = np.meshgrid(air_speed, altitude)
+
+        heat_balance = []
+        for x,y in zip(X.flatten(),Y.flatten()):
+            vair = unit.convert_from("km/h", x)
+            altp = unit.convert_from("ft", y)
+            disa = self.aircraft.requirement.cruise_disa
+            ktow = 0.97
+
+            self.mach = self.aircraft.requirement.cruise_mach
+            mass = ktow*self.aircraft.weight_cg.mtow
+
+            pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+            mach = vair / earth.sound_speed(tamb)
+
+            lf_dict = self.aircraft.performance.mission.level_flight(pamb,tamb,mach,mass)
+
+            required_power = lf_dict["pw_elec"] / self.aircraft.power_system.n_engine
+
+            dict = self.aircraft.airframe.system.eval_fuel_cell_power(required_power,pamb,tamb,vair)
+
+            heat_balance.append(dict["thermal_balance"])
+
+        # convert to numpy array with good shape
+        heat_balance = np.array(heat_balance)
+        heat_balance = heat_balance.reshape(np.shape(X))
+
+        fig,axes = plt.subplots(1,1)
+        fig.canvas.set_window_title(window_title)
+        fig.suptitle(plot_title, fontsize=14)
+
+        # Plot contour
+        cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
+
+        # Plot limit
+        color = 'yellow'
+        c_c = plt.contour(X, Y, heat_balance, levels=[0], colors =[color], linewidths=2)
+        c_h = plt.contourf(X, Y, heat_balance, levels=[-10000000,0], linewidths=2, colors='none', hatches=['//'])
+        for c in c_h.collections:
+            c.set_edgecolor(color)
+
+        plt.colorbar(cs, label=r"Heat balance")
+        plt.grid(True)
+
+        plt.suptitle("Heat balance")
+        plt.xlabel("True Air Speed (km/h)")
+        plt.ylabel("Altitude (ft)")
+
+        plt.show()
+
 
     def payload_range(self,window_title):
         """

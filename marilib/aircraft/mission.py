@@ -88,6 +88,7 @@ class AllMissionVarMass(AllMissions):
         if(self.aircraft.arrangement.power_source[0:13] == "fuel_cell_PEM"):
             self.crz_engine_input_power = None
             self.crz_thermal_balance = None
+            self.all_fc_data = None
         if self.aircraft.power_system.sfc_type=="thrust":
             self.crz_tsfc = None
         elif self.aircraft.power_system.sfc_type=="power":
@@ -140,6 +141,7 @@ class AllMissionVarMass(AllMissions):
             required_power = lf_dict["pw_elec"] / self.aircraft.power_system.n_engine
             dict = self.aircraft.airframe.system.eval_fuel_cell_power(required_power,crz_pamb,crz_tamb,self.crz_tas)
             self.crz_thermal_balance = dict["thermal_balance"]
+            self.all_fc_data = dict["all_data"]
             # print(dict["pw_extracted"], dict["heat_power"], dict["thermal_balance"])    #printici
 
         sm_dict = self.eval_max_sar(self.mass,self.mach,self.disa)
@@ -178,6 +180,35 @@ class AllMissionVarMass(AllMissions):
             owe = self.aircraft.weight_cg.owe
             self.nominal.eval(owe,altp,mach,disa, range=range, tow=self.aircraft.weight_cg.mtow)
             fuel_total = self.nominal.fuel_total
+
+            return self.aircraft.weight_cg.mtow - (owe + payload + fuel_total)
+
+        mtow_ini = [self.aircraft.weight_cg.mtow]
+        output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+        self.aircraft.weight_cg.mtow = output_dict[0][0]
+        self.aircraft.weight_cg.mass_pre_design()
+
+    def mass_mission_adaptation_max_fuel(self):
+        """Solves coupling between MTOW and OWE
+        """
+        # range = self.aircraft.requirement.design_range
+        # altp = self.aircraft.requirement.cruise_altp
+        # mach = self.aircraft.requirement.cruise_mach
+        # disa = self.aircraft.requirement.cruise_disa
+        #
+        payload = self.aircraft.airframe.cabin.nominal_payload
+
+        def fct(mtow):
+            self.aircraft.weight_cg.mtow = mtow[0]
+
+            self.aircraft.weight_cg.mass_pre_design()
+
+            owe = self.aircraft.weight_cg.owe
+            # self.nominal.eval(owe,altp,mach,disa, range=range, tow=self.aircraft.weight_cg.mtow)
+            # fuel_total = self.nominal.fuel_total
+            fuel_total = self.aircraft.weight_cg.mfw
 
             return self.aircraft.weight_cg.mtow - (owe + payload + fuel_total)
 

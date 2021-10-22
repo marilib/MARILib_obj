@@ -30,13 +30,12 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "ep",      # "tf", "tp", "ef", "ep", "pte", "pte", "extf", "exef"
                    power_source = "fuel_cell_PEMLT",            # "fuel", "battery", "fuel_cell", "fuel_cell_PEMLT"
-                   fuel_type = "compressed_h2")           # "kerosene", "liquid_h2", "compressed_h2", "battery"
+                   fuel_type = "liquid_h2")           # "kerosene", "liquid_h2", "compressed_h2", "battery"
 
 disa = 0
 cruise_altp = unit.m_ft(10000.)
-cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
-n_pax_ref = 17
-print(cruise_mach)
+cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 330))
+n_pax_ref = 19
 
 reqs = Requirement(n_pax_ref = n_pax_ref,
                    design_range = unit.m_km(200.),
@@ -50,7 +49,7 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite eventually default values for operational requirements
-print("------------------------------------------------------")
+#-----------------------------------------------------------------------------------------------------------------------
 # Take off
 # ac.requirement.take_off.tofl_req = 340.
 ac.requirement.take_off.tofl_req = 500.
@@ -167,24 +166,29 @@ ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",14.)
 
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(600)
-ac.airframe.wing.area = 50
+ac.power_system.reference_power = unit.W_kW(496)
+ac.airframe.wing.area = 63.8
+
+ac.weight_cg.mtow = 8500
 
 
 # ac.airframe.cabin.n_pax_front = 3
-ac.airframe.tank.ref_length = 2
-ac.airframe.tank.gravimetric_index = 0.1
+ac.airframe.tank.ref_length = 1.7
+ac.airframe.tank.gravimetric_index = 0.3
 
 ac.airframe.cabin.n_pax_front = 3
 
 ac.airframe.wing.hld_type = 4
 ac.airframe.wing.aspect_ratio = 10
 
-ac.weight_cg.mtow = 3500.
 
 # Need 2 runs to go around a non identified problem of initilization
-process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+process.mda(ac, mass_mission_matching="max_fuel")                 # Run an MDA with a design driven by max fuel mission
+process.mda(ac, mass_mission_matching="max_fuel")                 # Run an MDA with a design driven by max fuel mission
+# process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+# process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+# process.mda_ligeois(ac)                 # Run a special MDA with fixed MTOW
+# process.mda_ligeois(ac)                 # Run a special MDA with fixed MTOW
 
 
 # Configure optimization problem
@@ -220,7 +224,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc="mda")
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc="mda")
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
 algo_points = None
@@ -230,6 +234,8 @@ algo_points = None
 io = MarilibIO()
 json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 # dico = io.from_string(json)
+
+ac.draw.thermal_balance("This_plane")
 
 ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
 ac.draw.payload_range("This_plot")                      # Draw a payload range diagram

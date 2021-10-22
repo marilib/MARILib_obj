@@ -275,7 +275,8 @@ class SystemWithLaplaceFuelCell(Component):
                 "compressor_power": dict["compressor"]["pw_input"],
                 "cooling_power": dict["heatsink"]["pw_input"],
                 "heat_power": dict["heatsink"]["pw_heat"],
-                "fuel_flow": dict["system"]["h2_flow"]}
+                "fuel_flow": dict["system"]["h2_flow"],
+                "all_data":dict}
 
     def eval_geometry(self):
         reference_power = self.aircraft.power_system.reference_power

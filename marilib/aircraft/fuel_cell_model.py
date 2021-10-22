@@ -1227,7 +1227,7 @@ class WingSkinHeatsink(object):
         self.dx_te_lattice = 0.70/ref_wing_chord    # Trailing edge lattive chord extension
 
         self.max_delta_temp = 5         # K, Maximum temperature drop between input and output
-        self.nominal_fluid_speed = 1.6  # m/s, Nominal fluid speed in the tubes
+        self.nominal_fluid_speed = 2.  # m/s, Nominal fluid speed in the tubes
 
         self.pump_efficiency = 0.80
         self.fluid_factor = 1.15        # Factor on fluid mass for piping
@@ -1275,6 +1275,7 @@ class WingSkinHeatsink(object):
         fluid_flow =  dict_le["flow"] + dict_te["flow"]
         pw_drop = dict_le["pw_drop"] + dict_te["pw_drop"]
         pwe = pw_drop / self.pump_efficiency
+
 
         return {"le_data": dict_le,
                 "te_data": dict_te,
@@ -1880,7 +1881,7 @@ if __name__ == '__main__':
 
     # heat power curves
     altitude = 10000
-    air_speed = np.linspace(50, 450, 5)
+    air_speed = np.linspace(50, 450, 15)
     altp = unit.convert_from("ft", altitude)
 
     heat_pw_req = []

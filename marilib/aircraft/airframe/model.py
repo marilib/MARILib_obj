@@ -288,7 +288,7 @@ class WeightCg(object):
         for comp in self.aircraft.airframe:
             if issubclass(type(comp),Tank) or issubclass(type(comp),Pod):
                 mfw += comp.get_mfw()
-        self.mfw = min(mfw, self.mtow - self.owe)
+        self.mfw = max(0, min(mfw, self.mtow - self.owe))
 
         # TODO
         # calculer les cg

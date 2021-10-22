@@ -47,7 +47,7 @@ def eval_this(aircraft,design_variables):
 
 
 
-def mda(aircraft, mass_mission_matching=True):
+def mda(aircraft, mass_mission_matching="classic"):
     """Perform Multidsciplinary_Design_Analysis
     All coupling constraints are solved in a relevent order
     """
@@ -62,8 +62,12 @@ def mda(aircraft, mass_mission_matching=True):
     aircraft.handling_quality.analysis()
     # aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
 
-    if mass_mission_matching==True:
+    if mass_mission_matching=="classic" or mass_mission_matching==True:
         aircraft.performance.mission.mass_mission_adaptation()
+    elif mass_mission_matching=="max_fuel":
+        aircraft.performance.mission.mass_mission_adaptation_max_fuel()
+    elif mass_mission_matching=="no" or mass_mission_matching==False:
+        pass
 
     aircraft.performance.mission.payload_range()
 
@@ -98,6 +102,65 @@ def mda_plus(aircraft):
     if aircraft.arrangement.tank_architecture=="pods":
         aircraft.airframe.other_tank.mfw_factor = output_dict[0][0]
     mda(aircraft)
+
+
+def mda_ligeois(aircraft):
+    """Perform Multidsciplinary_Design_Analysis
+    All coupling constraints are solved in a relevent order
+    """
+    aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
+    aircraft.weight_cg.mass_pre_design()
+
+    altp = aircraft.requirement.cruise_altp
+    mach = aircraft.requirement.cruise_mach
+    disa = aircraft.requirement.cruise_disa
+
+    payload = aircraft.airframe.cabin.nominal_payload
+    mtow = aircraft.weight_cg.mtow
+
+    def fct(x):
+        aircraft.airframe.tank.mfw_factor = x[0]
+        if aircraft.arrangement.tank_architecture=="pods":
+            aircraft.airframe.other_tank.mfw_factor = x[0]
+
+        aircraft.weight_cg.mtow = mtow
+
+        aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
+        aircraft.weight_cg.mass_pre_design()
+
+        owe = aircraft.weight_cg.owe
+        fuel_total = aircraft.weight_cg.mfw
+
+        return mtow - (owe + payload + fuel_total)
+
+    x_ini = [aircraft.airframe.tank.mfw_factor]
+    output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
+    if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+    aircraft.airframe.tank.mfw_factor = output_dict[0][0]
+    aircraft.weight_cg.mass_pre_design()
+
+    owe = aircraft.weight_cg.owe
+    fuel_max = aircraft.weight_cg.mfw
+    aircraft.performance.mission.max_fuel.eval(owe,altp,mach,disa, fuel_total=fuel_max, tow=mtow)
+    aircraft.requirement.design_range = aircraft.performance.mission.max_fuel.range
+
+    aircraft.aerodynamics.aerodynamic_analysis()
+
+    aircraft.handling_quality.analysis()
+    # aircraft.handling_quality.optimization()        # Perform optimization instead of analysis
+
+    # aircraft.performance.mission.mass_mission_adaptation()
+
+    aircraft.performance.mission.payload_range()
+
+    aircraft.performance.analysis()
+
+    aircraft.economics.operating_cost_analysis()
+
+    aircraft.environment.fuel_efficiency_metric()
+
+    # aircraft.power_system.thrust_analysis()
 
 
 def mda_hq(aircraft):
