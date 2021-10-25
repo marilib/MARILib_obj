@@ -18,7 +18,7 @@ from component_airplane import Airplane
 # DESIGN SETTINGS
 #-----------------------------------------------------------------------------------------------------------------------
 n_pax = 150
-range = unit.m_NM(2500)
+range = unit.m_NM(2400)
 
 hld_type = 9
 
@@ -26,8 +26,8 @@ d_owe = 0
 
 # INITIALIZATIONS
 #-----------------------------------------------------------------------------------------------------------------------
-wing_area = 130
-engine_slst = unit.N_kN(140.)
+wing_area = 120
+engine_slst = unit.N_kN(130.)
 
 mtow_i = 80000
 mlw_i = 65000
@@ -144,19 +144,18 @@ def fct_mda(xx,ap):
            float(ap.operations.oei_ceiling.path_eff - ap.operations.oei_ceiling.path_req) / ap.operations.oei_ceiling.path_req,
            float(ap.mass.mfw - ap.missions.nominal.fuel_total) /ap.mass.mfw]
 
-    crt = cash_op_cost
+    crt = mtow
 
     return crt, cst
 
 
-
-opt = process.Optimizer()
-x_ini = np.array([wing_area, engine_slst])
-bnd = [[50., 300.], [unit.N_kN(50.), unit.N_kN(300.)]]       # Design space area where to look for an optimum solution
-
-x_res = opt.optimize([fct_mda,ap], x_ini, bnd)
-
-fct_mda(x_res, ap)
+# opt = process.Optimizer()
+# x_ini = np.array([wing_area, engine_slst])
+# bnd = [[50., 300.], [unit.N_kN(50.), unit.N_kN(300.)]]       # Design space area where to look for an optimum solution
+#
+# x_res = opt.optimize([fct_mda,ap], x_ini, bnd)
+#
+# fct_mda(x_res, ap)
 
 
 # Graphics

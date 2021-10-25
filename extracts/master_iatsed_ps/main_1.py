@@ -18,7 +18,7 @@ from component_airplane import Airplane
 # DESIGN SETTINGS
 #-----------------------------------------------------------------------------------------------------------------------
 n_pax = 150
-range = unit.m_NM(2500)
+range = unit.m_NM(2400)
 
 hld_type = 9
 
@@ -115,4 +115,5 @@ ap.view_3d()
 
 ap.missions.payload_range_diagram()
 
+# ap.explore_design_space(fct_mda)
 

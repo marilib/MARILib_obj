@@ -18,7 +18,7 @@ from component_airplane import Airplane
 # DESIGN SETTINGS
 #-----------------------------------------------------------------------------------------------------------------------
 n_pax = 150
-range = unit.m_NM(2500)
+range = unit.m_NM(2400)
 
 hld_type = 9
 
@@ -50,7 +50,7 @@ ap = Airplane(tofl_req = 2100,
 #-----------------------------------------------------------------------------------------------------------------------
 
 
-# INSERT HERE THE PART OF THE MDA SEQUENCE THAT CAN BE RUN PRIOR TO THE REST
+# INSERT HERE THE PART OF THE MDA SEQUENCE THAT IS INDEPENDANT FROM THE DESIGN VARIABLES
 
 
 
@@ -75,12 +75,13 @@ def fct_mda(xx,ap):
            float(ap.operations.oei_ceiling.path_eff - ap.operations.oei_ceiling.path_req) / ap.operations.oei_ceiling.path_req,
            float(ap.mass.mfw - ap.missions.nominal.fuel_total) /ap.mass.mfw]
 
-    crt = cash_op_cost
+    crt = mtow
 
     return crt, cst
 
 
-
+# Call to the optimizer
+#-----------------------------------------------------------------------------------------------------------------------
 opt = process.Optimizer()
 x_ini = np.array([wing_area, engine_slst])
 bnd = [[50., 300.], [unit.N_kN(50.), unit.N_kN(300.)]]       # Design space area where to look for an optimum solution
