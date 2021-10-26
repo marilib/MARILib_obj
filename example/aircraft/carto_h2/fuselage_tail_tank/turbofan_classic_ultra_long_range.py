@@ -34,8 +34,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A350-900"
-n_pax_ref = 120
-design_range = unit.m_NM(5000.)
+n_pax_ref = 90
+design_range = unit.m_NM(5500.)
 cruise_mach = 0.85
 cruise_altp = unit.m_ft(35000.)
 
@@ -102,21 +102,35 @@ ac.airframe.tank.gravimetric_index = 0.3
 # ac.airframe.wing.area = 499
 # fuselage ratio = 13.2  (limite à 13.4)
 
+
+
 # gravimetric index = 0.3
 # volumetric_index = 0.845
 # n_pax_ref = 120
 # ac.airframe.cabin.n_pax_front = 10
 # design_range = unit.m_NM(5000.)
-# ac.power_system.reference_thrust = unit.N_kN(313.9)
+# ac.power_system.reference_thrust = unit.N_kN(398.1)
 # ac.airframe.wing.area = 443.93
 # fuselage ratio = 11.4  (limite à 13.4)
+# ac.weight_cg.mtow = 325108
 
-ac.power_system.reference_thrust = unit.N_kN(430)
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# n_pax_ref = 90
+# ac.airframe.cabin.n_pax_front = 10
+# design_range = unit.m_NM(5750.)
+# ac.power_system.reference_thrust = unit.N_kN(398.1)
+# ac.airframe.wing.area = 443.93
+# fuselage ratio = 13.3  (limite à 13.4)
+# ac.weight_cg.mtow = 325108
+
+
+ac.power_system.reference_thrust = unit.N_kN(398.1)
 ac.airframe.wing.sweep25 = unit.rad_deg(32)
 ac.airframe.wing.aspect_ratio = 9.5
-ac.airframe.wing.area = 600
+ac.airframe.wing.area = 565.2
 
-ac.airframe.cabin.n_pax_front = 10
+# ac.airframe.cabin.n_pax_front = 10
 
 # ac.airframe.cabin.n_pax_front = 10
 
@@ -124,12 +138,9 @@ ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
 
 
-proc = "mda_plus"
+proc = "mda_plus_plus"
 
-if proc=="mda":
-    process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-elif proc=="mda_plus":
-    process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
+eval("process."+proc+"(ac)")  # Run MDA
 
 
 # Configure optimization problem
@@ -165,7 +176,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst[:-1],cst_mag[:-1], crt,method='optim2d_poly',proc=proc)
+# opt.mdf(ac, var,var_bnd, cst[0:-2],cst_mag[0:-2], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points

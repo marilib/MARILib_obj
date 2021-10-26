@@ -32,7 +32,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A320-200neo"
-n_pax_ref = 150
+n_pax_ref = 114
 #design_range = unit.m_NM(3000.)
 design_range = unit.m_NM(1900.)
 cruise_mach = 0.78
@@ -91,35 +91,60 @@ ac.airframe.tank.gravimetric_index = 0.3
 #ac.power_system.reference_thrust = unit.N_kN(120.33)
 #ac.airframe.wing.area = 124.5
 
-#design_range = unit.m_NM(1000.)
+#design_range = unit.m_NM(850.)
+#n_pax_ref = 150
 #ac.airframe.tank.volumetric_index = 0.606
 #ac.airframe.tank.gravimetric_index = 0.1
-#ac.power_system.reference_thrust = unit.N_kN(209)
-#ac.airframe.wing.area = 290
+#ac.power_system.reference_thrust = unit.N_kN(170.7)
+#ac.airframe.wing.area = 242.1
+# fuselage ratio = 13.3  (limite à 13.4)
+# ac.weight_cg.mtow = 125700
+# ac.airframe.cabin.n_pax_front = 6
+
+#design_range = unit.m_NM(1000.)
+#n_pax_ref = 114
+#ac.airframe.tank.volumetric_index = 0.606
+#ac.airframe.tank.gravimetric_index = 0.1
+#ac.power_system.reference_thrust = unit.N_kN(170.7)
+#ac.airframe.wing.area = 242.1
+# fuselage ratio = 13.4  (limite à 13.4)
+# ac.weight_cg.mtow = 125700
+# ac.airframe.cabin.n_pax_front = 6
+
+
 
 #design_range = unit.m_NM(1900)
+#n_pax_ref = 150
 #ac.airframe.tank.volumetric_index = 0.845
 #ac.airframe.tank.gravimetric_index = 0.3
-#ac.power_system.reference_thrust = unit.N_kN(121)
-#ac.airframe.wing.area = 164
-# fuselage ratio = 13.4  (limite à 13.4)
+#ac.power_system.reference_thrust = unit.N_kN(120.2)
+#ac.airframe.wing.area = 163.4
+# fuselage ratio = 13.3  (limite à 13.4)
+# ac.weight_cg.mtow = 85925
+# ac.airframe.cabin.n_pax_front = 6
 
-ac.power_system.reference_thrust = unit.N_kN(121)
-ac.airframe.wing.area = 164
+#design_range = unit.m_NM(2490)
+#n_pax_ref = 114
+#ac.airframe.tank.volumetric_index = 0.845
+#ac.airframe.tank.gravimetric_index = 0.3
+#ac.power_system.reference_thrust = unit.N_kN(120.2)
+#ac.airframe.wing.area = 163.4
+# fuselage ratio = 12.9  (limite à 13.4)
+# ac.weight_cg.mtow = 85925
+# ac.airframe.cabin.n_pax_front = 6
+
+ac.power_system.reference_thrust = unit.N_kN(120.2)
+ac.airframe.wing.area = 163.4
 
 ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
 
 
 
-proc = "mda_plus"
+proc = "mda_plus_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-# if proc=="mda":
-#     process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-# elif proc=="mda_plus":
-#     process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
 
 print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
 print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
@@ -130,8 +155,8 @@ print("length/height = %0.2f" %(ac.airframe.body.length/ac.airframe.body.height)
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
-           [100., 200.]]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(300.)],       # Design space area where to look for an optimum solution
+           [100., 400.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -158,7 +183,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt, method='optim2d_poly', proc=proc)
+# opt.mdf(ac, var,var_bnd, cst[0:-2],cst_mag[0:-2], crt, method='optim2d_poly', proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
 # algo_points = None

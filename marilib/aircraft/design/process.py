@@ -100,6 +100,32 @@ def mda_plus(aircraft):
     mda(aircraft)
 
 
+def mda_plus_plus(aircraft):
+    """Solves coupling between MTOW and OWE
+    """
+    kdist = aircraft.requirement.max_fuel_range_factor
+    mtow = aircraft.weight_cg.mtow
+
+    def fct(x):
+        aircraft.requirement.design_range = x[0]
+        aircraft.airframe.tank.mfw_factor = x[1]
+        if aircraft.arrangement.tank_architecture=="pods":
+            aircraft.airframe.other_tank.mfw_factor = x[1]
+        mda(aircraft)
+        max_fuel_range = aircraft.performance.mission.max_fuel.range
+        return [x[0]*kdist-max_fuel_range, mtow-aircraft.weight_cg.mtow]
+
+    x_ini = [aircraft.requirement.design_range, aircraft.airframe.tank.mfw_factor]
+    output_dict = fsolve(fct, x0=x_ini, args=(), full_output=True)
+    if (output_dict[2]!=1): raise Exception("Convergence problem")
+
+    aircraft.requirement.design_range = output_dict[0][0]
+    aircraft.airframe.tank.mfw_factor = output_dict[0][1]
+    if aircraft.arrangement.tank_architecture=="pods":
+        aircraft.airframe.other_tank.mfw_factor = output_dict[0][0]
+    mda(aircraft)
+
+
 def mda_max_fuel(aircraft):
     """Perform Multidsciplinary_Design_Analysis
     All coupling constraints are solved in a relevent order

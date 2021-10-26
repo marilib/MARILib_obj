@@ -35,7 +35,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A220-100_rear_tank"
 n_pax_ref = 135
-design_range = unit.m_NM(2100.)
+design_range = unit.m_NM(600.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
@@ -91,24 +91,62 @@ ac.airframe.horizontal_stab.volume_factor = 0.94
 ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
-ac.airframe.tank.volumetric_index = 0.845
-ac.airframe.tank.gravimetric_index = 0.3
+ac.airframe.tank.volumetric_index = 0.606
+ac.airframe.tank.gravimetric_index = 0.1
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
 # gravimetric index = 0.1
 # volumetric_index = 0.606
-# design_range = unit.m_NM(700.)
-# ac.power_system.reference_thrust = unit.N_kN(155)
-# ac.airframe.wing.area = 202
-# fuselage ratio = 11.7  (limite à 13.4)
+# design_range = unit.m_NM(600.)
+# n_pax_ref = 135
+# ac.power_system.reference_thrust = unit.N_kN(139.8)
+# ac.airframe.wing.area = 183.5
+# fuselage ratio = 11.3  (limite à 13.4)
+# ac.weight_cg.mtow = 91814
+# ac.airframe.cabin.n_pax_front = 6
+
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# design_range = unit.m_NM(990.)
+# n_pax_ref = 135
+# ac.power_system.reference_thrust = unit.N_kN(215)
+# ac.airframe.wing.area = 276.9
+# fuselage ratio = 13.3  (limite à 13.4)
+# ac.weight_cg.mtow = 139888
+# ac.airframe.cabin.n_pax_front = 6
+
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# design_range = unit.m_NM(1130.)
+# n_pax_ref = 99
+# ac.power_system.reference_thrust = unit.N_kN(215)
+# ac.airframe.wing.area = 276.9
+# fuselage ratio = 13.3  (limite à 13.4)
+# ac.weight_cg.mtow = 139888
+# ac.airframe.cabin.n_pax_front = 6
+
+
 
 # gravimetric index = 0.3
 # volumetric_index = 0.845
 # design_range = unit.m_NM(2100.)
+# n_pax_ref = 135
 # ac.power_system.reference_thrust = unit.N_kN(133.5)
 # ac.airframe.wing.area = 167.4
 # fuselage ratio = 12.9  (limite à 13.4)
+# ac.weight_cg.mtow = 85797
+# ac.airframe.cabin.n_pax_front = 6
+
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# design_range = unit.m_NM(2730.)
+# n_pax_ref = 99
+# ac.power_system.reference_thrust = unit.N_kN(133.5)
+# ac.airframe.wing.area = 167.4
+# fuselage ratio = 12.9  (limite à 13.4)
+# ac.weight_cg.mtow = 85797
+# ac.airframe.cabin.n_pax_front = 6
 
 ac.power_system.reference_thrust = unit.N_kN(133.5)
 ac.airframe.wing.aspect_ratio = 11
@@ -119,10 +157,7 @@ ac.airframe.tank.mfw_factor = 1
 
 proc = "mda_plus"
 
-if proc=="mda":
-    process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-elif proc=="mda_plus":
-    process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
+eval("process."+proc+"(ac)")  # Run MDA
 
 
 # Configure optimization problem
@@ -130,8 +165,8 @@ elif proc=="mda_plus":
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
-           [100., 200.]]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(300.)],       # Design space area where to look for an optimum solution
+           [100., 400.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -158,7 +193,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
+opt.mdf(ac, var,var_bnd, cst[0:-2],cst_mag[0:-2], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points

@@ -34,8 +34,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A220-100_rear_tank"
-n_pax_ref = 135
-design_range = unit.m_NM(1000.)
+n_pax_ref = 171
+design_range = unit.m_NM(1650.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
@@ -100,31 +100,66 @@ ac.airframe.tank.gravimetric_index = 0.3
 # volumetric_index = 0.606
 # ac.airframe.tank.width = 2.5
 # ac.airframe.other_tank.width = 2.5
-# design_range = unit.m_NM(700.)
-# ac.power_system.reference_thrust = unit.N_kN(119.4)
-# ac.airframe.wing.area = 155.18
-# fuselage ratio = 8.9  (limite à 13.4)
+# design_range = unit.m_NM(600.)
+# n_pax_ref = 135
+# ac.power_system.reference_thrust = unit.N_kN(111.5)
+# ac.airframe.wing.area = 145.8
+# ac.weight_cg.mtow = 73052
+# ac.airframe.cabin.n_pax_front = 6
+
+# Taille équivalente au 600 NM tail tank
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# ac.airframe.tank.width = 2.5
+# ac.airframe.other_tank.width = 2.5
+# design_range = unit.m_NM(900.)
+# n_pax_ref = 135
+# ac.power_system.reference_thrust = unit.N_kN(138.1)
+# ac.airframe.wing.area = 177.5
+# ac.weight_cg.mtow = 89810
+# ac.airframe.cabin.n_pax_front = 6
 
 # gravimetric index = 0.1
 # volumetric_index = 0.606
 # ac.airframe.tank.width = 2.5
 # ac.airframe.other_tank.width = 2.5
-# design_range = unit.m_NM(1000.)
-# ac.power_system.reference_thrust = unit.N_kN(149.4)
-# ac.airframe.wing.area = 191
+# design_range = unit.m_NM(650.)
+# n_pax_ref = 171
+# ac.power_system.reference_thrust = unit.N_kN(138.1)
+# ac.airframe.wing.area = 177.5
+# ac.weight_cg.mtow = 89800
+# ac.airframe.cabin.n_pax_front = 6
+
+
+
 
 # gravimetric index = 0.3
 # volumetric_index = 0.845
 # ac.airframe.tank.width = 3
 # ac.airframe.other_tank.width = 3
 # design_range = unit.m_NM(2100.)
+# n_pax_ref = 135
 # ac.power_system.reference_thrust = unit.N_kN(149.6)
 # ac.airframe.wing.area = 185
 # fuselage ratio = 9.1  (limite à 13.4)
+# ac.weight_cg.mtow = 95571
+# ac.airframe.cabin.n_pax_front = 6
 
-ac.power_system.reference_thrust = unit.N_kN(149)
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# ac.airframe.tank.width = 3
+# ac.airframe.other_tank.width = 3
+# design_range = unit.m_NM(1650.)
+# n_pax_ref = 171
+# ac.power_system.reference_thrust = unit.N_kN(149.6)
+# ac.airframe.wing.area = 185
+# fuselage ratio = 9.1  (limite à 13.4)
+# ac.weight_cg.mtow = 95571
+# ac.airframe.cabin.n_pax_front = 6
+
+ac.power_system.reference_thrust = unit.N_kN(149.6)
 ac.airframe.wing.aspect_ratio = 11
-ac.airframe.wing.area = 184
+ac.airframe.wing.area = 185
 
 ac.airframe.tank.width = 3
 ac.airframe.other_tank.width = 3
@@ -135,10 +170,7 @@ ac.airframe.tank.mfw_factor = 1
 
 proc = "mda_plus"
 
-if proc=="mda":
-    process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-elif proc=="mda_plus":
-    process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
+eval("process."+proc+"(ac)")  # Run MDA
 
 
 # Configure optimization problem
@@ -146,8 +178,8 @@ elif proc=="mda_plus":
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
-           [100., 200.]]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(300.)],       # Design space area where to look for an optimum solution
+           [100., 400.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -174,7 +206,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
+# opt.mdf(ac, var,var_bnd, cst[0:-2],cst_mag[0:-2], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points

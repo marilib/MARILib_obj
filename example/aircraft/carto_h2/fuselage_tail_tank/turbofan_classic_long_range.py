@@ -35,7 +35,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A330-800"
 n_pax_ref = 240
-design_range = unit.m_NM(1300.)
+design_range = unit.m_NM(4600.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 
@@ -88,8 +88,8 @@ ac.airframe.horizontal_stab.volume_factor = 0.94
 ac.airframe.vertical_stab.wing_volume_factor = 0.07
 ac.airframe.vertical_stab.thrust_volume_factor = 0.4
 
-ac.airframe.tank.volumetric_index = 0.606
-ac.airframe.tank.gravimetric_index = 0.1
+ac.airframe.tank.volumetric_index = 0.845
+ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
@@ -100,21 +100,46 @@ ac.airframe.tank.gravimetric_index = 0.1
 # design_range = unit.m_NM(1300.)
 # ac.power_system.reference_thrust = unit.N_kN(415.3)
 # ac.airframe.wing.area = 661
+# fuselage ratio = 13.3  (limite à 13.4)
+# ac.weight_cg.mtow = 352666
+
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# n_pax_ref = 160
+# ac.airframe.cabin.n_pax_front = 8
+# design_range = unit.m_NM(1490.)
+# ac.power_system.reference_thrust = unit.N_kN(415.3)
+# ac.airframe.wing.area = 661
 # fuselage ratio = 13.2  (limite à 13.4)
+# ac.weight_cg.mtow = 352666
+
+
 
 # gravimetric index = 0.3
 # volumetric_index = 0.845
-# n_pax_ref = 120
+# n_pax_ref = 240
 # ac.airframe.cabin.n_pax_front = 10
-# design_range = unit.m_NM(5000.)
-# ac.power_system.reference_thrust = unit.N_kN(309)
-# ac.airframe.wing.area = 438.15
-# fuselage ratio = 11.5  (limite à 13.4)
+# design_range = unit.m_NM(4600.)
+# ac.power_system.reference_thrust = unit.N_kN(454)
+# ac.airframe.wing.area = 663.7
+# fuselage ratio = 13.4  (limite à 13.4)
+# ac.weight_cg.mtow = 376484
 
-ac.power_system.reference_thrust = unit.N_kN(430)
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# n_pax_ref = 160
+# ac.airframe.cabin.n_pax_front = 10
+# design_range = unit.m_NM(5280.)
+# ac.power_system.reference_thrust = unit.N_kN(454)
+# ac.airframe.wing.area = 663.7
+# fuselage ratio = 13.4  (limite à 13.4)
+# ac.weight_cg.mtow = 376484
+
+
+ac.power_system.reference_thrust = unit.N_kN(454)
 ac.airframe.wing.sweep25 = unit.rad_deg(30)
 ac.airframe.wing.aspect_ratio = 10
-ac.airframe.wing.area = 680
+ac.airframe.wing.area = 663.7
 
 # ac.airframe.cabin.n_pax_front = 10
 
@@ -122,12 +147,9 @@ ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
 
 
-proc = "mda_plus"
+proc = "mda_plus_plus"
 
-if proc=="mda":
-    process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-elif proc=="mda_plus":
-    process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
+eval("process."+proc+"(ac)")  # Run MDA
 
 print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
 print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
@@ -166,7 +188,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
+# opt.mdf(ac, var,var_bnd, cst[0:-2],cst_mag[0:-2], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
