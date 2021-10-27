@@ -34,11 +34,6 @@ class InboardWingMountedNacelle(Nacelle):
         wing_tip_c = self.aircraft.airframe.wing.tip_c
         wing_tip_loc = self.aircraft.airframe.wing.tip_loc
 
-        x_wing = [wing_root_loc[0], wing_kink_loc[0], wing_tip_loc[0]]
-        y_wing = [wing_root_loc[1], wing_kink_loc[1], wing_tip_loc[1]]
-        z_wing = [wing_root_loc[2], wing_kink_loc[2], wing_tip_loc[2]]
-        c_wing = [wing_root_c, wing_kink_c, wing_tip_c]
-
         tan_phi0 = 0.25*(wing_kink_c-wing_tip_c)/(wing_tip_loc[1]-wing_kink_loc[1]) + np.tan(wing_sweep25)
 
         y_int = 0.6 * body_width + self.y_wise_margin(1)
@@ -46,6 +41,11 @@ class InboardWingMountedNacelle(Nacelle):
         z_int = wing_root_loc[2] + (y_int-wing_root_loc[2])*np.tan(wing_dihedral) - self.z_wise_margin()
 
         # Wing chord at engine position
+        x_wing = [wing_root_loc[0], wing_kink_loc[0], wing_tip_loc[0]]
+        y_wing = [wing_root_loc[1], wing_kink_loc[1], wing_tip_loc[1]]
+        z_wing = [wing_root_loc[2], wing_kink_loc[2], wing_tip_loc[2]]
+        c_wing = [wing_root_c, wing_kink_c, wing_tip_c]
+
         wing_xle_nac = math.lin_interp_1d(y_int, y_wing, x_wing)   # Wing leading edge x at pylon position
         wing_zle_nac = math.lin_interp_1d(y_int, y_wing, z_wing)   # Wing leading edge z at pylon position
 
@@ -64,6 +64,7 @@ class OutboardWingMountedNacelle(Nacelle):
 
     def locate_nacelle(self):
         body_width = self.aircraft.airframe.body.width
+        wing_root_c = self.aircraft.airframe.wing.root_c
         wing_root_loc = self.aircraft.airframe.wing.root_loc
         wing_sweep25 = self.aircraft.airframe.wing.sweep25
         wing_dihedral = self.aircraft.airframe.wing.dihedral
@@ -77,6 +78,18 @@ class OutboardWingMountedNacelle(Nacelle):
         y_ext = 0.6 * body_width + self.y_wise_margin(2)
         x_ext = wing_root_loc[0] + (y_ext-wing_root_loc[1])*tan_phi0 - 0.7*self.length
         z_ext = wing_root_loc[2] + (y_ext-wing_root_loc[2])*np.tan(wing_dihedral) - self.z_wise_margin()
+
+        # Wing chord at engine position
+        x_wing = [wing_root_loc[0], wing_kink_loc[0], wing_tip_loc[0]]
+        y_wing = [wing_root_loc[1], wing_kink_loc[1], wing_tip_loc[1]]
+        z_wing = [wing_root_loc[2], wing_kink_loc[2], wing_tip_loc[2]]
+        c_wing = [wing_root_c, wing_kink_c, wing_tip_c]
+
+        wing_xle_nac = math.lin_interp_1d(y_ext, y_wing, x_wing)   # Wing leading edge x at pylon position
+        wing_zle_nac = math.lin_interp_1d(y_ext, y_wing, z_wing)   # Wing leading edge z at pylon position
+
+        self.nacelle_wing_chord = math.lin_interp_1d(y_ext, y_wing, c_wing)
+        self.nacelle_wing_chord_loc = np.array([wing_xle_nac, y_ext, wing_zle_nac])
 
         return np.array([x_ext, y_ext*self.get_side(), z_ext])
 
@@ -177,12 +190,30 @@ class PodTailConeMountedNacelle(Nacelle):
     def locate_nacelle(self):
         self.body_width = self.aircraft.airframe.tank.width
         self.body_length = self.aircraft.airframe.tank.length
+        wing_root_c = self.aircraft.airframe.wing.root_c
+        wing_root_loc = self.aircraft.airframe.wing.root_loc
+        wing_kink_c = self.aircraft.airframe.wing.kink_c
+        wing_kink_loc = self.aircraft.airframe.wing.kink_loc
+        wing_tip_c = self.aircraft.airframe.wing.tip_c
+        wing_tip_loc = self.aircraft.airframe.wing.tip_loc
         self.bnd_layer = self.aircraft.aerodynamics.tail_cone_boundary_layer(self.body_width,self.hub_width)
 
         # Locate nacelle
         x_int = self.aircraft.airframe.tank.frame_origin[0] + self.aircraft.airframe.tank.length
         y_int = self.aircraft.airframe.tank.frame_origin[1]
         z_int = self.aircraft.airframe.tank.frame_origin[2]
+
+        # Wing chord at engine position
+        x_wing = [wing_root_loc[0], wing_kink_loc[0], wing_tip_loc[0]]
+        y_wing = [wing_root_loc[1], wing_kink_loc[1], wing_tip_loc[1]]
+        z_wing = [wing_root_loc[2], wing_kink_loc[2], wing_tip_loc[2]]
+        c_wing = [wing_root_c, wing_kink_c, wing_tip_c]
+
+        wing_xle_nac = math.lin_interp_1d(y_int, y_wing, x_wing)   # Wing leading edge x at pylon position
+        wing_zle_nac = math.lin_interp_1d(y_int, y_wing, z_wing)   # Wing leading edge z at pylon position
+
+        self.nacelle_wing_chord = math.lin_interp_1d(y_int, y_wing, c_wing)
+        self.nacelle_wing_chord_loc = np.array([wing_xle_nac, y_int, wing_zle_nac])
 
         return np.array([x_int, y_int*self.get_side(), z_int])
 
@@ -686,8 +717,8 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
     def unitary_thrust(self,pamb,tamb,mach,rating,throttle=1.,pw_offtake=0.):
         if self.bli_effect=="yes":
             dict_bli = self.unitary_thrust_bli(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
-            dict_fs = self.unitary_thrust_free_stream(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
-            return {"fn":dict_bli["fn"], "ff":dict_fs["ff"], "t4":None}
+            # dict_fs = self.unitary_thrust_free_stream(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
+            return {"fn":dict_bli["fn"], "ff":dict_bli["ff"], "t4":None}
         else:
             return self.unitary_thrust_free_stream(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
@@ -747,9 +778,9 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
     def unitary_sc(self,pamb,tamb,mach,rating,thrust,pw_offtake=0.):
         if self.bli_effect=="yes":
             dict_bli = self.unitary_sc_bli(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
-            throttle = dict_bli["thtl"]
-            dict_fs = self.unitary_thrust_free_stream(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
-            return {"sfc":dict_fs["ff"]/thrust, "thtl":throttle, "t4":None}
+            # dict_fs = self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
+            # print(dict_fs["sfc"],dict_bli["sfc"])
+            return {"sfc":dict_bli["sfc"], "thtl":dict_bli["thtl"], "t4":None}
         else:
             return self.unitary_sc_free_stream(pamb,tamb,mach,rating,thrust,pw_offtake=pw_offtake)
 
@@ -786,18 +817,15 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
 
         fct_arg = (thrust,pamb,tamb,rho,Vair,r1,d1)
 
-        x_init = [0.75,0.75]
+        x_init = [0.5, 0.5]
 
         # Computation of both air flow and shaft power
         output_dict = fsolve(fct, x0=x_init, args=fct_arg, full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
-        y1 = output_dict[0][0]
         throttle = output_dict[0][1]
 
-        q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y1)
-        mach_inlet = Vinlet / earth.sound_speed(tamb)
-        pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach_inlet,rating,throttle=throttle,pw_offtake=pw_offtake)
+        pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
 
         sfc = fuel_flow / thrust
 

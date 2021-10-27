@@ -271,7 +271,7 @@ class ModelConfiguration(object):
         },
         "PodTailConeMountedNacelle":{
             "bli_effect": ["yes", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
-            "hub_width": [0.6, "m", "Fan hub diameter"],
+            "hub_width": [0.4, "m", "Fan hub diameter"],
             "lateral_margin": [1.5, "no_dim", "Lateral margin as a fraction of nacelle width"],
             "x_loc_ratio": [0.35, "no_dim", "Fraction of the tank length behind the wing"],
             "z_loc_ratio": [-0.2, "no_dim", "Fraction of the tank diameter under the wing"],
@@ -279,7 +279,7 @@ class ModelConfiguration(object):
         },
         "PiggyBackTailConeMountedNacelle":{
             "bli_effect": ["yes", "string", "Taking into account boundary layer ingestion, 'yes' or 'no'"],
-            "hub_width": [0.6, "m", "Fan hub diameter"],
+            "hub_width": [0.4, "m", "Fan hub diameter"],
             "specific_nacelle_cost": [0.05, "$/kg", "Specific maintenance cost per trip for tail cone mounted nacelle"]
         },
         "BodyTailConeMountedNacelle":{

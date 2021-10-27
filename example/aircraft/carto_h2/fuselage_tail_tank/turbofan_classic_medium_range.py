@@ -88,9 +88,6 @@ ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-#ac.power_system.reference_thrust = unit.N_kN(120.33)
-#ac.airframe.wing.area = 124.5
-
 #design_range = unit.m_NM(850.)
 #n_pax_ref = 150
 #ac.airframe.tank.volumetric_index = 0.606
