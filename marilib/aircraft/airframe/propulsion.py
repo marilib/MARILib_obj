@@ -794,7 +794,7 @@ class SemiEmpiricTfBliNacelle(SemiEmpiricTfNacelle):
             throttle = x_in[1]
             q0,q1,q2,Vinlet,dVbli = self.air_flow(rho,Vair,r1,d1,y)
             mach_inlet = Vinlet / earth.sound_speed(tamb)
-            pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach_inlet,rating,throttle=throttle,pw_offtake=pw_offtake)
+            pw_shaft,core_thrust,fuel_flow = self.fan_shaft_power(pamb,tamb,mach,rating,throttle=throttle,pw_offtake=pw_offtake)
             Ttot = earth.total_temperature(tamb,mach_inlet)     # Total temperature at inlet position
             Ptot = earth.total_pressure(pamb,mach_inlet)        # Total pressure at inlet position
             TtotJet = Ttot + pw_shaft/(q1*Cp)

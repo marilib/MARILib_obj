@@ -88,6 +88,17 @@ ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
+ac.power_system.reference_thrust = unit.N_kN(139.2)
+ac.airframe.wing.area = 178.1
+
+ac.airframe.tank.width = 3
+ac.airframe.other_tank.width = 3
+
+ac.airframe.tank.ref_length = 15
+ac.airframe.other_tank.ref_length = 15
+ac.airframe.tank.mfw_factor = 1
+
+
 #design_range = unit.m_NM(850.)
 #n_pax_ref = 150
 # ac.airframe.cabin.n_pax_front = 6
@@ -132,16 +143,6 @@ ac.airframe.tank.gravimetric_index = 0.3
 #ac.power_system.reference_thrust = unit.N_kN(139.2)
 #ac.airframe.wing.area = 178.1
 # ac.weight_cg.mtow = 94256
-
-ac.power_system.reference_thrust = unit.N_kN(139.2)
-ac.airframe.wing.area = 178.1
-
-ac.airframe.tank.width = 3
-ac.airframe.other_tank.width = 3
-
-ac.airframe.tank.ref_length = 15
-ac.airframe.other_tank.ref_length = 15
-ac.airframe.tank.mfw_factor = 1
 
 
 

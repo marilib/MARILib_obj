@@ -96,64 +96,66 @@ ac.airframe.tank.gravimetric_index = 0.1
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# design_range = unit.m_NM(990.)
-# n_pax_ref = 135
-# ac.power_system.reference_thrust = unit.N_kN(215)
-# ac.airframe.wing.area = 276.9
-# fuselage ratio = 13.3  (limite à 13.4)
-# ac.weight_cg.mtow = 139888
-# ac.airframe.cabin.n_pax_front = 6
-
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# design_range = unit.m_NM(1130.)
-# n_pax_ref = 99
-# ac.power_system.reference_thrust = unit.N_kN(215)
-# ac.airframe.wing.area = 276.9
-# fuselage ratio = 13.3  (limite à 13.4)
-# ac.weight_cg.mtow = 139888
-# ac.airframe.cabin.n_pax_front = 6
-
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# design_range = unit.m_NM(600.)
-# n_pax_ref = 135
-# ac.power_system.reference_thrust = unit.N_kN(139.8)
-# ac.airframe.wing.area = 183.5
-# fuselage ratio = 11.3  (limite à 13.4)
-# ac.weight_cg.mtow = 91814
-# ac.airframe.cabin.n_pax_front = 6
-
-
-
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# design_range = unit.m_NM(2100.)
-# n_pax_ref = 135
-# ac.power_system.reference_thrust = unit.N_kN(133.5)
-# ac.airframe.wing.area = 167.4
-# fuselage ratio = 12.9  (limite à 13.4)
-# ac.weight_cg.mtow = 85797
-# ac.airframe.cabin.n_pax_front = 6
-
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# design_range = unit.m_NM(2730.)
-# n_pax_ref = 99
-# ac.power_system.reference_thrust = unit.N_kN(133.5)
-# ac.airframe.wing.area = 167.4
-# fuselage ratio = 12.9  (limite à 13.4)
-# ac.weight_cg.mtow = 85797
-# ac.airframe.cabin.n_pax_front = 6
-
 ac.power_system.reference_thrust = unit.N_kN(133.5)
-ac.airframe.wing.aspect_ratio = 11
 ac.airframe.wing.area = 167.4
+
+ac.airframe.wing.aspect_ratio = 11
 
 ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
+
+
+# design_range = unit.m_NM(990.)
+# n_pax_ref = 135
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# ac.power_system.reference_thrust = unit.N_kN(215)
+# ac.airframe.wing.area = 276.9
+# ac.weight_cg.mtow = 139888
+# fuselage ratio = 13.3  (limite à 13.4)
+
+# design_range = unit.m_NM(1130.)
+# n_pax_ref = 99
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# ac.power_system.reference_thrust = unit.N_kN(215)
+# ac.airframe.wing.area = 276.9
+# ac.weight_cg.mtow = 139888
+# fuselage ratio = 13.3  (limite à 13.4)
+
+# design_range = unit.m_NM(600.)
+# n_pax_ref = 135
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# ac.power_system.reference_thrust = unit.N_kN(139.8)
+# ac.airframe.wing.area = 183.5
+# ac.weight_cg.mtow = 91814
+# fuselage ratio = 11.3  (limite à 13.4)
+
+
+
+# design_range = unit.m_NM(2100.)
+# n_pax_ref = 135
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# ac.power_system.reference_thrust = unit.N_kN(133.5)
+# ac.airframe.wing.area = 167.4
+# ac.weight_cg.mtow = 85797
+# fuselage ratio = 12.9  (limite à 13.4)
+
+# design_range = unit.m_NM(2730.)
+# n_pax_ref = 99
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# ac.power_system.reference_thrust = unit.N_kN(133.5)
+# ac.airframe.wing.area = 167.4
+# ac.weight_cg.mtow = 85797
+# fuselage ratio = 12.9  (limite à 13.4)
 
 proc = "mda_plus"
 

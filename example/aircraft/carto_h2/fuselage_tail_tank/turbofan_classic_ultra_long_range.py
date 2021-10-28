@@ -93,52 +93,50 @@ ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-# gravimetric index = 0.1
-# volumetric_index = 0.606
+ac.power_system.reference_thrust = unit.N_kN(398.1)
+ac.airframe.wing.area = 565.2
+
+ac.airframe.wing.sweep25 = unit.rad_deg(32)
+ac.airframe.wing.aspect_ratio = 9.5
+
+ac.airframe.tank.ref_length = 15
+ac.airframe.tank.mfw_factor = 1
+
+
+# design_range = unit.m_NM(1000.)
 # n_pax_ref = 240
 # ac.airframe.cabin.n_pax_front = 8
-# design_range = unit.m_NM(1000.)
+# gravimetric index = 0.1
+# volumetric_index = 0.606
 # ac.power_system.reference_thrust = unit.N_kN(331.7)
 # ac.airframe.wing.area = 499
 # fuselage ratio = 13.2  (limite à 13.4)
 
 
 
-# gravimetric index = 0.3
-# volumetric_index = 0.845
+# design_range = unit.m_NM(5000.)
 # n_pax_ref = 120
 # ac.airframe.cabin.n_pax_front = 10
-# design_range = unit.m_NM(5000.)
-# ac.power_system.reference_thrust = unit.N_kN(398.1)
-# ac.airframe.wing.area = 443.93
-# fuselage ratio = 11.4  (limite à 13.4)
-# ac.weight_cg.mtow = 325108
-
 # gravimetric index = 0.3
 # volumetric_index = 0.845
-# n_pax_ref = 90
-# ac.airframe.cabin.n_pax_front = 10
-# design_range = unit.m_NM(5750.)
 # ac.power_system.reference_thrust = unit.N_kN(398.1)
 # ac.airframe.wing.area = 443.93
-# fuselage ratio = 13.3  (limite à 13.4)
 # ac.weight_cg.mtow = 325108
+# fuselage ratio = 11.4  (limite à 13.4)
 
-
-ac.power_system.reference_thrust = unit.N_kN(398.1)
-ac.airframe.wing.sweep25 = unit.rad_deg(32)
-ac.airframe.wing.aspect_ratio = 9.5
-ac.airframe.wing.area = 565.2
-
+# design_range = unit.m_NM(5750.)
+# n_pax_ref = 90
 # ac.airframe.cabin.n_pax_front = 10
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# ac.power_system.reference_thrust = unit.N_kN(398.1)
+# ac.airframe.wing.area = 443.93
+# ac.weight_cg.mtow = 325108
+# fuselage ratio = 13.3  (limite à 13.4)
 
-# ac.airframe.cabin.n_pax_front = 10
-
-ac.airframe.tank.ref_length = 15
-ac.airframe.tank.mfw_factor = 1
 
 
-proc = "mda_plus_plus"
+proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 

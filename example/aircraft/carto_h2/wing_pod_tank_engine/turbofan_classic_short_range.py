@@ -99,16 +99,28 @@ ac.airframe.other_nacelle.bli_effect = "yes"         # Include BLI effect in thr
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 2.5
-# ac.airframe.other_tank.width = 2.5
+ac.power_system.reference_thrust = unit.N_kN(148.2)
+ac.airframe.wing.area = 190.2
+
+ac.airframe.wing.aspect_ratio = 11
+
+ac.airframe.tank.width = 2.5
+ac.airframe.other_tank.width = 2.5
+
+ac.airframe.tank.ref_length = 14
+ac.airframe.other_tank.ref_length = 14
+ac.airframe.tank.mfw_factor = 1
+
 # design_range = unit.m_NM(990.)
 # n_pax_ref = 135
-# ac.power_system.reference_thrust = unit.N_kN(148.2)
-# ac.airframe.wing.area = 190.2
-# ac.weight_cg.mtow = 96464
-# ac.airframe.cabin.n_pax_front = 6
+ac.airframe.cabin.n_pax_front = 6
+ac.gravimetric_index = 0.1
+ac.volumetric_index = 0.606
+ac.airframe.tank.width = 2.5
+ac.airframe.other_tank.width = 2.5
+ac.power_system.reference_thrust = unit.N_kN(143.6)
+ac.airframe.wing.area = 184.8
+# ac.weight_cg.mtow = 93603
 
 # gravimetric index = 0.1
 # volumetric_index = 0.606
@@ -159,16 +171,6 @@ ac.airframe.other_nacelle.bli_effect = "yes"         # Include BLI effect in thr
 # ac.weight_cg.mtow = 95571
 # ac.airframe.cabin.n_pax_front = 6
 
-ac.power_system.reference_thrust = unit.N_kN(148.2)
-ac.airframe.wing.aspect_ratio = 11
-ac.airframe.wing.area = 190.2
-
-ac.airframe.tank.width = 2.5
-ac.airframe.other_tank.width = 2.5
-
-ac.airframe.tank.ref_length = 14
-ac.airframe.other_tank.ref_length = 14
-ac.airframe.tank.mfw_factor = 1
 
 proc = "mda_plus"
 
@@ -208,7 +210,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst[0:-2],cst_mag[0:-2], crt,method='optim2d_poly',proc=proc)
+opt.mdf(ac, var,var_bnd, cst[0:-2],cst_mag[0:-2], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points

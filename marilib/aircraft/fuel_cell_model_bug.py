@@ -56,7 +56,8 @@ class FuelCellSystem(object):
         self.volume_allocation = None
         self.mass = None
 
-    def run_fc_system(self, pamb, tamb, vair, jj, nc=None):
+    def run_fc_system(self, pamb, tamb, vair, total_jj, nc=None):
+        jj = total_jj / self.n_stack
 
         # Fuel cell stack
         fc_dict = self.stack.run_fuel_cell(jj, nc=nc)
@@ -81,21 +82,21 @@ class FuelCellSystem(object):
         pc_dict = self.precooler.operate(air_flow, temp_in, temp_out)
 
         # Power electronics
-        pw_effective = fc_dict["pw_output"] * self.n_stack
-        pe_dict = self.power_elec.operate(pw_effective)
+        pw_input = fc_dict["pw_output"] * self.n_stack
+        pe_dict = self.power_elec.operate(pw_input)
 
         # System level data
         total_heat_power = fc_dict["pw_extracted"] * self.n_stack + pc_dict["pw_extracted"] + pe_dict["pw_extracted"] - ht_dict["pw_absorbed"]
         pw_util = pe_dict["pw_output"] - cp_dict["pw_input"] - self.miscellaneous_req_power
 
         fc_system = {"pw_output": pw_util,
-                     "pwe_effective":pw_effective,
+                     "pwe_effective":fc_dict["pw_output"] * self.n_stack,
                      "pw_washout": fc_dict["pw_washout"] * self.n_stack,
                      "pw_extracted": total_heat_power,
                      "voltage": fc_dict["voltage"] * self.n_stack,
                      "current": fc_dict["current"],
-                     "air_flow": air_flow,
-                     "h2_flow": h2_flow,
+                     "air_flow": fc_dict["air_flow"] * self.n_stack,
+                     "h2_flow": fc_dict["h2_flow"] * self.n_stack,
                      "pw_chemical": fc_dict["pw_chemical"] * self.n_stack,
                      "efficiency": pw_util / (fc_dict["pw_chemical"] * self.n_stack)}
 
@@ -145,14 +146,14 @@ class FuelCellSystem(object):
         self.h2_heater.design(0)
 
         self.stack.eval_cell_max_power()            # Max power corresponds to self.stack.power_margin of effective max power
-        
+
         jj = self.stack.cell_max_current_density    # Single cell design point
 
         def fct(n_cell):
             """WARNING : no preliminary design here because both scoop and compressor operation models are independent from design point
             """
             dict = self.run_fc_system(pamb, tamb, vair, jj, nc=n_cell)
-            return self.total_max_power - dict["system"]["pw_output"]
+            return req_stack_power*n_stack - dict["system"]["pw_output"]
 
         nc_ini = req_stack_power / self.stack.cell_max_power
         output_dict = fsolve(fct, x0=nc_ini, args=(), full_output=True)
@@ -182,7 +183,6 @@ class FuelCellSystem(object):
 
         # Stack design
         fc_req_power = dict["stack"]["pw_output"]
-        print("==================>", fc_req_power)
         self.stack.design(fc_req_power)
 
         # System level
@@ -552,25 +552,15 @@ class FuelCellPEM(object):
         return self.run_fuel_cell(jj)
 
     def eval_cell_max_power(self):
-        def fct1_jj(jj):
+        def fct_jj(jj):
             return self.run_fuel_cell(jj, nc=1)["pw_output"]
 
         xini, dx = 1000, 500
-        xres,yres,rc = maximize_1d(xini, dx, [fct1_jj])    # Compute the maximum power of the cell
+        xres,yres,rc = maximize_1d(xini, dx, [fct_jj])    # Compute the maximum power of the cell
 
         dict = self.run_fuel_cell(xres, nc=1)
 
         self.cell_max_power = dict["pw_output"] * self.power_margin   # Nominal power for one single cell
-
-        def fct2_jj(jj):
-            return self.cell_max_power - self.run_fuel_cell(jj, nc=1)["pw_output"]
-
-        jj_ini = dict["jj"] * self.power_margin
-        output_dict = fsolve(fct2_jj, x0=jj_ini, args=(), full_output=True)
-        if (output_dict[2]!=1): raise Exception("Convergence problem")
-        jj = output_dict[0][0]
-
-        dict = self.run_fuel_cell(jj, nc=1)
         self.cell_max_current = dict["current"]
         self.cell_max_current_density = dict["jj"]
         self.cell_max_current_voltage = dict["voltage"]
@@ -693,15 +683,15 @@ class FuelCellPEMLT(FuelCellPEM):
         a_h2o = 30.33
         b_h2o = 0.0096056
         c_h2o = 0.0000011829
-        
+
         a_h2 = 29.038
         b_h2 = -0.0008356
         c_h2 = 0.0000020097
-        
+
         a_o2 = 25.699
         b_o2 = 0.012966
         c_o2 = -0.0000038581
-        
+
         # Calcul de l'enthalpie globale
         dh_h2o =  dh_std_h2o + a_h2o*(temp-temp_ref) \
                 + (1/2) * b_h2o*(temp**2-temp_ref**2) \
@@ -728,7 +718,7 @@ class FuelCellPEMLT(FuelCellPEM):
                + b_o2*(temp-temp_ref) + (1/2) * c_o2*(temp**2-temp_ref**2)
 
         delta_s = ds_h2o - (1/2) * ds_o2 - ds_h2
-        
+
         # Calcul de la variation d'enthalpie libre standard
         dg0 = abs(delta_h - temp*delta_s)
         dg = dg0 + self.ideal_gas_constant() * temp * (np.log(p_h2/press_ref) + (1/2)*np.log(p_o2/press_ref))
@@ -1656,7 +1646,7 @@ class DragPolar(object):
 if __name__ == '__main__':
 
     phd = PhysicalData()
-    fc_syst = FuelCellSystem(phd, "fuel_cell_PEMHT")
+    fc_syst = FuelCellSystem(phd, "fuel_cell_PEMLT")
 
 
     # # Fuel cell test
@@ -1823,7 +1813,7 @@ if __name__ == '__main__':
 
     g = 9.81
     eff = 0.82
-    mass = 8600
+    mass = 5700
 
     disa = 15
 
@@ -1836,8 +1826,8 @@ if __name__ == '__main__':
 
     dp = DragPolar(wing_aspect_ratio)
 
-    vair = unit.mps_kmph(300)
-    altp = unit.m_ft(10000)
+    vair = unit.mps_kmph(250)
+    altp = unit.m_ft(20000)
     pamb, tamb, g = phd.atmosphere(altp, disa)
     fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
 
@@ -1847,11 +1837,10 @@ if __name__ == '__main__':
 
 
 
-    air_speed = np.linspace(50, 300, 10)
-    altitude = np.linspace(0, 10000, 15)
+    air_speed = np.linspace(50, 250, 10)
+    altitude = np.linspace(0, 20000, 15)
     X, Y = np.meshgrid(air_speed, altitude)
 
-    req_pw_max = 0
     heat_balance = []
     for x,y in zip(X.flatten(),Y.flatten()):
         vair = unit.convert_from("km/h", x)
@@ -1865,7 +1854,6 @@ if __name__ == '__main__':
         fn = mass * g / lod
         pw = fn * vair / eff
         req_power = pw / 2
-        req_pw_max = max(req_pw_max, req_power)
         dict = fc_syst.operate(pamb, tamb, vair, req_power)
 
         heat_balance.append(dict["system"]["thermal_balance"])
@@ -1874,8 +1862,6 @@ if __name__ == '__main__':
     heat_balance = np.array(heat_balance)
     heat_balance = heat_balance.reshape(np.shape(X))
 
-    print("")
-    print("req_pw_max = ", req_pw_max)
     print("")
     # Plot contour
     cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)

@@ -96,70 +96,10 @@ ac.airframe.tank.gravimetric_index = 0.1
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-# Taille équivalente au 600 NM tail tank
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 2.5
-# ac.airframe.other_tank.width = 2.5
-# design_range = unit.m_NM(990.)
-# n_pax_ref = 135
-# ac.power_system.reference_thrust = unit.N_kN(148.2)
-# ac.airframe.wing.area = 189.6
-# ac.weight_cg.mtow = 96140
-# ac.airframe.cabin.n_pax_front = 6
-
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 2.5
-# ac.airframe.other_tank.width = 2.5
-# design_range = unit.m_NM(755.)
-# n_pax_ref = 171
-# ac.power_system.reference_thrust = unit.N_kN(148.2)
-# ac.airframe.wing.area = 189.6
-# ac.weight_cg.mtow = 96140
-# ac.airframe.cabin.n_pax_front = 6
-
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 2.5
-# ac.airframe.other_tank.width = 2.5
-# design_range = unit.m_NM(600.)
-# n_pax_ref = 135
-# ac.power_system.reference_thrust = unit.N_kN(111.5)
-# ac.airframe.wing.area = 145.8
-# ac.weight_cg.mtow = 73052
-# ac.airframe.cabin.n_pax_front = 6
-
-
-
-
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# ac.airframe.tank.width = 3
-# ac.airframe.other_tank.width = 3
-# design_range = unit.m_NM(2100.)
-# n_pax_ref = 135
-# ac.power_system.reference_thrust = unit.N_kN(149.6)
-# ac.airframe.wing.area = 185
-# fuselage ratio = 9.1  (limite à 13.4)
-# ac.weight_cg.mtow = 95571
-# ac.airframe.cabin.n_pax_front = 6
-
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# ac.airframe.tank.width = 3
-# ac.airframe.other_tank.width = 3
-# design_range = unit.m_NM(1650.)
-# n_pax_ref = 171
-# ac.power_system.reference_thrust = unit.N_kN(149.6)
-# ac.airframe.wing.area = 185
-# fuselage ratio = 9.1  (limite à 13.4)
-# ac.weight_cg.mtow = 95571
-# ac.airframe.cabin.n_pax_front = 6
-
 ac.power_system.reference_thrust = unit.N_kN(148.2)
-ac.airframe.wing.aspect_ratio = 11
 ac.airframe.wing.area = 189.6
+
+ac.airframe.wing.aspect_ratio = 11
 
 ac.airframe.tank.width = 2.5
 ac.airframe.other_tank.width = 2.5
@@ -167,6 +107,67 @@ ac.airframe.other_tank.width = 2.5
 ac.airframe.tank.ref_length = 14
 ac.airframe.other_tank.ref_length = 14
 ac.airframe.tank.mfw_factor = 1
+
+
+# Taille équivalente au 600 NM tail tank
+# design_range = unit.m_NM(990.)
+# n_pax_ref = 135
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# ac.airframe.tank.width = 2.5
+# ac.airframe.other_tank.width = 2.5
+# ac.power_system.reference_thrust = unit.N_kN(148.2)
+# ac.airframe.wing.area = 189.6
+# ac.weight_cg.mtow = 96140
+
+# design_range = unit.m_NM(755.)
+# n_pax_ref = 171
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# ac.airframe.tank.width = 2.5
+# ac.airframe.other_tank.width = 2.5
+# ac.power_system.reference_thrust = unit.N_kN(148.2)
+# ac.airframe.wing.area = 189.6
+# ac.weight_cg.mtow = 96140
+
+# design_range = unit.m_NM(600.)
+# n_pax_ref = 135
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.1
+# volumetric_index = 0.606
+# ac.airframe.tank.width = 2.5
+# ac.airframe.other_tank.width = 2.5
+# ac.power_system.reference_thrust = unit.N_kN(111.5)
+# ac.airframe.wing.area = 145.8
+# ac.weight_cg.mtow = 73052
+
+
+
+
+# design_range = unit.m_NM(2100.)
+# n_pax_ref = 135
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# ac.airframe.tank.width = 3
+# ac.airframe.other_tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(149.6)
+# ac.airframe.wing.area = 185
+# ac.weight_cg.mtow = 95571
+
+# design_range = unit.m_NM(1650.)
+# n_pax_ref = 171
+# ac.airframe.cabin.n_pax_front = 6
+# gravimetric index = 0.3
+# volumetric_index = 0.845
+# ac.airframe.tank.width = 3
+# ac.airframe.other_tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(149.6)
+# ac.airframe.wing.area = 185
+# ac.weight_cg.mtow = 95571
+
 
 proc = "mda_plus"
 
