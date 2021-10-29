@@ -34,11 +34,13 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 disa = 0
 cruise_altp = unit.m_ft(10000.)
-cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 330))
+cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
+
+design_range = unit.m_km(200.)
 n_pax_ref = 19
 
 reqs = Requirement(n_pax_ref = n_pax_ref,
-                   design_range = unit.m_km(200.),
+                   design_range = design_range,
                    cruise_mach = cruise_mach,
                    cruise_altp = cruise_altp,
                    model_config = ModelConfiguration)
@@ -76,120 +78,38 @@ ac.requirement.time_to_climb.altp = cruise_altp
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",14.)
 
 
+# overwrite default values for design space graph centering (see below)
+#-----------------------------------------------------------------------------------------------------------------------
+ac.airframe.wing.aspect_ratio = 10
+ac.airframe.wing.hld_type = 4
+
 # Optimum CS23
 #-----------------------------------------------------------------------------------------------------------------------
+# cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
+# design_range = unit.m_km(200.)
 # n_pax_ref = 19
-# ac.airframe.cabin.n_pax_front = 3
-# ac.airframe.tank.ref_length = 1.7
 # fuel_type = "liquid_h2"
-# ac.airframe.tank.gravimetric_index = 0.3
-# cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 330))
-# ac.power_system.reference_power = unit.W_kW(496)
-# ac.airframe.wing.area = 63.8
-
-# Sensitivity on speed
-#-----------------------------------------------------------------------------------------------------------------------
 # n_pax_ref = 19
-# ac.airframe.cabin.n_pax_front = 3
-# ac.airframe.tank.ref_length = 1.7
-# fuel_type = "liquid_h2"
-# ac.airframe.tank.gravimetric_index = 0.3
-# cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
-# ac.power_system.reference_power = unit.W_kW(376)
-# ac.airframe.wing.area = 57.5
-
-# Sensitivity on speed
-#-----------------------------------------------------------------------------------------------------------------------
-# n_pax_ref = 19
-# ac.airframe.cabin.n_pax_front = 3
-# ac.airframe.tank.ref_length = 1.7
-# fuel_type = "liquid_h2"
-# ac.airframe.tank.gravimetric_index = 0.3
-# cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 250))
-# ac.power_system.reference_power = unit.W_kW(339)
-# ac.airframe.wing.area = 60.7
-
-# Sensitivity on speed
-#-----------------------------------------------------------------------------------------------------------------------
-# n_pax_ref = 15
-# ac.airframe.cabin.n_pax_front = 3
-# ac.airframe.tank.ref_length = 1.7
-# fuel_type = "liquid_h2"
-# ac.airframe.tank.gravimetric_index = 0.3
-# cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
-# ac.power_system.reference_power = unit.W_kW(336)
-# ac.airframe.wing.area = 50.2
-
-# Sensitivity on speed
-#-----------------------------------------------------------------------------------------------------------------------
-# n_pax_ref = 15
-# ac.airframe.cabin.n_pax_front = 3
-# ac.airframe.tank.ref_length = 1.5
-# fuel_type = "liquid_h2"
-# ac.airframe.tank.gravimetric_index = 0.3
-# cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
-# ac.power_system.reference_power = unit.W_kW(330)
-# ac.airframe.wing.area = 49.2
-
-# Sensitivity on speed
-#-----------------------------------------------------------------------------------------------------------------------
-# n_pax_ref = 11
-# ac.airframe.cabin.n_pax_front = 3
-# ac.airframe.tank.ref_length = 1.5
-# fuel_type = "liquid_h2"
-# ac.airframe.tank.gravimetric_index = 0.3
-# cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
-# ac.power_system.reference_power = unit.W_kW(289)
-# ac.airframe.wing.area = 41.9
-
-# Sensitivity on speed
-#-----------------------------------------------------------------------------------------------------------------------
-# n_pax_ref = 15
-# ac.airframe.cabin.n_pax_front = 3
-# ac.airframe.tank.ref_length = 2
-# fuel_type = "compressed_h2"
-# ac.airframe.tank.gravimetric_index = 0.1
-# cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
-# ac.power_system.reference_power = unit.W_kW(398)
-# ac.airframe.wing.area = 60.8
-
-# Sensitivity on speed
-#-----------------------------------------------------------------------------------------------------------------------
-# n_pax_ref = 17
-# ac.airframe.cabin.n_pax_front = 3
-# ac.airframe.tank.ref_length = 2
-# fuel_type = "compressed_h2"
-# ac.airframe.tank.gravimetric_index = 0.1
-# cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 300))
-# ac.power_system.reference_power = unit.W_kW(420)
-# ac.airframe.wing.area = 64.9
-
-
-# overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(496)
-ac.airframe.wing.area = 63.8
-
-ac.weight_cg.mtow = 8500
-
-
-# ac.airframe.cabin.n_pax_front = 3
-ac.airframe.tank.ref_length = 1.7
-ac.airframe.tank.gravimetric_index = 0.3
-
 ac.airframe.cabin.n_pax_front = 3
+ac.airframe.tank.ref_length = 2.
+ac.airframe.tank.gravimetric_index = 0.3
+ac.power_system.reference_power = unit.W_kW(407)
+ac.airframe.wing.area = 63
+ac.weight_cg.mtow = 7692
 
-ac.airframe.wing.hld_type = 4
-ac.airframe.wing.aspect_ratio = 10
 
 
 # Need 2 runs to go around a non identified problem of initilization
 # process.mda(ac)               # Run an MDA on the object (All internal constraints will be solved)
 # process.mda(ac)               # Run an MDA on the object (All internal constraints will be solved)
-process.mda_max_fuel(ac)            # Run a special MDA with Nominal mission beeing max fuel
-process.mda_max_fuel(ac)            # Run a special MDA with Nominal mission beeing max fuel
+# process.mda_max_fuel(ac)            # Run a special MDA with Nominal mission beeing max fuel
+# process.mda_max_fuel(ac)            # Run a special MDA with Nominal mission beeing max fuel
 # process.mda_ligeois(ac)                 # Run a special MDA with fixed MTOW and Nominal mission beeing max fuel
 # process.mda_ligeois(ac)                 # Run a special MDA with fixed MTOW
 
+proc = "mda_max_fuel"
+
+eval("process."+proc+"(ac)")  # Run MDA
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -206,8 +126,8 @@ cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.t
        "aircraft.performance.mcr_ceiling.vz_eff - aircraft.performance.mcr_ceiling.vz_req",
        "aircraft.performance.oei_ceiling.path_eff - aircraft.performance.oei_ceiling.path_req",
        "aircraft.performance.time_to_climb.ttc_req - aircraft.performance.time_to_climb.ttc_eff",
-       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total",
-       "aircraft.performance.mission.crz_thermal_balance"]
+       "aircraft.performance.mission.crz_thermal_balance",
+       "aircraft.weight_cg.mfw - aircraft.performance.mission.nominal.fuel_total"]
 
 # Magnitude used to scale constraints
 cst_mag = ["aircraft.performance.take_off.tofl_req",
@@ -216,15 +136,15 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
            "unit.mps_ftpmin(100.)",
            "aircraft.performance.oei_ceiling.path_req",
            "aircraft.performance.time_to_climb.ttc_req",
-           "aircraft.weight_cg.mfw",
-           "1"]
+           "1",
+           "aircraft.weight_cg.mfw"]
 
 # Optimization criteria
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc="mda")
+# opt.mdf(ac, var,var_bnd, cst[0:-2],cst_mag[0:-2], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
 algo_points = None
@@ -238,6 +158,7 @@ json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data i
 ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
 ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 ac.draw.thermal_balance("This_plane")
+ac.draw.vertical_speed("This_plane")
 
 io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
 # ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
@@ -256,8 +177,8 @@ data = [["Power", "kW", "%8.1f", var[0]+"/1000."],
         ["OWE", "kg", "%8.1f", "aircraft.weight_cg.owe"],
         ["MWE", "kg", "%8.1f", "aircraft.weight_cg.mwe"],
         ["Cruise_LoD", "no_dim", "%8.1f", "aircraft.performance.mission.crz_lod"],
-        ["Cruise_SFC", "kg/kW/h", "%8.4f", "aircraft.performance.mission.crz_psfc"],
-        ["Th_bal", "kW", "%8.4f", "aircraft.performance.mission.crz_thermal_balance"],
+        ["Cruise_SFC", "kg/kW/h", "%8.4f", "unit.convert_to('kg/kW/h', aircraft.performance.mission.crz_psfc)"],
+        ["Th_bal", "kW", "%8.2f", "aircraft.performance.mission.crz_thermal_balance/1000"],
         ["TOFL", "m", "%8.1f", "aircraft.performance.take_off.tofl_eff"],
         ["App_speed", "kt", "%8.1f", "unit.kt_mps(aircraft.performance.approach.app_speed_eff)"],
         ["OEI_path", "%", "%8.1f", "aircraft.performance.oei_ceiling.path_eff*100"],

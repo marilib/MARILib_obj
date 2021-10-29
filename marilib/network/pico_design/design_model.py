@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 from marilib.utils import unit
 from marilib.utils.math import lin_interp_1d
 
+from analyse_data import coloration, read_db, lin_lst_reg, draw_reg, subplots_by_varname,\
+    draw_colored_cloud_on_axis, get_error, do_regression
 
 
 # ======================================================================================================
@@ -51,7 +53,8 @@ class Aircraft(object):
         self.range_no_pl = None     # Range for zero payload mission
 
         self.eff_ratio = self.__eff_ratio(npax)     # Efficiency ratio for specific air range
-        self.owe_coef = [-1.478e-07, 5.459e-01, 8.40e+02]   # "Structural model"
+
+        self.owe_coef = [-2.47547354e-07, 5.61453046e-01, 0.]   # Structural model from data base
 
         self.design_aircraft()
 
@@ -61,15 +64,16 @@ class Aircraft(object):
         it is computed according to the number of passenger
         """
         pax_list = [10., 60., 260., 360.]
-        lod_list = [15., 15.,  19.,  19.]
+        lod_list = [13., 15.,  21.,  21.]
+        sfc_list = unit.convert_from("kg/daN/h", [0.7, 0.60,  0.54,  0.54])
         lod = lin_interp_1d(npax, pax_list, lod_list)
-        sfc = unit.convert_from("kg/daN/h", 0.60)  # Techno assumption
+        sfc = lin_interp_1d(npax, pax_list, sfc_list)
         return lod/sfc
 
     def structure(self, mtow, coef=None):
         """Link between MTOW and OWE. This link implecitly represents the structural sizing
         """
-        if coef is not None: self.owe_coef = coef
+        if coef is not None : self.owe_coef = coef
         owe = (self.owe_coef[0]*mtow + self.owe_coef[1]) * mtow + self.owe_coef[2]    # Structure design rule
         return owe
 
@@ -393,3 +397,60 @@ class Fleet(object):
                     "fuel":total_fuel, "time":total_time, "tonkm":total_tonkm, "paxkm":total_paxkm}
 
         return out_dict
+
+
+if __name__ == '__main__':
+
+    # Read data
+    #-------------------------------------------------------------------------------------------------------------------
+    path_to_data_base = "../../../data/All_Data_v5.xlsx"
+
+    df,un = read_db(path_to_data_base)
+
+    # Remove A380-800 row and reset index
+    df = df[df['name']!='A380-800'].reset_index(drop=True)
+
+    df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
+    un1 = un.copy()
+
+
+    # perform regressions
+    #-------------------------------------------------------------------------------------------------------------------
+    # abs = "MTOW"
+    # ord = "OWE"
+    #
+    # # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+    # # df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
+    #
+    # # order = [1]
+    # order = [2, 1]
+    # dict_owe = do_regression(df1, un1, abs, ord, coloration, order)
+
+
+
+    # Analysis
+    #-------------------------------------------------------------------------------------------------------------------
+    ac = Aircraft()
+
+    df2 = df1[df1['cruise_speed']<1].reset_index(drop=True).copy()
+    un2 = un1.copy()
+
+    nap = df2.shape[0]
+
+    df2["MTOW_2"] = df2["MTOW"]
+    un2["MTOW_2"] = "kg"
+
+    for n in range(nap):
+        ac.npax = df2["n_pax"][n]
+        ac.range = df2["nominal_range"][n]
+        ac.cruise_mach = df2["cruise_speed"][n]
+        ac.design_aircraft()
+        df2["MTOW_2"][n] = ac.mtow
+
+    abs = "MTOW"
+    ord = "MTOW_2"
+
+    # dict = draw_reg(df2, un2, abs, ord, [[],[]], coloration)
+
+    order = [1]
+    dict_owe = do_regression(df2, un2, abs, ord, coloration, order)

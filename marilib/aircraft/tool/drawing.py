@@ -8,6 +8,9 @@ Created on Thu Jan 24 23:22:21 2019
 
 import numpy as np
 
+from scipy.optimize import fsolve
+
+import matplotlib
 import matplotlib.pyplot as plt
 
 from marilib.utils import earth, unit
@@ -15,14 +18,86 @@ from marilib.utils import earth, unit
 from marilib.aircraft.airframe.component import Nacelle, Pod
 
 
+
 class Drawing(object):
 
     def __init__(self, aircraft):
         self.aircraft = aircraft
 
+    def vertical_speed(self,window_title):
+        """
+        Plot the maximum vertical speed according to thermal balance for architectures with Laplace fuel model
+        """
+        plot_title = self.aircraft.name
+
+        air_speed = np.linspace(50, 450, 10)    # Airspeed list in km/h
+        altitude = np.linspace(0, 10000, 10)    # Altitude list in ft
+        X, Y = np.meshgrid(air_speed, altitude)
+
+        def fct(vz):
+            fn = self.aircraft.performance.mission.req_thrust(nei, altp, disa, speed_mode, cas, vz, mass)
+            thrust = fn / self.aircraft.power_system.n_engine
+            sc_dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,"MCL",thrust)
+            required_power = sc_dict["pw_elec"]
+            dict = self.aircraft.airframe.system.eval_fuel_cell_power(required_power,pamb,tamb,vair)
+            y = dict["thermal_balance"]
+            return y
+
+        climb_speed = []
+        for x,y in zip(X.flatten(),Y.flatten()):
+            vair = unit.convert_from("km/h", x)
+            altp = unit.convert_from("ft", y)
+            disa = self.aircraft.requirement.cruise_disa
+            ktow = 0.97
+
+            self.mach = self.aircraft.requirement.cruise_mach
+            mass = ktow*self.aircraft.weight_cg.mtow
+
+            pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+            mach = vair / earth.sound_speed(tamb)
+            cas = earth.vcas_from_mach(pamb,mach)
+            speed_mode = "cas"
+            nei = 2
+
+            output_dict = fsolve(fct, x0=0, args=(), full_output=True)
+            if (output_dict[2]!=1): raise Exception("Convergence problem")
+            vz = output_dict[0][0]
+
+            climb_speed.append(vz)
+
+        # convert to numpy array with good shape
+        climb_speed = np.array(climb_speed)
+        climb_speed = climb_speed.reshape(np.shape(X))
+
+        fig,axes = plt.subplots(1,1)
+        fig.canvas.set_window_title(window_title)
+        fig.suptitle(plot_title, fontsize=14)
+
+        # Plot contour
+        cmap = plt.get_cmap("jet")
+        cs = plt.contourf(X, Y, climb_speed, cmap=cmap, levels=20)
+
+        # Plot limit
+        color = 'yellow'
+        c_c = plt.contour(X, Y, climb_speed, levels=[0], colors =[color], linewidths=2)
+        c_h = plt.contourf(X, Y, climb_speed, levels=[-10000000,0], linewidths=2, colors='none', hatches=['//'])
+        for c in c_h.collections:
+            c.set_edgecolor(color)
+
+        plt.colorbar(cs, label=r"Climb Speed (m/s)")
+        plt.grid(True)
+
+        plt.suptitle("Climb Speed, Constant CAS (m/s)")
+        plt.xlabel("True Air Speed (km/h)")
+        plt.ylabel("Altitude (ft)")
+
+        plt.show()
+
+
+
     def thermal_balance(self,window_title):
         """
-        Plot the thermal validity domain for Laplace fuel model
+        Plot the thermal validity domain for architectures with Laplace fuel model
         """
         plot_title = self.aircraft.name
 
@@ -60,7 +135,8 @@ class Drawing(object):
         fig.suptitle(plot_title, fontsize=14)
 
         # Plot contour
-        cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
+        cmap = plt.get_cmap("jet").reversed()
+        cs = plt.contourf(X, Y, heat_balance, cmap=cmap, levels=20)
 
         # Plot limit
         color = 'yellow'

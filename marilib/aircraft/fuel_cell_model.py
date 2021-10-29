@@ -56,10 +56,10 @@ class FuelCellSystem(object):
         self.volume_allocation = None
         self.mass = None
 
-    def run_fc_system(self, pamb, tamb, vair, jj, nc=None):
+    def run_fc_system(self, pamb, tamb, vair, jj):
 
         # Fuel cell stack
-        fc_dict = self.stack.run_fuel_cell(jj, nc=nc)
+        fc_dict = self.stack.run_fuel_cell(jj)
 
         # LH2 heater
         h2_flow = fc_dict["h2_flow"] * self.n_stack
@@ -131,15 +131,12 @@ class FuelCellSystem(object):
 
         return self.run_fc_system(pamb, tamb, vair, jj)
 
-    def design(self, pamb, tamb, vair, n_stack, req_stack_power):
+    def design(self, pamb, tamb, vair, total_max_power):
         """Fuel Cell System design
         WARNING : No optimization of the cell area at that time
         """
-        self.n_stack = n_stack
-        self.total_max_power = req_stack_power * n_stack
-
         # Power electronics design
-        self.power_elec.design(self.total_max_power)
+        self.power_elec.design(total_max_power)
 
         # Hydrogen heater pre-design
         self.h2_heater.design(0)
@@ -148,22 +145,35 @@ class FuelCellSystem(object):
         
         jj = self.stack.cell_max_current_density    # Single cell design point
 
+        self.stack.n_cell = self.stack.n_cell_max
+
+        def fct(n_stack):
+            """WARNING : no preliminary design here because both scoop and compressor operation models are independent from design point
+            """
+            self.n_stack = n_stack
+            dict = self.run_fc_system(pamb, tamb, vair, jj)
+            return total_max_power - dict["system"]["pw_output"]
+
+        ns_ini = total_max_power / (self.stack.cell_max_power * self.stack.n_cell)
+        output_dict = fsolve(fct, x0=ns_ini, args=(), full_output=True)
+        if (output_dict[2]!=1): raise Exception("Convergence problem")
+        self.n_stack = np.ceil(output_dict[0][0])
+
         def fct(n_cell):
             """WARNING : no preliminary design here because both scoop and compressor operation models are independent from design point
             """
-            dict = self.run_fc_system(pamb, tamb, vair, jj, nc=n_cell)
-            return self.total_max_power - dict["system"]["pw_output"]
+            self.stack.n_cell = n_cell
+            dict = self.run_fc_system(pamb, tamb, vair, jj)
+            return total_max_power - dict["system"]["pw_output"]
 
-        nc_ini = req_stack_power / self.stack.cell_max_power
-        output_dict = fsolve(fct, x0=nc_ini, args=(), full_output=True)
+        nc_ini = self.stack.n_cell_max
+        output_dict = fsolve(fct, x0=ns_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
-        n_cell = output_dict[0][0]
+        self.stack.n_cell = np.ceil(output_dict[0][0])
 
-        self.stack.n_cell = np.ceil(n_cell)
+        dict = self.run_fc_system(pamb, tamb, vair, jj)
 
-        print("------------------->", n_cell)
-
-        dict = self.run_fc_system(pamb, tamb, vair, jj, nc=n_cell)
+        self.total_max_power = dict["system"]["pw_output"]
 
         # Scoop design
         air_flow = dict["stack"]["air_flow"]
@@ -182,7 +192,6 @@ class FuelCellSystem(object):
 
         # Stack design
         fc_req_power = dict["stack"]["pw_output"]
-        print("==================>", fc_req_power)
         self.stack.design(fc_req_power)
 
         # System level
@@ -198,6 +207,7 @@ class FuelCellSystem(object):
                    + self.precooler.mass \
                    + self.h2_heater.mass \
                    + self.power_elec.mass
+
 
     def print_design(self, graph=False):
         print("")
@@ -497,6 +507,7 @@ class FuelCellPEM(object):
         self.working_temperature = None                                 # Cell working temperature
         self.air_over_feeding = 2                                   # air flow ratio over stoechiometry
         self.power_margin = 0.8                                     # Ratio allowed power over max power
+        self.n_cell_max = 200                                       # Maximum number of cells in one stack
         self.heat_washout_factor = 0.12                             # Fraction of heat washed out by the air flow across the stack
 
         self.gravimetric_index = unit.convert_from("kW", 4)     # kW/kg, Electric power produced per kg of heater system
@@ -580,6 +591,9 @@ class FuelCellPEM(object):
         A margin of self.power_margin is taken from versus the effective maximum power
         """
         self.n_cell = np.ceil( power_max / self.cell_max_power )    # Number of cells
+
+        if self.n_cell_max < self.n_cell:
+            raise Exception("Number of cells exceeds maximum allowed ", self.n_cell)
 
         self.power_max = self.cell_max_power * self.n_cell          # Get effective max power"
         dict = self.operate(self.power_max)                         # Run the stack for maximum power
@@ -1656,7 +1670,7 @@ class DragPolar(object):
 if __name__ == '__main__':
 
     phd = PhysicalData()
-    fc_syst = FuelCellSystem(phd, "fuel_cell_PEMHT")
+    fc_syst = FuelCellSystem(phd, "fuel_cell_PEMLT")
 
 
     # # Fuel cell test
@@ -1823,15 +1837,14 @@ if __name__ == '__main__':
 
     g = 9.81
     eff = 0.82
-    mass = 8600
+    mass = 5700
 
     disa = 15
 
     # fc_syst.stack.working_temperature = 273.15 + 75                      # Cell working temperature
 
 
-    stack_power = unit.convert_from("kW", 50)
-    n_stack = 6
+    total_power = unit.convert_from("kW", 500)
 
 
     dp = DragPolar(wing_aspect_ratio)
@@ -1839,9 +1852,10 @@ if __name__ == '__main__':
     vair = unit.mps_kmph(300)
     altp = unit.m_ft(10000)
     pamb, tamb, g = phd.atmosphere(altp, disa)
-    fc_syst.design(pamb, tamb, vair, n_stack, stack_power)
+    fc_syst.design(pamb, tamb, vair, total_power)
 
-    print("N cells/stack = ", fc_syst.stack.n_cell)
+    print("Number of cells per stack = ", fc_syst.stack.n_cell)
+    print("Number of stacks = ", fc_syst.n_stack)
 
     fc_syst.wing_heatsink.design(wing_aspect_ratio, wing_area)   # WARNING, not included in fc_syst.design
 
@@ -1870,13 +1884,15 @@ if __name__ == '__main__':
 
         heat_balance.append(dict["system"]["thermal_balance"])
 
+    print("")
+    print("Fuel cell system max power = ", "%.1f"%unit.kW_W(fc_syst.total_max_power), " kW")
+    print("Required max power = ", "%.1f"%unit.kW_W(req_pw_max), " kW")
+    print("")
+
     # convert to numpy array with good shape
     heat_balance = np.array(heat_balance)
     heat_balance = heat_balance.reshape(np.shape(X))
 
-    print("")
-    print("req_pw_max = ", req_pw_max)
-    print("")
     # Plot contour
     cs = plt.contourf(X, Y, heat_balance, cmap=plt.get_cmap("Greens"), levels=20)
 
@@ -1895,7 +1911,6 @@ if __name__ == '__main__':
     plt.ylabel("Altitude (ft)")
 
     plt.show()
-
 
 
 

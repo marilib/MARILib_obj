@@ -253,9 +253,6 @@ class SystemWithLaplaceFuelCell(Component):
         self.battery_capacity = None
         self.battery_mass = None
 
-        self.stack_power = None
-        self.stack_count = None
-
         self.fuel_cell_output_power_ref = None
         self.compressor_power_ref = None
         self.cooler_power_ref = None
@@ -303,11 +300,9 @@ class SystemWithLaplaceFuelCell(Component):
         self.battery_capacity = required_power * self.max_power_time
 
         # Fuell cell sizing
-        power = required_power * self.over_power_factor
-        self.stack_count = np.ceil(power / self.max_stack_power)
-        self.stack_power = power / self.stack_count
+        total_power = required_power * self.over_power_factor
 
-        self.fuel_cell_system.design(pamb, tamb, vtas, self.stack_count, self.stack_power)
+        self.fuel_cell_system.design(pamb, tamb, vtas, total_power)
 
         self.fuel_cell_system.wing_heatsink.design(wing_aspect_ratio, wing_area)
 

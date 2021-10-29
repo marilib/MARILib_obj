@@ -237,6 +237,31 @@ class Flight(object):
         else:
             return slope,vz
 
+    def req_thrust(self, nei, altp, disa, speed_mode, speed, vz, mass, full_output=False):
+        """Retrieve air path in various conditions
+        """
+        g = earth.gravity()
+        pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
+        mach = self.get_mach(pamb,speed_mode,speed)
+
+        cz = self.lift_from_speed(pamb,tamb,mach,mass)
+        cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
+
+        if(nei>0):
+            dcx = self.aircraft.power_system.oei_drag(pamb,mach)
+            cx = cx + dcx*nei
+            lod = cz/cx
+
+        acc_factor = earth.climb_mode(speed_mode, mach, dtodz, tstd, disa)
+        slope = vz / (mach * earth.sound_speed(tamb))
+        fn = mass*g*(slope * acc_factor + 1./lod)
+        acc = (acc_factor-1.)*g*slope
+
+        if full_output:
+            return fn,slope,vz,acc,cz,cx,pamb,tamb
+        else:
+            return fn
+
     def max_air_path(self,nei,altp,disa,speed_mode,mass,rating,kfn, full_output=False):
         """Optimize the speed of the aircraft to maximize the air path
         """
