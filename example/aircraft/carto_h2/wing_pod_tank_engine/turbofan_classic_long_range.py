@@ -35,11 +35,11 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A330-800"
 n_pax_ref = 200
-design_range = unit.m_NM(3410.)
+design_range = unit.m_NM(3480.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 213210
+# ac.weight_cg.mtow = 199142
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -113,60 +113,67 @@ ac.airframe.other_tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
 
 
-# design_range = unit.m_NM(1300.)
+
+# design_range = unit.m_NM(600.)
 # n_pax_ref = 240
 # ac.airframe.cabin.n_pax_front = 8
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 3
-# ac.airframe.other_tank.width = 3
-# ac.power_system.reference_thrust = unit.N_kN(263.63)
-# ac.airframe.wing.area = 368.53
-# ac.weight_cg.mtow = 197320
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.other_tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.other_tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 3.5
+# ac.airframe.other_tank.width = 3.5
+# ac.power_system.reference_thrust = unit.N_kN(232.75)
+# ac.airframe.wing.area = 337.3
+# ac.weight_cg.mtow = 177077
 
-# design_range = unit.m_NM(1140.)
-# n_pax_ref = 280
+# design_range = unit.m_NM(755.)
+# n_pax_ref = 200
 # ac.airframe.cabin.n_pax_front = 8
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 3
-# ac.airframe.other_tank.width = 3
-# ac.power_system.reference_thrust = unit.N_kN(263.63)
-# ac.airframe.wing.area = 368.53
-# ac.weight_cg.mtow = 197320
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.other_tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.other_tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 3.5
+# ac.airframe.other_tank.width = 3.5
+# ac.power_system.reference_thrust = unit.N_kN(232.75)
+# ac.airframe.wing.area = 337.3
+# ac.weight_cg.mtow = 177077
 
 
 
 # design_range = unit.m_NM(3000.)
 # n_pax_ref = 240
 # ac.airframe.cabin.n_pax_front = 7
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# ac.airframe.tank.width = 3.5
-# ac.airframe.other_tank.width = 3.5
-# ac.power_system.reference_thrust = unit.N_kN(284.5)
-# ac.airframe.wing.area = 385.2
-# ac.weight_cg.mtow = 213210
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.other_tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.other_tank.volumetric_index = 0.845
+# ac.airframe.tank.width = 4
+# ac.airframe.other_tank.width = 4
+# ac.power_system.reference_thrust = unit.N_kN(258.7)
+# ac.airframe.wing.area = 361.14
+# ac.weight_cg.mtow = 199142
 
-# design_range = unit.m_NM(3410.)
+# design_range = unit.m_NM(3480.)
 # n_pax_ref = 200
 # ac.airframe.cabin.n_pax_front = 7
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# ac.airframe.tank.width = 3.5
-# ac.airframe.other_tank.width = 3.5
-# ac.power_system.reference_thrust = unit.N_kN(284.5)
-# ac.airframe.wing.area = 385.2
-# ac.weight_cg.mtow = 213210
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.other_tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.other_tank.volumetric_index = 0.845
+# ac.airframe.tank.width = 4
+# ac.airframe.other_tank.width = 4
+# ac.power_system.reference_thrust = unit.N_kN(258.7)
+# ac.airframe.wing.area = 361.14
+# ac.weight_cg.mtow = 199142
 
 
 proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
-print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
-print("length/height = %0.2f" %(ac.airframe.body.length/ac.airframe.body.height) )
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------

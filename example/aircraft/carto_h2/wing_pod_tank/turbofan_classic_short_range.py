@@ -26,7 +26,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
                    tank_architecture = "pods",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
-                   nacelle_attachment = "wing",      # "wing", "rear" or "pods"
+                   nacelle_attachment = "pods",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "liquid_h2")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
@@ -35,10 +35,11 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A220-100_rear_tank"
 n_pax_ref = 171
-design_range = unit.m_NM(755.)
+design_range = unit.m_NM(485.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
+# ac.weight_cg.mtow = 95613
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -109,39 +110,32 @@ ac.airframe.other_tank.ref_length = 14
 ac.airframe.tank.mfw_factor = 1
 
 
-# Taille équivalente au 600 NM tail tank
-# design_range = unit.m_NM(990.)
-# n_pax_ref = 135
-# ac.airframe.cabin.n_pax_front = 6
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 2.5
-# ac.airframe.other_tank.width = 2.5
-# ac.power_system.reference_thrust = unit.N_kN(148.2)
-# ac.airframe.wing.area = 189.6
-# ac.weight_cg.mtow = 96140
-
-# design_range = unit.m_NM(755.)
-# n_pax_ref = 171
-# ac.airframe.cabin.n_pax_front = 6
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 2.5
-# ac.airframe.other_tank.width = 2.5
-# ac.power_system.reference_thrust = unit.N_kN(148.2)
-# ac.airframe.wing.area = 189.6
-# ac.weight_cg.mtow = 96140
 
 # design_range = unit.m_NM(600.)
 # n_pax_ref = 135
 # ac.airframe.cabin.n_pax_front = 6
-# gravimetric index = 0.1
-# volumetric_index = 0.606
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.other_tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.other_tank.volumetric_index = 0.606
 # ac.airframe.tank.width = 2.5
 # ac.airframe.other_tank.width = 2.5
-# ac.power_system.reference_thrust = unit.N_kN(111.5)
-# ac.airframe.wing.area = 145.8
-# ac.weight_cg.mtow = 73052
+# ac.power_system.reference_thrust = unit.N_kN(176.6)
+# ac.airframe.wing.area = 230.7
+# ac.weight_cg.mtow = 115700
+
+# design_range = unit.m_NM(485.)
+# n_pax_ref = 171
+# ac.airframe.cabin.n_pax_front = 6
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.other_tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.other_tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 2.5
+# ac.airframe.other_tank.width = 2.5
+# ac.power_system.reference_thrust = unit.N_kN(176.6)
+# ac.airframe.wing.area = 230.7
+# ac.weight_cg.mtow = 115700
 
 
 
@@ -149,30 +143,35 @@ ac.airframe.tank.mfw_factor = 1
 # design_range = unit.m_NM(2100.)
 # n_pax_ref = 135
 # ac.airframe.cabin.n_pax_front = 6
-# gravimetric index = 0.3
-# volumetric_index = 0.845
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.other_tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.other_tank.volumetric_index = 0.845
 # ac.airframe.tank.width = 3
 # ac.airframe.other_tank.width = 3
-# ac.power_system.reference_thrust = unit.N_kN(149.6)
-# ac.airframe.wing.area = 185
-# ac.weight_cg.mtow = 95571
+# ac.power_system.reference_thrust = unit.N_kN(149.7)
+# ac.airframe.wing.area = 185.1
+# ac.weight_cg.mtow = 95613
 
-# design_range = unit.m_NM(1650.)
+# design_range = unit.m_NM(1645.)
 # n_pax_ref = 171
 # ac.airframe.cabin.n_pax_front = 6
-# gravimetric index = 0.3
-# volumetric_index = 0.845
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.other_tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.other_tank.volumetric_index = 0.845
 # ac.airframe.tank.width = 3
 # ac.airframe.other_tank.width = 3
-# ac.power_system.reference_thrust = unit.N_kN(149.6)
-# ac.airframe.wing.area = 185
-# ac.weight_cg.mtow = 95571
+# ac.power_system.reference_thrust = unit.N_kN(149.7)
+# ac.airframe.wing.area = 185.1
+# ac.weight_cg.mtow = 95613
 
 
 proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------

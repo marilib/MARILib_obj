@@ -33,7 +33,7 @@ class Arrangement(object):
                       tank_architecture = "wing_box",       # "wing_box", "piggy_back" or "pods"
                       gear_architecture = "retractable",    # "retractable", "bare_fixed"
                       number_of_engine = "twin",            # "twin" or "quadri"
-                      nacelle_attachment = "wing",          # "wing", "pod" or "rear"
+                      nacelle_attachment = "wing",          # "wing", "pod" "rear" or "body_cones"
                       power_architecture = "tf",            # "tf", "tp", "ef", "pte1", "ef1", "ep1",
                       power_source = "fuel",                # "fuel", "battery", "fuel_cell", "fuel_cell_plus"
                       fuel_type = "kerosene"                # "kerosene", "liquid_h2", "Compressed_h2" or "battery"

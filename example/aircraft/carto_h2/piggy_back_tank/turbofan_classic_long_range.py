@@ -35,11 +35,11 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A330-800"
 n_pax_ref = 300
-design_range = unit.m_NM(2420.)
+design_range = unit.m_NM(2395.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 186332
+# ac.weight_cg.mtow = 183212
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -94,56 +94,11 @@ ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 3
-# ac.airframe.other_tank.width = 3
-# n_pax_ref = 240
-# ac.airframe.cabin.n_pax_front = 7
-# design_range = unit.m_NM(1300.)
-# ac.power_system.reference_thrust = unit.N_kN(530)
-# ac.airframe.wing.area = 796
-# ac.weight_cg.mtow = 425700
-
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 3
-# ac.airframe.other_tank.width = 3
-# n_pax_ref = 300
-# ac.airframe.cabin.n_pax_front = 7
-# design_range = unit.m_NM(1230.)
-# ac.power_system.reference_thrust = unit.N_kN(530)
-# ac.airframe.wing.area = 796
-# ac.weight_cg.mtow = 425700
-
-
-
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# ac.airframe.tank.width = 3.5
-# ac.airframe.other_tank.width = 3.5
-# n_pax_ref = 240
-# ac.airframe.cabin.n_pax_front = 7
-# design_range = unit.m_NM(3000.)
-# ac.power_system.reference_thrust = unit.N_kN(247.3)
-# ac.airframe.wing.area = 337.7
-# ac.weight_cg.mtow = 186332
-
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# ac.airframe.tank.width = 3.5
-# ac.airframe.other_tank.width = 3.5
-# n_pax_ref = 300
-# ac.airframe.cabin.n_pax_front = 7
-# design_range = unit.m_NM(2410.)
-# ac.power_system.reference_thrust = unit.N_kN(247.3)
-# ac.airframe.wing.area = 337.7
-# ac.weight_cg.mtow = 186332
-
 ac.power_system.reference_thrust = unit.N_kN(247.3)
+ac.airframe.wing.area = 337.7
+
 ac.airframe.wing.sweep25 = unit.rad_deg(30)
 ac.airframe.wing.aspect_ratio = 10
-ac.airframe.wing.area = 337.7
 
 ac.airframe.cabin.n_pax_front = 7
 
@@ -153,13 +108,54 @@ ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
 
 
+# design_range = unit.m_NM(1300.)
+# n_pax_ref = 240
+# ac.airframe.cabin.n_pax_front = 7
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 4
+# ac.power_system.reference_thrust = unit.N_kN(457.1)
+# ac.airframe.wing.area = 700
+# ac.weight_cg.mtow = 374290
+
+# design_range = unit.m_NM(1210.)
+# n_pax_ref = 300
+# ac.airframe.cabin.n_pax_front = 7
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 4
+# ac.power_system.reference_thrust = unit.N_kN(457.1)
+# ac.airframe.wing.area = 700
+# ac.weight_cg.mtow = 374290
+
+
+
+# design_range = unit.m_NM(3000.)
+# n_pax_ref = 240
+# ac.airframe.cabin.n_pax_front = 7
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.tank.width = 4
+# ac.power_system.reference_thrust = unit.N_kN(242.7)
+# ac.airframe.wing.area = 332.2
+# ac.weight_cg.mtow = 183212
+
+# design_range = unit.m_NM(2395.)
+# n_pax_ref = 300
+# ac.airframe.cabin.n_pax_front = 7
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.tank.width = 4
+# ac.power_system.reference_thrust = unit.N_kN(242.7)
+# ac.airframe.wing.area = 332.2
+# ac.weight_cg.mtow = 183212
+
+
 proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
-print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
-print("length/height = %0.2f" %(ac.airframe.body.length/ac.airframe.body.height) )
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------

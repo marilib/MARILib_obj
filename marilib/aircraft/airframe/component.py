@@ -303,10 +303,10 @@ class Nacelle(Component):
             nac_cle = np.stack([[nac_x+0.15*nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)    # Core leading edge
             nac_cte = np.stack([[nac_x+nac_length]*len(disk_yz) , disk_yz[:,0] , disk_yz[:,1]], axis=1)         # Core trailing edge
 
-        nac_toc = 0.15
+            wing_chord_loc = self.nacelle_wing_chord_loc
+            wing_chord = self.nacelle_wing_chord
 
-        wing_chord_loc = self.nacelle_wing_chord_loc
-        wing_chord = self.nacelle_wing_chord
+        nac_toc = 0.15
 
         if self.get_component_type() == "wing_nacelle":
             nac_s1le = [[nac_x+0.15*nac_length, nac_y, nac_z+0.5*nac_height],

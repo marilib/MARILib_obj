@@ -94,41 +94,11 @@ ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-# gravimetric index = 0.1
-# volumetric_index = 0.606
-# ac.airframe.tank.width = 3.5
-# n_pax_ref = 240
-# ac.airframe.cabin.n_pax_front = 7
-# design_range = unit.m_NM(1200.)
-# ac.power_system.reference_thrust = unit.N_kN(379.5)
-# ac.airframe.wing.area = 572
-# ac.weight_cg.mtow = 300953
-
-
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# ac.airframe.tank.width = 3.5
-# n_pax_ref = 240
-# ac.airframe.cabin.n_pax_front = 7
-# design_range = unit.m_NM(3000.)
-# ac.power_system.reference_thrust = unit.N_kN(251.1)
-# ac.airframe.wing.area = 338.3
-# ac.weight_cg.mtow = 184087
-
-# gravimetric index = 0.3
-# volumetric_index = 0.845
-# ac.airframe.tank.width = 3.5
-# n_pax_ref = 200
-# ac.airframe.cabin.n_pax_front = 6
-# design_range = unit.m_NM(3690.)
-# ac.power_system.reference_thrust = unit.N_kN(251.1)
-# ac.airframe.wing.area = 338.3
-# ac.weight_cg.mtow = 184087
-
 ac.power_system.reference_thrust = unit.N_kN(251.1)
+ac.airframe.wing.area = 338.3
+
 ac.airframe.wing.sweep25 = unit.rad_deg(32)
 ac.airframe.wing.aspect_ratio = 9.5
-ac.airframe.wing.area = 338.3
 
 ac.airframe.cabin.n_pax_front = 6
 
@@ -136,6 +106,38 @@ ac.airframe.tank.width = 4
 
 ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
+
+
+# design_range = unit.m_NM(1200.)
+# n_pax_ref = 240
+# ac.airframe.cabin.n_pax_front = 7
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 3.5
+# ac.power_system.reference_thrust = unit.N_kN(379.5)
+# ac.airframe.wing.area = 572
+# ac.weight_cg.mtow = 300953
+
+
+# design_range = unit.m_NM(3000.)
+# n_pax_ref = 240
+# ac.airframe.cabin.n_pax_front = 7
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.tank.width = 3.5
+# ac.power_system.reference_thrust = unit.N_kN(251.1)
+# ac.airframe.wing.area = 338.3
+# ac.weight_cg.mtow = 184087
+
+# design_range = unit.m_NM(3690.)
+# n_pax_ref = 200
+# ac.airframe.cabin.n_pax_front = 6
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.tank.width = 3.5
+# ac.power_system.reference_thrust = unit.N_kN(251.1)
+# ac.airframe.wing.area = 338.3
+# ac.weight_cg.mtow = 184087
 
 
 proc = "mda_plus"

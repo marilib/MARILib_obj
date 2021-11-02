@@ -38,6 +38,7 @@ design_range = unit.m_NM(1460.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
+# ac.weight_cg.mtow = 94292
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -99,50 +100,59 @@ ac.airframe.other_tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
 
 
-#design_range = unit.m_NM(850.)
-#n_pax_ref = 150
+# design_range = unit.m_NM(600.)
+# n_pax_ref = 150
 # ac.airframe.cabin.n_pax_front = 6
-#ac.airframe.tank.volumetric_index = 0.606
-#ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.other_tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.other_tank.volumetric_index = 0.606
 # ac.airframe.tank.width = 2.5
 # ac.airframe.other_tank.width = 2.5
-#ac.power_system.reference_thrust = unit.N_kN(133.4)
-#ac.airframe.wing.area = 176.6
-# ac.weight_cg.mtow = 91880
+# ac.power_system.reference_thrust = unit.N_kN(167.9)
+# ac.airframe.wing.area = 233.8
+# ac.weight_cg.mtow = 120711
 
-#design_range = unit.m_NM(1160.)
-#n_pax_ref = 114
+# design_range = unit.m_NM(490.)
+# n_pax_ref = 186
 # ac.airframe.cabin.n_pax_front = 6
-#ac.airframe.tank.volumetric_index = 0.606
-#ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.other_tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.other_tank.volumetric_index = 0.606
 # ac.airframe.tank.width = 2.5
 # ac.airframe.other_tank.width = 2.5
-#ac.power_system.reference_thrust = unit.N_kN(133.4)
-#ac.airframe.wing.area = 176.6
-# ac.weight_cg.mtow = 91880
+# ac.power_system.reference_thrust = unit.N_kN(167.9)
+# ac.airframe.wing.area = 233.8
+# ac.weight_cg.mtow = 120711
 
 
-#design_range = unit.m_NM(1900)
-#n_pax_ref = 150
+
+# design_range = unit.m_NM(1900)
+# n_pax_ref = 150
 # ac.airframe.cabin.n_pax_front = 6
-#ac.airframe.tank.volumetric_index = 0.845
-#ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.other_tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.other_tank.volumetric_index = 0.845
 # ac.airframe.tank.width = 3
 # ac.airframe.other_tank.width = 3
-#ac.power_system.reference_thrust = unit.N_kN(139.2)
-#ac.airframe.wing.area = 178.1
-# ac.weight_cg.mtow = 94256
+# ac.power_system.reference_thrust = unit.N_kN(139.3)
+# ac.airframe.wing.area = 178.15
+# ac.weight_cg.mtow = 94292
 
-#design_range = unit.m_NM(1460)
-#n_pax_ref = 186
+# design_range = unit.m_NM(1455)
+# n_pax_ref = 186
 # ac.airframe.cabin.n_pax_front = 6
-#ac.airframe.tank.volumetric_index = 0.845
-#ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.other_tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.other_tank.volumetric_index = 0.845
 # ac.airframe.tank.width = 3
 # ac.airframe.other_tank.width = 3
-#ac.power_system.reference_thrust = unit.N_kN(139.2)
-#ac.airframe.wing.area = 178.1
-# ac.weight_cg.mtow = 94256
+# ac.power_system.reference_thrust = unit.N_kN(139.3)
+# ac.airframe.wing.area = 178.15
+# ac.weight_cg.mtow = 94292
 
 
 
@@ -150,11 +160,10 @@ proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-# if proc=="mda":
-#     process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
-# elif proc=="mda_plus":
-#     process.mda_plus(ac)              # Run an MDA on the object (All internal constraints will be solved)
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
+# Configure optimization problem
+# ---------------------------------------------------------------------------------------------------------------------
 print("Max fuel range = ", "%.0f"%unit.NM_m(ac.performance.mission.max_fuel.range))
 print("Max fuel factor = ", "%.4f"%ac.airframe.tank.mfw_factor)
 print("length/height = %0.2f" %(ac.airframe.body.length/ac.airframe.body.height) )
