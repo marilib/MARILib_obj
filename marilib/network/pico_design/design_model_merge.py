@@ -119,15 +119,6 @@ class DDM(object):                  # Data Driven Modelling
         self.kvs1g_ld = 1.23
         self.tuner_app = [1.15, -6]
 
-        self.lod_low = [13, 1000]       # [lod, mtow]
-        self.lod_high = [20, 125000]    # [lod, mtow]
-
-        self.psfc_low = [unit.convert_from("lb/shp/h",0.65), unit.convert_from("kW",50)]     # here power is shaft power
-        self.psfc_high = [unit.convert_from("lb/shp/h",0.50), unit.convert_from("kW",500)]
-
-        self.tsfc_low = [unit.convert_from("kg/daN/h",0.65), unit.convert_from("MW",5)]     # Here, power is equivalent shaft power developped during take off as defined in the data base
-        self.tsfc_high = [unit.convert_from("kg/daN/h",0.52), unit.convert_from("MW",50)]
-
         self.fc_eff_low = [0.45, 1.0]     # Fuel cell efficiency at system level for design power (max power)
         self.fc_eff_high = [0.55, 0.1]    # Fuel cell efficiency at system level for low power (power close to zero)
 
@@ -174,19 +165,10 @@ class DDM(object):                  # Data Driven Modelling
 
     def get_lod(self, mtow):
         # pax_list = [10., 60., 260., 360.]
-        mtow_list = [4000., 25000., 200000., 350000.]
-        lod_list = [13., 15.,  20.,  21.]
-        lod = lin_interp_1d(npax, mtow_list, lod_list)
+        mtow_list = [4000., 25000., 200000., 500000.]
+        lod_list = [13., 15.,  19.,  20.]
+        lod = lin_interp_1d(mtow, mtow_list, lod_list)
         return lod
-
-
-    # def get_lod(self,mtow):
-    #     lod_min, mtow_min = self.lod_low
-    #     lod_max, mtow_max = self.lod_high
-    #     mtow_list = [0.     , mtow_min, mtow_max, np.inf]
-    #     lod_list =  [lod_min, lod_min , lod_max , lod_max]
-    #     lod = utils.lin_interp_1d(mtow, mtow_list, lod_list)
-    #     return lod
 
 
     def get_cl_max_to(self):
@@ -218,8 +200,6 @@ class DDM(object):                  # Data Driven Modelling
 
 
     def get_psfc(self,  max_power, fuel_type):
-        # pax_list = [10., 60., 260., 360.]
-        # mtow_list = [4000., 23000., 200000., 350000.]
         power_list = [10.e3, 50.e3, 500.e3, 80000.e3]
         sfc_list = unit.convert_from("lb/shp/h", [0.66, 0.65,  0.51,  0.50])
 
@@ -232,34 +212,15 @@ class DDM(object):                  # Data Driven Modelling
         else:
             raise Exception("fuel type is unknown")
 
-        psfc = ksfc * lin_interp_1d(npax, power_list, sfc_list)
+        psfc = ksfc * lin_interp_1d(max_power, power_list, sfc_list)
         return psfc, fhv
-
-
-    # def get_psfc(self, max_power, fuel_type):
-    #     psfc_max, pw_min = self.psfc_low
-    #     psfc_min, pw_max = self.psfc_high
-    #
-    #     if fuel_type==self.petrol:
-    #         fhv = self.petrol_heat
-    #     elif fuel_type in [self.gh2, self.lh2]:
-    #         fhv = self.hydrogen_heat
-    #         psfc_min *= self.petrol_heat/self.hydrogen_heat
-    #         psfc_max *= self.petrol_heat/self.hydrogen_heat
-    #     else:
-    #         raise Exception("fuel type is unknown")
-    #
-    #     mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
-    #     psfc_list = [psfc_max, psfc_max, psfc_min, psfc_min]
-    #     psfc = utils.lin_interp_1d(max_power, mxpw_list, psfc_list)
-    #     return psfc,fhv
 
 
     def get_tsfc(self,  max_power, fuel_type):
         # pax_list = [10., 60., 260., 360.]
-        # mtow_list = [4000., 23000., 200000., 350000.]
+        # mtow_list = [4000., 23000., 200000., 500000.]
         power_list = [500.e3, 5.e6, 50.e6, 100.e6]
-        sfc_list = unit.convert_from("kg/daN/h", [0.7, 0.65,  0.52,  0.50])
+        sfc_list = unit.convert_from("kg/daN/h", [0.7, 0.66,  0.56,  0.55])
 
         if fuel_type==self.petrol:
             fhv = self.petrol_heat
@@ -270,31 +231,8 @@ class DDM(object):                  # Data Driven Modelling
         else:
             raise Exception("fuel type is unknown")
 
-        tsfc = ksfc * lin_interp_1d(npax, power_list, sfc_list)
+        tsfc = ksfc * lin_interp_1d(max_power, power_list, sfc_list)
         return tsfc, fhv
-
-
-    # def get_tsfc(self, max_power, fuel_type):
-    #     tsfc_max, pw_min = self.tsfc_low
-    #     tsfc_min, pw_max = self.tsfc_high
-    #
-    #     if fuel_type==self.petrol:
-    #         fhv = self.petrol_heat
-    #     elif fuel_type==self.gh2:
-    #         fhv = self.hydrogen_heat
-    #         tsfc_min *= self.petrol_heat/self.hydrogen_heat
-    #         tsfc_max *= self.petrol_heat/self.hydrogen_heat
-    #     elif fuel_type==self.lh2:
-    #         fhv = self.hydrogen_heat
-    #         tsfc_min *= self.petrol_heat/self.hydrogen_heat
-    #         tsfc_max *= self.petrol_heat/self.hydrogen_heat
-    #     else:
-    #         raise Exception("fuel type is unknown")
-    #
-    #     mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
-    #     tsfc_list = [tsfc_max, tsfc_max, tsfc_min, tsfc_min]
-    #     tsfc = utils.lin_interp_1d(max_power, mxpw_list, tsfc_list)
-    #     return tsfc,fhv
 
 
     def get_fuel_cell_eff(self, pw, pw_max):
@@ -1008,10 +946,10 @@ if __name__ == '__main__':
 
     amp = {"mtow":5e5, "nominal_range":20e6}.get(var)
 
-    dict = draw_reg(df1, un1, abs, ord, [[0,amp],[0,amp]], coloration)
+    # dict = draw_reg(df1, un1, abs, ord, [[0,amp],[0,amp]], coloration)
 
-    # order = [1]
-    # dict_owe = do_regression(df1, un1, abs, ord, coloration, order)
+    order = [1]
+    dict_owe = do_regression(df1, un1, abs, ord, coloration, order)
 
 
     # # Airplane design analysis
