@@ -24,7 +24,7 @@ agmt = Arrangement(body_type = "fuselage",          # "fuselage" or "blended"
                    tank_architecture = "wing_box",  # "wing_box", "piggy_back" or "pods"
                    number_of_engine = "twin",       # "twin" or "quadri"
                    nacelle_attachment = "wing",     # "wing", "rear" or "pods"
-                   power_architecture = "tf0",       # "tf", "extf", "ef", "exef", "tp", "ep"
+                   power_architecture = "tf",       # "tf", "extf", "ef", "exef", "tp", "ep"
                    power_source = "fuel",           # "fuel", "battery", "fuel_cell"
                    fuel_type = "kerosene")          # "kerosene", "liquid_h2", "700bar_h2", "battery"
 
@@ -56,7 +56,7 @@ print(ac.airframe.cabin.m_furnishing)
 io = MarilibIO()  # instance of the input/output module
 io.to_json_file(ac,"best_airplane_ever")  # write human readable output to the file 'best_airplane_ever.json'
 # Load from existing file
-#fakecopy = io.from_json_file('best_airplane_ever')  # WARNING, from_json_file IS NOT an exact copy :
+fakecopy = io.from_json_file('best_airplane_ever')  # WARNING, from_json_file IS NOT an exact copy :
 
 # Save an exact copy of the current airplane
 io.to_binary_file(ac,'best_airplane_ever')  # write binary output to the file 'best_airplane_ever.pkl'
