@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import unit
 import utils
 
+from marilib.utils.math import lin_interp_1d
+
 from physical_data import PhysicalData
 
 from analyse_data import coloration, read_db, lin_lst_reg, draw_reg, subplots_by_varname,\
@@ -170,13 +172,21 @@ class DDM(object):                  # Data Driven Modelling
         return fac
 
 
-    def get_lod(self,mtow):
-        lod_min, mtow_min = self.lod_low
-        lod_max, mtow_max = self.lod_high
-        mtow_list = [0.     , mtow_min, mtow_max, np.inf]
-        lod_list =  [lod_min, lod_min , lod_max , lod_max]
-        lod = utils.lin_interp_1d(mtow, mtow_list, lod_list)
+    def get_lod(self, mtow):
+        # pax_list = [10., 60., 260., 360.]
+        mtow_list = [4000., 25000., 200000., 350000.]
+        lod_list = [13., 15.,  20.,  21.]
+        lod = lin_interp_1d(npax, mtow_list, lod_list)
         return lod
+
+
+    # def get_lod(self,mtow):
+    #     lod_min, mtow_min = self.lod_low
+    #     lod_max, mtow_max = self.lod_high
+    #     mtow_list = [0.     , mtow_min, mtow_max, np.inf]
+    #     lod_list =  [lod_min, lod_min , lod_max , lod_max]
+    #     lod = utils.lin_interp_1d(mtow, mtow_list, lod_list)
+    #     return lod
 
 
     def get_cl_max_to(self):
@@ -207,46 +217,84 @@ class DDM(object):                  # Data Driven Modelling
         return fhv
 
 
-    def get_psfc(self,max_power, fuel_type):
-        psfc_max, pw_min = self.psfc_low
-        psfc_min, pw_max = self.psfc_high
+    def get_psfc(self,  max_power, fuel_type):
+        # pax_list = [10., 60., 260., 360.]
+        # mtow_list = [4000., 23000., 200000., 350000.]
+        power_list = [10.e3, 50.e3, 500.e3, 80000.e3]
+        sfc_list = unit.convert_from("lb/shp/h", [0.66, 0.65,  0.51,  0.50])
 
         if fuel_type==self.petrol:
             fhv = self.petrol_heat
+            ksfc = 1
         elif fuel_type in [self.gh2, self.lh2]:
             fhv = self.hydrogen_heat
-            psfc_min *= self.petrol_heat/self.hydrogen_heat
-            psfc_max *= self.petrol_heat/self.hydrogen_heat
+            ksfc = self.petrol_heat/self.hydrogen_heat
         else:
             raise Exception("fuel type is unknown")
 
-        mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
-        psfc_list = [psfc_max, psfc_max, psfc_min, psfc_min]
-        psfc = utils.lin_interp_1d(max_power, mxpw_list, psfc_list)
-        return psfc,fhv
+        psfc = ksfc * lin_interp_1d(npax, power_list, sfc_list)
+        return psfc, fhv
 
 
-    def get_tsfc(self,max_power, fuel_type):
-        tsfc_max, pw_min = self.tsfc_low
-        tsfc_min, pw_max = self.tsfc_high
+    # def get_psfc(self, max_power, fuel_type):
+    #     psfc_max, pw_min = self.psfc_low
+    #     psfc_min, pw_max = self.psfc_high
+    #
+    #     if fuel_type==self.petrol:
+    #         fhv = self.petrol_heat
+    #     elif fuel_type in [self.gh2, self.lh2]:
+    #         fhv = self.hydrogen_heat
+    #         psfc_min *= self.petrol_heat/self.hydrogen_heat
+    #         psfc_max *= self.petrol_heat/self.hydrogen_heat
+    #     else:
+    #         raise Exception("fuel type is unknown")
+    #
+    #     mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
+    #     psfc_list = [psfc_max, psfc_max, psfc_min, psfc_min]
+    #     psfc = utils.lin_interp_1d(max_power, mxpw_list, psfc_list)
+    #     return psfc,fhv
+
+
+    def get_tsfc(self,  max_power, fuel_type):
+        # pax_list = [10., 60., 260., 360.]
+        # mtow_list = [4000., 23000., 200000., 350000.]
+        power_list = [500.e3, 5.e6, 50.e6, 100.e6]
+        sfc_list = unit.convert_from("kg/daN/h", [0.7, 0.65,  0.52,  0.50])
 
         if fuel_type==self.petrol:
             fhv = self.petrol_heat
-        elif fuel_type==self.gh2:
+            ksfc = 1
+        elif fuel_type in [self.gh2, self.lh2]:
             fhv = self.hydrogen_heat
-            tsfc_min *= self.petrol_heat/self.hydrogen_heat
-            tsfc_max *= self.petrol_heat/self.hydrogen_heat
-        elif fuel_type==self.lh2:
-            fhv = self.hydrogen_heat
-            tsfc_min *= self.petrol_heat/self.hydrogen_heat
-            tsfc_max *= self.petrol_heat/self.hydrogen_heat
+            ksfc = self.petrol_heat/self.hydrogen_heat
         else:
             raise Exception("fuel type is unknown")
 
-        mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
-        tsfc_list = [tsfc_max, tsfc_max, tsfc_min, tsfc_min]
-        tsfc = utils.lin_interp_1d(max_power, mxpw_list, tsfc_list)
-        return tsfc,fhv
+        tsfc = ksfc * lin_interp_1d(npax, power_list, sfc_list)
+        return tsfc, fhv
+
+
+    # def get_tsfc(self, max_power, fuel_type):
+    #     tsfc_max, pw_min = self.tsfc_low
+    #     tsfc_min, pw_max = self.tsfc_high
+    #
+    #     if fuel_type==self.petrol:
+    #         fhv = self.petrol_heat
+    #     elif fuel_type==self.gh2:
+    #         fhv = self.hydrogen_heat
+    #         tsfc_min *= self.petrol_heat/self.hydrogen_heat
+    #         tsfc_max *= self.petrol_heat/self.hydrogen_heat
+    #     elif fuel_type==self.lh2:
+    #         fhv = self.hydrogen_heat
+    #         tsfc_min *= self.petrol_heat/self.hydrogen_heat
+    #         tsfc_max *= self.petrol_heat/self.hydrogen_heat
+    #     else:
+    #         raise Exception("fuel type is unknown")
+    #
+    #     mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
+    #     tsfc_list = [tsfc_max, tsfc_max, tsfc_min, tsfc_min]
+    #     tsfc = utils.lin_interp_1d(max_power, mxpw_list, tsfc_list)
+    #     return tsfc,fhv
 
 
     def get_fuel_cell_eff(self, pw, pw_max):
@@ -900,8 +948,8 @@ if __name__ == '__main__':
 
     # # perform regressions
     # #-------------------------------------------------------------------------------------------------------------------
-    # abs = "MTOW"
-    # ord = "OWE"
+    # abs = "mtow"
+    # ord = "owe"
     #
     # # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
     # # df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
@@ -911,7 +959,7 @@ if __name__ == '__main__':
     # dict_owe = do_regression(df1, un1, abs, ord, coloration, order)
     #
     # #----------------------------------------------------------------------------------
-    # abs = "MTOW"
+    # abs = "mtow"
     # ord = "total_power"                           # Name of the new column
     #
     # df[ord] = df['max_power']*df['n_engine']      # Add the new column to the dataframe
@@ -939,6 +987,7 @@ if __name__ == '__main__':
     ord = "guessed_"+var
 
     for n in range(nap):
+        # print(df1["name"][n])
         npax = df1["n_pax"][n]
         distance = df1["nominal_range"][n]
         mtow = df1["mtow"][n]

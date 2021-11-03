@@ -148,7 +148,7 @@ DATA_DICT = {
     "z_loc_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Fraction of the component width behind the wing"},
     "span_ratio": {"unit":"no_dim", "mag":1e0, "txt":"Relative span wise position of the tank"},
     "width_rear": {"unit":"m", "mag":1e0, "txt":"Tank rear diameter for rear fuselage tank"},
-    "width_front": {"unit":"no_dim", "mag":1e0, "txt":"Tank front diameter for rear fuselage tank"},
+    "width": {"unit":"no_dim", "mag":1e0, "txt":"Tank front diameter for rear fuselage tank"},
     "airplane_side": {"unit":"string", "mag":5, "txt":"mounting side of the component, 'right' or 'left'"},
     "n_engine": {"unit":"int", "mag":1e0, "txt":"Numeric number of engine"},
     "reference_thrust": {"unit":"daN", "mag":1e5, "txt":"Engine reference thrust, thrust(sea level, ISA+15, Mach 0.25)/0.8"},

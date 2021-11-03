@@ -2025,7 +2025,7 @@ class TankRearFuselage(Tank):
         self.width_rear_factor = aircraft.get_init(self,"width_rear_factor")
 
         self.width_rear = None
-        self.width_front = None
+        self.width = None
 
         self.fuel_pressure = aircraft.get_init(self,"fuel_pressure", val=self.fuel_over_pressure(aircraft))
         self.fuel_density = None
@@ -2069,11 +2069,11 @@ class TankRearFuselage(Tank):
 
         # x is the fraction of tank length which is in the fuselage cone
         x = self.length/((body_tail_cone_ratio-body_rear_bulkhead_ratio)*body_width)
-        self.width_front = min(1.,self.width_rear_factor+(1.-self.width_rear_factor)*x)*(body_width-2.*body_wall_thickness)
+        self.width = min(1.,self.width_rear_factor+(1.-self.width_rear_factor)*x)*(body_width-2.*body_wall_thickness)
         self.width_rear = self.width_rear_factor*(body_width-2.*body_wall_thickness)
 
-        self.gross_cylindric_volume = 0.9 * (1/4)*np.pi*lcyl*self.width_front**2
-        self.gross_cone_volume = 0.9 * (1/12)*np.pi*(self.length-lcyl)*(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2)
+        self.gross_cylindric_volume = 0.9 * (1/4)*np.pi*lcyl*self.width**2
+        self.gross_cone_volume = 0.9 * (1/12)*np.pi*(self.length-lcyl)*(self.width**2+self.width*self.width_rear+self.width_rear**2)
         self.gross_volume = self.gross_cylindric_volume + self.gross_cone_volume
 
         x_axe = body_loc[0] + body_length - body_tail_cone_ratio*body_width - self.length
@@ -2121,7 +2121,7 @@ class TankRearFuselage(Tank):
         self.mass = self.shell_specific_mass
 
         lcyl = max(0.,self.length - body_width*(body_tail_cone_ratio-body_rear_bulkhead_ratio))
-        V = (1./12.)*self.length*np.sqrt(self.width_front**2+self.width_front*self.width_rear+self.width_rear**2)   # Tank conic part
+        V = (1./12.)*self.length*np.sqrt(self.width**2+self.width*self.width_rear+self.width_rear**2)   # Tank conic part
         v = (1./12.)*self.length*np.sqrt(self.width_rear**2)                                                        # Un-used tail part
         self.cg = self.frame_origin[0] + 0.5*lcyl + 0.25*self.length*(1.+body_rear_bulkhead_ratio*body_width/self.length-3.*v/V)
 

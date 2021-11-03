@@ -34,6 +34,9 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A350-900"
+ga_type = "reference"
+case_type = "opt"
+
 n_pax_ref = 310
 design_range = unit.m_NM(7300.)
 cruise_mach = 0.85
@@ -139,14 +142,16 @@ opt = process.Optimizer()
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
 io = MarilibIO()
-json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
+folder = "../files/"
+file_name = airplane_type+"_"+ga_type+"_"+case_type
+json = io.to_json_file(ac, folder+file_name)                # Write all output data into a json readable format
 # dico = io.from_string(json)
 
-io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
-# ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
+io.to_binary_file(ac,'aircraft_binary_object')              # Write the complete Aircraft object into a binary file
+# ac2 = io.from_binary_file('test.pkl')                     # Read the complete Aircraft object from a file
 
-ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
+ac.draw.view_3d(file_name, folder=folder)    # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")           # Draw a payload range diagram
 
 
 # Configure design space exploration

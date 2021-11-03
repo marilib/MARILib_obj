@@ -34,6 +34,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A350-900"
+ga_type = "rear_tank"
+
 n_pax_ref = 90
 design_range = unit.m_NM(5500.)
 cruise_mach = 0.85
@@ -105,6 +107,7 @@ ac.airframe.tank.mfw_factor = 1
 
 # design_range = unit.m_NM(1000.)
 # n_pax_ref = 240
+# case_type = "max_range_soa"
 # ac.airframe.cabin.n_pax_front = 8
 # ac.airframe.tank.gravimetric_index = 0.1
 # ac.airframe.tank.volumetric_index = 0.606
@@ -116,6 +119,7 @@ ac.airframe.tank.mfw_factor = 1
 
 # design_range = unit.m_NM(5000.)
 # n_pax_ref = 120
+# case_type = "max_range_2030"
 # ac.airframe.cabin.n_pax_front = 10
 # ac.airframe.tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
@@ -126,6 +130,7 @@ ac.airframe.tank.mfw_factor = 1
 
 # design_range = unit.m_NM(5750.)
 # n_pax_ref = 90
+# case_type = "pax_range_trade_2030"
 # ac.airframe.cabin.n_pax_front = 10
 # ac.airframe.tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
@@ -140,6 +145,7 @@ proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -184,14 +190,16 @@ opt = process.Optimizer()
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
 io = MarilibIO()
-json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
+folder = "../files/"
+file_name = airplane_type+"_"+ga_type+"_"+case_type
+json = io.to_json_file(ac, folder+file_name)                # Write all output data into a json readable format
 # dico = io.from_string(json)
 
-io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
-# ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
+io.to_binary_file(ac,'aircraft_binary_object')              # Write the complete Aircraft object into a binary file
+# ac2 = io.from_binary_file('test.pkl')                     # Read the complete Aircraft object from a file
 
-ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
+ac.draw.view_3d(file_name, folder=folder)    # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")           # Draw a payload range diagram
 
 
 # Configure design space exploration

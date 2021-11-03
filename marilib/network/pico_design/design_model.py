@@ -63,6 +63,7 @@ class Aircraft(object):
         This ratio is related to the capacity segment of the aircraft so,
         it is computed according to the number of passenger
         """
+        mtow_list = [4000., 23000., 200000., 350000.]
         pax_list = [10., 60., 260., 360.]
         lod_list = [13., 15.,  21.,  21.]
         sfc_list = unit.convert_from("kg/daN/h", [0.7, 0.60,  0.54,  0.54])

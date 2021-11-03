@@ -222,7 +222,7 @@ class Drawing(object):
         return component
 
 
-    def view_3d(self, window_title):
+    def view_3d(self, window_title, folder=None):
         """
         Build a 3 views drawing of the airplane
         """
@@ -232,7 +232,7 @@ class Drawing(object):
         #-----------------------------------------------------------------------------------------------------------
         fig,axes = plt.subplots(1,1)
         fig.canvas.set_window_title(window_title)
-        fig.suptitle(plot_title, fontsize=14)
+        fig.suptitle(window_title, fontsize=14)
         axes.set_aspect('equal', 'box')
         plt.plot(np.array([0,100,100,0,0]), np.array([0,0,100,100,0]))      # Draw a square box of 100m side
 
@@ -316,6 +316,9 @@ class Drawing(object):
                     plt.plot(ref[view][0]+nacelle[view][0:,0], ref[view][1]+nacelle[view][0:,1], color="grey", zorder=znac[typ][view])     # draw contour
                 # plt.fill(ref[view][0]+nacelle["disk"][0:,0], ref["disk"][1]+nacelle[view][0:,1], color="white", zorder=znac[typ]["yz"])    # draw mask
                 plt.plot(ref["yz"][0]+nacelle["disk"][0:,0], ref["yz"][1]+nacelle["disk"][0:,1], color="grey", zorder=znac[typ]["yz"])     # draw contour
+
+        if folder!=None:
+            plt.savefig(folder+window_title+".pdf")
 
         plt.show()
         return

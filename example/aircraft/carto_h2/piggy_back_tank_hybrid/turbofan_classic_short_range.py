@@ -23,25 +23,23 @@ from marilib.aircraft.step_mission import StepMission
 agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
-                   stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "pods",      # "wing_box", "rear", "piggy_back" or "pods"
+                   stab_architecture = "h_tail",    # "classic", "t_tail" or "h_tail"
+                   tank_architecture = "piggy_back",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
-                   power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
+                   power_architecture = "pte",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "liquid_h2")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
-airplane_type = "A330-800"
-ga_type = "pod_tank"
-
-n_pax_ref = 200
-design_range = unit.m_NM(3440.)
-cruise_mach = 0.82
+airplane_type = "A220-100_rear_tank"
+n_pax_ref = 135
+design_range = unit.m_NM(990.)
+cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 207628
+# ac.weight_cg.mtow = 85470
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -57,15 +55,18 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 
 # Operational requirements
 #-----------------------------------------------------------------------------------------------------------------------
+# Max fuel mission
+ac.requirement.max_fuel_range_factor = 1.25
+
 # Take off
 ac.requirement.take_off.altp = 0
 ac.requirement.take_off.disa = 15
-ac.requirement.take_off.tofl_req = 3200
+ac.requirement.take_off.tofl_req = 2000
 
 # Approach
 ac.requirement.approach.altp = 0
 ac.requirement.approach.disa = 0
-ac.requirement.approach.app_speed_req = unit.mps_kt(140)
+ac.requirement.approach.app_speed_req = unit.mps_kt(135)
 
 # Climb
 ac.requirement.mcl_ceiling.altp = cruise_altp
@@ -96,94 +97,72 @@ ac.airframe.tank.gravimetric_index = 0.3
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-ac.power_system.reference_thrust = unit.N_kN(284.5)
-ac.airframe.wing.area = 385.2
+ac.power_system.reference_thrust = unit.N_kN(133.5)
+ac.airframe.wing.area = 165.9
 
-ac.airframe.wing.sweep25 = unit.rad_deg(30)
-ac.airframe.wing.aspect_ratio = 10
+ac.airframe.wing.aspect_ratio = 11
 
-ac.airframe.cabin.n_pax_front = 7
+ac.airframe.tank.width = 3
 
-ac.airframe.tank.width = 3.5
-ac.airframe.other_tank.width = 3.5
-
-ac.airframe.tank.ref_length = 15
-ac.airframe.other_tank.ref_length = 15
+ac.airframe.tank.ref_length = 14
 ac.airframe.tank.mfw_factor = 1
 
 
-# design_range = unit.m_NM(600.)
-# n_pax_ref = 240
-# case_type = "ref_600NM_soa"
-# ac.airframe.cabin.n_pax_front = 8
+# design_range = unit.m_NM(990.)
+# n_pax_ref = 135
+# ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.gravimetric_index = 0.1
-# ac.airframe.other_tank.gravimetric_index = 0.1
 # ac.airframe.tank.volumetric_index = 0.606
-# ac.airframe.other_tank.volumetric_index = 0.606
-# ac.airframe.tank.width = 3.5
-# ac.airframe.other_tank.width = 3.5
-# ac.power_system.reference_thrust = unit.N_kN(242.8)
-# ac.airframe.wing.area = 345.6
-# ac.weight_cg.mtow = 181548
+# ac.airframe.tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(225.9)
+# ac.airframe.wing.area = 290
+# ac.weight_cg.mtow = 146825
 
-# design_range = unit.m_NM(745.)
-# n_pax_ref = 200
-# case_type = "pax_range_trade_soa"
-# ac.airframe.cabin.n_pax_front = 8
+# design_range = unit.m_NM(870.)
+# n_pax_ref = 171
+# ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.gravimetric_index = 0.1
-# ac.airframe.other_tank.gravimetric_index = 0.1
 # ac.airframe.tank.volumetric_index = 0.606
-# ac.airframe.other_tank.volumetric_index = 0.606
-# ac.airframe.tank.width = 3.5
-# ac.airframe.other_tank.width = 3.5
-# ac.power_system.reference_thrust = unit.N_kN(242.8)
-# ac.airframe.wing.area = 345.6
-# ac.weight_cg.mtow = 181548
+# ac.airframe.tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(225.9)
+# ac.airframe.wing.area = 290
+# ac.weight_cg.mtow = 146825
 
 
 
-# design_range = unit.m_NM(3000.)
-# n_pax_ref = 240
-# case_type = "max_range_2030"
-# ac.airframe.cabin.n_pax_front = 7
+
+# design_range = unit.m_NM(2100.)
+# n_pax_ref = 135
+# ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.gravimetric_index = 0.3
-# ac.airframe.other_tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
-# ac.airframe.other_tank.volumetric_index = 0.845
-# ac.airframe.tank.width = 4
-# ac.airframe.other_tank.width = 4
-# ac.power_system.reference_thrust = unit.N_kN(277.2)
-# ac.airframe.wing.area = 375.3
-# ac.weight_cg.mtow = 207628
+# ac.airframe.tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(133.5)
+# ac.airframe.wing.area = 165.9
+# ac.weight_cg.mtow = 85470
 
-# design_range = unit.m_NM(3440.)
-# n_pax_ref = 200
-# case_type = "pax_range_trade_2030"
-# ac.airframe.cabin.n_pax_front = 7
+# design_range = unit.m_NM(1570.)
+# n_pax_ref = 171
+# ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.gravimetric_index = 0.3
-# ac.airframe.other_tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
-# ac.airframe.other_tank.volumetric_index = 0.845
-# ac.airframe.tank.width = 4
-# ac.airframe.other_tank.width = 4
-# ac.power_system.reference_thrust = unit.N_kN(277.2)
-# ac.airframe.wing.area = 375.3
-# ac.weight_cg.mtow = 207628
-
+# ac.airframe.tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(133.5)
+# ac.airframe.wing.area = 165.9
+# ac.weight_cg.mtow = 85470
 
 proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(100.), unit.N_kN(1000.)],       # Design space area where to look for an optimum solution
-           [200., 1000.]]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(300.)],       # Design space area where to look for an optimum solution
+           [100., 400.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -210,7 +189,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
+# opt.mdf(ac, var,var_bnd, cst[0:-2],cst_mag[0:-2], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
@@ -220,22 +199,20 @@ opt = process.Optimizer()
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
 io = MarilibIO()
-folder = "../files/"
-file_name = airplane_type+"_"+ga_type+"_"+case_type
-json = io.to_json_file(ac, folder+file_name)                # Write all output data into a json readable format
+json = io.to_json_file(ac,'aircraft_output_data')      # Write all output data into a json readable format
 # dico = io.from_string(json)
 
-io.to_binary_file(ac,'aircraft_binary_object')              # Write the complete Aircraft object into a binary file
-# ac2 = io.from_binary_file('test.pkl')                     # Read the complete Aircraft object from a file
+io.to_binary_file(ac,'aircraft_binary_object')          # Write the complete Aircraft object into a binary file
+# ac2 = io.from_binary_file('test.pkl')                 # Read the complete Aircraft object from a file
 
-ac.draw.view_3d(file_name, folder=folder)    # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")           # Draw a payload range diagram
+ac.draw.view_3d("This_plane")                           # Draw a 3D view diagram
+ac.draw.payload_range("This_plot")                      # Draw a payload range diagram
 
 
 # Configure design space exploration
 # ---------------------------------------------------------------------------------------------------------------------
-step = [0.1,
-        0.1]    # Relative grid step
+step = [0.05,
+        0.05]    # Relative grid step
 
 data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
         ["Wing_area", "m2", "%8.1f", var[1]],
@@ -280,4 +257,5 @@ limit = [ac.requirement.take_off.tofl_req,
          ac.requirement.max_body_aspect_ratio]              # Limit values
 
 process.draw_design_space(file, res, other, field, const, color, limit, bound) # Used stored result to build a graph of the design space
+
 
