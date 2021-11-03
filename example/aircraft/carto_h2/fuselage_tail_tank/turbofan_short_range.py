@@ -24,9 +24,9 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "pods",   # "wing_box", "rear", "piggy_back" or "pods"
+                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
-                   nacelle_attachment = "pods",      # "wing", "rear" or "pods"
+                   nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
                    power_source = "fuel",            # "fuel", "battery", "fuel_cell"
                    fuel_type = "liquid_h2")           # "kerosene", "liquid_h2", "Compressed_h2", "battery"
@@ -34,14 +34,13 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 # Design parameters
 #-----------------------------------------------------------------------------------------------------------------------
 airplane_type = "A220-100"
-ga_type = "pod_tank"
+ga_type = "rear_tank"
 
-n_pax_ref = 171
-design_range = unit.m_NM(1580.)
+n_pax_ref = 135
+design_range = unit.m_NM(990.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 86917
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -99,90 +98,83 @@ ac.airframe.tank.gravimetric_index = 0.1
 
 # Design variables
 #-----------------------------------------------------------------------------------------------------------------------
-ac.power_system.reference_thrust = unit.N_kN(148.2)
-ac.airframe.wing.area = 189.6
+ac.power_system.reference_thrust = unit.N_kN(133.5)
+ac.airframe.wing.area = 167.4
 
 ac.airframe.wing.aspect_ratio = 11
 
-ac.airframe.tank.width = 2.5
-ac.airframe.other_tank.width = 2.5
-
-ac.airframe.tank.ref_length = 14
-ac.airframe.other_tank.ref_length = 14
+ac.airframe.tank.ref_length = 15
 ac.airframe.tank.mfw_factor = 1
 
 
+# design_range = unit.m_NM(990.)
+# n_pax_ref = 135
+case_type = "max_range_soa"
+ac.airframe.cabin.n_pax_front = 6
+ac.airframe.tank.gravimetric_index = 0.1
+ac.airframe.tank.volumetric_index = 0.606
+ac.power_system.reference_thrust = unit.N_kN(215)
+ac.airframe.wing.area = 276.9
+ac.weight_cg.mtow = 139888
+# fuselage ratio = 13.3  (limite à 13.4)
+
+# design_range = unit.m_NM(1130.)
+# n_pax_ref = 99
+# case_type = "pax_range_trade_soa"
+# ac.airframe.cabin.n_pax_front = 6
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.power_system.reference_thrust = unit.N_kN(215)
+# ac.airframe.wing.area = 276.9
+# ac.weight_cg.mtow = 139888
+# fuselage ratio = 13.3  (limite à 13.4)
 
 # design_range = unit.m_NM(600.)
 # n_pax_ref = 135
 # case_type = "ref_600NM_soa"
-# ac.airframe.cabin.n_pax_front = 5
+# ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.gravimetric_index = 0.1
-# ac.airframe.other_tank.gravimetric_index = 0.1
 # ac.airframe.tank.volumetric_index = 0.606
-# ac.airframe.other_tank.volumetric_index = 0.606
-# ac.airframe.tank.width = 2.5
-# ac.airframe.other_tank.width = 2.5
-# ac.power_system.reference_thrust = unit.N_kN(157.1)
-# ac.airframe.wing.area = 206.3
-# ac.weight_cg.mtow = 103340
-
-# design_range = unit.m_NM(465.)
-# n_pax_ref = 171
-# case_type = "pax_range_trade_soa"
-# ac.airframe.cabin.n_pax_front = 5
-# ac.airframe.tank.gravimetric_index = 0.1
-# ac.airframe.other_tank.gravimetric_index = 0.1
-# ac.airframe.tank.volumetric_index = 0.606
-# ac.airframe.other_tank.volumetric_index = 0.606
-# ac.airframe.tank.width = 2.5
-# ac.airframe.other_tank.width = 2.5
-# ac.power_system.reference_thrust = unit.N_kN(157.1)
-# ac.airframe.wing.area = 206.3
-# ac.weight_cg.mtow = 103340
-
+# ac.power_system.reference_thrust = unit.N_kN(139.8)
+# ac.airframe.wing.area = 183.5
+# ac.weight_cg.mtow = 91814
+# fuselage ratio = 11.3  (limite à 13.4)
 
 
 
 # design_range = unit.m_NM(2100.)
 # n_pax_ref = 135
 # case_type = "req_range_2030"
-# ac.airframe.cabin.n_pax_front = 5
+# ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.gravimetric_index = 0.3
-# ac.airframe.other_tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
-# ac.airframe.other_tank.volumetric_index = 0.845
-# ac.airframe.tank.width = 3
-# ac.airframe.other_tank.width = 3
-# ac.power_system.reference_thrust = unit.N_kN(134.9)
-# ac.airframe.wing.area = 169.1
-# ac.weight_cg.mtow = 86917
+# ac.power_system.reference_thrust = unit.N_kN(133.5)
+# ac.airframe.wing.area = 167.4
+# ac.weight_cg.mtow = 85797
+# fuselage ratio = 12.9  (limite à 13.4)
 
-# design_range = unit.m_NM(1580.)
-# n_pax_ref = 171
+# design_range = unit.m_NM(2730.)
+# n_pax_ref = 99
 # case_type = "pax_range_trade_2030"
-# ac.airframe.cabin.n_pax_front = 5
+# ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.gravimetric_index = 0.3
-# ac.airframe.other_tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
-# ac.airframe.other_tank.volumetric_index = 0.845
-# ac.airframe.tank.width = 3
-# ac.airframe.other_tank.width = 3
-# ac.power_system.reference_thrust = unit.N_kN(134.9)
-# ac.airframe.wing.area = 169.1
-# ac.weight_cg.mtow = 86917
-
+# ac.power_system.reference_thrust = unit.N_kN(133.5)
+# ac.airframe.wing.area = 167.4
+# ac.weight_cg.mtow = 85797
+# fuselage ratio = 12.9  (limite à 13.4)
 
 proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
+
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(500.)],       # Design space area where to look for an optimum solution
+var_bnd = [[unit.N_kN(80.), unit.N_kN(300.)],       # Design space area where to look for an optimum solution
            [100., 400.]]
 
 # Operational constraints definition
