@@ -144,7 +144,7 @@ dmypy.json
 .pyre/
 
 # JSON files
-*.json
+#*.json
 
 # text files
 *.txt

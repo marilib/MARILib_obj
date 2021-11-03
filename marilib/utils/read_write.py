@@ -120,6 +120,10 @@ class MarilibIO(object):
             pass  # There was no aircraft entry => nothing to do
 
         for key,value in json_dict.items():
+            test = False
+            if key == "cantilever_gross_volume":
+                test = True
+
             if key in self.datadict.keys():  # if entry found in DATA_DICT, add units and docstring
                 try:
                     unit = self.datadict[key]['unit']
@@ -127,12 +131,16 @@ class MarilibIO(object):
                     json_dict[key] = [convert_to(unit, value), unit, text]
                 except KeyError:
                     json_dict[key] = [value, f"WARNING: conversion to ({unit}) failed. {text}"]
-                    print("WARNING : unknwon unit "+str(unit))
-            elif key == "name":
+                    print("WARNING : unknown unit "+str(unit))
+
+            elif key == "name": # skip this key
+                if test:
+                    print("found in data_dict")
                 pass
-            # TODO : check that the key is in DATA_DICT
-            elif type(value) in (int,float,bool,str,list,tuple): # if not a dict, should be in the data_dict
+
+            elif type(value) in (int,float,bool,str,list,tuple,np.float64): # if not a dict, should be in the data_dict
                 print("Salut Thierry, tu as oublie de mettre a jour le DATA_DICT: %s n'existe pas !" %key)
+
 
         return json_dict
 
@@ -186,7 +194,7 @@ class MarilibIO(object):
 
                     aircraft1 =  Aircraft()
                     io = MarilibIO()
-                    io.to_json_file("my_plane")
+                    io.to_json_file(aircraft1,"my_plane")
                     aircraft2 = io.from_json_file("my_plane")
 
         :param filename: the file to parse
@@ -199,9 +207,9 @@ class MarilibIO(object):
 
         """
         try:  # Add .json extension if necessary
-            last_point_position = filename.rindex(r'\.')
+            last_point_position = filename.rindex(r'.')
             filename = filename[:last_point_position]+".json"
-        except ValueError:  # dot pattern not found
+        except ValueError as err:  # dot pattern not found
             filename = filename + ".json"
 
         with open(filename, 'r') as f:
@@ -282,5 +290,5 @@ class MyDict(dict):
                 print("WARNING in MyDict: %s is 'None'" %key)
                 self.__dict__[key] = None
             else:
-                raise AttributeError("Unknown type, should be list or dict but type of %s is %s" % (key, type(val)))
+                raise AttributeError("Unknown type, should be list or dict but type of %s is %s. It is probably not well defined in the DATA_DICT." % (key, type(val)))
 
