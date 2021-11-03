@@ -127,7 +127,7 @@ class MarilibIO(object):
                     json_dict[key] = [convert_to(unit, value), unit, text]
                 except KeyError:
                     json_dict[key] = [value, f"WARNING: conversion to ({unit}) failed. {text}"]
-                    print("WARNING : unknwon unit "+str(unit))
+                    print("WARNING : unknown unit "+str(unit))
             elif key == "name":
                 pass
             # TODO : check that the key is in DATA_DICT
@@ -186,7 +186,7 @@ class MarilibIO(object):
 
                     aircraft1 =  Aircraft()
                     io = MarilibIO()
-                    io.to_json_file("my_plane")
+                    io.to_json_file(aircraft1,"my_plane")
                     aircraft2 = io.from_json_file("my_plane")
 
         :param filename: the file to parse
@@ -199,9 +199,10 @@ class MarilibIO(object):
 
         """
         try:  # Add .json extension if necessary
-            last_point_position = filename.rindex(r'\.')
+            last_point_position = filename.rindex(r'.')
             filename = filename[:last_point_position]+".json"
-        except ValueError:  # dot pattern not found
+        except ValueError as err:  # dot pattern not found
+            print(err)
             filename = filename + ".json"
 
         with open(filename, 'r') as f:
