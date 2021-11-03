@@ -768,7 +768,7 @@ class Wing(Component):
         self.front_spar_ratio = aircraft.get_init(self,"front_spar_ratio")
         self.rear_spar_ratio = aircraft.get_init(self,"rear_spar_ratio")
 
-        self.x_rout = None      # Design variable for hq_optim
+        self.x_root = None      # Design variable for hq_optim
 
         self.root_loc = np.full(3,None)     # Position of root chord leading edge
         self.root_toc = None                # thickness over chord ratio of root chord

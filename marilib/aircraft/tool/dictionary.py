@@ -108,6 +108,7 @@ DATA_DICT = {
     "axe_loc": {"unit":"m", "mag":1e1, "txt":"Position of the central chord of the lifting surface"},
     "axe_toc": {"unit":"no_dim", "mag":1e0, "txt":"Thickness to chord ratio of the central chord of the lifting surface"},
     "axe_c": {"unit":"m", "mag":1e1, "txt":"Central chord length of the lifting surface"},
+    "x_root": {"unit":"m", "mag":1e1, "txt":"X wise position of the root chord of the wing"},
     "root_loc": {"unit":"m", "mag":1e1, "txt":"Position of the root chord of the lifting surface"},
     "root_toc": {"unit":"no_dim", "mag":1e0, "txt":"Thickness to chord ratio of the root chord of the lifting surface"},
     "root_c": {"unit":"m", "mag":1e1, "txt":"Root chord length of the lifting surface"},
