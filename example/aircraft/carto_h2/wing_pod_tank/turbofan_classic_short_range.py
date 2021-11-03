@@ -37,11 +37,11 @@ airplane_type = "A220-100"
 ga_type = "pod_tank"
 
 n_pax_ref = 171
-design_range = unit.m_NM(485.)
+design_range = unit.m_NM(1580.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 95613
+# ac.weight_cg.mtow = 86917
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -115,19 +115,19 @@ ac.airframe.tank.mfw_factor = 1
 
 # design_range = unit.m_NM(600.)
 # n_pax_ref = 135
-case_type = "ref_600NM_soa"
-ac.airframe.cabin.n_pax_front = 5
-ac.airframe.tank.gravimetric_index = 0.1
-ac.airframe.other_tank.gravimetric_index = 0.1
-ac.airframe.tank.volumetric_index = 0.606
-ac.airframe.other_tank.volumetric_index = 0.606
-ac.airframe.tank.width = 2.5
-ac.airframe.other_tank.width = 2.5
-ac.power_system.reference_thrust = unit.N_kN(176.6)
-ac.airframe.wing.area = 230.7
-ac.weight_cg.mtow = 115700
+# case_type = "ref_600NM_soa"
+# ac.airframe.cabin.n_pax_front = 5
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.other_tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.other_tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 2.5
+# ac.airframe.other_tank.width = 2.5
+# ac.power_system.reference_thrust = unit.N_kN(157.1)
+# ac.airframe.wing.area = 206.3
+# ac.weight_cg.mtow = 103340
 
-# design_range = unit.m_NM(485.)
+# design_range = unit.m_NM(465.)
 # n_pax_ref = 171
 # case_type = "pax_range_trade_soa"
 # ac.airframe.cabin.n_pax_front = 5
@@ -137,9 +137,9 @@ ac.weight_cg.mtow = 115700
 # ac.airframe.other_tank.volumetric_index = 0.606
 # ac.airframe.tank.width = 2.5
 # ac.airframe.other_tank.width = 2.5
-# ac.power_system.reference_thrust = unit.N_kN(176.6)
-# ac.airframe.wing.area = 230.7
-# ac.weight_cg.mtow = 115700
+# ac.power_system.reference_thrust = unit.N_kN(157.1)
+# ac.airframe.wing.area = 206.3
+# ac.weight_cg.mtow = 103340
 
 
 
@@ -147,44 +147,42 @@ ac.weight_cg.mtow = 115700
 # design_range = unit.m_NM(2100.)
 # n_pax_ref = 135
 # case_type = "req_range_2030"
-# ac.airframe.cabin.n_pax_front = 6
+# ac.airframe.cabin.n_pax_front = 5
 # ac.airframe.tank.gravimetric_index = 0.3
 # ac.airframe.other_tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
 # ac.airframe.other_tank.volumetric_index = 0.845
 # ac.airframe.tank.width = 3
 # ac.airframe.other_tank.width = 3
-# ac.power_system.reference_thrust = unit.N_kN(149.7)
-# ac.airframe.wing.area = 185.1
-# ac.weight_cg.mtow = 95613
+# ac.power_system.reference_thrust = unit.N_kN(134.9)
+# ac.airframe.wing.area = 169.1
+# ac.weight_cg.mtow = 86917
 
-# design_range = unit.m_NM(1645.)
+# design_range = unit.m_NM(1580.)
 # n_pax_ref = 171
 # case_type = "pax_range_trade_2030"
-# ac.airframe.cabin.n_pax_front = 6
+# ac.airframe.cabin.n_pax_front = 5
 # ac.airframe.tank.gravimetric_index = 0.3
 # ac.airframe.other_tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
 # ac.airframe.other_tank.volumetric_index = 0.845
 # ac.airframe.tank.width = 3
 # ac.airframe.other_tank.width = 3
-# ac.power_system.reference_thrust = unit.N_kN(149.7)
-# ac.airframe.wing.area = 185.1
-# ac.weight_cg.mtow = 95613
+# ac.power_system.reference_thrust = unit.N_kN(134.9)
+# ac.airframe.wing.area = 169.1
+# ac.weight_cg.mtow = 86917
 
 
 proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
-
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(300.)],       # Design space area where to look for an optimum solution
+var_bnd = [[unit.N_kN(80.), unit.N_kN(500.)],       # Design space area where to look for an optimum solution
            [100., 400.]]
 
 # Operational constraints definition
@@ -218,6 +216,7 @@ opt = process.Optimizer()
 # algo_points = opt.computed_points
 # algo_points = None
 
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
