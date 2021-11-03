@@ -438,7 +438,6 @@ class SemiEmpiricTfNacelle(object):
         self.core_thrust_ratio = aircraft.get_init(class_name,"core_thrust_ratio")
         self.propeller_efficiency = aircraft.get_init(class_name,"propeller_efficiency")
         self.fan_efficiency = aircraft.get_init(class_name,"fan_efficiency")
-        self.delta_air_speed = None
 
         self.lateral_margin = aircraft.get_init(class_name,"lateral_margin")
         self.vertical_margin = aircraft.get_init(class_name,"vertical_margin")
