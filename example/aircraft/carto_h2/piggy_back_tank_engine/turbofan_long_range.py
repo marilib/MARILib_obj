@@ -37,7 +37,7 @@ airplane_type = "A330-800"
 ga_type = "engined_piggyback_tank"
 
 n_pax_ref = 300
-design_range = unit.m_NM(2340.)
+design_range = unit.m_NM(2325.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 
@@ -148,7 +148,7 @@ ac.airframe.tank.mfw_factor = 1
 # ac.airframe.wing.area = 308.15
 # ac.weight_cg.mtow = 168586
 
-# design_range = unit.m_NM(2340.)
+# design_range = unit.m_NM(2325.)
 # n_pax_ref = 300
 # case_type = "pax_range_trade_2030"
 # ac.airframe.cabin.n_pax_front = 7
@@ -164,7 +164,6 @@ proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -205,6 +204,7 @@ opt = process.Optimizer()
 # algo_points = opt.computed_points
 # algo_points = None
 
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------

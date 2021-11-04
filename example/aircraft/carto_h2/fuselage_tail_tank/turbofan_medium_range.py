@@ -36,7 +36,7 @@ ga_type = "rear_tank"
 
 n_pax_ref = 114
 #design_range = unit.m_NM(3000.)
-design_range = unit.m_NM(1900.)
+design_range = unit.m_NM(2490.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 

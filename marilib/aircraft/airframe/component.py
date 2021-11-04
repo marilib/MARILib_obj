@@ -370,12 +370,12 @@ class Pod(Component):
 
         self.dry_bay_length = None
 
-        self.external_pod_area = None
-        self.external_pod_volume = None
+        self.pod_tank_built_area = None
+        self.pod_tank_overall_volume = None
 
-        self.structure_internal_volume = None
-        self.structure_shell_volume = None
-        self.structure_shell_mass = None
+        self.pod_tank_internal_volume = None
+        self.pod_tank_shell_volume = None
+        self.pod_tank_shell_mass = None
 
         self.shell_specific_volume = None
         self.fuel_volume = None
@@ -386,36 +386,36 @@ class Pod(Component):
     def size_fuel_tank(self,location):
         # Tank is supposed to be composed of a cylindrical part ended with two emisphers
         # An unusable length equal to one diameter is taken for tapered ends
-        self.external_pod_area = np.pi*self.width**2 + (self.length-2.*self.width-self.dry_bay_length) * (np.pi*self.width)
-        self.external_pod_volume = (1./6.)*np.pi*self.width**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*self.width**2)
+        self.pod_tank_built_area = np.pi*self.width**2 + (self.length-2.*self.width-self.dry_bay_length) * (np.pi*self.width)
+        self.pod_tank_overall_volume = (1./6.)*np.pi*self.width**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*self.width**2)
 
         if location=="external":
-            self.structure_internal_volume = (1./6.)*np.pi*(self.width-2.*self.structure_shell_thickness)**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*(self.width-2.*self.structure_shell_thickness)**2)
-            self.structure_shell_volume = self.external_pod_volume - self.structure_internal_volume
+            self.pod_tank_internal_volume = (1./6.)*np.pi*(self.width-2.*self.structure_shell_thickness)**3 + (self.length-2.*self.width-self.dry_bay_length) * (0.25*np.pi*(self.width-2.*self.structure_shell_thickness)**2)
+            self.pod_tank_shell_volume = self.pod_tank_overall_volume - self.pod_tank_internal_volume
         elif location=="internal":
             self.structure_shell_surface_mass = 0.  # kg/m2
             self.structure_shell_thickness = 0.     # m
-            self.structure_internal_volume = self.external_pod_volume
-            self.structure_shell_volume = 0.
+            self.pod_tank_internal_volume = self.pod_tank_overall_volume
+            self.pod_tank_shell_volume = 0.
         else:
             raise Exception("Tank location is unknown")
 
-        self.shell_specific_volume = self.structure_internal_volume*(1.-self.volumetric_index)
-        self.fuel_volume = self.structure_internal_volume*self.volumetric_index
+        self.shell_specific_volume = self.pod_tank_internal_volume*(1.-self.volumetric_index)
+        self.fuel_volume = self.pod_tank_internal_volume*self.volumetric_index
 
         return
 
     def mass_fuel_tank(self,location):
         if location=="external":
-            self.structure_shell_mass = self.external_pod_area * self.structure_shell_surface_mass
+            self.pod_tank_shell_mass = self.pod_tank_built_area * self.structure_shell_surface_mass
         elif location=="internal":
-            self.structure_shell_mass = 0.
+            self.pod_tank_shell_mass = 0.
         else:
             raise Exception("Tank location is unknown")
 
         # Tank equiped structural mass
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
-            self.shell_specific_mass = self.structure_internal_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+            self.shell_specific_mass = self.pod_tank_internal_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
         else:
             self.shell_specific_mass = 0.
 
@@ -2227,11 +2227,11 @@ class TankWingPod(Pod):
 
         # Tank equiped structural mass
         if self.aircraft.arrangement.fuel_type in ["liquid_h2","compressed_h2"]:
-            self.shell_specific_mass = self.external_pod_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
+            self.shell_specific_mass = self.pod_tank_overall_volume*(1./self.gravimetric_index-1.)*self.volumetric_index*self.fuel_density
         else:
             self.shell_specific_mass = 0.
 
-        self.mass = self.structure_shell_mass + self.shell_specific_mass
+        self.mass = self.pod_tank_shell_mass + self.shell_specific_mass
         self.cg = self.frame_origin + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG
@@ -2313,7 +2313,7 @@ class TankPiggyBack(Pod):
 
         self.mass_fuel_tank("external")
 
-        self.mass = self.structure_shell_mass + self.shell_specific_mass
+        self.mass = self.pod_tank_shell_mass + self.shell_specific_mass
         self.cg = self.frame_origin[0] + 0.45*np.array([self.length, 0., 0.])
 
         self.fuel_max_fwd_cg = self.cg    # Fuel max Forward CG

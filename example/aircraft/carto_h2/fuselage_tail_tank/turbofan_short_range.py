@@ -36,11 +36,12 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 airplane_type = "A220-100"
 ga_type = "rear_tank"
 
-n_pax_ref = 135
-design_range = unit.m_NM(990.)
+n_pax_ref = 99
+design_range = unit.m_NM(2730.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
+# ac.weight_cg.mtow = 91814
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -109,13 +110,13 @@ ac.airframe.tank.mfw_factor = 1
 
 # design_range = unit.m_NM(990.)
 # n_pax_ref = 135
-case_type = "max_range_soa"
-ac.airframe.cabin.n_pax_front = 6
-ac.airframe.tank.gravimetric_index = 0.1
-ac.airframe.tank.volumetric_index = 0.606
-ac.power_system.reference_thrust = unit.N_kN(215)
-ac.airframe.wing.area = 276.9
-ac.weight_cg.mtow = 139888
+# case_type = "max_range_soa"
+# ac.airframe.cabin.n_pax_front = 6
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.power_system.reference_thrust = unit.N_kN(215)
+# ac.airframe.wing.area = 276.9
+# ac.weight_cg.mtow = 139888
 # fuselage ratio = 13.3  (limite à 13.4)
 
 # design_range = unit.m_NM(1130.)
@@ -132,6 +133,17 @@ ac.weight_cg.mtow = 139888
 # design_range = unit.m_NM(600.)
 # n_pax_ref = 135
 # case_type = "ref_600NM_soa"
+# ac.airframe.cabin.n_pax_front = 6
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.power_system.reference_thrust = unit.N_kN(139.8)
+# ac.airframe.wing.area = 183.5
+# ac.weight_cg.mtow = 91814
+# fuselage ratio = 11.3  (limite à 13.4)
+
+# design_range = unit.m_NM(410.)
+# n_pax_ref = 171
+# case_type = "pax_range_trade_600NM_soa"
 # ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.gravimetric_index = 0.1
 # ac.airframe.tank.volumetric_index = 0.606

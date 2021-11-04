@@ -1669,8 +1669,8 @@ class DragPolar(object):
 
 if __name__ == '__main__':
 
-    phd = PhysicalData()
-    fc_syst = FuelCellSystem(phd, "fuel_cell_PEMLT")
+    # phd = PhysicalData()
+    # fc_syst = FuelCellSystem(phd, "fuel_cell_PEMLT")
 
 
     # # Fuel cell test
@@ -1829,6 +1829,8 @@ if __name__ == '__main__':
 
 
 
+    phd = PhysicalData()
+    fc_syst = FuelCellSystem(phd, "fuel_cell_PEMHT")
 
     # Airplane coupling mini test
     #----------------------------------------------------------------------

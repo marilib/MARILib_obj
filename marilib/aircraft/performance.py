@@ -199,8 +199,9 @@ class Flight(object):
         cz = (2.*mass*g)/(gam*pamb*mach**2*self.aircraft.airframe.wing.area)
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
 
-        thrust = (gam/2.)*pamb*mach**2*self.aircraft.airframe.wing.area*cx
-        dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCR",thrust)
+        thrust = mass*g/lod
+
+        dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCL",thrust)
         dict["fn"] = thrust
         dict["cx"] = cx
         dict["cz"] = cz
@@ -243,6 +244,7 @@ class Flight(object):
         g = earth.gravity()
         pamb,tamb,tstd,dtodz = earth.atmosphere(altp, disa)
         mach = self.get_mach(pamb,speed_mode,speed)
+        vtas = mach * earth.sound_speed(tamb)
 
         cz = self.lift_from_speed(pamb,tamb,mach,mass)
         cx,lod = self.aircraft.aerodynamics.drag(pamb,tamb,mach,cz)
@@ -254,13 +256,15 @@ class Flight(object):
 
         acc_factor = earth.climb_mode(speed_mode, mach, dtodz, tstd, disa)
         slope = vz / (mach * earth.sound_speed(tamb))
-        fn = mass*g*(slope * acc_factor + 1./lod)
-        acc = (acc_factor-1.)*g*slope
+        thrust = mass*g*(slope * acc_factor + 1./lod)
 
-        if full_output:
-            return fn,slope,vz,acc,cz,cx,pamb,tamb
-        else:
-            return fn
+        dict = self.aircraft.power_system.sc(pamb,tamb,mach,"MCL",thrust)
+        dict["fn"] = thrust
+        dict["cx"] = cx
+        dict["cz"] = cz
+        dict["lod"] = lod
+        dict["sar"] = self.aircraft.power_system.specific_air_range(mass,vtas,dict)
+        return dict
 
     def max_air_path(self,nei,altp,disa,speed_mode,mass,rating,kfn, full_output=False):
         """Optimize the speed of the aircraft to maximize the air path

@@ -24,7 +24,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
                    wing_type = "classic",            # "classic" or "blended"
                    wing_attachment = "low",          # "low" or "high"
                    stab_architecture = "classic",    # "classic", "t_tail" or "h_tail"
-                   tank_architecture = "rear",   # "wing_box", "rear", "piggy_back" or "pods"
+                   tank_architecture = "rear",      # "wing_box", "rear", "piggy_back" or "pods"
                    number_of_engine = "twin",        # "twin", "quadri" or "hexa"
                    nacelle_attachment = "wing",      # "wing", "rear" or "pods"
                    power_architecture = "tf",        # "tf", "tp", "ef", "ep", "pte", , "extf", "exef"
@@ -36,8 +36,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 airplane_type = "A330-800"
 ga_type = "rear_tank"
 
-n_pax_ref = 240
-design_range = unit.m_NM(4600.)
+n_pax_ref = 160
+design_range = unit.m_NM(5280.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 

@@ -177,7 +177,6 @@ proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -218,6 +217,7 @@ opt = process.Optimizer()
 # algo_points = opt.computed_points
 # algo_points = None
 
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------

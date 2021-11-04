@@ -37,7 +37,7 @@ airplane_type = "A350-900"
 ga_type = "rear_tank"
 
 n_pax_ref = 90
-design_range = unit.m_NM(5500.)
+design_range = unit.m_NM(5750.)
 cruise_mach = 0.85
 cruise_altp = unit.m_ft(35000.)
 

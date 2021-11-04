@@ -35,10 +35,8 @@ class Drawing(object):
         X, Y = np.meshgrid(air_speed, altitude)
 
         def fct(vz):
-            fn = self.aircraft.performance.mission.req_thrust(nei, altp, disa, speed_mode, cas, vz, mass)
-            thrust = fn / self.aircraft.power_system.n_engine
-            sc_dict = self.aircraft.airframe.nacelle.unitary_sc(pamb,tamb,mach,"MCL",thrust)
-            required_power = sc_dict["pw_elec"]
+            rt_dict = self.aircraft.performance.mission.req_thrust(nei, altp, disa, speed_mode, cas, vz, mass)
+            required_power = rt_dict["pw_elec"] / self.aircraft.power_system.n_engine
             dict = self.aircraft.airframe.system.eval_fuel_cell_power(required_power,pamb,tamb,vair)
             y = dict["thermal_balance"]
             return y
@@ -57,7 +55,7 @@ class Drawing(object):
             mach = vair / earth.sound_speed(tamb)
             cas = earth.vcas_from_mach(pamb,mach)
             speed_mode = "cas"
-            nei = 2
+            nei = 0
 
             output_dict = fsolve(fct, x0=0, args=(), full_output=True)
             if (output_dict[2]!=1): raise Exception("Convergence problem")

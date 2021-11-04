@@ -36,7 +36,7 @@ ga_type = "pod_tank"
 
 n_pax_ref = 186
 #design_range = unit.m_NM(3000.)
-design_range = unit.m_NM(1460.)
+design_range = unit.m_NM(1455.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
@@ -118,7 +118,7 @@ ac.airframe.tank.mfw_factor = 1
 
 # design_range = unit.m_NM(490.)
 # n_pax_ref = 186
-# case_type = "pax_range_trade_soa"
+# case_type = "pax_range_trade_600NM_soa"
 # ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.gravimetric_index = 0.1
 # ac.airframe.other_tank.gravimetric_index = 0.1

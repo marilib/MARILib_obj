@@ -128,7 +128,7 @@ ac.airframe.tank.mfw_factor = 1
 
 # design_range = unit.m_NM(465.)
 # n_pax_ref = 171
-# case_type = "pax_range_trade_soa"
+# case_type = "pax_range_trade_600NM_soa"
 # ac.airframe.cabin.n_pax_front = 5
 # ac.airframe.tank.gravimetric_index = 0.1
 # ac.airframe.other_tank.gravimetric_index = 0.1

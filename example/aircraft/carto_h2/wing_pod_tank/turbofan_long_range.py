@@ -41,7 +41,7 @@ design_range = unit.m_NM(3440.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 207628
+# ac.weight_cg.mtow = 173354
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -115,30 +115,30 @@ ac.airframe.tank.mfw_factor = 1
 # design_range = unit.m_NM(600.)
 # n_pax_ref = 240
 # case_type = "ref_600NM_soa"
-# ac.airframe.cabin.n_pax_front = 8
+# ac.airframe.cabin.n_pax_front = 7
 # ac.airframe.tank.gravimetric_index = 0.1
 # ac.airframe.other_tank.gravimetric_index = 0.1
 # ac.airframe.tank.volumetric_index = 0.606
 # ac.airframe.other_tank.volumetric_index = 0.606
 # ac.airframe.tank.width = 3.5
 # ac.airframe.other_tank.width = 3.5
-# ac.power_system.reference_thrust = unit.N_kN(242.8)
-# ac.airframe.wing.area = 345.6
-# ac.weight_cg.mtow = 181548
+# ac.power_system.reference_thrust = unit.N_kN(230.35)
+# ac.airframe.wing.area = 330.3
+# ac.weight_cg.mtow = 173354
 
-# design_range = unit.m_NM(745.)
+# design_range = unit.m_NM(755.)
 # n_pax_ref = 200
-# case_type = "pax_range_trade_soa"
-# ac.airframe.cabin.n_pax_front = 8
+# case_type = "pax_range_trade_600NM_soa"
+# ac.airframe.cabin.n_pax_front = 7
 # ac.airframe.tank.gravimetric_index = 0.1
 # ac.airframe.other_tank.gravimetric_index = 0.1
 # ac.airframe.tank.volumetric_index = 0.606
 # ac.airframe.other_tank.volumetric_index = 0.606
 # ac.airframe.tank.width = 3.5
 # ac.airframe.other_tank.width = 3.5
-# ac.power_system.reference_thrust = unit.N_kN(242.8)
-# ac.airframe.wing.area = 345.6
-# ac.weight_cg.mtow = 181548
+# ac.power_system.reference_thrust = unit.N_kN(230.35)
+# ac.airframe.wing.area = 330.3
+# ac.weight_cg.mtow = 173354
 
 
 
@@ -175,7 +175,6 @@ proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -216,6 +215,7 @@ opt = process.Optimizer()
 # algo_points = opt.computed_points
 # algo_points = None
 
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
