@@ -6,17 +6,9 @@ Created on Thu Jan 20 20:20:20 2020
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
          Aircraft & Systems, Air Transport Departement, ENAC
 """
+import pandas as pd
 
-
-from marilib.aircraft.aircraft_root import Arrangement, Aircraft
-
-
-
-ac = Aircraft("my_plane")
-
-
-data = [["Thrust", "string", "%20s", "ac.name"],
-        ["Design range", "km", "%8.0f", "ac.requirement.design_range"],
+data = [["Design range", "km", "%8.0f", "ac.requirement.design_range"],
         ["Cruise Mach", "mach", "%8.0f", "ac.requirement.cruise_mach"],
         ["Nominal seat count", "int", "%8.0f", "ac.airframe.cabin.n_pax_ref"],
         ["Number of front seats", "int", "%8.0f", "ac.airframe.cabin.n_pax_front"],
@@ -48,9 +40,14 @@ data = [["Thrust", "string", "%20s", "ac.name"],
         ["Time to climb required", "min", "%8.2f", "ac.performance.oei_ceiling.ttc_req"],
         ["Time to climb effective", "min", "%8.2f", "ac.performance.oei_ceiling.ttc_eff"]]
 
+df = pd.DataFrame(data=data, columns=['name','unit','format','path'])
+
+def get_path(name):
+        try:
+                return df.loc[df['name']==name].iloc[0]['path']
+        except KeyError as err:
+                raise KeyError(f"could not extract the path of {name}")
 
 
-
-
-
+print(get_path("Nominal seat count"))
 

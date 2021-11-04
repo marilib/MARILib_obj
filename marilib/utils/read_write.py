@@ -185,7 +185,7 @@ class MarilibIO(object):
             output += part + "%0.6g" % float(val)  # reformat with 6 significant digits max
         return output + output_parts[-1]
 
-    def from_json_file(self,filename):
+    def from_json_file(self,filename,skip_list=[]):
         """Reads a JSON file and parse it into a dict.
 
         .. warning::
@@ -213,7 +213,7 @@ class MarilibIO(object):
             filename = filename + ".json"
 
         with open(filename, 'r') as f:
-            mydict = MyDict(json.loads(f.read()))
+            mydict = MyDict(json.loads(f.read()),skip_list=skip_list)
 
         return mydict
 
@@ -276,14 +276,21 @@ class MyDict(dict):
         obj = mydict.airframe.wing
 
     """
-    def __init__(self,*args,**kwargs):
+    def __init__(self,*args,skip_list=[],**kwargs):
         super(MyDict,self).__init__(*args,**kwargs)
         self.__dict__ = self
+
         for key,val in self.__dict__.items(): # recursively converts all items of type 'dict' to 'MyDict'
+            if key in skip_list:
+                continue
+
             if isinstance(val, dict):
-                self.__dict__[key] = MyDict(val)
+                self.__dict__[key] = MyDict(val,skip_list=skip_list)
             elif isinstance(val, list): # if list, extract value and convert to SI unit
-                self.__dict__[key] = convert_from(val[1],val[0])
+                try:
+                    self.__dict__[key] = convert_from(val[1],val[0])
+                except TypeError:
+                    raise TypeError(f"The entry {key} is probably wrongly formatted: check the JSON input.")
             elif key == 'name': # skip the 'name' entry which is of type string
                 pass
             elif isinstance(val, type(None)):
