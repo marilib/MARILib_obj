@@ -74,7 +74,7 @@ class DDM(object):                  # Data Driven Modelling
         self.gh2_tank_gravimetric_index = 1/(1+self.initial_gh2_pressure/(self.tank_efficiency_factor*h2_density))
         self.gh2_tank_volumetric_index = 25         # kgH2 / (m3_Tank_+_H2)
 
-        self.lh2_tank_gravimetric_index = 0.10      # kgH2 / (kg_H2 + kg_Tank)
+        self.lh2_tank_gravimetric_index = 0.30      # kgH2 / (kg_H2 + kg_Tank)
         self.lh2_tank_volumetric_index = 45         # kgH2 / (m3_H2 + m3_Tank)
 
         self.propeller = "propeller"    # thruster item
@@ -98,18 +98,8 @@ class DDM(object):                  # Data Driven Modelling
         self.narrow_body = "narrow_body"
         self.wide_body = "wide_body"
 
-        # self.mpax_allowance_low = [90, unit.m_km(1000)]
-        # self.mpax_allowance_med = [110, unit.m_km(8000)]
-        # self.mpax_allowance_high = [130, unit.m_km(np.inf)]
-
         self.mpax_allowance_low = [100, unit.m_km(1000)]
         self.mpax_allowance_high = [140, unit.m_km(20000)]
-
-        self.structure_mass_factor_low = [0.40, unit.m_km(4000)]      # [fac, PK]
-        self.structure_mass_factor_high = [1.00, unit.m_km(16000)]     # [fac, PK]
-
-        self.engine_mass_factor_low = [1.00, unit.W_MW(10)]      # [fac, max_power]
-        self.engine_mass_factor_high = [0.85, unit.W_MW(20)]     # [fac, max_power]
 
         self.cl_max_to = 2.0
         self.kvs1g_to = 1.13
@@ -126,41 +116,11 @@ class DDM(object):                  # Data Driven Modelling
         self.wing_area = None
 
 
-    # def get_pax_allowance(self,distance):
-    #     mpax_min, dist_min = self.mpax_allowance_low
-    #     mpax_med, dist_med = self.mpax_allowance_med
-    #     mpax_max, dist_max = self.mpax_allowance_high
-    #     if distance<dist_min:
-    #         return mpax_min
-    #     elif distance<dist_med:
-    #         return mpax_med
-    #     else:
-    #         return mpax_max
-
-
     def get_pax_allowance(self,distance):
         mpax_min, dist_min = self.mpax_allowance_low
         mpax_max, dist_max = self.mpax_allowance_high
         mpax = utils.lin_interp_1d(distance, [dist_min, dist_max], [mpax_min, mpax_max])
         return mpax
-
-
-    def get_structure_mass_factor(self,nominal_range):
-        fac_min, dist_min = self.structure_mass_factor_low
-        fac_max, dist_max = self.structure_mass_factor_high
-        dist_list = [0.      , dist_min  , dist_max  , np.inf]
-        fac_list = [fac_min, fac_min, fac_max, fac_max]
-        fac = utils.lin_interp_1d(nominal_range, dist_list, fac_list)
-        return fac
-
-
-    def get_engine_mass_factor(self,max_power):
-        fac_min, pw_min = self.engine_mass_factor_low
-        fac_max, pw_max = self.engine_mass_factor_high
-        mxpw_list = [0.      , pw_min  , pw_max  , np.inf]
-        fac_list = [fac_min, fac_min, fac_max, fac_max]
-        fac = utils.lin_interp_1d(max_power, mxpw_list, fac_list)
-        return fac
 
 
     def get_lod(self, mtow):
@@ -268,7 +228,7 @@ class DDM(object):                  # Data Driven Modelling
         if airplane_type==self.general:
             mz, dz, hz = unit.m_ft(5000), unit.m_ft(3000), unit.m_ft(1500)
         elif airplane_type==self.commuter:
-            mz, dz, hz = unit.m_ft(20000), unit.m_ft(10000), unit.m_ft(1500)
+            mz, dz, hz = unit.m_ft(10000), unit.m_ft(10000), unit.m_ft(1500)
         elif airplane_type in [self.business, self.narrow_body]:
             mz, dz, hz = unit.m_ft(35000), unit.m_ft(25000), unit.m_ft(1500)
         elif airplane_type==self.wide_body:
@@ -551,7 +511,7 @@ class DDM(object):                  # Data Driven Modelling
             dict_s = self.owe_structure(mtow, total_power, dict_p["energy_storage"], initial_power_system, target_power_system)
             return dict_p["owe"]-dict_s["owe"]
 
-        mtow_ini = (-8.57e-15*npax*distance + 1.09e-04)*npax*distance
+        mtow_ini = 1e-3 * npax * distance
         output_dict = fsolve(fct, x0=mtow_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
@@ -728,7 +688,7 @@ class DDM(object):                  # Data Driven Modelling
             print(" Airplane type = ", dict["airplane_type"])
             print(" Number of engine = ", dict["n_engine"])
             print(" Number of passenger = ", dict["npax"])
-            print(" Design range = ", unit.convert_to("km", dict["design_range"]), " km")
+            print(" Design range = ", unit.convert_to("km", dict["nominal_range"]), " km")
             print(" Cruise speed = ", unit.convert_to("km/h", dict["cruise_speed"]), " km/h")
             print("")
             print("--------------------------------------------------------")
@@ -757,7 +717,7 @@ class DDM(object):                  # Data Driven Modelling
             print(" Mass efficiency factor, P.K/M = ", "%.2f"%unit.km_m(dict["pk_o_mass"]), " pax.km/kg")
             print(" Energy efficiency factor, P.K/E = ", "%.2f"%(unit.km_m(dict["pk_o_enrg"])/unit.kWh_J(1)), " pax.km/kWh")
             print("")
-            print(" Commercial ratio (P/K maxi) / (P/K) = ", "%.2f"%(0.0146 / (dict["npax"]/unit.km_m(dict["design_range"]))))
+            print(" Commercial ratio (P/K maxi) / (P/K) = ", "%.2f"%(0.0146 / (dict["npax"]/unit.km_m(dict["nominal_range"]))))
             print(" Mass efficiency ratio, (P.K/M) / (P.K/M mini) = ", "%.2f"%(dict["pk_o_mass"]/dict["pk_o_mass_mini"]))
 
         elif content=="criteria":
@@ -795,7 +755,7 @@ class DDM(object):                  # Data Driven Modelling
             dict = self.total_fuel(tow, distance, cruise_speed, speed_type, mtow, max_power, power_system, altitude_data, reserve_data)
             return tow - (owe + payload + dict["total_fuel"])
 
-        dist_ini = 0.75*ac_dict["design_range"]
+        dist_ini = 0.75*ac_dict["nominal_range"]
         output_dict = fsolve(fct, x0=dist_ini, args=(), full_output=True)
         if (output_dict[2]!=1): raise Exception("Convergence problem")
 
@@ -872,19 +832,19 @@ if __name__ == '__main__':
 
     # Read data
     #-------------------------------------------------------------------------------------------------------------------
-    path_to_data_base = "../../../data/All_Data_v5.xlsx"
+    # path_to_data_base = "../../../data/All_Data_v5.xlsx"
+    #
+    # df,un = read_db(path_to_data_base)
+    #
+    # # Remove A380-800 row and reset index
+    # df = df[df['name']!='A380-800'].reset_index(drop=True)
+    #
+    # df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
+    # un1 = un.copy()
 
-    df,un = read_db(path_to_data_base)
-
-    # Remove A380-800 row and reset index
-    df = df[df['name']!='A380-800'].reset_index(drop=True)
-
-    df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
-    un1 = un.copy()
 
 
-
-    # # perform regressions
+    # # Regressions
     # #-------------------------------------------------------------------------------------------------------------------
     # abs = "mtow"
     # ord = "owe"
@@ -910,50 +870,148 @@ if __name__ == '__main__':
 
 
 
-    # Analysis
-    #-------------------------------------------------------------------------------------------------------------------
-    nap = df1.shape[0]
-
-    var = "mtow"
-
-    df1["guessed_"+var] = df1[var]
-    un1["guessed_"+var] = un1[var]
-
-    thruster = {ddm.piston:ddm.propeller, ddm.turboprop:ddm.propeller, ddm.turbofan:ddm.fan}
-
-    abs = var
-    ord = "guessed_"+var
-
-    for n in range(nap):
-        # print(df1["name"][n])
-        npax = df1["n_pax"][n]
-        distance = df1["nominal_range"][n]
-        mtow = df1["mtow"][n]
-        cruise_speed = df1["cruise_speed"][n]
-        n_engine = df1["n_engine"][n]
-        airplane_type = df1["airplane_type"][n]
-        altitude_data = ddm.cruise_altp(airplane_type)
-        reserve_data = ddm.reserve_data(airplane_type)
-        initial_power_system = {"thruster":thruster[df1["engine_type"][n]],
-                                "engine_type":df1["engine_type"][n],
-                                "energy_source":ddm.petrol}
-        target_power_system = initial_power_system
-        if var=="mtow":
-            ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
-        elif var=="nominal_range":
-            ac_dict = ddm.design_from_mtow(npax, mtow, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
-        df1[ord][n] = ac_dict[abs]
-
-    amp = {"mtow":5e5, "nominal_range":20e6}.get(var)
-
-    # dict = draw_reg(df1, un1, abs, ord, [[0,amp],[0,amp]], coloration)
-
-    order = [1]
-    dict_owe = do_regression(df1, un1, abs, ord, coloration, order)
-
-
-    # # Airplane design analysis
+    # # Analysis
     # #-------------------------------------------------------------------------------------------------------------------
+    # nap = df1.shape[0]
+    #
+    # var = "mtow"
+    #
+    # df1["guessed_"+var] = df1[var]
+    # un1["guessed_"+var] = un1[var]
+    #
+    # thruster = {ddm.piston:ddm.propeller, ddm.turboprop:ddm.propeller, ddm.turbofan:ddm.fan}
+    #
+    # abs = var
+    # ord = "guessed_"+var
+    #
+    # for n in range(nap):
+    #     # print(df1["name"][n])
+    #     npax = df1["n_pax"][n]
+    #     distance = df1["nominal_range"][n]
+    #     mtow = df1["mtow"][n]
+    #     cruise_speed = df1["cruise_speed"][n]
+    #     n_engine = df1["n_engine"][n]
+    #     airplane_type = df1["airplane_type"][n]
+    #     altitude_data = ddm.cruise_altp(airplane_type)
+    #     reserve_data = ddm.reserve_data(airplane_type)
+    #     initial_power_system = {"thruster":thruster[df1["engine_type"][n]],
+    #                             "engine_type":df1["engine_type"][n],
+    #                             "energy_source":ddm.petrol}
+    #     target_power_system = initial_power_system
+    #     if var=="mtow":
+    #         ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+    #     elif var=="nominal_range":
+    #         ac_dict = ddm.design_from_mtow(npax, mtow, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+    #     df1[ord][n] = ac_dict[abs]
+    #
+    # amp = {"mtow":5e5, "nominal_range":20e6}.get(var)
+    #
+    # # dict = draw_reg(df1, un1, abs, ord, [[0,amp],[0,amp]], coloration)
+    #
+    # order = [1]
+    # dict_owe = do_regression(df1, un1, abs, ord, coloration, order)
+
+
+
+    # Airplane design analysis
+    #-------------------------------------------------------------------------------------------------------------------
+    # npax = 4.5
+    # n_engine = 1
+    # distance = unit.convert_from("km", 1300)
+    # cruise_speed = unit.convert_from("km/h", 280)
+    # target_power_system = tpws[0]
+
+    # npax = 2
+    # n_engine = 1
+    # distance = unit.convert_from("km", 130)
+    # cruise_speed = unit.convert_from("km/h", 130)
+    # target_power_system = tpws[3]
+
+    # ATR72
+    #-------------------------------------------------------------------------------------------------------------------
+    airplane_type = "commuter"
+    altitude_data = ddm.cruise_altp(airplane_type)
+    reserve_data = ddm.reserve_data(airplane_type)
+
+    initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.turboprop, "energy_source":ddm.petrol}
+    n_engine = 2
+
+    npax = 78
+    distance = unit.m_NM(600)
+    cruise_speed = unit.mps_kmph(650)
+
+    ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system)
+    ddm.print_design(ac_dict)
+
+    #-------------------------------------------------------------------------------------------------------------------
+    distance = unit.m_NM(350)
+    input_type = "pax"
+    input = 55
+
+    tow_dict = ddm.fly_distance(ac_dict, distance, input, input_type)
+
+    tow = tow_dict["tow"]
+
+    dist_dict = ddm.fly_tow(ac_dict, tow, input, input_type)
+
+    print("")
+    print("-----------------------------------------------------------------------")
+    print("Initial distance = ", "%.2f"%unit.NM_m(distance), " NM")
+    print("Mission take off weight = ", "%.1f"%tow, " kg")
+    print("Mission fuel = ", "%.1f"%dist_dict["mission_fuel"], " kg")
+    print("Reserve fuel = ", "%.1f"%dist_dict["reserve_fuel"], " kg")
+    print("Recomputed distance = ", "%.2f"%unit.NM_m(dist_dict["distance"]), " NM")
+
+
+
+    # TB20
+    #-------------------------------------------------------------------------------------------------------------------
+    # airplane_type = "general"
+    # altitude_data = ddm.cruise_altp(airplane_type)
+    # reserve_data = ddm.reserve_data(airplane_type)
+    #
+    # initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.petrol}
+    # n_engine = 1
+    #
+    # npax = 4
+    # distance = unit.m_km(1300)
+    # cruise_speed = unit.mps_kmph(280)
+    #
+    # ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system)
+    # ddm.print_design(ac_dict)
+
+    # Bristell Energic
+    #-------------------------------------------------------------------------------------------------------------------
+    # airplane_type = "general"
+    # altitude_data = ddm.cruise_altp(airplane_type)
+    # reserve_data = ddm.reserve_data(airplane_type)
+    #
+    # initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.petrol}
+    # target_power_system = {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.battery}
+    # n_engine = 1
+    #
+    # npax = 2
+    # distance = unit.m_km(130)
+    # cruise_speed = unit.mps_kmph(130)
+    #
+    # ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+    # ddm.print_design(ac_dict)
+
+
+
+    # Test
+    #-------------------------------------------------------------------------------------------------------------------
+    # airplane_type = "general"
+    # altitude_data = ddm.cruise_altp(airplane_type)
+    # reserve_data = ddm.reserve_data(airplane_type)
+    #
+    # initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.petrol}
+    # n_engine = 1
+    #
+    # npax = 4
+    # distance = unit.m_km(200)
+    # cruise_speed = unit.mps_kmph(180)
+    #
     # tpws = [{"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.petrol},
     #         {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.gh2},
     #         {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.lh2},
@@ -961,30 +1019,9 @@ if __name__ == '__main__':
     #         {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.gh2},
     #         {"thruster":ddm.propeller, "engine_type":ddm.emotor, "energy_source":ddm.lh2}]
     #
-    # npax = 4
-    # n_engine = 1
-    # distance = unit.convert_from("km", 1300)
-    # cruise_speed = unit.convert_from("km/h", 280)
-    # target_power_system = tpws[0]
-    #
-    # # npax = 2
-    # # n_engine = 1
-    # # distance = unit.convert_from("km", 130)
-    # # cruise_speed = unit.convert_from("km/h", 130)
-    # # target_power_system = tpws[3]
-    #
-    # airplane_type = "general"
-    # altitude_data = ddm.cruise_altp(airplane_type)
-    # reserve_data = ddm.reserve_data(airplane_type)
-    #
-    # initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.piston, "energy_source":ddm.petrol}
-    #
-    # ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
-    # ddm.print_design(ac_dict)
-    #
-    # # for target_power_system in tpws:
-    # #     ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
-    # #     ddm.print_design(ac_dict)
+    # for target_power_system in tpws:
+    #     ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+    #     ddm.print_design(ac_dict)
 
 
 

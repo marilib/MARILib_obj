@@ -15,8 +15,7 @@ from marilib.aircraft.aircraft_root import Arrangement, Aircraft
 ac = Aircraft("my_plane")
 
 
-data = [["Thrust", "string", "%20s", "ac.name"],
-        ["Design range", "km", "%8.0f", "ac.requirement.design_range"],
+data = [["Design range", "km", "%8.0f", "ac.requirement.design_range"],
         ["Cruise Mach", "mach", "%8.0f", "ac.requirement.cruise_mach"],
         ["Nominal seat count", "int", "%8.0f", "ac.airframe.cabin.n_pax_ref"],
         ["Number of front seats", "int", "%8.0f", "ac.airframe.cabin.n_pax_front"],

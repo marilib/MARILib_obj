@@ -1830,7 +1830,7 @@ if __name__ == '__main__':
 
 
     phd = PhysicalData()
-    fc_syst = FuelCellSystem(phd, "fuel_cell_PEMHT")
+    fc_syst = FuelCellSystem(phd, "fuel_cell_PEMLT")
 
     # Airplane coupling mini test
     #----------------------------------------------------------------------
@@ -1838,7 +1838,7 @@ if __name__ == '__main__':
     wing_area = 42
 
     g = 9.81
-    eff = 0.82
+    eff = 0.82*0.95*0.99    # Propeller, motor, power electronics
     mass = 5700
 
     disa = 15
@@ -1846,13 +1846,13 @@ if __name__ == '__main__':
     # fc_syst.stack.working_temperature = 273.15 + 75                      # Cell working temperature
 
 
-    total_power = unit.convert_from("kW", 500)
+    total_power = unit.convert_from("kW", 382)
 
 
     dp = DragPolar(wing_aspect_ratio)
 
     vair = unit.mps_kmph(300)
-    altp = unit.m_ft(10000)
+    altp = unit.m_ft(20000)
     pamb, tamb, g = phd.atmosphere(altp, disa)
     fc_syst.design(pamb, tamb, vair, total_power)
 
@@ -1864,7 +1864,7 @@ if __name__ == '__main__':
 
 
     air_speed = np.linspace(50, 300, 10)
-    altitude = np.linspace(0, 10000, 15)
+    altitude = np.linspace(0, 20000, 15)
     X, Y = np.meshgrid(air_speed, altitude)
 
     req_pw_max = 0
