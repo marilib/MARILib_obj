@@ -179,6 +179,7 @@ DATA_DICT = {
     "fan_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Fan efficiency, Kinetic power delivered to the air flow devided by shaft power"},
     "propeller_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Propeller like fan efficiency Thrust.Speed/shaft_power"},
     "rating": {"unit":"string", "mag":3, "txt":"Engine rating name ('MTO','MCN','MCL','MCR','FID'"},
+    "bnd_layer": {"unit":"m", "mag":1e0, "txt":"Thickness of the boundary layer in front of the engine"},
     "bli_effect": {"unit":"string", "mag":3, "txt":"Taking into account boundary layer ingestion, 'yes' or 'no'"},
     "power": {"unit":"kW", "mag":1e3, "txt":"Engine input power (before controller)"},
     "motor_efficiency": {"unit":"no_dim", "mag":1e0, "txt":"Electric motor efficiency"},

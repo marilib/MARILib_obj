@@ -49,5 +49,3 @@ def get_path(name):
                 raise KeyError(f"could not extract the path of {name}")
 
 
-print(get_path("Nominal seat count"))
-
