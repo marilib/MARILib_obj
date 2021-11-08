@@ -6,14 +6,7 @@ Created on Thu Jan 20 20:20:20 2020
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
          Aircraft & Systems, Air Transport Departement, ENAC
 """
-
-
-from marilib.aircraft.aircraft_root import Arrangement, Aircraft
-
-
-
-ac = Aircraft("my_plane")
-
+import pandas as pd
 
 data = [["Design range", "km", "%8.0f", "ac.requirement.design_range"],
         ["Cruise Mach", "mach", "%8.0f", "ac.requirement.cruise_mach"],
@@ -47,9 +40,12 @@ data = [["Design range", "km", "%8.0f", "ac.requirement.design_range"],
         ["Time to climb required", "min", "%8.2f", "ac.performance.oei_ceiling.ttc_req"],
         ["Time to climb effective", "min", "%8.2f", "ac.performance.oei_ceiling.ttc_eff"]]
 
+df = pd.DataFrame(data=data, columns=['name','unit','format','path'])
 
-
-
-
+def get_path(name):
+        try:
+                return df.loc[df['name']==name].iloc[0]['path']
+        except KeyError as err:
+                raise KeyError(f"could not extract the path of {name}")
 
 
