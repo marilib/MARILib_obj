@@ -153,7 +153,7 @@ class Drawing(object):
         plt.show()
 
 
-    def payload_range(self,window_title):
+    def payload_range(self, window_title, folder=None):
         """
         Print the payload - range diagram
         """
@@ -174,7 +174,7 @@ class Drawing(object):
 
         fig,axes = plt.subplots(1,1)
         fig.canvas.set_window_title(window_title)
-        fig.suptitle(plot_title, fontsize=14)
+        fig.suptitle(window_title, fontsize=14)
 
         plt.plot(range,payload,linewidth=2,color="blue")
         plt.scatter(range[1:],payload[1:],marker="+",c="orange",s=100)

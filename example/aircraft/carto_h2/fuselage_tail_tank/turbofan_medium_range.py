@@ -34,9 +34,9 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 airplane_type = "A320-200neo"
 ga_type = "rear_tank"
 
-n_pax_ref = 114
+n_pax_ref = 150
 #design_range = unit.m_NM(3000.)
-design_range = unit.m_NM(2490.)
+design_range = unit.m_NM(1900.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
@@ -200,8 +200,9 @@ json = io.to_json_file(ac, folder+file_name)                # Write all output d
 io.to_binary_file(ac,'aircraft_binary_object')              # Write the complete Aircraft object into a binary file
 # ac2 = io.from_binary_file('test.pkl')                     # Read the complete Aircraft object from a file
 
+folder = "../pdf/"
 ac.draw.view_3d(file_name, folder=folder)    # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")           # Draw a payload range diagram
+ac.draw.payload_range(file_name, folder=folder)           # Draw a payload range diagram
 
 
 # Configure design space exploration

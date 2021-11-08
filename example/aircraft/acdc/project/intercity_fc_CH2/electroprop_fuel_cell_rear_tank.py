@@ -99,7 +99,9 @@ ac.airframe.tank.gravimetric_index = 0.3
 ac.airframe.tank.volumetric_index = 0.85
 
 
-process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+proc = "mda"
+
+eval("process."+proc+"(ac)")  # Run MDA
 
 
 # Configure optimization problem
@@ -107,8 +109,8 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 var = ["aircraft.power_system.reference_power",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
-           [100., 200.]]
+var_bnd = [[unit.W_kW(200.), unit.W_kW(600.)],       # Design space area where to look for an optimum solution
+           [40., 100.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -133,7 +135,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 # opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
 # algo_points= opt.computed_points
 
 # Main output
@@ -179,7 +181,7 @@ data = [["Power", "kW", "%8.1f", var[0]+"/1000."],
 file = "aircraft_explore_design.txt"
 
 # res = process.eval_this(ac,var)                                  # This function allows to get the values of a list of addresses in the Aircraft
-res = process.explore_design_space(ac, var, step, data, file)      # Build a set of experiments using above config data and store it in a file
+res = process.explore_design_space(ac, var, step, data, file, proc=proc)      # Build a set of experiments using above config data and store it in a file
 
 field = 'MTOW'                                                                  # Optimization criteria, keys are from data
 other = ['MLW']                                                                 # Additional useful data to show

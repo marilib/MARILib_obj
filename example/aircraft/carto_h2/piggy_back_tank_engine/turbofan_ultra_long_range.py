@@ -206,8 +206,8 @@ json = io.to_json_file(ac, folder+file_name)                # Write all output d
 io.to_binary_file(ac,'aircraft_binary_object')              # Write the complete Aircraft object into a binary file
 # ac2 = io.from_binary_file('test.pkl')                     # Read the complete Aircraft object from a file
 
-ac.draw.view_3d(file_name, folder=folder)    # Draw a 3D view diagram
-ac.draw.payload_range("This_plot")           # Draw a payload range diagram
+folder = "../pdf/"
+ac.draw.view_3d(file_name, folder=folder)    # Draw a 3D view diagramac.draw.payload_range("This_plot")           # Draw a payload range diagram
 
 
 # Configure design space exploration

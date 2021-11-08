@@ -34,7 +34,7 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 
 disa = 0
 cruise_altp = unit.m_ft(10000.)
-cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 250))
+cruise_mach = earth.mach_from_vtas(cruise_altp, disa, unit.convert_from("km/h", 330))
 
 reqs = Requirement(n_pax_ref = 19.,
                    design_range = unit.m_km(200.),
@@ -50,7 +50,8 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 # overwrite eventually default values for operational requirements
 print("------------------------------------------------------")
 # Take off
-ac.requirement.take_off.tofl_req = 500.
+# ac.requirement.take_off.tofl_req = 340.
+ac.requirement.take_off.tofl_req = 350.
 
 # Approach
 # ac.requirement.approach.app_speed_req = unit.convert_from("kt",72.)
@@ -58,13 +59,13 @@ ac.requirement.approach.app_speed_req = unit.convert_from("kt",69.)
 # Climb
 ac.requirement.mcl_ceiling.altp = cruise_altp
 ac.requirement.mcl_ceiling.mach = cruise_mach
-ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",350.)
+ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",500.)
 
 ac.requirement.mcr_ceiling.altp = cruise_altp
 ac.requirement.mcr_ceiling.mach = cruise_mach
 ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",50.)
 
-ac.requirement.oei_ceiling.altp = cruise_altp * 0.35
+ac.requirement.oei_ceiling.altp = cruise_altp
 
 ac.requirement.time_to_climb.altp1 = unit.convert_from("ft",1500.)
 ac.requirement.time_to_climb.cas1 = unit.convert_from("km/h",150.)
@@ -74,19 +75,16 @@ ac.requirement.time_to_climb.altp = cruise_altp
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",14.)
 
 # overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(280.)
+ac.power_system.reference_power = unit.W_kW(500.)
 
 ac.airframe.wing.hld_type = 4
-ac.airframe.wing.aspect_ratio = 12
-ac.airframe.wing.area = 39
+ac.airframe.wing.aspect_ratio = 10
+ac.airframe.wing.area = 42
 
-ac.weight_cg.mtow = 3500.   # Initial value for solving
+ac.weight_cg.mtow = 3500.
 
 
-
-proc = "mda"
-
-eval("process."+proc+"(ac)")  # Run MDA
+process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
 
 
 # Configure optimization problem
@@ -94,8 +92,8 @@ eval("process."+proc+"(ac)")  # Run MDA
 var = ["aircraft.power_system.reference_power",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.W_kW(200.), unit.W_kW(600.)],       # Design space area where to look for an optimum solution
-           [40., 100.]]
+var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
+           [100., 200.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -120,7 +118,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 # opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
 # algo_points= opt.computed_points
 
 # Main output
@@ -166,7 +164,7 @@ data = [["Power", "kW", "%8.1f", var[0]+"/1000."],
 file = "aircraft_explore_design.txt"
 
 # res = process.eval_this(ac,var)                                  # This function allows to get the values of a list of addresses in the Aircraft
-res = process.explore_design_space(ac, var, step, data, file, proc=proc)      # Build a set of experiments using above config data and store it in a file
+res = process.explore_design_space(ac, var, step, data, file)      # Build a set of experiments using above config data and store it in a file
 
 field = 'MTOW'                                                                  # Optimization criteria, keys are from data
 other = ['MLW']                                                                 # Additional useful data to show

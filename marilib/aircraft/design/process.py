@@ -154,9 +154,9 @@ def mda_max_fuel(aircraft):
     # aircraft.power_system.thrust_analysis()
 
 
-def mda_max_fuel(aircraft):
+def mda_given_mtow(aircraft):
     """Perform Multidsciplinary_Design_Analysis
-    WARNING, SPECIAL PROCESS, MTOW is given here and tank factor is adjusted accordingly
+    WARNING, SPECIAL PROCESS, MTOW is given here and design range is adjusted accordingly
     """
     aircraft.airframe.statistical_pre_design()  # With statistical empennage sizing
     aircraft.weight_cg.mass_pre_design()
