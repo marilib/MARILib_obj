@@ -42,7 +42,7 @@ ac.factory(agmt, reqs)          # Configure the object according to Arrangement,
 
 
 # overwrite eventually default values for operational requirements
-print("------------------------------------------------------")
+#-----------------------------------------------------------------------------------------------------------------------
 # Take off
 ac.requirement.take_off.tofl_req = 1200.
 
@@ -66,14 +66,16 @@ ac.requirement.time_to_climb.cas2 = unit.convert_from("kt",180.)
 ac.requirement.time_to_climb.altp = cruise_altp
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",30.)
 
-# overwrite default values for design space graph centering (see below)
+
+# overwrite default values for design parameters
 ac.power_system.reference_power = unit.W_kW(2400.)
+
 ac.airframe.wing.hld_type = 4.
-ac.airframe.wing.aspect_ratio = 12.
+ac.airframe.wing.aspect_ratio = 12.     # (max : 12)
 ac.airframe.wing.area = 61.
-ac.airframe.wing.taper_ratio = 0.50
 
 
+# Evaluation process
 proc = "mda"
 
 eval("process."+proc+"(ac)")  # Run MDA

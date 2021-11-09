@@ -42,30 +42,7 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite eventually default values for operational requirements
-print("------------------------------------------------------")
-# Take off
-print("tofl_req = ", "%.0f"%ac.requirement.take_off.tofl_req)
-print("")
-# Approach
-print("app_speed_req = ", "%.2f"%(unit.convert_to("kt",ac.requirement.approach.app_speed_req)))
-# Climb
-print("mcl_vz_altp = ", "%.2f"%(unit.convert_to("ft",ac.requirement.mcl_ceiling.altp)))
-print("mcl_vz_mach = ", "%.2f"%(ac.requirement.mcl_ceiling.mach))
-print("mcl_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcl_ceiling.vz_req)))
-print("")
-print("mcr_vz_altp = ", "%.2f"%(unit.convert_to("ft",ac.requirement.mcr_ceiling.altp)))
-print("mcr_vz_mach = ", "%.2f"%(ac.requirement.mcr_ceiling.mach))
-print("mcr_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcr_ceiling.vz_req)))
-print("")
-print("oei_altp_req = ", "%.2f"%(unit.convert_to("ft",ac.requirement.oei_ceiling.altp)))
-print("")
-print("time_to_climb_cas1 = ", "%.1f"%(unit.convert_to("kt",ac.requirement.time_to_climb.cas1)))
-print("time_to_climb_altp1 = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp1)))
-print("time_to_climb_cas2 = ", "%.1f"%(unit.convert_to("kt",ac.requirement.time_to_climb.cas2)))
-print("time_to_climb_altp2 = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp2)))
-print("time_to_climb_toc = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp)))
-print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_climb.ttc_req)))
-
+#-----------------------------------------------------------------------------------------------------------------------
 # Take off
 ac.requirement.take_off.tofl_req = 420.
 
@@ -89,11 +66,22 @@ ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",10000.)
 ac.requirement.time_to_climb.altp = unit.convert_from("ft",16000.)
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",10.)
 
-# overwrite default values for design space graph centering (see below)
+ac.airframe.wing.taper_ratio = 0.4
+
+
+# overwrite default values for design parameters
 ac.power_system.reference_power = unit.W_kW(1000.)
+
+ac.airframe.wing.hld_type = 4.     # (max : 4)
+ac.airframe.wing.aspect_ratio = 10. # (max : 12)
 ac.airframe.wing.area = 60.
 
 
+# overwrite default values for sensitivity analysis
+ac.airframe.system.battery_energy_density = unit.J_Wh(400)  # Wh/kg
+
+
+# Evaluation process
 proc = "mda"
 
 eval("process."+proc+"(ac)")  # Run MDA

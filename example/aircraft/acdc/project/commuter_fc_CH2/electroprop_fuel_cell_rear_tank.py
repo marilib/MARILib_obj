@@ -41,7 +41,7 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite eventually default values for operational requirements
-print("------------------------------------------------------")
+#-----------------------------------------------------------------------------------------------------------------------
 # Take off
 ac.requirement.take_off.tofl_req = 1200.
 
@@ -65,19 +65,30 @@ ac.requirement.time_to_climb.cas2 = unit.convert_from("kt",180.)
 ac.requirement.time_to_climb.altp = cruise_altp
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",30.)
 
-# overwrite default specific values
+ac.airframe.wing.taper_ratio = 0.4
+
+
+# overwrite default values for design parameters
+ac.power_system.reference_power = unit.W_kW(3000.)
+
+ac.airframe.wing.hld_type = 4.     # (max : 4)
+ac.airframe.wing.aspect_ratio = 10.     # (max : 12)
+ac.airframe.wing.area = 110.
+
+
+# overwrite default values for specific design parameters
 ac.airframe.tank.ref_length = 7.
+
+
+# overwrite default values for sensitivity study
 ac.airframe.tank.gravimetric_index = 0.3
 ac.airframe.tank.volumetric_index = 0.85
 
-# overwrite default values for design space graph centering (see below)
-ac.power_system.reference_power = unit.W_kW(3000.)
-ac.airframe.wing.hld_type = 4.
-ac.airframe.wing.aspect_ratio = 12.
-ac.airframe.wing.area = 110.
-ac.airframe.wing.taper_ratio = 0.50
+ac.airframe.system.fuel_cell_pw_density = unit.W_kW(2)  # kW/kg
+ac.airframe.system.fuel_cell_efficiency = 0.5
 
 
+# Evaluation process
 proc = "mda"
 
 eval("process."+proc+"(ac)")  # Run MDA

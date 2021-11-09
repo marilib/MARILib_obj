@@ -29,54 +29,67 @@ agmt = Arrangement(body_type = "fuselage",            # "fuselage" or "blended"
                    power_source = "fuel",             # "fuel", "battery", "fuel_cell"
                    fuel_type = "liquid_h2")         # "kerosene", "liquid_h2", "Compressed_h2", "battery"
 
+cruise_altp = unit.m_ft(35000.)
+cruise_mach = 0.78
 reqs = Requirement(n_pax_ref = 150.,
                    design_range = unit.m_NM(3000.),
-                   cruise_mach = 0.78,
-                   cruise_altp = unit.m_ft(35000.))
+                   cruise_mach = cruise_mach,
+                   cruise_altp = cruise_altp)
 
 ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite eventually default values for operational requirements
-print("------------------------------------------------------")
+#-----------------------------------------------------------------------------------------------------------------------
 # Take off
-print("tofl_req = ", "%.0f"%ac.requirement.take_off.tofl_req)
-print("")
-# Approach
-print("app_speed_req = ", "%.2f"%(unit.convert_to("kt",ac.requirement.approach.app_speed_req)))
-# Climb
-print("mcl_vz_altp = ", "%.2f"%(unit.convert_to("ft",ac.requirement.mcl_ceiling.altp)))
-print("mcl_vz_mach = ", "%.2f"%(ac.requirement.mcl_ceiling.mach))
-print("mcl_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcl_ceiling.vz_req)))
-print("")
-print("mcr_vz_altp = ", "%.2f"%(unit.convert_to("ft",ac.requirement.mcr_ceiling.altp)))
-print("mcr_vz_mach = ", "%.2f"%(ac.requirement.mcr_ceiling.mach))
-print("mcr_vz_req = ", "%.2f"%(unit.convert_to("ft/min",ac.requirement.mcr_ceiling.vz_req)))
-print("")
-print("oei_altp_req = ", "%.2f"%(unit.convert_to("ft",ac.requirement.oei_ceiling.altp)))
-print("")
-print("time_to_climb_cas1 = ", "%.1f"%(unit.convert_to("kt",ac.requirement.time_to_climb.cas1)))
-print("time_to_climb_altp1 = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp1)))
-print("time_to_climb_cas2 = ", "%.1f"%(unit.convert_to("kt",ac.requirement.time_to_climb.cas2)))
-print("time_to_climb_altp2 = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp2)))
-print("time_to_climb_toc = ", "%.1f"%(unit.convert_to("ft",ac.requirement.time_to_climb.altp)))
-print("time_to_climb = ", "%.1f"%(unit.convert_to("min",ac.requirement.time_to_climb.ttc_req)))
+ac.requirement.take_off.tofl_req = 2300.
 
-# overwrite default specific values
-ac.airframe.tank.width = 2.8
+# Approach
+ac.requirement.approach.app_speed_req = unit.convert_from("kt",137.)
+# Climb
+ac.requirement.mcl_ceiling.altp = cruise_altp
+ac.requirement.mcl_ceiling.mach = cruise_mach
+ac.requirement.mcl_ceiling.vz_req = unit.convert_from("ft/min",300.)
+
+ac.requirement.mcr_ceiling.altp = cruise_altp
+ac.requirement.mcr_ceiling.mach = cruise_mach
+ac.requirement.mcr_ceiling.vz_req = unit.convert_from("ft/min",0.)
+
+ac.requirement.oei_ceiling.altp = unit.m_ft(14000)
+
+ac.requirement.time_to_climb.altp1 = unit.convert_from("ft",1500.)
+ac.requirement.time_to_climb.cas1 = unit.convert_from("kt",180.)
+ac.requirement.time_to_climb.altp2 = unit.convert_from("ft",10000.)
+ac.requirement.time_to_climb.cas2 = unit.convert_from("kt",250.)
+ac.requirement.time_to_climb.altp = cruise_altp
+ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",25.)
+
+
+# overwrite default values for design parameters
+ac.power_system.reference_thrust = unit.N_kN(140.)
+
+ac.airframe.wing.hld_type = 9.     # (max : 10)
+ac.airframe.wing.aspect_ratio = 9.     # (max : 12)
+ac.airframe.wing.area = 175.
+
+
+# overwrite default values for specific design parameters
+ac.airframe.tank.width = 3
 ac.airframe.tank.ref_length = 27.
 
+
+# overwrite default values for sensitivity study
 ac.airframe.tank.gravimetric_index = 0.3
 ac.airframe.tank.volumetric_index = 0.85
 
-# overwrite default values for design space graph centering (see below)
-ac.power_system.reference_thrust = unit.N_kN(135.)
-ac.airframe.wing.area = 140.
+ac.airframe.system.fuel_cell_pw_density = unit.W_kW(2)  # kW/kg
+ac.airframe.system.fuel_cell_efficiency = 0.5
 
 
+proc = "mda"
 
-process.mda(ac)                 # Run an MDA on the object (All internal constraints will be solved)
+eval("process."+proc+"(ac)")  # Run MDA
 
 
 # Configure optimization problem
@@ -84,8 +97,8 @@ process.mda(ac)                 # Run an MDA on the object (All internal constra
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(200.)],       # Design space area where to look for an optimum solution
-           [100., 200.]]
+var_bnd = [[unit.N_kN(100.), unit.N_kN(300.)],       # Design space area where to look for an optimum solution
+           [100., 300.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -109,9 +122,11 @@ cst_mag = ["aircraft.performance.take_off.tofl_req",
 crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
-#opt = process.Optimizer()
-#opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='custom')
-#algo_points= opt.computed_points
+opt = process.Optimizer()
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
+# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
+# algo_points = opt.computed_points
+# algo_points = None
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------
@@ -156,7 +171,7 @@ data = [["Thrust", "daN", "%8.1f", var[0]+"/10."],
 file = "aircraft_explore_design.txt"
 
 # res = process.eval_this(ac,var)                                  # This function allows to get the values of a list of addresses in the Aircraft
-res = process.explore_design_space(ac, var, step, data, file)      # Build a set of experiments using above config data and store it in a file
+res = process.explore_design_space(ac, var, step, data, file, proc=proc)      # Build a set of experiments using above config data and store it in a file
 
 field = 'MTOW'                                                                  # Optimization criteria, keys are from data
 other = ['MLW']                                                                 # Additional useful data to show

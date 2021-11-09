@@ -48,7 +48,7 @@ ac = Aircraft("This_plane")     # Instantiate an Aircraft object
 ac.factory(agmt, reqs)          # Configure the object according to Arrangement, WARNING : arrangement must not be changed after this line
 
 # overwrite eventually default values for operational requirements
-print("------------------------------------------------------")
+#-----------------------------------------------------------------------------------------------------------------------
 # Take off
 ac.requirement.take_off.tofl_req = 500.
 
@@ -73,17 +73,18 @@ ac.requirement.time_to_climb.cas2 = unit.convert_from("km/h",180.)
 ac.requirement.time_to_climb.altp = cruise_altp
 ac.requirement.time_to_climb.ttc_req = unit.convert_from("min",14.)
 
-# overwrite default values for design space graph centering (see below)
+
+# overwrite default values for design parameters
 ac.power_system.reference_power = unit.W_kW(280.)
 
 ac.airframe.wing.hld_type = 4
 ac.airframe.wing.aspect_ratio = 12
 ac.airframe.wing.area = 39
 
+
+
+# Evaluation process
 ac.weight_cg.mtow = 3500.   # Initial value for solving
-
-
-
 proc = "mda"
 
 eval("process."+proc+"(ac)")  # Run MDA
