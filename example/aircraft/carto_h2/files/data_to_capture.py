@@ -48,4 +48,10 @@ def get_path(name):
         except KeyError as err:
                 raise KeyError(f"could not extract the path of {name}")
 
+def get_unit(name):
+        try:
+                return df.loc[df['name']==name].iloc[0]['unit']
+        except KeyError as err:
+                raise KeyError(f"could not extract the unit of {name}")
+
 
