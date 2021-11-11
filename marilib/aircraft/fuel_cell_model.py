@@ -1886,6 +1886,9 @@ if __name__ == '__main__':
 
         heat_balance.append(dict["system"]["thermal_balance"])
 
+        # print(req_power, dict["system"]["efficiency"])
+
+
     print("")
     print("Fuel cell system max power = ", "%.1f"%unit.kW_W(fc_syst.total_max_power), " kW")
     print("Required max power = ", "%.1f"%unit.kW_W(req_pw_max), " kW")

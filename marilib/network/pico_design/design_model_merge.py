@@ -832,30 +832,19 @@ if __name__ == '__main__':
 
     # Read data
     #-------------------------------------------------------------------------------------------------------------------
-    # path_to_data_base = "../../../data/All_Data_v5.xlsx"
-    #
-    # df,un = read_db(path_to_data_base)
-    #
-    # # Remove A380-800 row and reset index
-    # df = df[df['name']!='A380-800'].reset_index(drop=True)
-    #
-    # df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
-    # un1 = un.copy()
+    path_to_data_base = "../../../data/All_Data_v5.xlsx"
+
+    df,un = read_db(path_to_data_base)
+
+    # Remove A380-800 row and reset index
+    df = df[df['name']!='A380-800'].reset_index(drop=True)
+
+    df1 = df[df['airplane_type']!='business'].reset_index(drop=True).copy()
+    un1 = un.copy()
 
 
 
     # # Regressions
-    # #-------------------------------------------------------------------------------------------------------------------
-    # abs = "mtow"
-    # ord = "owe"
-    #
-    # # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
-    # # df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
-    #
-    # # order = [1]
-    # order = [2, 1]
-    # dict_owe = do_regression(df1, un1, abs, ord, coloration, order)
-    #
     # #----------------------------------------------------------------------------------
     # abs = "mtow"
     # ord = "total_power"                           # Name of the new column
@@ -869,9 +858,118 @@ if __name__ == '__main__':
     # dict = do_regression(df, un, abs, ord, coloration, order)
 
 
+    # #-------------------------------------------------------------------------------------------------------------------
+    # abs = "mtow"
+    # ord = "owe"
+    #
+    # # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+    # # df = df[df['MTOW']<6000].reset_index(drop=True)                     # Remove all airplane with MTOW > 6t
+    #
+    # # order = [1]
+    # order = [2, 1]
+    # dict_owe = do_regression(df1, un1, abs, ord, coloration, order)
+
+
+
+
+    # # MWE
+    # #-------------------------------------------------------------------------------------------------------------------
+    abs = "mtow"
+    ord = "MWE"                           # Name of the new column
+
+    # df1['m_furnishing'] = (df1['n_pax']**2).multiply(0.06) + df1['n_pax'].multiply(10)
+    # df1['m_op_item'] = (df1['n_pax']*df1['nominal_range']).multiply(5.5e-6)
+
+    # df1[ord] = df1['owe'] - df1['mtow'].multiply(0.0582)      # Raymer p591
+    # df1[ord] = df1['owe'] - df1['mtow'].multiply(0.1)      # Add the new column to the dataframe
+    # df1[ord] = df1['owe'] - df1['m_furnishing'] - df1['m_op_item']      # Add the new column to the dataframe
+
+    ord1 = "mfurn+mopit"
+    df1[ord1] = df1['mtow'].multiply(0.095) + (df1['mtow']**0.40).multiply(2.5)
+    un1[ord1] = un1['owe']                     # Add its unit
+
+    df1[ord] = df1['owe'] - df1[ord1]     # Add the new column to the dataframe
+    un1[ord] = un1['owe']                     # Add its unit
+
+    # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+
+    order = [2, 1]
+    dict = do_regression(df1, un1, abs, ord, coloration, order)
+
+    order = [0.5, 1]
+    dict = do_regression(df1, un1, abs, ord1, coloration, order)
+
+
+
+
+    # # MWE
+    # #-------------------------------------------------------------------------------------------------------------------
+    # abs = "mtow*k"
+    # ord = "mfurn+mopit"                           # Name of the new column
+    #
+    # df1['m_furnishing'] = (df1['n_pax']**2).multiply(0.063) + df1['n_pax'].multiply(9.76)
+    # df1['m_op_item'] = (df1['n_pax']*df1['nominal_range']).multiply(5.2e-6)
+    #
+    # df1[abs] = df1['mtow'].multiply(0.1)      # Add the new column to the dataframe
+    # un1[abs] = un1['mtow']                     # Add its unit
+    #
+    # df1[ord] = df1['m_furnishing'] + df1['m_op_item']      # Add the new column to the dataframe
+    # un1[ord] = un1['owe']                     # Add its unit
+    #
+    # # print(tabulate(df[[abs,ord]], headers='keys', tablefmt='psql'))
+    #
+    # order = [1]
+    # dict = do_regression(df1, un1, abs, ord, coloration, order)
+
+
+
 
     # # Analysis
     # #-------------------------------------------------------------------------------------------------------------------
+    # nap = df1.shape[0]
+    #
+    # var = "mtow"
+    #
+    # df1["guessed_"+var] = df1[var]
+    # un1["guessed_"+var] = un1[var]
+    #
+    # thruster = {ddm.piston:ddm.propeller, ddm.turboprop:ddm.propeller, ddm.turbofan:ddm.fan}
+    #
+    # abs = var
+    # ord = "guessed_"+var
+    #
+    # for n in range(nap):
+    #     # print(df1["name"][n])
+    #     npax = df1["n_pax"][n]
+    #     distance = df1["nominal_range"][n]
+    #     mtow = df1["mtow"][n]
+    #     cruise_speed = df1["cruise_speed"][n]
+    #     n_engine = df1["n_engine"][n]
+    #     airplane_type = df1["airplane_type"][n]
+    #     altitude_data = ddm.cruise_altp(airplane_type)
+    #     reserve_data = ddm.reserve_data(airplane_type)
+    #     initial_power_system = {"thruster":thruster[df1["engine_type"][n]],
+    #                             "engine_type":df1["engine_type"][n],
+    #                             "energy_source":ddm.petrol}
+    #     target_power_system = initial_power_system
+    #     if var=="mtow":
+    #         ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+    #     elif var=="nominal_range":
+    #         ac_dict = ddm.design_from_mtow(npax, mtow, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system, target_power_system)
+    #     df1[ord][n] = ac_dict[abs]
+    #
+    # amp = {"mtow":5e5, "nominal_range":20e6}.get(var)
+    #
+    # # dict = draw_reg(df1, un1, abs, ord, [[0,amp],[0,amp]], coloration)
+    #
+    # order = [1]
+    # dict_owe = do_regression(df1, un1, abs, ord, coloration, order)
+
+
+
+
+
+
     # nap = df1.shape[0]
     #
     # var = "mtow"
@@ -929,38 +1027,38 @@ if __name__ == '__main__':
 
     # ATR72
     #-------------------------------------------------------------------------------------------------------------------
-    airplane_type = "commuter"
-    altitude_data = ddm.cruise_altp(airplane_type)
-    reserve_data = ddm.reserve_data(airplane_type)
-
-    initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.turboprop, "energy_source":ddm.petrol}
-    n_engine = 2
-
-    npax = 78
-    distance = unit.m_NM(600)
-    cruise_speed = unit.mps_kmph(650)
-
-    ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system)
-    ddm.print_design(ac_dict)
-
-    #-------------------------------------------------------------------------------------------------------------------
-    distance = unit.m_NM(350)
-    input_type = "pax"
-    input = 55
-
-    tow_dict = ddm.fly_distance(ac_dict, distance, input, input_type)
-
-    tow = tow_dict["tow"]
-
-    dist_dict = ddm.fly_tow(ac_dict, tow, input, input_type)
-
-    print("")
-    print("-----------------------------------------------------------------------")
-    print("Initial distance = ", "%.2f"%unit.NM_m(distance), " NM")
-    print("Mission take off weight = ", "%.1f"%tow, " kg")
-    print("Mission fuel = ", "%.1f"%dist_dict["mission_fuel"], " kg")
-    print("Reserve fuel = ", "%.1f"%dist_dict["reserve_fuel"], " kg")
-    print("Recomputed distance = ", "%.2f"%unit.NM_m(dist_dict["distance"]), " NM")
+    # airplane_type = "commuter"
+    # altitude_data = ddm.cruise_altp(airplane_type)
+    # reserve_data = ddm.reserve_data(airplane_type)
+    #
+    # initial_power_system = {"thruster":ddm.propeller, "engine_type":ddm.turboprop, "energy_source":ddm.petrol}
+    # n_engine = 2
+    #
+    # npax = 78
+    # distance = unit.m_NM(600)
+    # cruise_speed = unit.mps_kmph(650)
+    #
+    # ac_dict = ddm.design_airplane(npax, distance, cruise_speed, altitude_data, reserve_data, n_engine, initial_power_system)
+    # ddm.print_design(ac_dict)
+    #
+    # #-------------------------------------------------------------------------------------------------------------------
+    # distance = unit.m_NM(350)
+    # input_type = "pax"
+    # input = 55
+    #
+    # tow_dict = ddm.fly_distance(ac_dict, distance, input, input_type)
+    #
+    # tow = tow_dict["tow"]
+    #
+    # dist_dict = ddm.fly_tow(ac_dict, tow, input, input_type)
+    #
+    # print("")
+    # print("-----------------------------------------------------------------------")
+    # print("Initial distance = ", "%.2f"%unit.NM_m(distance), " NM")
+    # print("Mission take off weight = ", "%.1f"%tow, " kg")
+    # print("Mission fuel = ", "%.1f"%dist_dict["mission_fuel"], " kg")
+    # print("Reserve fuel = ", "%.1f"%dist_dict["reserve_fuel"], " kg")
+    # print("Recomputed distance = ", "%.2f"%unit.NM_m(dist_dict["distance"]), " NM")
 
 
 
