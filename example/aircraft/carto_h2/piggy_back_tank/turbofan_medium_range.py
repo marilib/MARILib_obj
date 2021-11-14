@@ -35,11 +35,11 @@ airplane_type = "A320-200neo"
 ga_type = "piggyback_tank"
 
 n_pax_ref = 186
-design_range = unit.m_NM(1370.)
+design_range = unit.m_NM(720.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 86015
+# ac.weight_cg.mtow = 129854
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -110,8 +110,8 @@ ac.airframe.tank.mfw_factor = 1
 # ac.airframe.wing.area = 249.6
 # ac.weight_cg.mtow = 129854
 
-# design_range = unit.m_NM(1020.)
-# n_pax_ref = 114
+# design_range = unit.m_NM(720.)
+# n_pax_ref = 186
 # case_type = "pax_range_trade_soa"
 # ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.volumetric_index = 0.606
@@ -149,7 +149,6 @@ proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -189,6 +188,7 @@ opt = process.Optimizer()
 # algo_points = opt.computed_points
 # algo_points = None
 
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------

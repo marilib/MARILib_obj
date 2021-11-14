@@ -36,8 +36,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 airplane_type = "A330-800"
 ga_type = "piggyback_tank"
 
-n_pax_ref = 300
-design_range = unit.m_NM(2395.)
+n_pax_ref = 240
+design_range = unit.m_NM(1300.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 

@@ -36,8 +36,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 airplane_type = "A330-800"
 ga_type = "pod_tank"
 
-n_pax_ref = 200
-design_range = unit.m_NM(3440.)
+n_pax_ref = 240
+design_range = unit.m_NM(1300.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 
@@ -139,6 +139,7 @@ ac.airframe.tank.mfw_factor = 1
 # ac.power_system.reference_thrust = unit.N_kN(230.35)
 # ac.airframe.wing.area = 330.3
 # ac.weight_cg.mtow = 173354
+
 
 
 

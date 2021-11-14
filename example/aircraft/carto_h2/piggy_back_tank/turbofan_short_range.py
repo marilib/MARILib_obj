@@ -37,11 +37,11 @@ airplane_type = "A220-100"
 ga_type = "piggyback_tank"
 
 n_pax_ref = 171
-design_range = unit.m_NM(1510.)
+design_range = unit.m_NM(405.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 80486
+# ac.weight_cg.mtow = 86439
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -131,6 +131,29 @@ ac.airframe.tank.mfw_factor = 1
 # ac.power_system.reference_thrust = unit.N_kN(209.2)
 # ac.airframe.wing.area = 268.8
 # ac.weight_cg.mtow = 136021
+
+
+# design_range = unit.m_NM(600.)
+# n_pax_ref = 135
+# case_type = "ref_600NM_soa"
+# ac.airframe.cabin.n_pax_front = 5
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(131.72)
+# ac.airframe.wing.area = 172.65
+# ac.weight_cg.mtow = 86439
+
+# design_range = unit.m_NM(405.)
+# n_pax_ref = 171
+# case_type = "pax_range_trade_600NM_soa"
+# ac.airframe.cabin.n_pax_front = 5
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(131.72)
+# ac.airframe.wing.area = 172.65
+# ac.weight_cg.mtow = 86439
 
 
 

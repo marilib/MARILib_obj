@@ -194,6 +194,13 @@ UNIT["lb"] = 0.4535924
 UNIT["lbm"] = 0.4535924
 UNIT["t"] = 1000.
 
+# dim = "MasstoForceratio"
+UNIT["kg/N"] = 1.
+UNIT["g/N"] = 0.001
+UNIT["g/kN"] = 0.000001
+UNIT["kg/daN"] = 0.1
+UNIT["kg/kN"] = 0.001
+
 # dim = "MassIndex"
 UNIT["g/kg"] = 1.
 

@@ -35,11 +35,11 @@ airplane_type = "A320-200neo"
 ga_type = "engined_pod_tank"
 
 n_pax_ref = 186
-design_range = unit.m_NM(1430.)
+design_range = unit.m_NM(760.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 91596
+# ac.weight_cg.mtow = 150710
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -132,6 +132,38 @@ ac.airframe.tank.mfw_factor = 1
 
 
 
+# design_range = unit.m_NM(850.)
+# n_pax_ref = 150
+# case_type = "max_range_soa"
+# ac.airframe.cabin.n_pax_front = 5
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.other_tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.other_tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 3
+# ac.airframe.other_tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(204.5)
+# ac.airframe.wing.area = 289.8
+# ac.weight_cg.mtow = 150710
+
+# design_range = unit.m_NM(760.)
+# n_pax_ref = 186
+# case_type = "pax_range_trade_soa"
+# ac.airframe.cabin.n_pax_front = 5
+# ac.airframe.tank.gravimetric_index = 0.1
+# ac.airframe.other_tank.gravimetric_index = 0.1
+# ac.airframe.tank.volumetric_index = 0.606
+# ac.airframe.other_tank.volumetric_index = 0.606
+# ac.airframe.tank.width = 3
+# ac.airframe.other_tank.width = 3
+# ac.power_system.reference_thrust = unit.N_kN(204.5)
+# ac.airframe.wing.area = 289.8
+# ac.weight_cg.mtow = 150710
+
+
+
+
+
 # design_range = unit.m_NM(1900)
 # n_pax_ref = 150
 # case_type = "max_range_2030"
@@ -166,15 +198,14 @@ proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(80.), unit.N_kN(1000.)],       # Design space area where to look for an optimum solution
-           [100., 1000.]]
+var_bnd = [[unit.N_kN(100.), unit.N_kN(400.)],       # Design space area where to look for an optimum solution
+           [100., 300.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -206,6 +237,7 @@ opt = process.Optimizer()
 # algo_points = opt.computed_points
 # algo_points = None
 
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------

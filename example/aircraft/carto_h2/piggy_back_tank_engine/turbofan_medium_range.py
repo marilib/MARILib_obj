@@ -35,11 +35,11 @@ airplane_type = "A320-200neo"
 ga_type = "engined_piggyback_tank"
 
 n_pax_ref = 186
-design_range = unit.m_NM(1315.)
+design_range = unit.m_NM(700.)
 cruise_mach = 0.78
 cruise_altp = unit.m_ft(35000.)
 
-# ac.weight_cg.mtow = 80700
+# ac.weight_cg.mtow = 116936
 
 # Build airplane object
 #-----------------------------------------------------------------------------------------------------------------------
@@ -113,8 +113,8 @@ ac.airframe.tank.mfw_factor = 1
 # ac.airframe.wing.area = 225.5
 # ac.weight_cg.mtow = 116936
 
-# design_range = unit.m_NM(990.)
-# n_pax_ref = 114
+# design_range = unit.m_NM(700.)
+# n_pax_ref = 186
 # case_type = "pax_range_trade_soa"
 # ac.airframe.cabin.n_pax_front = 6
 # ac.airframe.tank.volumetric_index = 0.606

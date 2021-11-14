@@ -137,6 +137,18 @@ UNIT["ft2"] = 0.0929030
 UNIT["inch2"] = 0.00064516
 UNIT["in2"] = 0.00064516
 
+# dim = "AreaPerMass"
+UNIT["m2/kg"] = 1.
+UNIT["cm2/kg"] = 0.0001
+UNIT["ft2/kg"] = 0.0929030
+UNIT["inch2/kg"] = 0.00064516
+UNIT["in2/kg"] = 0.00064516
+
+# dim = "PowerPerMass"
+UNIT["N/kg"] = 1.
+UNIT["daN/kg"] = 10.
+UNIT["kN/kg"] = 1000.
+
 # dim = "Duration"
 UNIT["s"] = 1.
 UNIT["min"] = 60.
