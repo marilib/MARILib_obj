@@ -4,7 +4,7 @@
 Created on Jan 16 17:18:19 2021
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Aircraft & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Department, ENAC
 """
 
 import numpy as np

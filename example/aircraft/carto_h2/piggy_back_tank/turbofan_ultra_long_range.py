@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Aircraft & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Department, ENAC
 """
 
 import numpy as np
@@ -36,8 +36,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 airplane_type = "A350-900"
 ga_type = "piggyback_tank"
 
-n_pax_ref = 200
-design_range = unit.m_NM(3690.)
+n_pax_ref = 240
+design_range = unit.m_NM(4000.)
 cruise_mach = 0.85
 cruise_altp = unit.m_ft(35000.)
 
@@ -122,27 +122,16 @@ ac.airframe.tank.mfw_factor = 1
 # ac.weight_cg.mtow = 300953
 
 
-# design_range = unit.m_NM(3000.)
+# design_range = unit.m_NM(4000.)
 # n_pax_ref = 240
 # case_type = "max_range_2030"
 # ac.airframe.cabin.n_pax_front = 7
 # ac.airframe.tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
-# ac.airframe.tank.width = 3.5
-# ac.power_system.reference_thrust = unit.N_kN(251.1)
-# ac.airframe.wing.area = 338.3
-# ac.weight_cg.mtow = 184087
-
-# design_range = unit.m_NM(3690.)
-# n_pax_ref = 200
-# case_type = "pax_range_trade_2030"
-# ac.airframe.cabin.n_pax_front = 6
-# ac.airframe.tank.gravimetric_index = 0.3
-# ac.airframe.tank.volumetric_index = 0.845
-# ac.airframe.tank.width = 3.5
-# ac.power_system.reference_thrust = unit.N_kN(251.1)
-# ac.airframe.wing.area = 338.3
-# ac.weight_cg.mtow = 184087
+# ac.airframe.tank.width = 4.5
+# ac.power_system.reference_thrust = unit.N_kN(342)
+# ac.airframe.wing.area = 473.7
+# ac.weight_cg.mtow = 260925
 
 
 proc = "mda_plus"
@@ -183,7 +172,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst[:-1],cst_mag[:-1], crt,method='optim2d_poly',proc=proc)
+opt.mdf(ac, var,var_bnd, cst[:-1],cst_mag[:-1], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points

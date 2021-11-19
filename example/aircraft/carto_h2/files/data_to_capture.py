@@ -4,16 +4,19 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Aircraft & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Department, ENAC
 """
 import pandas as pd
 
-data = [["Design range", "km", "%8.0f", "ac.requirement.design_range"],
+data = [["Design range", "NM", "%8.0f", "ac.requirement.design_range"],
         ["Cruise Mach", "mach", "%8.0f", "ac.requirement.cruise_mach"],
         ["Nominal seat count", "int", "%8.0f", "ac.airframe.cabin.n_pax_ref"],
+        ["Front seats count", "int", "%8.0f", "ac.airframe.cabin.n_pax_front"],
         ["Number of front seats", "int", "%8.0f", "ac.airframe.cabin.n_pax_front"],
         ["Fuselage length", "m", "%8.2f", "ac.airframe.body.length"],
+        ["Fuselage height", "m", "%8.2f", "ac.airframe.body.width"],
         ["Fuselage width", "m", "%8.2f", "ac.airframe.body.width"],
+        ["Body aspect ratio", "adim", "%8.1f", "ac.airframe.body.aspect_ratio"],
         ["Wing area", "m", "%8.2f", "ac.airframe.wing.area"],
         ["Wing aspect ratio", "m", "%8.1f", "ac.airframe.wing.aspect_ratio"],
         ["Tank length", "m", "%8.2f", "ac.airframe.tank.length"],
@@ -23,8 +26,8 @@ data = [["Design range", "km", "%8.0f", "ac.requirement.design_range"],
         ["MTOW", "kg", "%8.0f", "ac.weight_cg.mtow"],
         ["OEW", "kg", "%8.0f", "ac.weight_cg.owe"],
         ["MFW", "kg", "%8.0f", "ac.weight_cg.owe"],
-        ["Maximum range", "km", "%8.0f", "ac.performance.mission.max_fuel.range"],
-        ["L/D start of cruise", "no_dim", "%8.2f", "ac.performance.mission.crz_lod"],
+        ["Maximum range", "NM", "%8.0f", "ac.performance.mission.max_fuel.range"],
+        ["L/D start of cruise", "adim", "%8.2f", "ac.performance.mission.crz_lod"],
         ["Payload at maximum range", "kg", "%8.0f", "ac.performance.mission.max_fuel.payload"],
         ["Take off field length required", "m", "%8.0f", "ac.performance.take_off.tofl_req"],
         ["Take off field length effective", "m", "%8.0f", "ac.performance.take_off.tofl_eff"],
@@ -53,6 +56,12 @@ def get_unit(name):
                 return df.loc[df['name']==name].iloc[0]['unit']
         except KeyError as err:
                 raise KeyError(f"could not extract the unit of {name}")
+
+def get_format(name):
+        try:
+                return df.loc[df['name']==name].iloc[0]['format']
+        except KeyError as err:
+                raise KeyError(f"could not extract the format of {name}")
 
 
 

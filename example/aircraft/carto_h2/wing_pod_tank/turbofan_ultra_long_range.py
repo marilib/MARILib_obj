@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Aircraft & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Department, ENAC
 """
 
 import numpy as np
@@ -36,8 +36,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 airplane_type = "A350-900"
 ga_type = "pod_tank"
 
-n_pax_ref = 200
-design_range = unit.m_NM(3440.)
+n_pax_ref = 240
+design_range = unit.m_NM(3000.)
 cruise_mach = 0.85
 cruise_altp = unit.m_ft(35000.)
 
@@ -122,8 +122,8 @@ ac.airframe.tank.mfw_factor = 1
 # ac.airframe.other_tank.volumetric_index = 0.606
 # ac.airframe.tank.width = 3.5
 # ac.airframe.other_tank.width = 3.5
-# ac.power_system.reference_thrust = unit.N_kN(300.8)
-# ac.airframe.wing.area = 433.7
+# ac.power_system.reference_thrust = unit.N_kN(400.8)
+# ac.airframe.wing.area = 500.7
 # ac.weight_cg.mtow = 226072
 
 # design_range = unit.m_NM(910.)
@@ -151,9 +151,9 @@ ac.airframe.tank.mfw_factor = 1
 # ac.airframe.other_tank.volumetric_index = 0.845
 # ac.airframe.tank.width = 4
 # ac.airframe.other_tank.width = 4
-# ac.power_system.reference_thrust = unit.N_kN(286.9)
-# ac.airframe.wing.area = 382.2
-# ac.weight_cg.mtow = 208660
+# ac.power_system.reference_thrust = unit.N_kN(287)
+# ac.airframe.wing.area = 382.4
+# ac.weight_cg.mtow = 208718
 
 # design_range = unit.m_NM(3440.)
 # n_pax_ref = 200
@@ -174,7 +174,6 @@ proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
 
-print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Configure optimization problem
 # ---------------------------------------------------------------------------------------------------------------------
@@ -209,12 +208,13 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst[:-1],cst_mag[:-1], crt,method='optim2d_poly',proc=proc)
+opt.mdf(ac, var,var_bnd, cst[:-1],cst_mag[:-1], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
 # algo_points = None
 
+print("MTOW = ", "%8.0f"%ac.weight_cg.mtow)
 
 # Main output
 # ---------------------------------------------------------------------------------------------------------------------

@@ -510,6 +510,7 @@ UNIT["$/kWh"] = 1. / UNIT['kWh']
 
 # dim = "nodimension"
 UNIT["sd"] = 1
+UNIT["adim"] = 1
 UNIT["no_dim"] = 1
 UNIT["%"] = 0.01
 UNIT["%/%"] = 1.

@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Aircraft & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Department, ENAC
 """
 
 import numpy as np
@@ -36,8 +36,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 airplane_type = "A350-900"
 ga_type = "engined_piggyback_tank"
 
-n_pax_ref = 200
-design_range = unit.m_NM(3620.)
+n_pax_ref = 310
+design_range = unit.m_NM(4500.)
 cruise_mach = 0.85
 cruise_altp = unit.m_ft(35000.)
 
@@ -125,27 +125,41 @@ ac.airframe.tank.mfw_factor = 1
 # ac.weight_cg.mtow = 300953
 
 
-# design_range = unit.m_NM(3000.)
+# design_range = unit.m_NM(4000.)
 # n_pax_ref = 240
 # case_type = "max_range_2030"
 # ac.airframe.cabin.n_pax_front = 7
 # ac.airframe.tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
-# ac.airframe.tank.width = 4
-# ac.power_system.reference_thrust = unit.N_kN(215.7)
-# ac.airframe.wing.area = 313.8
-# ac.weight_cg.mtow = 169398
+# ac.airframe.tank.width = 4.5
+# ac.power_system.reference_thrust = unit.N_kN(350.5)
+# ac.airframe.wing.area = 500.6
+# ac.weight_cg.mtow = 238174
 
-# design_range = unit.m_NM(3620.)
-# n_pax_ref = 200
-# case_type = "pax_range_trade_2030"
+
+# design_range = unit.m_NM(4000.)
+# n_pax_ref = 310
+# case_type = "ultra_max_capacity_2030"
 # ac.airframe.cabin.n_pax_front = 7
 # ac.airframe.tank.gravimetric_index = 0.3
 # ac.airframe.tank.volumetric_index = 0.845
-# ac.airframe.tank.width = 4
-# ac.power_system.reference_thrust = unit.N_kN(215.7)
-# ac.airframe.wing.area = 313.8
-# ac.weight_cg.mtow = 169398
+# ac.airframe.tank.width = 4.5
+# ac.power_system.reference_thrust = unit.N_kN(359.8)
+# ac.airframe.wing.area = 543.04
+# ac.weight_cg.mtow = 295456
+
+# design_range = unit.m_NM(4600.)
+# n_pax_ref = 240
+# case_type = "ultra_max_range_2030"
+# ac.airframe.cabin.n_pax_front = 7
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.tank.width = 4.5
+# ac.power_system.reference_thrust = unit.N_kN(530.6)
+# ac.airframe.wing.area = 650
+# ac.weight_cg.mtow = 298075
+
+
 
 
 
@@ -159,7 +173,7 @@ eval("process."+proc+"(ac)")  # Run MDA
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(100.), unit.N_kN(1000.)],       # Design space area where to look for an optimum solution
+var_bnd = [[unit.N_kN(100.), unit.N_kN(800.)],       # Design space area where to look for an optimum solution
            [200., 1000.]]
 
 # Operational constraints definition
@@ -187,7 +201,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst[:-1],cst_mag[:-1], crt,method='optim2d_poly',proc=proc)
+opt.mdf(ac, var,var_bnd, cst[:-1],cst_mag[:-1], crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points

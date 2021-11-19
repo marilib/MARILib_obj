@@ -294,7 +294,7 @@ class MyDict(dict):
             elif key == 'name': # skip the 'name' entry which is of type string
                 pass
             elif isinstance(val, type(None)):
-                print("WARNING in MyDict: %s is 'None'" %key)
+                # print("WARNING in MyDict: %s is 'None'" %key)
                 self.__dict__[key] = None
             else:
                 raise AttributeError("Unknown type, should be list or dict but type of %s is %s. It is probably not well defined in the DATA_DICT." % (key, type(val)))

@@ -4,7 +4,7 @@ Created on Thu Jan 20 20:20:20 2020
 
 @author: Conceptual Airplane Design & Operations (CADO team)
          Nicolas PETEILH, Pascal ROCHES, Nicolas MONROLIN, Thierry DRUOT
-         Aircraft & Systems, Air Transport Departement, ENAC
+         Aircraft & Systems, Air Transport Department, ENAC
 """
 
 import numpy as np
@@ -36,8 +36,8 @@ agmt = Arrangement(body_type = "fuselage",           # "fuselage" or "blended"
 airplane_type = "A330-800"
 ga_type = "engined_piggyback_tank"
 
-n_pax_ref = 300
-design_range = unit.m_NM(2325.)
+n_pax_ref = 320
+design_range = unit.m_NM(4200.)
 cruise_mach = 0.82
 cruise_altp = unit.m_ft(35000.)
 
@@ -160,6 +160,30 @@ ac.airframe.tank.mfw_factor = 1
 # ac.weight_cg.mtow = 168586
 
 
+
+# design_range = unit.m_NM(3500.)
+# n_pax_ref = 320
+# case_type = "ultra_max_range_2030"
+# ac.airframe.cabin.n_pax_front = 7
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.tank.width = 4
+# ac.power_system.reference_thrust = unit.N_kN(306.4)
+# ac.airframe.wing.area = 460.6
+# ac.weight_cg.mtow = 254684
+
+# design_range = unit.m_NM(3500.)
+# n_pax_ref = 320
+# case_type = "super_ultra_max_range_2030"
+# ac.airframe.cabin.n_pax_front = 7
+# ac.airframe.tank.gravimetric_index = 0.3
+# ac.airframe.tank.volumetric_index = 0.845
+# ac.airframe.tank.width = 4.5
+# ac.power_system.reference_thrust = unit.N_kN(398.5)
+# ac.airframe.wing.area = 598.6
+# ac.weight_cg.mtow = 332506
+
+
 proc = "mda_plus"
 
 eval("process."+proc+"(ac)")  # Run MDA
@@ -170,8 +194,8 @@ eval("process."+proc+"(ac)")  # Run MDA
 var = ["aircraft.power_system.reference_thrust",
        "aircraft.airframe.wing.area"]               # Main design variables
 
-var_bnd = [[unit.N_kN(100.), unit.N_kN(1000.)],       # Design space area where to look for an optimum solution
-           [200., 1000.]]
+var_bnd = [[unit.N_kN(100.), unit.N_kN(700.)],       # Design space area where to look for an optimum solution
+           [200., 700.]]
 
 # Operational constraints definition
 cst = ["aircraft.performance.take_off.tofl_req - aircraft.performance.take_off.tofl_eff",
@@ -198,7 +222,7 @@ crt = "aircraft.weight_cg.mtow"
 
 # Perform an MDF optimization process
 opt = process.Optimizer()
-# opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
+opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='optim2d_poly',proc=proc)
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt,method='trust-constr')
 # opt.mdf(ac, var,var_bnd, cst,cst_mag, crt)
 # algo_points = opt.computed_points
